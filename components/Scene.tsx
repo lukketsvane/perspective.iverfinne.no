@@ -9,35 +9,79 @@ import { useStore } from '../store';
 import { KimBox } from './KimBox';
 import { useGesture } from '@use-gesture/react';
 
-// Custom Shader for Strong 5-Point Perspective / Fisheye
-// Modified to have transparent edges
+// Custom Shader for Kim Jung Gi 5-Point Curvilinear Perspective
+// True spherical/equirectangular projection that curves ALL lines toward 5 vanishing points
+// This creates the characteristic "bending" effect where horizontal and vertical lines
+// curve toward their respective vanishing points (4 cardinal + zenith/nadir)
 const fisheyeFragment = `
 uniform float strength;
 uniform vec3 bgColor;
 
+#define PI 3.14159265359
+#define HALF_PI (PI * 0.5)
+
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
-    // Center UVs
+    // Center UVs to -1 to 1 range
     vec2 coord = uv * 2.0 - 1.0;
+    
+    // Apply aspect ratio correction for proper spherical mapping
+    float aspect = resolution.x / resolution.y;
+    coord.x *= aspect;
+    
     float r = length(coord);
     
-    // 5-Point / Fisheye Distortion Formula
-    float k = strength * 2.0; 
-    float r_dist = r * (1.0 + k * r * r);
+    // Skip processing for center pixels when no distortion
+    if (strength < 0.001) {
+        outputColor = texture2D(inputBuffer, uv);
+        return;
+    }
     
-    // Zoom correction
-    float zoom = 1.0 + strength * 0.8;
-    vec2 coord_dist = coord * (r_dist / r) / zoom;
+    // Kim Jung Gi 5-Point Curvilinear Perspective:
+    // Uses spherical projection (equidistant azimuthal) which bends ALL straight lines
+    // into curves, creating the characteristic "fisheye drawing" look where:
+    // - Horizontal lines curve toward left/right vanishing points
+    // - Vertical lines curve toward top/bottom vanishing points  
+    // - The center vanishing point remains at the center
+    
+    // Field of view control - higher strength = wider apparent FOV
+    float fov = 1.0 + strength * 1.5; // Range from 1.0 to 2.5 (up to ~140° equivalent)
+    
+    // Spherical projection: Convert 2D screen coords to angles, then back
+    // This is the key to true 5-point perspective - it treats the image as if
+    // projected onto the inside of a sphere
+    float theta = atan(r * fov); // Angle from center
+    float r_spherical = theta / HALF_PI; // Normalize to 0-1 for 90° FOV hemisphere
+    
+    // Apply the spherical distortion
+    vec2 coord_dist;
+    if (r > 0.0001) {
+        coord_dist = coord * (r_spherical / r);
+    } else {
+        coord_dist = coord;
+    }
+    
+    // Undo aspect ratio correction
+    coord_dist.x /= aspect;
+    
+    // Zoom compensation to keep the scene roughly the same size
+    float zoom = 1.0 / (1.0 + strength * 0.4);
+    coord_dist *= zoom;
     
     // Convert back to 0..1 UV space
     vec2 uv_src = coord_dist * 0.5 + 0.5;
     
-    // Check bounds - Output transparent if out of bounds to avoid hard frame
+    // Smooth edge fadeout instead of hard cutoff for artistic look
+    float edgeDist = max(abs(uv_src.x - 0.5), abs(uv_src.y - 0.5)) * 2.0;
+    float edgeFade = smoothstep(1.0, 0.95, edgeDist);
+    
+    // Check bounds - Output transparent if out of bounds
     if (uv_src.x < 0.0 || uv_src.x > 1.0 || uv_src.y < 0.0 || uv_src.y > 1.0) {
-       outputColor = vec4(0.0, 0.0, 0.0, 0.0); // Transparent
+       outputColor = vec4(bgColor, 0.0);
        return;
     }
 
-    outputColor = texture2D(inputBuffer, uv_src);
+    vec4 color = texture2D(inputBuffer, uv_src);
+    outputColor = vec4(color.rgb, color.a * edgeFade);
 }
 `;
 

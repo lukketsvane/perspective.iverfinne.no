@@ -1,9 +1,31 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import { BoxData, SceneState } from './types';
+import { BoxData, SceneState, SavedScene } from './types';
 
 // Helper for random range
 const rng = (min: number, max: number) => Math.random() * (max - min) + min;
+
+const STORAGE_KEY = 'kjg-perspective-scenes';
+
+const loadScenesFromStorage = (): SavedScene[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error('Failed to load scenes from storage:', e);
+  }
+  return [];
+};
+
+const saveScenesToStorage = (scenes: SavedScene[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(scenes));
+  } catch (e) {
+    console.error('Failed to save scenes to storage:', e);
+  }
+};
 
 const generateInitialScene = (): BoxData[] => {
   // A small stack of boxes to show scale immediately
@@ -29,7 +51,7 @@ const generateInitialScene = (): BoxData[] => {
   ];
 };
 
-export const useStore = create<SceneState>((set) => ({
+export const useStore = create<SceneState>((set, get) => ({
   boxes: generateInitialScene(),
   selectedId: null,
   isDragging: false,
@@ -37,6 +59,8 @@ export const useStore = create<SceneState>((set) => ({
   fov: 85, // Wider default FOV for perspective drama
   distortion: 0.35, // Stronger initial fisheye
   theme: 'light',
+  currentSceneName: null,
+  sceneHistory: [],
 
   addBox: (position) =>
     set((state) => {
@@ -104,4 +128,42 @@ export const useStore = create<SceneState>((set) => ({
   toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
   
   toggleViewMode: () => set((state) => ({ isViewMode: !state.isViewMode, selectedId: null })),
+
+  setCurrentSceneName: (name) => set({ currentSceneName: name }),
+
+  saveCurrentScene: (name, prompt) => set((state) => {
+    const newScene: SavedScene = {
+      id: uuidv4(),
+      name,
+      boxes: [...state.boxes],
+      createdAt: Date.now(),
+      prompt
+    };
+    const updatedHistory = [newScene, ...state.sceneHistory].slice(0, 50); // Keep max 50 scenes
+    saveScenesToStorage(updatedHistory);
+    return { 
+      sceneHistory: updatedHistory,
+      currentSceneName: name
+    };
+  }),
+
+  loadScene: (id) => set((state) => {
+    const scene = state.sceneHistory.find(s => s.id === id);
+    if (scene) {
+      return { 
+        boxes: scene.boxes.map(b => ({ ...b, id: uuidv4() })), // Give new IDs to avoid conflicts
+        currentSceneName: scene.name,
+        selectedId: null
+      };
+    }
+    return {};
+  }),
+
+  deleteScene: (id) => set((state) => {
+    const updatedHistory = state.sceneHistory.filter(s => s.id !== id);
+    saveScenesToStorage(updatedHistory);
+    return { sceneHistory: updatedHistory };
+  }),
+
+  loadHistoryFromStorage: () => set({ sceneHistory: loadScenesFromStorage() }),
 }));

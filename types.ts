@@ -8,6 +8,14 @@ export interface BoxData {
 
 export type ThemeMode = 'light' | 'dark';
 
+export interface SavedScene {
+  id: string;
+  name: string;
+  boxes: BoxData[];
+  createdAt: number;
+  prompt?: string;
+}
+
 export interface SceneState {
   boxes: BoxData[];
   selectedId: string | null;
@@ -16,6 +24,8 @@ export interface SceneState {
   fov: number;
   distortion: number; // 0 to 1 range for lens curvature
   theme: ThemeMode;
+  currentSceneName: string | null;
+  sceneHistory: SavedScene[];
   addBox: (position: [number, number, number]) => void;
   appendBox: (data: Omit<BoxData, 'id'>) => void;
   updateBox: (id: string, updates: Partial<BoxData>) => void;
@@ -26,4 +36,9 @@ export interface SceneState {
   setLens: (fov: number, distortion: number) => void;
   toggleTheme: () => void;
   toggleViewMode: () => void; // New action
+  saveCurrentScene: (name: string, prompt?: string) => void;
+  loadScene: (id: string) => void;
+  deleteScene: (id: string) => void;
+  setCurrentSceneName: (name: string | null) => void;
+  loadHistoryFromStorage: () => void;
 }
