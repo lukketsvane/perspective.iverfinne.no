@@ -1,9 +1,23 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Scene } from './components/Scene';
 import { useStore } from './store';
 import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 import { BoxData } from './types';
+
+// Simple scene name generator
+const generateSceneName = (prompt?: string): string => {
+  if (prompt) {
+    // Extract first few meaningful words from prompt
+    const words = prompt.trim().split(/\s+/).slice(0, 3).join(' ');
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  }
+  const adjectives = ['Ethereal', 'Dynamic', 'Serene', 'Chaotic', 'Geometric', 'Urban', 'Abstract', 'Flowing'];
+  const nouns = ['Construct', 'Vision', 'Space', 'Form', 'Structure', 'Realm', 'Scene', 'Composition'];
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  return `${adj} ${noun}`;
+};
 
 export default function App() {
   const fov = useStore(s => s.fov);
@@ -17,14 +31,27 @@ export default function App() {
   const selectBox = useStore(s => s.selectBox);
   const isViewMode = useStore(s => s.isViewMode);
   const toggleViewMode = useStore(s => s.toggleViewMode);
+  const currentSceneName = useStore(s => s.currentSceneName);
+  const sceneHistory = useStore(s => s.sceneHistory);
+  const saveCurrentScene = useStore(s => s.saveCurrentScene);
+  const loadScene = useStore(s => s.loadScene);
+  const deleteScene = useStore(s => s.deleteScene);
+  const loadHistoryFromStorage = useStore(s => s.loadHistoryFromStorage);
+  const boxes = useStore(s => s.boxes);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
   
   // Text Prompt State
   const [showPromptInput, setShowPromptInput] = useState(false);
   const [textPrompt, setTextPrompt] = useState("");
+
+  // Load history from localStorage on mount
+  useEffect(() => {
+    loadHistoryFromStorage();
+  }, [loadHistoryFromStorage]);
 
   const handleSparkleClick = () => {
     fileInputRef.current?.click();
@@ -120,6 +147,7 @@ export default function App() {
 
   const processText = async () => {
       if (!textPrompt.trim()) return;
+      const currentPrompt = textPrompt.trim();
       setShowPromptInput(false);
       setLoading(true);
       setLoadingText("VISUALIZING PROMPT...");
@@ -130,11 +158,15 @@ export default function App() {
           const response = await ai.models.generateContentStream({
             model: 'gemini-3-pro-preview',
             contents: {
-                parts: [{ text: `User Request: "${textPrompt}"\n\n${systemPrompt}` }]
+                parts: [{ text: `User Request: "${currentPrompt}"\n\n${systemPrompt}` }]
             },
             config: { thinkingConfig: { thinkingBudget: 5000 } }
           });
           await generateBoxesFromStream(response);
+          
+          // After successful generation, save the scene with a name
+          const sceneName = generateSceneName(currentPrompt);
+          saveCurrentScene(sceneName, currentPrompt);
       } catch (error) {
           console.error(error);
           alert("Failed to generate from text.");
@@ -176,6 +208,10 @@ export default function App() {
         config: { thinkingConfig: { thinkingBudget: 10000 } }
       });
       await generateBoxesFromStream(response);
+      
+      // After successful generation, save the scene with a name based on image
+      const sceneName = generateSceneName(`Image ${file.name.replace(/\.[^.]+$/, '')}`);
+      saveCurrentScene(sceneName);
 
     } catch (error) {
       console.error(error);
@@ -185,6 +221,16 @@ export default function App() {
       setLoadingText("");
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const isDark = theme === 'dark';
@@ -274,6 +320,100 @@ export default function App() {
         </div>
       </div>
 
+      {/* Current Scene Name Display */}
+      {currentSceneName && (
+        <div className="absolute top-6 left-6 pointer-events-none z-30">
+          <div className={`px-3 py-1.5 rounded-full backdrop-blur-md border ${isDark ? 'bg-black/40 border-gray-700' : 'bg-white/40 border-gray-200'}`}>
+            <span className={`text-[10px] font-bold uppercase tracking-widest ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              {currentSceneName}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* History Panel */}
+      {showHistory && (
+        <div className="absolute top-4 left-4 bottom-4 w-72 z-50">
+          <div className={`h-full rounded-xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${isDark ? 'bg-[#1a1a1a]/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
+            {/* Header */}
+            <div className={`flex items-center justify-between px-4 py-3 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+              <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                Scene History
+              </span>
+              <button 
+                onClick={() => setShowHistory(false)}
+                className={`p-1 rounded-md transition-colors ${isDark ? 'text-gray-400 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-black/5'}`}
+              >
+                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            
+            {/* Scene List */}
+            <div className="flex-1 overflow-y-auto">
+              {sceneHistory.length === 0 ? (
+                <div className={`flex flex-col items-center justify-center h-full p-6 text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  <svg viewBox="0 0 24 24" className="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                  </svg>
+                  <span className="text-xs font-medium">No saved scenes yet</span>
+                  <span className="text-[10px] mt-1">Generate a scene to start your history</span>
+                </div>
+              ) : (
+                <div className="p-2 space-y-1">
+                  {sceneHistory.map((scene) => (
+                    <div 
+                      key={scene.id}
+                      className={`group p-3 rounded-lg cursor-pointer transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-black/5'}`}
+                      onClick={() => {
+                        loadScene(scene.id);
+                        setShowHistory(false);
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {scene.name}
+                          </div>
+                          <div className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                            {formatDate(scene.createdAt)} • {scene.boxes.length} boxes
+                          </div>
+                          {scene.prompt && (
+                            <div className={`text-[10px] mt-1 truncate italic ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                              "{scene.prompt}"
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm('Delete this scene?')) {
+                              deleteScene(scene.id);
+                            }
+                          }}
+                          className={`opacity-0 group-hover:opacity-100 p-1 rounded transition-all ${isDark ? 'text-gray-500 hover:text-red-400' : 'text-gray-400 hover:text-red-500'}`}
+                        >
+                          <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Footer with box count */}
+            <div className={`px-4 py-2 border-t text-[10px] ${isDark ? 'border-gray-700 text-gray-500' : 'border-gray-200 text-gray-400'}`}>
+              Current: {boxes.length} boxes
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons - Icons Resized */}
       <div className="absolute bottom-8 right-8 z-40 flex flex-col items-center gap-4">
           
@@ -328,7 +468,7 @@ export default function App() {
              )}
           </button>
 
-          {/* Text Prompt Button - Toggles visibility */}
+           {/* Text Prompt Button - Toggles visibility */}
           {!isViewMode && (
               <button 
                 onClick={handleTextToggle}
@@ -351,6 +491,18 @@ export default function App() {
                 )}
               </button>
           )}
+
+          {/* History Button */}
+          <button 
+            onClick={() => setShowHistory(!showHistory)}
+            className={`group flex items-center justify-center w-8 h-8 transition-transform active:scale-95 duration-200 cursor-pointer ${showHistory ? (isDark ? 'text-purple-300' : 'text-purple-500') : (isDark ? 'text-white hover:text-purple-300' : 'text-gray-900 hover:text-purple-500')}`}
+            title="Scene History"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </button>
 
           {/* Sparkle / Upload Button */}
           {!isViewMode && (
