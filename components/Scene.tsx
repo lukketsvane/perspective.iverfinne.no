@@ -10,70 +10,112 @@ import { KimBox } from './KimBox';
 import { useGesture } from '@use-gesture/react';
 
 // Custom Shader for Kim Jung Gi 5-Point Curvilinear Perspective
-// True spherical/equirectangular projection that curves ALL lines toward 5 vanishing points
-// This creates the characteristic "bending" effect where horizontal and vertical lines
-// curve toward their respective vanishing points (4 cardinal + zenith/nadir)
+// 
+// Kim Jung Gi's legendary drawing technique uses 5-point curvilinear perspective:
+// - 5 vanishing points: Left, Right, Top (Zenith), Bottom (Nadir), Center
+// - All straight lines become CURVES that bend toward their respective vanishing points
+// - Horizontal lines curve upward at the top of the image, downward at the bottom
+// - Vertical lines curve leftward on the left side, rightward on the right side
+// - This mimics how we actually see the world through our spherical eye lenses
+//
+// Mathematical basis: Stereographic/Equidistant Azimuthal projection
+// We project the scene onto a sphere, then unwrap it to create the curved line effect
 const fisheyeFragment = `
 uniform float strength;
 uniform vec3 bgColor;
 
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
-    // Center UVs to -1 to 1 range
-    vec2 coord = uv * 2.0 - 1.0;
-    
-    // Apply aspect ratio correction for proper spherical mapping
-    float aspect = resolution.x / resolution.y;
-    coord.x *= aspect;
-    
-    float r = length(coord);
-    
-    // Skip processing for center pixels when no distortion
+    // Early exit for no distortion
     if (strength < 0.001) {
         outputColor = texture2D(inputBuffer, uv);
         return;
     }
     
-    // Kim Jung Gi 5-Point Curvilinear Perspective:
-    // Uses spherical projection (equidistant azimuthal) which bends ALL straight lines
-    // into curves, creating the characteristic "fisheye drawing" look where:
-    // - Horizontal lines curve toward left/right vanishing points
-    // - Vertical lines curve toward top/bottom vanishing points  
-    // - The center vanishing point remains at the center
+    // Center UVs to -1 to 1 range
+    vec2 coord = uv * 2.0 - 1.0;
     
-    // Field of view control - higher strength = wider apparent FOV
-    float fov = 1.0 + strength * 1.5; // Range from 1.0 to 2.5 (up to ~140° equivalent)
+    // Apply aspect ratio correction
+    float aspect = resolution.x / resolution.y;
+    coord.x *= aspect;
     
-    // Spherical projection: Convert 2D screen coords to angles, then back
-    // This is the key to true 5-point perspective - it treats the image as if
-    // projected onto the inside of a sphere
-    float theta = atan(r * fov); // Angle from center
-    float r_spherical = theta / PI_HALF; // Normalize to 0-1 for 90° FOV hemisphere
+    // =========================================================
+    // KIM JUNG GI 5-POINT CURVILINEAR PERSPECTIVE
+    // =========================================================
+    // 
+    // The key insight: We're mapping a flat image onto a sphere's surface,
+    // then viewing that sphere from inside. This causes:
+    // - Lines parallel to X-axis to curve toward Left/Right vanishing points
+    // - Lines parallel to Y-axis to curve toward Zenith/Nadir vanishing points
+    // - The center (5th vanishing point) remains the focal point
+    //
+    // We use an inverse stereographic projection which naturally creates
+    // the curved grid lines characteristic of Kim Jung Gi's work.
+    // =========================================================
     
-    // Apply the spherical distortion
-    vec2 coord_dist;
-    if (r > 0.0001) {
-        coord_dist = coord * (r_spherical / r);
-    } else {
-        coord_dist = coord;
-    }
+    // Control the field of view / curvature intensity
+    // Higher values = more extreme curvature (wider apparent FOV)
+    float curvature = strength * 2.0;
+    
+    // Distance from center
+    float r = length(coord);
+    
+    // Stereographic projection formula for 5-point perspective
+    // This maps planar coordinates to spherical coordinates and back
+    // creating the characteristic line curvature
+    //
+    // For true 5-point perspective, we need different behavior on X and Y:
+    // - X coordinate determines curvature toward Left/Right VP
+    // - Y coordinate determines curvature toward Zenith/Nadir VP
+    
+    // Apply spherical distortion using atan for natural curve falloff
+    // The atan function naturally creates the "fisheye" bending effect
+    float angle = atan(r * curvature);
+    
+    // Normalize based on maximum expected angle
+    // PI/2 gives us a hemisphere (180° FOV equivalent)
+    float scale = angle / (r * curvature + 0.0001);
+    
+    // Alternative: Use stereographic projection for even more pronounced curves
+    // Stereographic: r' = 2 * tan(θ/2) where θ = atan(r * curvature)
+    // This creates even more dramatic curve toward the edges
+    float stereographicScale = 2.0 * tan(angle * 0.5) / (r + 0.0001);
+    
+    // Blend between pure radial and stereographic based on strength
+    // Lower strength = more subtle, higher = more dramatic curvilinear effect
+    float blendedScale = mix(scale, stereographicScale, strength * 0.5);
+    
+    // Apply the distortion
+    vec2 coord_dist = coord * blendedScale;
+    
+    // Add additional Y-axis dependent horizontal curvature
+    // This makes horizontal lines curve more at top/bottom (toward zenith/nadir)
+    // and vertical lines curve more at left/right (toward L/R vanishing points)
+    float yInfluence = coord.y * coord.y * curvature * 0.15;
+    float xInfluence = coord.x * coord.x * curvature * 0.15;
+    
+    // Apply the 5-point specific curvature
+    // Horizontal position is influenced by vertical distance from center
+    // Vertical position is influenced by horizontal distance from center
+    coord_dist.x += coord.x * yInfluence;
+    coord_dist.y += coord.y * xInfluence;
     
     // Undo aspect ratio correction
     coord_dist.x /= aspect;
     
     // Zoom compensation to keep the scene roughly the same size
-    float zoom = 1.0 / (1.0 + strength * 0.4);
+    float zoom = 1.0 / (1.0 + strength * 0.3);
     coord_dist *= zoom;
     
     // Convert back to 0..1 UV space
     vec2 uv_src = coord_dist * 0.5 + 0.5;
     
-    // Smooth edge fadeout instead of hard cutoff for artistic look
+    // Smooth edge fadeout for artistic vignette
     float edgeDist = max(abs(uv_src.x - 0.5), abs(uv_src.y - 0.5)) * 2.0;
-    float edgeFade = smoothstep(1.0, 0.95, edgeDist);
+    float edgeFade = smoothstep(1.0, 0.92, edgeDist);
     
-    // Check bounds - Output transparent if out of bounds
+    // Check bounds
     if (uv_src.x < 0.0 || uv_src.x > 1.0 || uv_src.y < 0.0 || uv_src.y > 1.0) {
-       outputColor = vec4(bgColor, 0.0);
+       outputColor = vec4(bgColor, 1.0);
        return;
     }
 
