@@ -1,0 +1,7 @@
+{
+  "name": "KJG Perspective Ether",
+  "description": "A minimalist, gesture-based 3D playground for studying perspective and composition inspired by Kim Jung Gi. No UI, just pure spatial manipulation.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
