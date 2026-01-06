@@ -86,9 +86,9 @@ export default function App() {
                     
                     if (item.position && item.scale && item.rotation) {
                         if (item.name) {
-                            setLoadingText(`CONSTRUCTING: ${item.name.toUpperCase()}`);
+                            setLoadingText(item.name.toUpperCase());
                         } else {
-                            setLoadingText("CONSTRUCTING FORM...");
+                            setLoadingText("...");
                         }
                         appendBox({
                             position: item.position,
@@ -239,7 +239,7 @@ export default function App() {
   const bgColor = isDark ? 'bg-[#0c0c0e]' : 'bg-[#f3f3f1]';
 
   return (
-    <div className={`relative w-full h-full ${bgColor} font-sans selection:bg-none transition-colors duration-500`}>
+    <div className={`fixed inset-0 w-screen h-screen ${bgColor} font-sans selection:bg-none transition-colors duration-500`} style={{ minHeight: '100dvh' }}>
       <Scene />
 
       {/* Loading Overlay */}
