@@ -17,9 +17,6 @@ const fisheyeFragment = `
 uniform float strength;
 uniform vec3 bgColor;
 
-#define PI 3.14159265359
-#define HALF_PI (PI * 0.5)
-
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
     // Center UVs to -1 to 1 range
     vec2 coord = uv * 2.0 - 1.0;
@@ -50,7 +47,7 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
     // This is the key to true 5-point perspective - it treats the image as if
     // projected onto the inside of a sphere
     float theta = atan(r * fov); // Angle from center
-    float r_spherical = theta / HALF_PI; // Normalize to 0-1 for 90° FOV hemisphere
+    float r_spherical = theta / PI_HALF; // Normalize to 0-1 for 90° FOV hemisphere
     
     // Apply the spherical distortion
     vec2 coord_dist;
