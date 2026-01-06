@@ -255,6 +255,7 @@ export const Scene = () => {
       // Enable alpha to allow transparency in canvas if shader outputs 0 alpha
       gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, alpha: true }}
       className="transition-colors duration-500"
+      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
     >
       <SceneContent />
     </Canvas>
