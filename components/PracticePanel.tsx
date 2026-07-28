@@ -28,6 +28,10 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   const toggleEyeLevelLock = useStore((s) => s.toggleEyeLevelLock);
   const toggleFigure = useStore((s) => s.toggleFigure);
   const toggleGuides = useStore((s) => s.toggleGuides);
+  const showCone = useStore((s) => s.showCone);
+  const toggleCone = useStore((s) => s.toggleCone);
+  const snapStep = useStore((s) => s.snapStep);
+  const setSnapStep = useStore((s) => s.setSnapStep);
   const setSpawnKind = useStore((s) => s.setSpawnKind);
   const resetScene = useStore((s) => s.resetScene);
   const cameraFeed = useStore((s) => s.cameraFeed);
@@ -182,9 +186,15 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               </button>
             ))}
           </div>
+          <div className="flex gap-1 mt-2">
+            <button onClick={() => setSnapStep(snapStep > 0 ? 0 : 0.25)} className={`${chip(snapStep > 0)} flex-1`}>
+              {snapStep > 0 ? `Snap ${snapStep} m` : 'Free size'}
+            </button>
+          </div>
           <p className={`mt-2 text-[9px] leading-tight ${label}`}>
             Double-tap the ground to place one. Cubes are 1 × 1 × 1 m and land grid-aligned, so they
-            share the scene's vanishing points. Drag a face to push or pull it.
+            share the scene's vanishing points. Drag a face to push or pull it, and turn a selected
+            box with R (shift+R the other way) to give it its own vanishing points.
           </p>
         </Row>
 
@@ -198,9 +208,14 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               {FIGURE_HEIGHT.toFixed(2)} m
             </button>
           </div>
-          <button onClick={() => setCameraFeed(!cameraFeed)} className={`mt-1 w-full ${chip(cameraFeed)}`}>
-            Camera feed {cameraFeed ? 'on' : 'off'}
-          </button>
+          <div className="flex gap-1 mt-1">
+            <button onClick={toggleCone} className={`${chip(showCone)} flex-1`} title="The 60° cone of vision">
+              60° cone
+            </button>
+            <button onClick={() => setCameraFeed(!cameraFeed)} className={`${chip(cameraFeed)} flex-1`}>
+              Camera {cameraFeed ? 'on' : 'off'}
+            </button>
+          </div>
           <p className={`mt-2 text-[9px] leading-tight ${label}`}>
             Horizon line and 1 m ground grid, and a {FIGURE_HEIGHT.toFixed(2)} m figure to size the
             cubes against. The camera feed puts the grid over the floor you are standing on.

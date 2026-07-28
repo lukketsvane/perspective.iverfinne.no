@@ -408,8 +408,14 @@ export const Scene = () => {
       // Start standing at eye level, a few metres back, looking level.
       camera={{ position: [3, DEFAULT_CAMERA_HEIGHT, 5], fov: 60, near: 0.05, far: 2000 }}
       dpr={[1, 1.5]}
-      // Enable alpha to allow transparency in canvas if shader outputs 0 alpha
-      gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, alpha: true }}
+      // alpha lets the camera feed show through; preserveDrawingBuffer keeps
+      // the last frame readable so the view can be saved as a PNG at any time.
+      gl={{
+        antialias: true,
+        toneMapping: THREE.ACESFilmicToneMapping,
+        alpha: true,
+        preserveDrawingBuffer: true,
+      }}
       className="transition-colors duration-500"
       style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
     >
