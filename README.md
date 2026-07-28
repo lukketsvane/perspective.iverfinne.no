@@ -28,6 +28,43 @@ turned off-axis with their own pairs, a three-cube stack crosses the horizon so
 you can watch a top face flip to an underside, and one cube sits far back as a
 foreshortening check.
 
+## Walking it at 1:1
+
+The figure icon in the right rail drops you into the scene in first person, at
+whatever eye height is set — so the reference stops being a model on a screen
+and becomes a room you are standing in. Turn with the phone (iOS asks for motion
+permission on the way in; refuse it and you get drag-to-look), walk with the
+thumbstick or WASD, and the horizon stays pinned to your eyes as you move.
+
+The bottom bar has the four things you need standing up:
+
+- **Eye** — tap to cycle 1.2 / 1.6 / 1.9 / 2.5 m.
+- **Camera** — the live rear camera behind the scene. Off by default, in every
+  mode: the reference reads better on a clean field, and the camera is there
+  for when you want the metric grid and the horizon lying over the actual floor
+  you are standing on. Needs https and permission.
+- **AR** — on iOS, exports the scene to USDZ and hands it to Apple's AR Quick
+  Look, which anchors it to a real floor plane at true scale so you can
+  physically walk around the cubes. Safari has no WebXR, so this is the way to
+  get real positional tracking on an iPhone; the button only appears where
+  Quick Look exists.
+- **Exit** — back to the drawing board (Escape works too).
+
+## Models
+
+The box-with-an-arrow icon places a **USDZ** or **glTF/GLB** file in the scene.
+Nothing is uploaded anywhere — the file is read in the browser. Models keep
+their real size, so a 0.9 m chair stands next to the 1 m cubes at 0.9 m. Tap one
+to select it and drag to slide it along the floor; the Practice panel lists what
+is loaded with each model's dimensions.
+
+One caveat worth knowing: three.js only reads the ASCII flavour of USDZ, and
+most USDZ files in the wild (Reality Composer, Quick Look galleries, Sketchfab)
+are binary *crate* archives. Those still load into the app, they just cannot be
+drawn in the scene — the app says so and offers to open that file in AR Quick
+Look instead, which reads crate natively. For guaranteed in-scene placement,
+use glTF/GLB.
+
 ## Handling
 
 - **Orbit / zoom** — drag, scroll or pinch.
@@ -38,6 +75,7 @@ foreshortening check.
 - **Lens** — 3-finger vertical drag changes the field of view. Curvature is only
   ever a deliberate mode switch, never a side effect.
 - **Reset to cubes** — bottom of the Practice panel.
+- **Walk / AR** — the figure icon; **place a model** — the box-with-arrow icon.
 
 Image and text prompts (the sparkle and pen icons) build denser scenes with
 Gemini. Those are opt-in too, and they append to whatever is already there.

@@ -1,10 +1,18 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Scene } from './components/Scene';
 import { PracticePanel } from './components/PracticePanel';
+import { WalkOverlay } from './components/WalkOverlay';
+import { CameraFeed } from './components/CameraFeed';
 import { useStore } from './store';
+import { enableDeviceOrientation, disableDeviceOrientation } from './lib/walkInput';
+import { loadModelFile, MODEL_ACCEPT } from './lib/loadModel';
+import { openModelInAR, supportsQuickLook } from './lib/ar';
 import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 import { BoxData } from './types';
+
+/** Where a freshly uploaded model lands: clear of the default cubes. */
+const MODEL_DROP: [number, number] = [0, 3];
 
 // Simple scene name generator
 const generateSceneName = (prompt?: string): string => {
@@ -42,12 +50,23 @@ export default function App() {
   const deleteScene = useStore(s => s.deleteScene);
   const loadHistoryFromStorage = useStore(s => s.loadHistoryFromStorage);
   const boxes = useStore(s => s.boxes);
-  
+  const viewMode = useStore(s => s.viewMode);
+  const setViewMode = useStore(s => s.setViewMode);
+  const cameraFeed = useStore(s => s.cameraFeed);
+  const setCameraFeed = useStore(s => s.setCameraFeed);
+  const models = useStore(s => s.models);
+  const addModel = useStore(s => s.addModel);
+  const removeModel = useStore(s => s.removeModel);
+  const selectedModelId = useStore(s => s.selectedModelId);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const modelInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
+  const [notice, setNotice] = useState<{ message: string; action?: { label: string; run: () => void } } | null>(null);
+  const [loadingModel, setLoadingModel] = useState(false);
   
   // Text Prompt State
   const [showPromptInput, setShowPromptInput] = useState(false);
@@ -67,9 +86,80 @@ export default function App() {
   };
 
   const handleDelete = () => {
+    if (selectedModelId) {
+      removeModel(selectedModelId);
+      return;
+    }
     if (selectedId) {
       removeBox(selectedId);
       selectBox(null);
+    }
+  };
+
+  const showNotice = useCallback((message: string, action?: { label: string; run: () => void }) => {
+    setNotice({ message, action });
+  }, []);
+
+  // Notices clear themselves; one with an action gets longer to be read.
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), notice.action ? 12000 : 6000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  /**
+   * Enter walk mode.
+   *
+   * The orientation permission has to be requested from inside the gesture that
+   * opened the mode - iOS will not grant it later - and a refusal is fine:
+   * walk mode falls back to drag-to-look.
+   */
+  const enterWalkMode = async () => {
+    await enableDeviceOrientation();
+    setShowPanel(false);
+    setShowHistory(false);
+    setShowPromptInput(false);
+    setViewMode('walk');
+  };
+
+  // Covers every way out of walk mode: the Exit button, Escape, or a reload.
+  useEffect(() => {
+    if (viewMode === 'orbit') disableDeviceOrientation();
+  }, [viewMode]);
+
+  const processModel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoadingModel(true);
+    try {
+      const { model, warning } = await loadModelFile(file, MODEL_DROP);
+      addModel(model);
+
+      if (warning) {
+        // The file is still usable in AR even when it cannot be drawn here.
+        const canQuickLook = supportsQuickLook() && model.format === 'usdz';
+        showNotice(
+          warning,
+          canQuickLook
+            ? {
+                label: 'Open in AR',
+                run: () => {
+                  const stored = useStore.getState().models.find((m) => m.fileUrl === model.fileUrl);
+                  if (stored) openModelInAR(stored);
+                },
+              }
+            : undefined
+        );
+      } else {
+        showNotice(`${model.name} placed — ${model.size.map((v) => v.toFixed(2)).join(' × ')} m`);
+      }
+    } catch (error) {
+      console.error(error);
+      showNotice('Could not read that file.');
+    } finally {
+      setLoadingModel(false);
+      if (modelInputRef.current) modelInputRef.current.value = '';
     }
   };
 
@@ -243,11 +333,59 @@ export default function App() {
   const isDark = theme === 'dark';
   const textColor = isDark ? 'text-gray-200' : 'text-gray-900';
   const labelColor = isDark ? 'text-gray-500' : 'text-gray-400';
-  const bgColor = isDark ? 'bg-[#0c0c0e]' : 'bg-[#f3f3f1]';
+  // The feed lives behind the canvas, so the shell must not paint over it.
+  const bgColor = cameraFeed ? 'bg-transparent' : isDark ? 'bg-[#0c0c0e]' : 'bg-[#f3f3f1]';
+
+  const noticeBanner = notice && (
+    <div className="absolute top-16 left-0 right-0 z-[60] flex justify-center px-4 pointer-events-none">
+      <div
+        className={`flex items-center gap-3 max-w-md px-4 py-2.5 rounded-xl border backdrop-blur-md shadow-lg pointer-events-auto ${
+          isDark || cameraFeed ? 'bg-black/80 border-gray-700 text-gray-100' : 'bg-white/90 border-gray-200 text-gray-900'
+        }`}
+      >
+        <span className="text-[11px] leading-snug flex-1">{notice.message}</span>
+        {notice.action && (
+          <button
+            onClick={() => { notice.action?.run(); setNotice(null); }}
+            className={`shrink-0 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${
+              isDark || cameraFeed ? 'bg-white text-black' : 'bg-gray-900 text-white'
+            }`}
+          >
+            {notice.action.label}
+          </button>
+        )}
+        <button
+          onClick={() => setNotice(null)}
+          className="shrink-0 opacity-60 hover:opacity-100"
+          aria-label="Dismiss"
+        >
+          <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+
+  // Walk mode takes the whole screen: no rail, no panels, just the scene and
+  // the thumb controls.
+  if (viewMode === 'walk') {
+    return (
+      <div className={`fixed inset-0 w-screen h-screen ${bgColor} font-sans selection:bg-none`} style={{ minHeight: '100dvh' }}>
+        {cameraFeed && <CameraFeed onError={(message) => { setCameraFeed(false); showNotice(message); }} />}
+        <Scene />
+        <WalkOverlay onNotice={showNotice} />
+        {noticeBanner}
+      </div>
+    );
+  }
 
   return (
     <div className={`fixed inset-0 w-screen h-screen ${bgColor} font-sans selection:bg-none transition-colors duration-500`} style={{ minHeight: '100dvh' }}>
+      {cameraFeed && <CameraFeed onError={(message) => { setCameraFeed(false); showNotice(message); }} />}
       <Scene />
+      {noticeBanner}
 
       {/* Loading Overlay */}
       {loading && (
@@ -446,8 +584,8 @@ export default function App() {
       {/* Action Buttons - Icons Resized */}
       <div className="absolute bottom-8 right-8 z-40 flex flex-col items-center gap-4">
           
-          {selectedId && !isViewMode && (
-            <button 
+          {(selectedId || selectedModelId) && !isViewMode && (
+            <button
                 onClick={handleDelete}
                 className={`group flex items-center justify-center w-8 h-8 transition-all active:scale-95 duration-200 cursor-pointer ${isDark ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-500'}`}
                 title="Delete Selected"
@@ -457,6 +595,44 @@ export default function App() {
                 </svg>
             </button>
           )}
+
+           {/* AR / walk mode — stand in the scene at 1:1 */}
+           <button
+            onClick={enterWalkMode}
+            className={`group flex items-center justify-center w-8 h-8 transition-transform active:scale-95 duration-200 cursor-pointer ${isDark ? 'text-white hover:text-emerald-300' : 'text-gray-900 hover:text-emerald-600'}`}
+            title="Walk the scene at real scale (AR)"
+          >
+            {/* A figure standing on the ground plane */}
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="4.5" r="1.8" />
+              <path d="M12 7v6M12 13l-2.5 5M12 13l2.5 5M8.5 9.5h7" />
+              <path d="M2 21h20" strokeOpacity="0.45" />
+            </svg>
+          </button>
+
+           {/* Upload a model (USDZ / glTF) */}
+           <div className="relative">
+             <input
+               type="file"
+               ref={modelInputRef}
+               onChange={processModel}
+               accept={MODEL_ACCEPT}
+               className="hidden"
+             />
+             <button
+              onClick={() => modelInputRef.current?.click()}
+              disabled={loadingModel}
+              className={`group flex items-center justify-center w-8 h-8 transition-transform active:scale-95 duration-200 cursor-pointer disabled:opacity-50 ${models.length > 0 ? (isDark ? 'text-amber-300' : 'text-amber-600') : (isDark ? 'text-white hover:text-amber-300' : 'text-gray-900 hover:text-amber-600')}`}
+              title="Place a USDZ or glTF model"
+            >
+              {/* A box with an arrow going in */}
+              <svg viewBox="0 0 24 24" className={`w-5 h-5 ${loadingModel ? 'animate-pulse' : ''}`} fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" strokeOpacity="0.45" />
+                <path d="M12 15V7" />
+                <polyline points="9 10 12 7 15 10" />
+              </svg>
+            </button>
+           </div>
 
            {/* Practice Settings — eye level, projection, primitives, guides */}
            <button

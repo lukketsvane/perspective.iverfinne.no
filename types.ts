@@ -1,3 +1,5 @@
+import type { Object3D } from 'three';
+
 export interface BoxData {
   id: string;
   position: [number, number, number];
@@ -20,6 +22,34 @@ export type PerspectiveMode = 'linear' | 'curvilinear';
  * every other primitive has to be picked by hand.
  */
 export type SpawnKind = 'cube' | 'slab' | 'pillar' | 'beam' | 'block';
+
+/**
+ * How you are looking at the scene.
+ * - 'orbit': the drawing-board view, camera on a leash around a target.
+ * - 'walk': first person at your real eye height, walking the scene at 1:1.
+ */
+export type ViewMode = 'orbit' | 'walk';
+
+/**
+ * A model dropped into the scene from a file.
+ *
+ * `object` is the loaded three.js object, or null when the file cannot be
+ * previewed in the browser (binary crate USDZ). `fileUrl` always points at the
+ * original file, so it can still be opened in AR Quick Look on iOS.
+ */
+export interface SceneModel {
+  id: string;
+  name: string;
+  object: Object3D | null;
+  /** Footprint centre on the ground plane. */
+  position: [number, number, number];
+  rotationY: number;
+  /** Bounding box in metres, for the readout. */
+  size: [number, number, number];
+  fileUrl: string;
+  format: 'usdz' | 'gltf';
+  previewSupported: boolean;
+}
 
 export interface SavedScene {
   id: string;
@@ -46,6 +76,12 @@ export interface SceneState {
   /** Horizon / eye-level line and ground grid. */
   showGuides: boolean;
   spawnKind: SpawnKind;
+  /** Orbit (drawing board) or walk (first person, real scale). */
+  viewMode: ViewMode;
+  /** Live camera behind the scene. Off until asked for, in either view mode. */
+  cameraFeed: boolean;
+  models: SceneModel[];
+  selectedModelId: string | null;
   theme: ThemeMode;
   currentSceneName: string | null;
   sceneHistory: SavedScene[];
@@ -64,6 +100,12 @@ export interface SceneState {
   toggleFigure: () => void;
   toggleGuides: () => void;
   setSpawnKind: (kind: SpawnKind) => void;
+  setViewMode: (mode: ViewMode) => void;
+  setCameraFeed: (on: boolean) => void;
+  addModel: (model: Omit<SceneModel, 'id'>) => void;
+  removeModel: (id: string) => void;
+  selectModel: (id: string | null) => void;
+  updateModel: (id: string, updates: Partial<Omit<SceneModel, 'id'>>) => void;
   toggleTheme: () => void;
   toggleViewMode: () => void; // New action
   saveCurrentScene: (name: string, prompt?: string) => void;

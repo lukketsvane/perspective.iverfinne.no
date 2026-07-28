@@ -126,6 +126,10 @@ export const useStore = create<SceneState>((set, get) => ({
   showFigure: true,
   showGuides: true,
   spawnKind: 'cube',
+  viewMode: 'orbit',
+  cameraFeed: false, // The camera stays off until it is asked for
+  models: [],
+  selectedModelId: null,
   theme: 'light',
   currentSceneName: null,
   sceneHistory: [],
@@ -181,7 +185,30 @@ export const useStore = create<SceneState>((set, get) => ({
     currentSceneName: null,
   }),
 
-  selectBox: (id) => set({ selectedId: id }),
+  selectBox: (id) => set({ selectedId: id, selectedModelId: null }),
+
+  setViewMode: (mode) => set({ viewMode: mode, selectedId: null, selectedModelId: null }),
+
+  setCameraFeed: (on) => set({ cameraFeed: on }),
+
+  addModel: (model) => set((state) => ({
+    models: [...state.models, { id: uuidv4(), ...model }],
+  })),
+
+  removeModel: (id) => set((state) => {
+    const model = state.models.find((m) => m.id === id);
+    if (model) URL.revokeObjectURL(model.fileUrl);
+    return {
+      models: state.models.filter((m) => m.id !== id),
+      selectedModelId: state.selectedModelId === id ? null : state.selectedModelId,
+    };
+  }),
+
+  selectModel: (id) => set({ selectedModelId: id, selectedId: null }),
+
+  updateModel: (id, updates) => set((state) => ({
+    models: state.models.map((m) => (m.id === id ? { ...m, ...updates } : m)),
+  })),
 
   setIsDragging: (isDragging) => set({ isDragging }),
 

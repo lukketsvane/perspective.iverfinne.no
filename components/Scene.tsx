@@ -8,6 +8,8 @@ import { Effect } from 'postprocessing';
 import { useStore, DEFAULT_CAMERA_HEIGHT } from '../store';
 import { KimBox } from './KimBox';
 import { HorizonLine, ScaleFigure } from './Reference';
+import { SceneModels } from './SceneModels';
+import { WalkControls } from './WalkControls';
 import { useGesture } from '@use-gesture/react';
 
 // Custom Shader for Kim Jung Gi 5-Point Curvilinear Perspective
@@ -187,6 +189,21 @@ const EyeLevelRig = () => {
     const orbit = controls as any;
     if (!orbit?.target) return;
 
+    // Coming back from a walk, the camera can be standing on the orbit target,
+    // which leaves OrbitControls with nothing to orbit. Step back along the
+    // current heading first.
+    const dx = camera.position.x - orbit.target.x;
+    const dz = camera.position.z - orbit.target.z;
+    if (Math.hypot(dx, dz) < 0.5) {
+      const heading = new THREE.Vector3();
+      camera.getWorldDirection(heading);
+      heading.y = 0;
+      if (heading.lengthSq() < 1e-6) heading.set(0, 0, -1);
+      heading.normalize();
+      camera.position.x = orbit.target.x - heading.x * 3;
+      camera.position.z = orbit.target.z - heading.z * 3;
+    }
+
     camera.position.y = cameraHeight;
     if (lockEyeLevel) orbit.target.y = cameraHeight;
     orbit.update();
@@ -221,9 +238,12 @@ const SceneContent = () => {
   const showGuides = useStore((state) => state.showGuides);
   const setLens = useStore((state) => state.setLens);
   const theme = useStore((state) => state.theme);
+  const viewMode = useStore((state) => state.viewMode);
+  const cameraFeed = useStore((state) => state.cameraFeed);
 
   const controlsRef = useRef<any>(null);
   const isDark = theme === 'dark';
+  const isWalking = viewMode === 'walk';
   const bgColor = isDark ? '#0c0c0e' : '#f3f3f1';
   const horizonColor = isDark ? '#5cc8ff' : '#1f6feb';
   const figureColor = isDark ? '#7a7a80' : '#5a5a60';
@@ -258,7 +278,9 @@ const SceneContent = () => {
 
   return (
     <>
-      <color attach="background" args={[bgColor]} />
+      {/* With the camera feed on the canvas has to stay transparent so the room
+          shows through; otherwise the paper/ink field is the background. */}
+      {!cameraFeed && <color attach="background" args={[bgColor]} />}
       {/* Dynamic Lighting for better form reading */}
       <ambientLight intensity={isDark ? 0.3 : 0.6} />
       <directionalLight position={[15, 25, 10]} intensity={isDark ? 0.8 : 1.2} castShadow />
@@ -272,6 +294,9 @@ const SceneContent = () => {
           <KimBox key={box.id} data={box} />
         ))}
       </group>
+
+      {/* Uploaded models, standing at their real size */}
+      <SceneModels />
 
       {/* Eye level / horizon line - every horizontal VP in the scene sits on it */}
       {showGuides && <HorizonLine color={horizonColor} />}
@@ -290,8 +315,11 @@ const SceneContent = () => {
           sectionSize={5}
           sectionThickness={1.0}
           sectionColor={isDark ? "#666666" : "#333333"}
-          fadeDistance={60}
-          fadeStrength={1.5}
+          // At grazing angles the lines converge into a solid sheet, which over
+          // a live camera reads as haze on the floor. Keep it to a pool of grid
+          // around your feet when the room is showing.
+          fadeDistance={cameraFeed ? 10 : 60}
+          fadeStrength={cameraFeed ? 3 : 1.5}
           infiniteGrid
           onDoubleClick={(e) => {
               if (isViewMode) return;
@@ -324,14 +352,18 @@ const SceneContent = () => {
         <meshBasicMaterial visible={false} />
       </mesh>
 
-      <ContactShadows
-        position={[0, 0, 0]}
-        opacity={isDark ? 0.8 : 0.6}
-        scale={60}
-        blur={2}
-        far={4}
-        color="#000000"
-      />
+      {/* Grounding shadows read as a dark disc once there is a real room
+          behind the scene, so they come off with the feed on. */}
+      {!cameraFeed && (
+        <ContactShadows
+          position={[0, 0, 0]}
+          opacity={isDark ? 0.8 : 0.6}
+          scale={60}
+          blur={2}
+          far={4}
+          color="#000000"
+        />
+      )}
 
       {/* The curvilinear pass only exists while that mode is on */}
       {curvilinear && (
@@ -340,25 +372,31 @@ const SceneContent = () => {
         </EffectComposer>
       )}
 
-      <OrbitControls
-        ref={controlsRef}
-        makeDefault
-        // Constant, so it is only applied on mount: after that EyeLevelRig owns
-        // the height and panning owns the ground position.
-        target={INITIAL_TARGET}
-        enabled={!isDragging} // Disable controls when dragging an object
-        // Locked: the gaze stays level, so verticals stay vertical (2-point).
-        // Unlocked: climb up to pick up the third vanishing point.
-        minPolarAngle={lockEyeLevel ? Math.PI / 2 : 0}
-        maxPolarAngle={lockEyeLevel ? Math.PI / 2 : Math.PI / 2 - 0.05} // Don't go below ground
-        screenSpacePanning={!lockEyeLevel}
-        enableDamping
-        dampingFactor={0.05}
-        rotateSpeed={0.6}
-        zoomSpeed={0.8}
-      />
-
-      <EyeLevelRig />
+      {/* Orbit is the drawing board; walk mode drives the camera itself. */}
+      {!isWalking ? (
+        <>
+          <OrbitControls
+            ref={controlsRef}
+            makeDefault
+            // Constant, so it is only applied on mount: after that EyeLevelRig owns
+            // the height and panning owns the ground position.
+            target={INITIAL_TARGET}
+            enabled={!isDragging} // Disable controls when dragging an object
+            // Locked: the gaze stays level, so verticals stay vertical (2-point).
+            // Unlocked: climb up to pick up the third vanishing point.
+            minPolarAngle={lockEyeLevel ? Math.PI / 2 : 0}
+            maxPolarAngle={lockEyeLevel ? Math.PI / 2 : Math.PI / 2 - 0.05} // Don't go below ground
+            screenSpacePanning={!lockEyeLevel}
+            enableDamping
+            dampingFactor={0.05}
+            rotateSpeed={0.6}
+            zoomSpeed={0.8}
+          />
+          <EyeLevelRig />
+        </>
+      ) : (
+        <WalkControls />
+      )}
     </>
   );
 };
