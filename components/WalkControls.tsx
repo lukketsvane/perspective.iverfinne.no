@@ -16,17 +16,44 @@ import { walkInput } from '../lib/walkInput';
  * permitted, and from drag-to-look otherwise (which is also what desktop gets).
  */
 export const WalkControls = () => {
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const cameraHeight = useStore((state) => state.cameraHeight);
+  const cameraFeed = useStore((state) => state.cameraFeed);
+  const fov = useStore((state) => state.fov);
 
   const temp = useMemo(
     () => ({
       forward: new THREE.Vector3(),
       right: new THREE.Vector3(),
       euler: new THREE.Euler(0, 0, 0, 'YXZ'),
+      target: new THREE.Quaternion(),
     }),
     []
   );
+
+  /**
+   * With the room showing through, the virtual lens has to match the real one
+   * or the cubes slide against the floor as you turn. iPhone main cameras are
+   * around 63 degrees across the frame's short side in landscape terms, so the
+   * vertical angle follows from the aspect the canvas actually has - which on a
+   * portrait phone is very wide indeed.
+   */
+  useEffect(() => {
+    if (!(camera instanceof THREE.PerspectiveCamera)) return;
+    if (!cameraFeed) return;
+
+    const aspect = size.width / size.height;
+    const horizontal = THREE.MathUtils.degToRad(63);
+    const vertical = 2 * Math.atan(Math.tan(horizontal / 2) / Math.max(aspect, 0.0001));
+    camera.fov = THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(vertical), 40, 120);
+    camera.updateProjectionMatrix();
+
+    return () => {
+      // Hand the practice lens back on the way out.
+      camera.fov = fov;
+      camera.updateProjectionMatrix();
+    };
+  }, [cameraFeed, camera, size.width, size.height, fov]);
 
   // Step into the scene where the orbit camera was standing, keeping its
   // heading, so entering walk mode is a change of stance and not a teleport.
@@ -45,7 +72,11 @@ export const WalkControls = () => {
     const delta = Math.min(rawDelta, 0.1);
 
     if (walkInput.useDeviceOrientation) {
-      camera.quaternion.copy(walkInput.deviceQuaternion);
+      // Raw sensor readings jitter by a degree or so at rest, which reads as a
+      // shiver over a live camera. Chase the reading instead of snapping to it,
+      // frame-rate independent so it feels the same at 60 and 120 Hz.
+      temp.target.copy(walkInput.deviceQuaternion);
+      camera.quaternion.slerp(temp.target, 1 - Math.exp(-18 * delta));
     } else {
       temp.euler.set(walkInput.pitch, walkInput.yaw, 0, 'YXZ');
       camera.quaternion.setFromEuler(temp.euler);

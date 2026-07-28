@@ -5,17 +5,18 @@ import { WalkOverlay } from './components/WalkOverlay';
 import { CameraFeed } from './components/CameraFeed';
 import { ConeOfVision } from './components/ConeOfVision';
 import { SelectionBar } from './components/SelectionBar';
+import { MobileBar } from './components/MobileBar';
+import { ARSheet } from './components/ARSheet';
 import { useStore, saveSettings } from './store';
 import { captureView, captureFileName } from './lib/capture';
 import { enableDeviceOrientation, disableDeviceOrientation } from './lib/walkInput';
 import { loadModelFile, MODEL_ACCEPT } from './lib/loadModel';
 import { openModelInAR, supportsQuickLook } from './lib/ar';
+import { focusPoint } from './lib/focus';
+import { sceneFromUrl, shareScene } from './lib/share';
 import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 import { BoxData } from './types';
-
-/** Where a freshly uploaded model lands: clear of the default cubes. */
-const MODEL_DROP: [number, number] = [0, 3];
 
 // Simple scene name generator
 const generateSceneName = (prompt?: string): string => {
@@ -60,6 +61,7 @@ export default function App() {
   const removeModel = useStore(s => s.removeModel);
   const selectedModelId = useStore(s => s.selectedModelId);
   const showCone = useStore(s => s.showCone);
+  const addBox = useStore(s => s.addBox);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
@@ -69,6 +71,7 @@ export default function App() {
   const [showPanel, setShowPanel] = useState(false);
   const [notice, setNotice] = useState<{ message: string; action?: { label: string; run: () => void } } | null>(null);
   const [loadingModel, setLoadingModel] = useState(false);
+  const [showAR, setShowAR] = useState(false);
   
   // Text Prompt State
   const [showPromptInput, setShowPromptInput] = useState(false);
@@ -78,6 +81,15 @@ export default function App() {
   useEffect(() => {
     loadHistoryFromStorage();
   }, [loadHistoryFromStorage]);
+
+  // A study can arrive in the link, which is how a scene composed on a laptop
+  // gets into AR on a phone.
+  useEffect(() => {
+    const shared = sceneFromUrl();
+    if (!shared) return;
+    setBoxes(shared.map((box) => ({ ...box, id: uuidv4() })));
+    showNotice(`Opened a shared study — ${shared.length} boxes.`);
+  }, [setBoxes]);
 
   // Remember how the tool is set up (never what is in the scene).
   useEffect(() => useStore.subscribe((state) => saveSettings(state)), []);
@@ -119,6 +131,28 @@ export default function App() {
   const handleCapture = () => {
     const saved = captureView(captureFileName(cameraHeight, fov));
     showNotice(saved ? 'View saved as PNG.' : 'Could not read the canvas.');
+  };
+
+  /** Drop a primitive where the viewer is looking, rather than where they tap. */
+  const handleAddAtFocus = () => {
+    addBox([focusPoint.x, 0, focusPoint.z]);
+  };
+
+  const handleShare = async () => {
+    const result = await shareScene(boxes);
+    showNotice(
+      result === 'copied'
+        ? 'Link copied — it carries this study.'
+        : result === 'shared'
+        ? 'Study shared.'
+        : 'Could not copy the link.'
+    );
+  };
+
+  const openAR = () => {
+    setShowPanel(false);
+    setShowHistory(false);
+    setShowAR(true);
   };
 
   const handleSparkleClick = () => {
@@ -166,7 +200,7 @@ export default function App() {
 
     setLoadingModel(true);
     try {
-      const { model, warning } = await loadModelFile(file, MODEL_DROP);
+      const { model, warning } = await loadModelFile(file, [focusPoint.x, focusPoint.z]);
       addModel(model);
 
       if (warning) {
@@ -368,7 +402,7 @@ export default function App() {
   const bgColor = cameraFeed ? 'bg-transparent' : isDark ? 'bg-[#0c0c0e]' : 'bg-[#f3f3f1]';
 
   const noticeBanner = notice && (
-    <div className="absolute top-16 left-0 right-0 z-[60] flex justify-center px-4 pointer-events-none">
+    <div className="absolute inset-x-0 top-0 z-[60] safe-top pt-16 flex justify-center px-4 pointer-events-none">
       <div
         className={`flex items-center gap-3 max-w-md px-4 py-2.5 rounded-xl border backdrop-blur-md shadow-lg pointer-events-auto ${
           isDark || cameraFeed ? 'bg-black/80 border-gray-700 text-gray-100' : 'bg-white/90 border-gray-200 text-gray-900'
@@ -406,7 +440,8 @@ export default function App() {
       <div className={`fixed inset-0 w-screen h-screen ${bgColor} font-sans selection:bg-none`} style={{ minHeight: '100dvh' }}>
         {cameraFeed && <CameraFeed onError={(message) => { setCameraFeed(false); showNotice(message); }} />}
         <Scene />
-        <WalkOverlay onNotice={showNotice} />
+        <WalkOverlay onNotice={showNotice} onAR={openAR} />
+        {showAR && <ARSheet onClose={() => setShowAR(false)} onNotice={showNotice} />}
         {noticeBanner}
       </div>
     );
@@ -424,6 +459,22 @@ export default function App() {
 
       {!isViewMode && <SelectionBar />}
       {noticeBanner}
+
+      {/* Phone layout: thumb-sized targets along the bottom, AR in the middle */}
+      <MobileBar
+        onAR={openAR}
+        onWalk={enterWalkMode}
+        onAdd={handleAddAtFocus}
+        onSetup={() => setShowPanel(!showPanel)}
+        onCapture={handleCapture}
+        onShare={handleShare}
+        onUpload={() => modelInputRef.current?.click()}
+        onPrompt={handleTextToggle}
+        onHistory={() => setShowHistory(!showHistory)}
+        setupOpen={showPanel}
+      />
+
+      {showAR && <ARSheet onClose={() => setShowAR(false)} onNotice={showNotice} />}
 
       {/* Loading Overlay */}
       {loading && (
@@ -489,7 +540,7 @@ export default function App() {
       )}
 
       {/* HUD Info — the numbers that define the shot you are drawing */}
-      <div className={`absolute top-6 right-6 pointer-events-none z-30 ${showPanel ? 'hidden' : ''}`}>
+      <div className={`absolute inset-safe-top inset-safe-right pointer-events-none z-30 ${showPanel ? 'hidden' : ''}`}>
         <div className="flex flex-col items-end gap-0.5">
           <div className="flex items-baseline gap-1.5">
             <span className={`text-[9px] font-bold uppercase tracking-[0.2em] ${labelColor}`}>Eye</span>
@@ -515,7 +566,7 @@ export default function App() {
 
       {/* Current Scene Name Display */}
       {currentSceneName && (
-        <div className="absolute top-6 left-6 pointer-events-none z-30">
+        <div className="absolute inset-safe-top left-4 pointer-events-none z-30">
           <div className={`px-3 py-1.5 rounded-full backdrop-blur-md border ${isDark ? 'bg-black/40 border-gray-700' : 'bg-white/40 border-gray-200'}`}>
             <span className={`text-[10px] font-bold uppercase tracking-widest ${isDark ? 'text-white' : 'text-gray-900'}`}>
               {currentSceneName}
@@ -526,7 +577,7 @@ export default function App() {
 
       {/* History Panel */}
       {showHistory && (
-        <div className="absolute top-4 left-4 bottom-4 w-72 z-50">
+        <div className="fixed inset-x-2 top-16 bottom-24 z-50 md:inset-x-auto md:left-4 md:top-4 md:bottom-4 md:w-72">
           <div className={`h-full rounded-xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${isDark ? 'bg-[#1a1a1a]/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
             {/* Header */}
             <div className={`flex items-center justify-between px-4 py-3 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
@@ -609,13 +660,13 @@ export default function App() {
 
       {/* Practice Panel — everything that departs from the defaults lives here */}
       {showPanel && (
-        <div className="absolute top-4 bottom-4 right-20 w-60 max-w-[calc(100%-6rem)] z-50">
+        <div className="fixed inset-x-2 bottom-24 top-16 z-50 md:inset-x-auto md:top-4 md:bottom-4 md:right-20 md:w-60">
           <PracticePanel onClose={() => setShowPanel(false)} />
         </div>
       )}
 
       {/* Action Buttons - Icons Resized */}
-      <div className="absolute bottom-8 right-8 z-40 flex flex-col items-center gap-4">
+      <div className="hidden md:flex absolute bottom-8 right-8 z-40 flex-col items-center gap-4">
           
           {/* Save the view to draw from */}
           <button
@@ -630,7 +681,19 @@ export default function App() {
             </svg>
           </button>
 
-           {/* AR / walk mode — stand in the scene at 1:1 */}
+           {/* AR — the shortest path to standing in the study */}
+           <button
+            onClick={openAR}
+            className={`group flex items-center justify-center w-8 h-8 transition-transform active:scale-95 duration-200 cursor-pointer ${isDark ? 'text-white hover:text-emerald-300' : 'text-gray-900 hover:text-emerald-600'}`}
+            title="View in AR"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M3 8V5.5A1.5 1.5 0 0 1 4.5 4H7M17 4h2.5A1.5 1.5 0 0 1 21 5.5V8M21 16v2.5a1.5 1.5 0 0 1-1.5 1.5H17M7 20H4.5A1.5 1.5 0 0 1 3 18.5V16" />
+              <path d="M12 8.2 8 10.4v3.2l4 2.2 4-2.2v-3.2z" />
+            </svg>
+          </button>
+
+           {/* Walk mode — stand in the scene at 1:1 */}
            <button
             onClick={enterWalkMode}
             className={`group flex items-center justify-center w-8 h-8 transition-transform active:scale-95 duration-200 cursor-pointer ${isDark ? 'text-white hover:text-emerald-300' : 'text-gray-900 hover:text-emerald-600'}`}
