@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore, EYE_LEVEL_PRESETS, SPAWN_PRESETS, FIGURE_HEIGHT } from '../store';
 import { SpawnKind } from '../types';
+import { openModelInAR, supportsQuickLook } from '../lib/ar';
 
 const SPAWN_ORDER: SpawnKind[] = ['cube', 'slab', 'pillar', 'beam', 'block'];
 
@@ -29,6 +30,13 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   const toggleGuides = useStore((s) => s.toggleGuides);
   const setSpawnKind = useStore((s) => s.setSpawnKind);
   const resetScene = useStore((s) => s.resetScene);
+  const cameraFeed = useStore((s) => s.cameraFeed);
+  const setCameraFeed = useStore((s) => s.setCameraFeed);
+  const models = useStore((s) => s.models);
+  const removeModel = useStore((s) => s.removeModel);
+  const selectedModelId = useStore((s) => s.selectedModelId);
+  const selectModel = useStore((s) => s.selectModel);
+  const quickLook = supportsQuickLook();
 
   const isDark = theme === 'dark';
   const panel = isDark ? 'bg-[#1a1a1a]/95 border-gray-700' : 'bg-white/95 border-gray-200';
@@ -190,11 +198,64 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               {FIGURE_HEIGHT.toFixed(2)} m
             </button>
           </div>
+          <button onClick={() => setCameraFeed(!cameraFeed)} className={`mt-1 w-full ${chip(cameraFeed)}`}>
+            Camera feed {cameraFeed ? 'on' : 'off'}
+          </button>
           <p className={`mt-2 text-[9px] leading-tight ${label}`}>
             Horizon line and 1 m ground grid, and a {FIGURE_HEIGHT.toFixed(2)} m figure to size the
-            cubes against.
+            cubes against. The camera feed puts the grid over the floor you are standing on.
           </p>
         </Row>
+
+        {/* ---------------------------------------------------------------- */}
+        {models.length > 0 && (
+          <Row title="Models">
+            <div className="space-y-1">
+              {models.map((model) => (
+                <div
+                  key={model.id}
+                  onClick={() => model.previewSupported && selectModel(model.id)}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md ${
+                    selectedModelId === model.id
+                      ? isDark ? 'bg-white/10' : 'bg-black/10'
+                      : isDark ? 'bg-white/5' : 'bg-black/5'
+                  } ${model.previewSupported ? 'cursor-pointer' : ''}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-[10px] font-bold truncate ${value}`}>{model.name}</div>
+                    <div className={`text-[9px] tabular-nums ${label}`}>
+                      {model.previewSupported
+                        ? `${model.size.map((v) => v.toFixed(2)).join(' × ')} m`
+                        : 'AR only — binary USDZ'}
+                    </div>
+                  </div>
+                  {quickLook && model.format === 'usdz' && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openModelInAR(model); }}
+                      className={chip(false)}
+                      title="Open this file in AR Quick Look"
+                    >
+                      AR
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeModel(model.id); }}
+                    className={`shrink-0 p-1 rounded ${isDark ? 'text-gray-500 hover:text-red-400' : 'text-gray-400 hover:text-red-500'}`}
+                    aria-label={`Remove ${model.name}`}
+                  >
+                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p className={`mt-2 text-[9px] leading-tight ${label}`}>
+              Models keep their real size. Tap one to select it, then drag to slide it along the
+              floor.
+            </p>
+          </Row>
+        )}
       </div>
 
       <div className={`px-4 py-3 border-t ${divider}`}>
