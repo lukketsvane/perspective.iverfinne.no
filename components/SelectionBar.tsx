@@ -47,7 +47,7 @@ export const SelectionBar: React.FC = () => {
   const iconButton = `flex items-center justify-center w-9 h-9 rounded-full border backdrop-blur-md transition-transform active:scale-95 ${chrome}`;
 
   return (
-    <div className="absolute bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
+    <div className="absolute inset-x-0 bottom-28 md:bottom-6 z-40 flex justify-center px-4 pointer-events-none">
       <div className="flex items-center gap-2 pointer-events-auto">
         <button onClick={() => rotateSelection(-STEP)} className={iconButton} title="Turn 15° left">
           <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">

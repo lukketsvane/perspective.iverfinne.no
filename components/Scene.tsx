@@ -10,6 +10,7 @@ import { KimBox } from './KimBox';
 import { HorizonLine, ScaleFigure } from './Reference';
 import { SceneModels } from './SceneModels';
 import { WalkControls } from './WalkControls';
+import { updateFocus } from '../lib/focus';
 import { useGesture } from '@use-gesture/react';
 
 // Custom Shader for Kim Jung Gi 5-Point Curvilinear Perspective
@@ -161,6 +162,13 @@ const Fisheye = ({ strength, bgColorHex }: { strength: number, bgColorHex: strin
   return <primitive object={effect} dispose={null} />;
 };
 
+/** Keeps the "put one here" point under the middle of the view. */
+const FocusTracker = () => {
+  const { camera } = useThree();
+  useFrame(() => updateFocus(camera));
+  return null;
+};
+
 /** Orbit target on mount: straight ahead, at standing eye level. */
 const INITIAL_TARGET: [number, number, number] = [0, DEFAULT_CAMERA_HEIGHT, 0];
 
@@ -250,13 +258,15 @@ const SceneContent = () => {
 
   const curvilinear = perspectiveMode === 'curvilinear' && distortion > 0.001;
 
-  // Sync FOV with Store
+  // Sync FOV with Store. While walking with the room showing through, the lens
+  // is matched to the real camera instead - WalkControls owns it there.
   useEffect(() => {
+    if (isWalking && cameraFeed) return;
     if (camera instanceof THREE.PerspectiveCamera) {
       camera.fov = fov;
       camera.updateProjectionMatrix();
     }
-  }, [fov, camera]);
+  }, [fov, camera, isWalking, cameraFeed]);
 
   // Global Gestures
   useGesture(
@@ -397,8 +407,25 @@ const SceneContent = () => {
       ) : (
         <WalkControls />
       )}
+
+      <FocusTracker />
     </>
   );
+};
+
+/**
+ * Where to stand at the start.
+ *
+ * three's fov is vertical, so a portrait phone sees a much narrower slice of
+ * the world than a laptop does at the same setting. The honest fix for a
+ * perspective tool is not to widen the lens - that would falsify the very thing
+ * being taught, and the cone of vision with it - but to step back, exactly as
+ * you would in a room.
+ */
+const initialCameraPosition = (): [number, number, number] => {
+  const aspect = typeof window === 'undefined' ? 1.5 : window.innerWidth / window.innerHeight;
+  const backOff = Math.min(2, Math.max(1, 1.5 / Math.max(aspect, 0.3)));
+  return [3 * backOff, DEFAULT_CAMERA_HEIGHT, 5 * backOff];
 };
 
 export const Scene = () => {
@@ -406,7 +433,7 @@ export const Scene = () => {
     <Canvas
       shadows
       // Start standing at eye level, a few metres back, looking level.
-      camera={{ position: [3, DEFAULT_CAMERA_HEIGHT, 5], fov: 60, near: 0.05, far: 2000 }}
+      camera={{ position: initialCameraPosition(), fov: 60, near: 0.05, far: 2000 }}
       dpr={[1, 1.5]}
       // alpha lets the camera feed show through; preserveDrawingBuffer keeps
       // the last frame readable so the view can be saved as a PNG at any time.

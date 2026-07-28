@@ -33,13 +33,40 @@ turned off-axis with their own pairs, a three-cube stack crosses the horizon so
 you can watch a top face flip to an underside, and one cube sits far back as a
 foreshortening check.
 
+## On an iPhone
+
+This is the tool's home. Add it to the Home Screen and it opens full screen with
+its own icon; the AR button in the middle of the bottom bar is one tap from
+standing inside the study.
+
+**AR runs through Quick Look**, because Safari has no WebXR — there is no other
+way to get real positional tracking on an iPhone. Two things make it a
+perspective tool rather than a model viewer:
+
+- **True scale.** The scene is modelled in metres and exported with
+  `metersPerUnit = 1`, so a 1 m cube arrives one metre tall on your floor.
+- **Locked scale.** Quick Look lets you pinch a model bigger by default, which
+  would quietly destroy the only thing being taught. The export sets
+  `#allowsContentScaling=0`, so what you walk around is what you built.
+
+Pick **Room** (1:1, walk through it) or **Tabletop** (1:10, the whole study on a
+desk) on the way in — an 18 m study at full size runs through the walls, which
+is fine to walk into but not always what you want.
+
+Composing is easier on a big screen, so **the link carries the study**: build it
+on a laptop, hit *Send to phone*, open the link on the iPhone, tap AR. Nothing
+is uploaded — the scene rides in the URL fragment.
+
 ## Walking it at 1:1
 
 The figure icon in the right rail drops you into the scene in first person, at
 whatever eye height is set — so the reference stops being a model on a screen
 and becomes a room you are standing in. Turn with the phone (iOS asks for motion
 permission on the way in; refuse it and you get drag-to-look), walk with the
-thumbstick or WASD, and the horizon stays pinned to your eyes as you move.
+thumbstick or WASD, and the horizon stays pinned to your eyes as you move. The
+stick appears wherever your left thumb lands and the right side of the screen
+looks, so both work at once; with the camera on, the virtual lens is matched to
+the real one so the cubes stay planted as you turn.
 
 The bottom bar has the four things you need standing up:
 
