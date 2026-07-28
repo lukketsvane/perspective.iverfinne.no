@@ -207,6 +207,16 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
         scale={data.scale as any}
         // If in view mode, we essentially disable pointer events so clicks pass through to controls
         onPointerDown={handlePointerDown}
+        // The ground plane below deselects on click and spawns on double click.
+        // Swallow both here so hitting a box never falls through to the floor.
+        onClick={(e) => {
+            if (isViewMode) return;
+            e.stopPropagation();
+        }}
+        onDoubleClick={(e) => {
+            if (isViewMode) return;
+            e.stopPropagation();
+        }}
         onPointerOver={(e) => { 
             if (isViewMode) return;
             e.stopPropagation(); 

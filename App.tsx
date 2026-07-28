@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Scene } from './components/Scene';
+import { PracticePanel } from './components/PracticePanel';
 import { useStore } from './store';
 import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
@@ -22,6 +23,9 @@ const generateSceneName = (prompt?: string): string => {
 export default function App() {
   const fov = useStore(s => s.fov);
   const distortion = useStore(s => s.distortion);
+  const cameraHeight = useStore(s => s.cameraHeight);
+  const lockEyeLevel = useStore(s => s.lockEyeLevel);
+  const perspectiveMode = useStore(s => s.perspectiveMode);
   const setBoxes = useStore(s => s.setBoxes);
   const appendBox = useStore(s => s.appendBox);
   const theme = useStore(s => s.theme);
@@ -43,6 +47,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [showPanel, setShowPanel] = useState(false);
   
   // Text Prompt State
   const [showPromptInput, setShowPromptInput] = useState(false);
@@ -233,6 +238,8 @@ export default function App() {
     });
   };
 
+  const selectedBox = boxes.find((b) => b.id === selectedId) ?? null;
+
   const isDark = theme === 'dark';
   const textColor = isDark ? 'text-gray-200' : 'text-gray-900';
   const labelColor = isDark ? 'text-gray-500' : 'text-gray-400';
@@ -305,18 +312,33 @@ export default function App() {
           </div>
       )}
 
-      {/* HUD Info (Lens) */}
-      <div className="absolute top-6 right-6 pointer-events-none mix-blend-multiply origin-top-right scale-[0.25]">
-        <div className={`flex flex-col items-end gap-1 ${isDark ? 'mix-blend-normal' : 'mix-blend-multiply'}`}>
-          <div className="flex items-baseline gap-2">
-            <span className={`text-xl font-bold ${labelColor}`}>ƒ</span>
-            <div className={`text-4xl font-black ${textColor} tracking-tighter tabular-nums`}>
+      {/* HUD Info — the numbers that define the shot you are drawing */}
+      <div className={`absolute top-6 right-6 pointer-events-none z-30 ${showPanel ? 'hidden' : ''}`}>
+        <div className="flex flex-col items-end gap-0.5">
+          <div className="flex items-baseline gap-1.5">
+            <span className={`text-[9px] font-bold uppercase tracking-[0.2em] ${labelColor}`}>Eye</span>
+            <span className={`text-sm font-black ${textColor} tracking-tight tabular-nums`}>
+              {cameraHeight.toFixed(2)} m
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className={`text-[9px] font-bold uppercase tracking-[0.2em] ${labelColor}`}>ƒ</span>
+            <span className={`text-sm font-black ${textColor} tracking-tight tabular-nums`}>
               {Math.round(fov)}°
+            </span>
+          </div>
+          <div className={`text-[9px] font-bold uppercase tracking-[0.2em] ${labelColor}`}>
+            {perspectiveMode === 'curvilinear'
+              ? '5 point curvilinear'
+              : lockEyeLevel
+              ? '2 point · level'
+              : '3 point · free'}
+          </div>
+          {selectedBox && (
+            <div className={`text-[9px] font-bold uppercase tracking-[0.2em] ${labelColor} tabular-nums`}>
+              {selectedBox.scale.map((v) => v.toFixed(2)).join(' × ')} m
             </div>
-          </div>
-          <div className={`text-[10px] font-bold ${labelColor} uppercase tracking-[0.2em] mb-2`}>
-            Field of View
-          </div>
+          )}
         </div>
       </div>
 
@@ -414,6 +436,13 @@ export default function App() {
         </div>
       )}
 
+      {/* Practice Panel — everything that departs from the defaults lives here */}
+      {showPanel && (
+        <div className="absolute top-4 bottom-4 right-20 w-60 max-w-[calc(100%-6rem)] z-50">
+          <PracticePanel onClose={() => setShowPanel(false)} />
+        </div>
+      )}
+
       {/* Action Buttons - Icons Resized */}
       <div className="absolute bottom-8 right-8 z-40 flex flex-col items-center gap-4">
           
@@ -428,6 +457,20 @@ export default function App() {
                 </svg>
             </button>
           )}
+
+           {/* Practice Settings — eye level, projection, primitives, guides */}
+           <button
+            onClick={() => setShowPanel(!showPanel)}
+            className={`group flex items-center justify-center w-8 h-8 transition-transform active:scale-95 duration-200 cursor-pointer ${showPanel ? (isDark ? 'text-sky-300' : 'text-sky-600') : (isDark ? 'text-white hover:text-sky-300' : 'text-gray-900 hover:text-sky-600')}`}
+            title="Practice settings"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="2" y1="12" x2="22" y2="12" />
+              <line x1="4" y1="17" x2="20" y2="20" />
+              <line x1="4" y1="7" x2="20" y2="4" />
+              <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+            </svg>
+          </button>
 
            {/* View Mode Toggle */}
            <button 

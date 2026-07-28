@@ -1,6 +1,6 @@
 {
   "name": "KJG Perspective Ether",
-  "description": "A minimalist, gesture-based 3D playground for studying perspective and composition inspired by Kim Jung Gi. No UI, just pure spatial manipulation.",
+  "description": "A perspective practice reference in the Kim Jung Gi tradition: 1 m cubes on a metric grid, seen from a human eye level with the horizon always in view.",
   "requestFramePermissions": [
     "camera"
   ]
