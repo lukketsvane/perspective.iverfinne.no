@@ -93,6 +93,66 @@ const snapToCell = (v: number) => Math.floor(v) + 0.5;
 /** Snap other primitives to the half metre. */
 const snapToHalf = (v: number) => Math.round(v * 2) / 2;
 
+// ---------------------------------------------------------------------------
+// Remembered settings
+// ---------------------------------------------------------------------------
+// How you have the tool set up is worth keeping between sessions; what you are
+// looking at is not. So the eye level, the guides and the theme come back on
+// reload, while the scene, the projection, the camera feed and walk mode all
+// return to their defaults - open the app and it is cubes in straight-line
+// perspective at eye level, every time.
+// ---------------------------------------------------------------------------
+
+const SETTINGS_KEY = 'kjg-perspective-settings';
+
+type PersistedSettings = Pick<
+  SceneState,
+  'theme' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep'
+>;
+
+const loadSettings = (): Partial<PersistedSettings> => {
+  if (typeof localStorage === 'undefined') return {};
+  try {
+    const stored = localStorage.getItem(SETTINGS_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+};
+
+let saveTimer: number | undefined;
+
+/**
+ * Write the setup to storage, coalesced.
+ *
+ * This is wired to every store change, and a face drag commits on every frame,
+ * so an immediate write would serialise and store on each one.
+ */
+export const saveSettings = (state: SceneState) => {
+  if (typeof localStorage === 'undefined') return;
+  if (saveTimer !== undefined) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => writeSettings(state), 400) as unknown as number;
+};
+
+const writeSettings = (state: SceneState) => {
+  try {
+    const settings: PersistedSettings = {
+      theme: state.theme,
+      cameraHeight: state.cameraHeight,
+      lockEyeLevel: state.lockEyeLevel,
+      showGuides: state.showGuides,
+      showFigure: state.showFigure,
+      showCone: state.showCone,
+      spawnKind: state.spawnKind,
+      fov: state.fov,
+      snapStep: state.snapStep,
+    };
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch {
+    // A full or blocked store is not worth interrupting a drawing session for.
+  }
+};
+
 const loadScenesFromStorage = (): SavedScene[] => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -113,6 +173,8 @@ const saveScenesToStorage = (scenes: SavedScene[]) => {
   }
 };
 
+const remembered = loadSettings();
+
 export const useStore = create<SceneState>((set, get) => ({
   boxes: generateInitialScene(),
   selectedId: null,
@@ -125,6 +187,8 @@ export const useStore = create<SceneState>((set, get) => ({
   lockEyeLevel: true, // Level gaze -> true verticals -> 2-point perspective
   showFigure: true,
   showGuides: true,
+  showCone: false,
+  snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   spawnKind: 'cube',
   viewMode: 'orbit',
   cameraFeed: false, // The camera stays off until it is asked for
@@ -133,6 +197,10 @@ export const useStore = create<SceneState>((set, get) => ({
   theme: 'light',
   currentSceneName: null,
   sceneHistory: [],
+
+  // Anything remembered from last time overrides the defaults above. Only the
+  // setup is remembered - never the scene, the projection or the camera.
+  ...remembered,
 
   addBox: (position) =>
     set((state) => {
@@ -234,6 +302,30 @@ export const useStore = create<SceneState>((set, get) => ({
   toggleFigure: () => set((state) => ({ showFigure: !state.showFigure })),
 
   toggleGuides: () => set((state) => ({ showGuides: !state.showGuides })),
+
+  toggleCone: () => set((state) => ({ showCone: !state.showCone })),
+
+  setSnapStep: (step) => set({ snapStep: Math.max(0, step) }),
+
+  rotateSelection: (radians) => set((state) => {
+    if (state.selectedModelId) {
+      return {
+        models: state.models.map((m) =>
+          m.id === state.selectedModelId ? { ...m, rotationY: m.rotationY + radians } : m
+        ),
+      };
+    }
+    if (state.selectedId) {
+      return {
+        boxes: state.boxes.map((b) =>
+          b.id === state.selectedId
+            ? { ...b, rotation: [b.rotation[0], b.rotation[1] + radians, b.rotation[2]] as [number, number, number] }
+            : b
+        ),
+      };
+    }
+    return {};
+  }),
 
   setSpawnKind: (kind) => set({ spawnKind: kind }),
 

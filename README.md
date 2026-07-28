@@ -20,7 +20,12 @@ switch in the **Practice** panel (the sliders icon in the right rail).
 | Gaze | Locked level | Camera and orbit target sit at the same height, so the line of sight is horizontal: verticals stay vertical and the scene reads as clean 2-point perspective with the horizon on your eye level. Unlock it to climb off eye level and pick up the third vanishing point. |
 | Projection | Straight lines | Rectilinear perspective, the thing you actually rule on paper. The 5-point curvilinear projection is a mode you switch into. |
 | Lens | 60° | The cone of vision. Past roughly 90° the edges stretch, which is where curvilinear starts to earn its keep. |
-| Guides | Horizon line, 1 m ground grid, 1.75 m figure | The horizon is drawn at the camera's own height, so every horizontal vanishing point in the scene sits on it. |
+| Guides | Horizon line, 1 m ground grid, 1.75 m figure | The horizon is drawn at the camera's own height, so every horizontal vanishing point in the scene sits on it. The 60° cone of vision is there too, one tap away. |
+| Edits | Snap to 0.25 m | A box ends up 1.75 m tall rather than 1.73 — the difference between a reference you can measure against and one you cannot. Switch to free sizing in the panel. |
+
+How you have the tool set up — eye level, guides, theme, lens, snap — is remembered
+between sessions. What is in the scene is not: reload and you are back to the
+cubes, in straight-line perspective, with the camera off.
 
 The opening arrangement is fixed rather than random, so it works as a reference:
 most cubes are grid-aligned and share one pair of vanishing points, two are
@@ -70,8 +75,16 @@ use glTF/GLB.
 - **Orbit / zoom** — drag, scroll or pinch.
 - **Add a cube** — double-tap the ground. New cubes land grid-aligned, so they
   share the scene's vanishing points.
-- **Resize** — tap a box to select it, then drag a face to push or pull it. The
-  selected box's dimensions in metres show in the top-right readout.
+- **Resize** — tap a box to select it, then drag a face to push or pull it. Its
+  size in metres counts up under your thumb in the selection bar, snapped to
+  0.25 m.
+- **Turn** — the arrows in the selection bar, or `R` / `shift+R`, in 15° steps.
+  A box off the grid gets its own pair of vanishing points, which is half of
+  what makes a box study worth drawing. `Delete` removes the selection,
+  `Escape` clears it.
+- **Save the view** — the download icon writes the frame to a PNG
+  (`perspective-eye1.90m-60deg-<date>.png`) so you can draw from it on paper or
+  a second screen. The 3D guides are in the image; the on-screen chrome is not.
 - **Lens** — 3-finger vertical drag changes the field of view. Curvature is only
   ever a deliberate mode switch, never a side effect.
 - **Reset to cubes** — bottom of the Practice panel.

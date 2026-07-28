@@ -114,8 +114,13 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
         const newPos = [...initialPos];
         const axisIndex = Math.abs(normalLocal.x) > 0.9 ? 0 : Math.abs(normalLocal.y) > 0.9 ? 1 : 2;
         
-        // Apply Scale (Clamp to minimum 0.1)
-        newScale[axisIndex] = Math.max(0.1, initialScale[axisIndex] + change);
+        // Apply Scale. Snapping keeps sizes readable against the 1 m grid -
+        // a box ends up 1.75 m tall, not 1.73 - which is the difference between
+        // a reference you can measure against and one you cannot.
+        const snap = useStore.getState().snapStep;
+        const raw = initialScale[axisIndex] + change;
+        const snapped = snap > 0 ? Math.round(raw / snap) * snap : raw;
+        newScale[axisIndex] = Math.max(snap > 0 ? snap : 0.1, snapped);
         
         // --- ANCHORING LOGIC ---
         // Calculate the physical size change
@@ -146,6 +151,13 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
         // Apply visual updates immediately
         meshRef.current.scale.set(newScale[0], newScale[1], newScale[2]);
         meshRef.current.position.set(newPos[0], newPos[1], newPos[2]);
+
+        // Commit as we go, so the size readout counts up under the thumb
+        // instead of only landing when the finger lifts.
+        updateBox(data.id, {
+            scale: [newScale[0], newScale[1], newScale[2]],
+            position: [newPos[0], newPos[1], newPos[2]],
+        });
     };
 
     const handleWindowUp = () => {

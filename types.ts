@@ -75,6 +75,10 @@ export interface SceneState {
   showFigure: boolean;
   /** Horizon / eye-level line and ground grid. */
   showGuides: boolean;
+  /** The 60 degree cone of vision, drawn over the view. */
+  showCone: boolean;
+  /** Metres that edits snap to while dragging. 0 is free. */
+  snapStep: number;
   spawnKind: SpawnKind;
   /** Orbit (drawing board) or walk (first person, real scale). */
   viewMode: ViewMode;
@@ -99,6 +103,10 @@ export interface SceneState {
   toggleEyeLevelLock: () => void;
   toggleFigure: () => void;
   toggleGuides: () => void;
+  toggleCone: () => void;
+  setSnapStep: (step: number) => void;
+  /** Turn the selection (box or model) about its own vertical axis. */
+  rotateSelection: (radians: number) => void;
   setSpawnKind: (kind: SpawnKind) => void;
   setViewMode: (mode: ViewMode) => void;
   setCameraFeed: (on: boolean) => void;

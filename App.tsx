@@ -3,7 +3,10 @@ import { Scene } from './components/Scene';
 import { PracticePanel } from './components/PracticePanel';
 import { WalkOverlay } from './components/WalkOverlay';
 import { CameraFeed } from './components/CameraFeed';
-import { useStore } from './store';
+import { ConeOfVision } from './components/ConeOfVision';
+import { SelectionBar } from './components/SelectionBar';
+import { useStore, saveSettings } from './store';
+import { captureView, captureFileName } from './lib/capture';
 import { enableDeviceOrientation, disableDeviceOrientation } from './lib/walkInput';
 import { loadModelFile, MODEL_ACCEPT } from './lib/loadModel';
 import { openModelInAR, supportsQuickLook } from './lib/ar';
@@ -39,8 +42,6 @@ export default function App() {
   const theme = useStore(s => s.theme);
   const toggleTheme = useStore(s => s.toggleTheme);
   const selectedId = useStore(s => s.selectedId);
-  const removeBox = useStore(s => s.removeBox);
-  const selectBox = useStore(s => s.selectBox);
   const isViewMode = useStore(s => s.isViewMode);
   const toggleViewMode = useStore(s => s.toggleViewMode);
   const currentSceneName = useStore(s => s.currentSceneName);
@@ -58,6 +59,7 @@ export default function App() {
   const addModel = useStore(s => s.addModel);
   const removeModel = useStore(s => s.removeModel);
   const selectedModelId = useStore(s => s.selectedModelId);
+  const showCone = useStore(s => s.showCone);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
@@ -77,23 +79,54 @@ export default function App() {
     loadHistoryFromStorage();
   }, [loadHistoryFromStorage]);
 
+  // Remember how the tool is set up (never what is in the scene).
+  useEffect(() => useStore.subscribe((state) => saveSettings(state)), []);
+
+  /**
+   * Keyboard, orbit mode only - walk mode owns WASD.
+   * R turns the selection, shift+R turns it back, delete removes it.
+   */
+  useEffect(() => {
+    if (viewMode !== 'orbit') return;
+
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+
+      // Read through the store so this listener never goes stale.
+      const state = useStore.getState();
+
+      if (e.key === 'Escape') {
+        state.selectBox(null);
+        state.selectModel(null);
+        return;
+      }
+      if (!state.selectedId && !state.selectedModelId) return;
+
+      if (e.key === 'r' || e.key === 'R') {
+        state.rotateSelection((e.shiftKey ? -1 : 1) * (Math.PI / 12));
+      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        if (state.selectedModelId) state.removeModel(state.selectedModelId);
+        else if (state.selectedId) { state.removeBox(state.selectedId); state.selectBox(null); }
+      }
+    };
+
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [viewMode]);
+
+  const handleCapture = () => {
+    const saved = captureView(captureFileName(cameraHeight, fov));
+    showNotice(saved ? 'View saved as PNG.' : 'Could not read the canvas.');
+  };
+
   const handleSparkleClick = () => {
     fileInputRef.current?.click();
   };
 
   const handleTextToggle = () => {
       setShowPromptInput(!showPromptInput);
-  };
-
-  const handleDelete = () => {
-    if (selectedModelId) {
-      removeModel(selectedModelId);
-      return;
-    }
-    if (selectedId) {
-      removeBox(selectedId);
-      selectBox(null);
-    }
   };
 
   const showNotice = useCallback((message: string, action?: { label: string; run: () => void }) => {
@@ -328,8 +361,6 @@ export default function App() {
     });
   };
 
-  const selectedBox = boxes.find((b) => b.id === selectedId) ?? null;
-
   const isDark = theme === 'dark';
   const textColor = isDark ? 'text-gray-200' : 'text-gray-900';
   const labelColor = isDark ? 'text-gray-500' : 'text-gray-400';
@@ -385,6 +416,13 @@ export default function App() {
     <div className={`fixed inset-0 w-screen h-screen ${bgColor} font-sans selection:bg-none transition-colors duration-500`} style={{ minHeight: '100dvh' }}>
       {cameraFeed && <CameraFeed onError={(message) => { setCameraFeed(false); showNotice(message); }} />}
       <Scene />
+
+      {/* Where a rectilinear projection still matches an eye */}
+      {showCone && perspectiveMode === 'linear' && (
+        <ConeOfVision fov={fov} color={isDark || cameraFeed ? '#8ab4ff' : '#1f6feb'} />
+      )}
+
+      {!isViewMode && <SelectionBar />}
       {noticeBanner}
 
       {/* Loading Overlay */}
@@ -472,11 +510,6 @@ export default function App() {
               ? '2 point · level'
               : '3 point · free'}
           </div>
-          {selectedBox && (
-            <div className={`text-[9px] font-bold uppercase tracking-[0.2em] ${labelColor} tabular-nums`}>
-              {selectedBox.scale.map((v) => v.toFixed(2)).join(' × ')} m
-            </div>
-          )}
         </div>
       </div>
 
@@ -584,17 +617,18 @@ export default function App() {
       {/* Action Buttons - Icons Resized */}
       <div className="absolute bottom-8 right-8 z-40 flex flex-col items-center gap-4">
           
-          {(selectedId || selectedModelId) && !isViewMode && (
-            <button
-                onClick={handleDelete}
-                className={`group flex items-center justify-center w-8 h-8 transition-all active:scale-95 duration-200 cursor-pointer ${isDark ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-500'}`}
-                title="Delete Selected"
-            >
-                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
-            </button>
-          )}
+          {/* Save the view to draw from */}
+          <button
+            onClick={handleCapture}
+            className={`group flex items-center justify-center w-8 h-8 transition-transform active:scale-95 duration-200 cursor-pointer ${isDark ? 'text-white hover:text-sky-300' : 'text-gray-900 hover:text-sky-600'}`}
+            title="Save this view as a PNG"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
 
            {/* AR / walk mode — stand in the scene at 1:1 */}
            <button
