@@ -1,11 +1,97 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import { BoxData, SceneState, SavedScene } from './types';
+import { BoxData, SceneState, SavedScene, SpawnKind } from './types';
 
 // Helper for random range
 const rng = (min: number, max: number) => Math.random() * (max - min) + min;
 
 const STORAGE_KEY = 'kjg-perspective-scenes';
+
+// ---------------------------------------------------------------------------
+// PRACTICE DEFAULTS
+// ---------------------------------------------------------------------------
+// The tool is a reference guide for perspective practice, built around the way
+// Kim Jung Gi teaches it: everything is measured in metres, everything starts
+// as a 1 m cube, and the camera sits at a believable human eye level so the
+// horizon never drifts. Anything fancier (curvilinear projection, other
+// primitives, AI scenes) is opt-in.
+// ---------------------------------------------------------------------------
+
+/** One metre. The whole scene is measured in real-world units. */
+export const UNIT = 1;
+
+/** Standing eye level of a tall adult - the everyday KJG viewpoint. */
+export const DEFAULT_CAMERA_HEIGHT = 1.9;
+
+/** Height of the scale figure, in metres. */
+export const FIGURE_HEIGHT = 1.75;
+
+/** Eye-level presets, in metres. */
+export const EYE_LEVEL_PRESETS: { label: string; note: string; height: number }[] = [
+  { label: '1.2', note: 'Seated', height: 1.2 },
+  { label: '1.6', note: 'Average standing eye level', height: 1.6 },
+  { label: '1.9', note: 'Tall standing eye level', height: DEFAULT_CAMERA_HEIGHT },
+  { label: '2.5', note: 'Raised - the wide establishing view', height: 2.5 },
+];
+
+/** Dimensions (in metres) for each spawnable primitive. Cube is the default. */
+export const SPAWN_PRESETS: Record<SpawnKind, { label: string; scale: () => [number, number, number] }> = {
+  cube:   { label: 'Cube',   scale: (): [number, number, number] => [UNIT, UNIT, UNIT] },
+  slab:   { label: 'Slab',   scale: (): [number, number, number] => [rng(2, 5), rng(0.1, 0.4), rng(2, 5)] },
+  pillar: { label: 'Pillar', scale: (): [number, number, number] => [rng(0.3, 0.8), rng(3, 6), rng(0.3, 0.8)] },
+  beam:   { label: 'Beam',   scale: (): [number, number, number] => [rng(0.25, 0.4), rng(0.25, 0.4), rng(4, 10)] },
+  block:  { label: 'Block',  scale: (): [number, number, number] => [rng(1, 3), rng(1, 3), rng(1, 3)] },
+};
+
+/** A 1 m cube resting on the ground, optionally turned about its own axis. */
+const cube = (x: number, z: number, rotY = 0): Omit<BoxData, 'id'> => ({
+  position: [x, UNIT / 2, z],
+  scale: [UNIT, UNIT, UNIT],
+  rotation: [0, rotY, 0],
+});
+
+/** A 1 m cube stacked at `level` (0 = resting on the ground). */
+const stacked = (x: number, z: number, level: number, rotY = 0): Omit<BoxData, 'id'> => ({
+  position: [x, UNIT / 2 + level * UNIT, z],
+  scale: [UNIT, UNIT, UNIT],
+  rotation: [0, rotY, 0],
+});
+
+/**
+ * The default scene: nothing but 1 m cubes.
+ *
+ * The arrangement is fixed rather than random so it works as a reference:
+ *  - most cubes are grid-aligned, so they share one pair of vanishing points
+ *  - two cubes are turned off-axis, each with its own pair of vanishing points
+ *  - a three-cube stack crosses the 1.9 m horizon, so the visible top faces of
+ *    the lower cubes flip to the underside of the top one
+ *  - cubes sit at a spread of depths, to read the rate of foreshortening
+ */
+const generateInitialScene = (): BoxData[] => {
+  const layout: Omit<BoxData, 'id'>[] = [
+    // Grid-aligned cubes, below eye level
+    cube(0, 0),
+    cube(-2, -1),
+    cube(2, -3),
+    cube(-3, 2),
+    cube(4, 1),
+    cube(1, -12), // far cube - the depth check
+    // Stack crossing the horizon at 1.9 m
+    stacked(-1, -6, 0),
+    stacked(-1, -6, 1),
+    stacked(-1, -6, 2),
+    // Off-axis cubes, each with its own pair of vanishing points
+    cube(3, -7, 0.62),
+    cube(-5, -4, -0.38),
+  ];
+
+  return layout.map((box) => ({ id: uuidv4(), ...box }));
+};
+
+/** Snap a spawned cube to the centre of a 1 m grid cell, so stacks line up. */
+const snapToCell = (v: number) => Math.floor(v) + 0.5;
+/** Snap other primitives to the half metre. */
+const snapToHalf = (v: number) => Math.round(v * 2) / 2;
 
 const loadScenesFromStorage = (): SavedScene[] => {
   try {
@@ -27,72 +113,45 @@ const saveScenesToStorage = (scenes: SavedScene[]) => {
   }
 };
 
-const generateInitialScene = (): BoxData[] => {
-  // A small stack of boxes to show scale immediately
-  return [
-    {
-      id: uuidv4(),
-      position: [0, 0.25, 0],
-      scale: [10, 0.2, 10], // A large floor slab
-      rotation: [0, 0, 0],
-    },
-    {
-      id: uuidv4(),
-      position: [-2, 2, -2],
-      scale: [0.5, 4, 0.5], // A tall pillar
-      rotation: [0, 0.2, 0],
-    },
-    {
-      id: uuidv4(),
-      position: [2, 1, 2],
-      scale: [3, 2, 1], // A blocky mass
-      rotation: [0, -0.4, 0],
-    }
-  ];
-};
-
 export const useStore = create<SceneState>((set, get) => ({
   boxes: generateInitialScene(),
   selectedId: null,
   isDragging: false,
   isViewMode: false,
-  fov: 85, // Wider default FOV for perspective drama
-  distortion: 0.35, // Stronger initial fisheye
+  fov: 60, // The classic 60 degree cone of vision - minimal edge distortion
+  distortion: 0, // Straight-line perspective by default
+  perspectiveMode: 'linear',
+  cameraHeight: DEFAULT_CAMERA_HEIGHT,
+  lockEyeLevel: true, // Level gaze -> true verticals -> 2-point perspective
+  showFigure: true,
+  showGuides: true,
+  spawnKind: 'cube',
   theme: 'light',
   currentSceneName: null,
   sceneHistory: [],
 
   addBox: (position) =>
     set((state) => {
-      // Logic to encourage "slabs" and "pillars" even for manual additions
-      const type = Math.random();
-      let scale: [number, number, number];
-      
-      if (type < 0.33) {
-        // Slab
-        scale = [rng(2, 5), rng(0.1, 0.5), rng(2, 5)];
-      } else if (type < 0.66) {
-        // Pillar
-        scale = [rng(0.3, 0.8), rng(3, 6), rng(0.3, 0.8)];
-      } else {
-        // Block
-        scale = [rng(1, 3), rng(1, 3), rng(1, 3)];
-      }
+      const kind = state.spawnKind;
+      const scale = SPAWN_PRESETS[kind].scale();
+      const snap = kind === 'cube' ? snapToCell : snapToHalf;
 
       return {
         boxes: [
           ...state.boxes,
           {
             id: uuidv4(),
-            position: [position[0], scale[1]/2, position[2]], // Rest on ground
-            scale: scale,
-            rotation: [rng(-0.1, 0.1), rng(0, Math.PI), rng(-0.1, 0.1)],
+            // Rest on the ground, aligned to the grid so the new box shares the
+            // scene's vanishing points. Turn it by hand for a new VP pair.
+            position: [snap(position[0]), scale[1] / 2, snap(position[2])],
+            scale,
+            rotation: [0, 0, 0],
           },
         ],
       };
     }),
 
-  appendBox: (data) => 
+  appendBox: (data) =>
     set((state) => ({
       boxes: [
         ...state.boxes,
@@ -116,17 +175,43 @@ export const useStore = create<SceneState>((set, get) => ({
 
   setBoxes: (boxes) => set({ boxes }),
 
-  selectBox: (id) => set({ selectedId: id }),
-  
-  setIsDragging: (isDragging) => set({ isDragging }),
-  
-  setLens: (fov, distortion) => set({ 
-    fov: Math.max(10, Math.min(140, fov)),
-    distortion: Math.max(0, Math.min(1.5, distortion))
+  resetScene: () => set({
+    boxes: generateInitialScene(),
+    selectedId: null,
+    currentSceneName: null,
   }),
 
+  selectBox: (id) => set({ selectedId: id }),
+
+  setIsDragging: (isDragging) => set({ isDragging }),
+
+  setLens: (fov, distortion) => set((state) => ({
+    fov: Math.max(10, Math.min(140, fov)),
+    distortion: distortion === undefined
+      ? state.distortion
+      : Math.max(0, Math.min(1.5, distortion)),
+  })),
+
+  setPerspectiveMode: (mode) => set((state) => ({
+    perspectiveMode: mode,
+    // Curvilinear needs curvature and a wide lens to read as 5-point;
+    // linear snaps back to a clean cone of vision.
+    distortion: mode === 'curvilinear' ? (state.distortion > 0 ? state.distortion : 0.35) : 0,
+    fov: mode === 'curvilinear' ? Math.max(state.fov, 85) : Math.min(state.fov, 75),
+  })),
+
+  setCameraHeight: (height) => set({ cameraHeight: Math.max(0.2, Math.min(12, height)) }),
+
+  toggleEyeLevelLock: () => set((state) => ({ lockEyeLevel: !state.lockEyeLevel })),
+
+  toggleFigure: () => set((state) => ({ showFigure: !state.showFigure })),
+
+  toggleGuides: () => set((state) => ({ showGuides: !state.showGuides })),
+
+  setSpawnKind: (kind) => set({ spawnKind: kind }),
+
   toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
-  
+
   toggleViewMode: () => set((state) => ({ isViewMode: !state.isViewMode, selectedId: null })),
 
   setCurrentSceneName: (name) => set({ currentSceneName: name }),
@@ -141,7 +226,7 @@ export const useStore = create<SceneState>((set, get) => ({
     };
     const updatedHistory = [newScene, ...state.sceneHistory].slice(0, 50); // Keep max 50 scenes
     saveScenesToStorage(updatedHistory);
-    return { 
+    return {
       sceneHistory: updatedHistory,
       currentSceneName: name
     };
@@ -150,7 +235,7 @@ export const useStore = create<SceneState>((set, get) => ({
   loadScene: (id) => set((state) => {
     const scene = state.sceneHistory.find(s => s.id === id);
     if (scene) {
-      return { 
+      return {
         boxes: scene.boxes.map(b => ({ ...b, id: uuidv4() })), // Give new IDs to avoid conflicts
         currentSceneName: scene.name,
         selectedId: null
