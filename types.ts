@@ -59,6 +59,14 @@ export interface SavedScene {
   prompt?: string;
 }
 
+/** A camera placement a study can ask for. */
+export interface CameraPose {
+  position: [number, number, number];
+  target: [number, number, number];
+  /** Bumped on every request, so the same pose can be re-applied. */
+  nonce: number;
+}
+
 export interface SceneState {
   boxes: BoxData[];
   selectedId: string | null;
@@ -86,6 +94,9 @@ export interface SceneState {
   cameraFeed: boolean;
   models: SceneModel[];
   selectedModelId: string | null;
+  /** Set when a study asks the camera to move; the scene consumes it. */
+  cameraPose: CameraPose | null;
+  activeStudyId: string | null;
   theme: ThemeMode;
   currentSceneName: string | null;
   sceneHistory: SavedScene[];
@@ -109,6 +120,8 @@ export interface SceneState {
   rotateSelection: (radians: number) => void;
   setSpawnKind: (kind: SpawnKind) => void;
   setViewMode: (mode: ViewMode) => void;
+  /** Load a drill: geometry, eye level, lens and where to stand. */
+  loadStudy: (id: string) => void;
   setCameraFeed: (on: boolean) => void;
   addModel: (model: Omit<SceneModel, 'id'>) => void;
   removeModel: (id: string) => void;

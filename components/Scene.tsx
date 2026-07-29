@@ -172,6 +172,9 @@ const FocusTracker = () => {
 /** Orbit target on mount: straight ahead, at standing eye level. */
 const INITIAL_TARGET: [number, number, number] = [0, DEFAULT_CAMERA_HEIGHT, 0];
 
+/** Closest the orbit camera may get to the floor, in metres. */
+const GROUND_CLEARANCE = 0.25;
+
 /** Where the scale figure stands - clear of the default cubes, near the camera. */
 const FIGURE_POSITION: [number, number, number] = [-1.5, 0, 1.5];
 
@@ -190,6 +193,24 @@ const EyeLevelRig = () => {
   const { camera, controls } = useThree();
   const cameraHeight = useStore((state) => state.cameraHeight);
   const lockEyeLevel = useStore((state) => state.lockEyeLevel);
+  const cameraPose = useStore((state) => state.cameraPose);
+
+  /**
+   * A study says where to stand, not just what to look at - one-point only
+   * looks like one-point from square on. The nonce lets the same drill be
+   * re-applied after the view has been moved around.
+   */
+  useEffect(() => {
+    const orbit = controls as any;
+    if (!cameraPose || !orbit?.target) return;
+
+    camera.position.set(...cameraPose.position);
+    orbit.target.set(...cameraPose.target);
+    // A drill may look up at something tall, which puts the camera below its
+    // own target - open the limit before update() gets a chance to clamp it.
+    if (!lockEyeLevel) orbit.maxPolarAngle = Math.PI - 0.05;
+    orbit.update();
+  }, [cameraPose, camera, controls, lockEyeLevel]);
 
   // Move the camera and the orbit target to the new eye level, keeping the
   // horizontal distance and bearing the viewer had already framed up.
@@ -219,12 +240,29 @@ const EyeLevelRig = () => {
 
   // OrbitControls updates at priority -1, so this runs after it each frame.
   useFrame(() => {
-    if (!lockEyeLevel) return;
     const orbit = controls as any;
     if (!orbit?.target) return;
 
-    if (Math.abs(camera.position.y - cameraHeight) > 1e-5) camera.position.y = cameraHeight;
-    if (Math.abs(orbit.target.y - cameraHeight) > 1e-5) orbit.target.y = cameraHeight;
+    if (lockEyeLevel) {
+      if (Math.abs(camera.position.y - cameraHeight) > 1e-5) camera.position.y = cameraHeight;
+      if (Math.abs(orbit.target.y - cameraHeight) > 1e-5) orbit.target.y = cameraHeight;
+      return;
+    }
+
+    /**
+     * Unlocked, the camera has to be free to drop below its target and look up
+     * at something tall - that is the whole third-vanishing-point case. A fixed
+     * polar limit cannot express that and "stay above the ground" at the same
+     * time, so the limit is recomputed from the geometry instead: the angle at
+     * which the orbit would put the camera on the floor.
+     */
+    const radius = camera.position.distanceTo(orbit.target);
+    const cosLimit = THREE.MathUtils.clamp(
+      (GROUND_CLEARANCE - orbit.target.y) / Math.max(radius, 0.001),
+      -1,
+      1
+    );
+    orbit.maxPolarAngle = Math.min(Math.PI - 0.05, Math.acos(cosLimit));
   });
 
   return null;
@@ -395,7 +433,8 @@ const SceneContent = () => {
             // Locked: the gaze stays level, so verticals stay vertical (2-point).
             // Unlocked: climb up to pick up the third vanishing point.
             minPolarAngle={lockEyeLevel ? Math.PI / 2 : 0}
-            maxPolarAngle={lockEyeLevel ? Math.PI / 2 : Math.PI / 2 - 0.05} // Don't go below ground
+            // Unlocked, the floor limit is computed per frame in EyeLevelRig.
+            maxPolarAngle={lockEyeLevel ? Math.PI / 2 : Math.PI - 0.05}
             screenSpacePanning={!lockEyeLevel}
             enableDamping
             dampingFactor={0.05}

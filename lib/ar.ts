@@ -100,19 +100,41 @@ const openInQuickLook = (url: string, revokeAfter: boolean) => {
   }
 };
 
+/**
+ * Exporting is the slow step, and going in and out of AR while adjusting a
+ * study is the normal rhythm - so an unchanged scene reuses its last build.
+ */
+let cached: { key: string; url: string } | null = null;
+
+const exportKey = (boxes: BoxData[], models: SceneModel[], scale: ARScale) =>
+  JSON.stringify([
+    scale,
+    boxes.map((b) => [b.position, b.scale, b.rotation]),
+    models.map((m) => [m.id, m.position, m.rotationY, m.previewSupported]),
+  ]);
+
 /** Export the current scene and hand it to AR Quick Look. */
 export const walkSceneInAR = async (
   boxes: BoxData[],
   models: SceneModel[],
   scale: ARScale = 'room'
 ) => {
+  const key = exportKey(boxes, models, scale);
+  if (cached?.key === key) {
+    openInQuickLook(cached.url, false);
+    return;
+  }
+
   const ratio = AR_SCALES.find((s) => s.id === scale)?.ratio ?? 1;
   const scene = buildExportScene(boxes, models, ratio);
   const exporter = new USDZExporter();
   // quickLookCompatible keeps the material spec to what Quick Look reads.
   const data = await exporter.parse(scene, { quickLookCompatible: true });
   const blob = new Blob([data], { type: 'model/vnd.usdz+zip' });
-  openInQuickLook(URL.createObjectURL(blob), true);
+
+  if (cached) URL.revokeObjectURL(cached.url);
+  cached = { key, url: URL.createObjectURL(blob) };
+  openInQuickLook(cached.url, false);
 };
 
 /** Hand an uploaded file straight to Quick Look, untouched. */
