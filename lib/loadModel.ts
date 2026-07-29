@@ -99,6 +99,47 @@ const buildModel = (
   };
 };
 
+/**
+ * Parsed sources, kept by URL.
+ *
+ * Placing the same figure three times used to fetch it three times - fifteen
+ * megabytes for five megabytes of content - and hand the GPU three copies of
+ * the same geometry and textures. Now the file is parsed once and every
+ * placement is a clone of it, which shares the buffers by reference. The
+ * library meshes are static single-mesh exports with no skinning, so a plain
+ * clone is faithful.
+ */
+const sources = new Map<string, Promise<{ object: THREE.Object3D | null; warning?: string }>>();
+
+/**
+ * Let go of a source once nothing is standing on it any more.
+ *
+ * Clones share their geometry and textures with the cached original, so this
+ * has to wait until the last instance is gone - the caller owns that check.
+ */
+export const releaseSource = (url: string) => {
+  const pending = sources.get(url);
+  if (!pending) return;
+  sources.delete(url);
+  pending
+    .then(({ object }) => {
+      object?.traverse((child) => {
+        const mesh = child as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        mesh.geometry?.dispose();
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        materials.forEach((material) => {
+          if (!material) return;
+          Object.values(material).forEach((value) => {
+            if ((value as THREE.Texture)?.isTexture) (value as THREE.Texture).dispose();
+          });
+          material.dispose();
+        });
+      });
+    })
+    .catch(() => undefined);
+};
+
 const parseBuffer = async (
   buffer: ArrayBuffer,
   isUsdz: boolean
@@ -118,6 +159,9 @@ const parseBuffer = async (
   }
 };
 
+/** A fresh instance sharing the cached original's buffers. */
+const instanceOf = (source: THREE.Object3D | null) => (source ? source.clone(true) : null);
+
 /** Load a dropped file. */
 export const loadModelFile = async (file: File, dropAt: [number, number]): Promise<LoadResult> => {
   const buffer = await readFile(file);
@@ -125,10 +169,13 @@ export const loadModelFile = async (file: File, dropAt: [number, number]): Promi
   const fileUrl = URL.createObjectURL(
     new Blob([buffer], { type: isUsdz ? 'model/vnd.usdz+zip' : file.type })
   );
-  const { object, warning } = await parseBuffer(buffer, isUsdz);
+
+  const pending = parseBuffer(buffer, isUsdz);
+  sources.set(fileUrl, pending);
+  const { object, warning } = await pending;
 
   return {
-    model: buildModel(object, file.name.replace(/\.[^.]+$/, ''), fileUrl, isUsdz, dropAt),
+    model: buildModel(instanceOf(object), file.name.replace(/\.[^.]+$/, ''), fileUrl, isUsdz, dropAt),
     warning,
   };
 };
@@ -146,13 +193,19 @@ export const loadModelFromUrl = async (
   dropAt: [number, number],
   targetHeight?: number
 ): Promise<LoadResult> => {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to fetch ${url}`);
-  const buffer = await response.arrayBuffer();
-  const isUsdz = /\.usdz$/i.test(url);
-  const { object, warning } = await parseBuffer(buffer, isUsdz);
+  if (!sources.has(url)) {
+    sources.set(
+      url,
+      (async () => {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+        return parseBuffer(await response.arrayBuffer(), /\.usdz$/i.test(url));
+      })()
+    );
+  }
+  const { object, warning } = await sources.get(url)!;
 
-  const model = buildModel(object, name, url, isUsdz, dropAt);
+  const model = buildModel(instanceOf(object), name, url, /\.usdz$/i.test(url), dropAt);
   if (targetHeight && model.size[1] > 0.001) {
     model.scale = targetHeight / model.size[1];
   }
