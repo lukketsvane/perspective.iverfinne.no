@@ -8,6 +8,7 @@ import { SelectionBar } from './components/SelectionBar';
 import { MobileBar } from './components/MobileBar';
 import { MeshSheet } from './components/MeshSheet';
 import { useStore, saveSettings } from './store';
+import { useTouchLayout } from './lib/useTouchLayout';
 import { captureView, captureFileName } from './lib/capture';
 import { enableDeviceOrientation, disableDeviceOrientation } from './lib/walkInput';
 import { loadModelFile, loadModelFromUrl, findFreeSpot, modelRadius } from './lib/loadModel';
@@ -62,6 +63,7 @@ export default function App() {
   const showCone = useStore(s => s.showCone);
   const canUndo = useStore(s => s.undoStack.length > 0);
   const addBox = useStore(s => s.addBox);
+  const touchLayout = useTouchLayout();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
@@ -453,7 +455,9 @@ export default function App() {
 
       {!isViewMode && <SelectionBar />}
 
-      {/* Phone layout: thumb-sized targets along the bottom, AR in the middle */}
+      {/* Thumbs get the bottom bar, mice get the rail - decided by the pointer,
+          not the width, so a phone turned sideways keeps its controls. */}
+      {touchLayout && (
       <MobileBar
         onMeshes={openMeshes}
         onWalk={enterWalkMode}
@@ -467,6 +471,7 @@ export default function App() {
         onHistory={() => setShowHistory(!showHistory)}
         setupOpen={showPanel}
       />
+      )}
 
       {showMeshes && (
         <MeshSheet
@@ -553,7 +558,9 @@ export default function App() {
           having back: it is the only way to keep a composition you might want
           again without leaving the app. Names and counts only. */}
       {showHistory && (
-        <div className="fixed inset-x-2 top-16 bottom-24 z-50 md:inset-x-auto md:left-4 md:top-4 md:bottom-4 md:w-64">
+        <div className={touchLayout
+          ? 'fixed inset-x-2 top-16 bottom-24 z-50'
+          : 'fixed left-4 top-4 bottom-4 w-64 z-50'}>
           <div className={`h-full rounded-2xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${isDark ? 'bg-[#141416]/95 border-gray-800 text-gray-100' : 'bg-white/95 border-gray-200 text-gray-900'}`}>
             <div className={`flex items-center justify-between px-3 py-2.5 border-b ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
               <button
@@ -603,13 +610,15 @@ export default function App() {
 
       {/* Practice Panel — everything that departs from the defaults lives here */}
       {showPanel && (
-        <div className="fixed inset-x-2 bottom-24 top-16 z-50 md:inset-x-auto md:top-4 md:bottom-4 md:right-20 md:w-60">
+        <div className={touchLayout
+          ? 'fixed inset-x-2 bottom-24 top-16 z-50'
+          : 'fixed top-4 bottom-4 right-20 w-60 z-50'}>
           <PracticePanel onClose={() => setShowPanel(false)} />
         </div>
       )}
 
       {/* Action Buttons - Icons Resized */}
-      <div className="hidden md:flex absolute bottom-8 right-8 z-40 flex-col items-center gap-4">
+      <div className={`${touchLayout ? 'hidden' : 'flex'} absolute bottom-8 right-8 z-40 flex-col items-center gap-4`}>
           
           {/* Save the view to draw from */}
           <button
