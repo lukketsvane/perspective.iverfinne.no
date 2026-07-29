@@ -294,6 +294,13 @@ export const useStore = create<SceneState>((set, get) => ({
     models: [...state.models, { id: uuidv4(), ...model }],
   })),
 
+  /** Scale a placed model about its feet, so it stays on the ground. */
+  scaleModel: (id, scale) => set((state) => ({
+    models: state.models.map((m) =>
+      m.id === id ? { ...m, scale: Math.max(0.02, Math.min(50, scale)) } : m
+    ),
+  })),
+
   removeModel: (id) => set((state) => {
     const model = state.models.find((m) => m.id === id);
     if (model) URL.revokeObjectURL(model.fileUrl);

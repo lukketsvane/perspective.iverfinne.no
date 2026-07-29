@@ -1,7 +1,6 @@
 import React from 'react';
 import { useStore, EYE_LEVEL_PRESETS, SPAWN_PRESETS, FIGURE_HEIGHT } from '../store';
 import { SpawnKind } from '../types';
-import { openModelInAR, supportsQuickLook } from '../lib/ar';
 import { STUDIES, findStudy } from '../lib/studies';
 
 const SPAWN_ORDER: SpawnKind[] = ['cube', 'slab', 'pillar', 'beam', 'block'];
@@ -41,7 +40,6 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   const removeModel = useStore((s) => s.removeModel);
   const selectedModelId = useStore((s) => s.selectedModelId);
   const selectModel = useStore((s) => s.selectModel);
-  const quickLook = supportsQuickLook();
   const activeStudyId = useStore((s) => s.activeStudyId);
   const loadStudy = useStore((s) => s.loadStudy);
   const activeStudy = findStudy(activeStudyId);
@@ -100,11 +98,6 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               </button>
             ))}
           </div>
-          <p className={`mt-2 text-[9px] leading-tight ${label}`}>
-            {activeStudy
-              ? activeStudy.hint
-              : 'Eleven 1 m cubes to poke at. Pick a drill to load its geometry, eye level, lens and viewpoint together.'}
-          </p>
         </Row>
 
         {/* ---------------------------------------------------------------- */}
@@ -136,10 +129,6 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
           >
             {lockEyeLevel ? 'Level gaze — 2 point' : 'Free orbit — 3 point'}
           </button>
-          <p className={`mt-2 text-[9px] leading-tight ${label}`}>
-            Locked, the camera keeps a horizontal line of sight at this height, so verticals stay
-            vertical and the horizon sits on your eye level.
-          </p>
         </Row>
 
         {/* ---------------------------------------------------------------- */}
@@ -191,10 +180,6 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               onChange={(e) => setLens(parseFloat(e.target.value))}
               className="w-full accent-current"
             />
-            <p className={`mt-1 text-[9px] leading-tight ${label}`}>
-              60° is the cone of vision — past roughly 90° the edges stretch, which is where
-              curvilinear starts to pay off.
-            </p>
           </div>
         </Row>
 
@@ -212,11 +197,6 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               {snapStep > 0 ? `Snap ${snapStep} m` : 'Free size'}
             </button>
           </div>
-          <p className={`mt-2 text-[9px] leading-tight ${label}`}>
-            Double-tap the ground to place one. Cubes are 1 × 1 × 1 m and land grid-aligned, so they
-            share the scene's vanishing points. Drag a face to push or pull it, and turn a selected
-            box with R (shift+R the other way) to give it its own vanishing points.
-          </p>
         </Row>
 
         {/* ---------------------------------------------------------------- */}
@@ -237,10 +217,6 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               Camera {cameraFeed ? 'on' : 'off'}
             </button>
           </div>
-          <p className={`mt-2 text-[9px] leading-tight ${label}`}>
-            Horizon line and 1 m ground grid, and a {FIGURE_HEIGHT.toFixed(2)} m figure to size the
-            cubes against. The camera feed puts the grid over the floor you are standing on.
-          </p>
         </Row>
 
         {/* ---------------------------------------------------------------- */}
@@ -261,19 +237,10 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     <div className={`text-[10px] font-bold truncate ${value}`}>{model.name}</div>
                     <div className={`text-[9px] tabular-nums ${label}`}>
                       {model.previewSupported
-                        ? `${model.size.map((v) => v.toFixed(2)).join(' × ')} m`
-                        : 'AR only — binary USDZ'}
+                        ? `${(model.size[1] * model.scale).toFixed(2)} m`
+                        : '—'}
                     </div>
                   </div>
-                  {quickLook && model.format === 'usdz' && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); openModelInAR(model); }}
-                      className={chip(false)}
-                      title="Open this file in AR Quick Look"
-                    >
-                      AR
-                    </button>
-                  )}
                   <button
                     onClick={(e) => { e.stopPropagation(); removeModel(model.id); }}
                     className={`shrink-0 p-1 rounded ${isDark ? 'text-gray-500 hover:text-red-400' : 'text-gray-400 hover:text-red-500'}`}
@@ -286,10 +253,6 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 </div>
               ))}
             </div>
-            <p className={`mt-2 text-[9px] leading-tight ${label}`}>
-              Models keep their real size. Tap one to select it, then drag to slide it along the
-              floor.
-            </p>
           </Row>
         )}
       </div>

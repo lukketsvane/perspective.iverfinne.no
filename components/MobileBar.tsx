@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { useStore } from '../store';
 
 interface MobileBarProps {
-  onAR: () => void;
+  onMeshes: () => void;
   onWalk: () => void;
   onAdd: () => void;
   onSetup: () => void;
   onCapture: () => void;
   onShare: () => void;
-  onUpload: () => void;
   onPrompt: () => void;
   onHistory: () => void;
   setupOpen: boolean;
@@ -18,12 +17,10 @@ interface MobileBarProps {
  * The phone's controls.
  *
  * A column of nine 20 px icons is a mouse pattern; a thumb wants a handful of
- * big targets along the bottom edge. AR sits in the middle as the filled one,
- * because on an iPhone that is what this whole tool is for - everything else
- * is composing something to walk into.
+ * big targets along the bottom edge, and no words on any of them.
  */
 export const MobileBar: React.FC<MobileBarProps> = ({
-  onAR, onWalk, onAdd, onSetup, onCapture, onShare, onUpload, onPrompt, onHistory, setupOpen,
+  onMeshes, onWalk, onAdd, onSetup, onCapture, onShare, onPrompt, onHistory, setupOpen,
 }) => {
   const theme = useStore((s) => s.theme);
   const toggleTheme = useStore((s) => s.toggleTheme);
@@ -36,8 +33,8 @@ export const MobileBar: React.FC<MobileBarProps> = ({
     ? 'bg-black/70 border-white/15 text-white'
     : 'bg-white/85 border-gray-200 text-gray-900';
 
-  const item = 'flex flex-col items-center justify-center gap-1 w-14 h-14 rounded-2xl transition-transform active:scale-95';
-  const label = 'text-[8px] font-bold uppercase tracking-wider opacity-70';
+  const item = 'flex items-center justify-center w-14 h-14 rounded-2xl transition-transform active:scale-95';
+  const label = 'text-[8px] font-bold uppercase tracking-wider opacity-60';
 
   const more: { label: string; run: () => void; icon: React.ReactNode }[] = [
     {
@@ -47,10 +44,6 @@ export const MobileBar: React.FC<MobileBarProps> = ({
     {
       label: 'Send link', run: onShare,
       icon: (<><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.6" y1="10.5" x2="15.4" y2="6.5" /><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /></>),
-    },
-    {
-      label: 'Add model', run: onUpload,
-      icon: (<><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" strokeOpacity="0.45" /><path d="M12 15V7" /><polyline points="9 10 12 7 15 10" /></>),
     },
     {
       label: 'Describe', run: onPrompt,
@@ -94,55 +87,50 @@ export const MobileBar: React.FC<MobileBarProps> = ({
 
       <div className="fixed inset-x-0 bottom-0 z-[56] safe-bottom px-3 pb-3 pointer-events-none md:hidden">
         <div className={`flex items-center justify-between px-2 py-1.5 rounded-3xl border backdrop-blur-xl shadow-lg pointer-events-auto ${shell}`}>
-          <button onClick={onAdd} className={item} title="Put a cube where you are looking">
+          <button onClick={onAdd} className={item} aria-label="Add cube">
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
               <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
               <line x1="12" y1="22.08" x2="12" y2="12" />
             </svg>
-            <span className={label}>Add</span>
           </button>
 
-          <button onClick={onWalk} className={item} title="Stand in the scene">
+          <button onClick={onWalk} className={item} aria-label="Walk">
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
               <circle cx="12" cy="4.5" r="1.8" />
               <path d="M12 7v6M12 13l-2.5 5M12 13l2.5 5M8.5 9.5h7" />
             </svg>
-            <span className={label}>Walk</span>
           </button>
 
-          {/* The point of the tool on a phone */}
+          {/* Figures and imported meshes */}
           <button
-            onClick={onAR}
-            className={`flex flex-col items-center justify-center gap-0.5 w-16 h-16 -mt-5 rounded-full shadow-xl transition-transform active:scale-95 ${
+            onClick={onMeshes}
+            className={`flex items-center justify-center w-16 h-16 -mt-5 rounded-full shadow-xl transition-transform active:scale-95 ${
               isDark || cameraFeed ? 'bg-white text-black' : 'bg-gray-900 text-white'
             }`}
-            title="View in AR"
+            aria-label="Meshes"
           >
-            <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M3 8V5.5A1.5 1.5 0 0 1 4.5 4H7M17 4h2.5A1.5 1.5 0 0 1 21 5.5V8M21 16v2.5a1.5 1.5 0 0 1-1.5 1.5H17M7 20H4.5A1.5 1.5 0 0 1 3 18.5V16" />
-              <path d="M12 8.2 8 10.4v3.2l4 2.2 4-2.2v-3.2z" />
+            <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.7">
+              <circle cx="12" cy="4.5" r="2" />
+              <path d="M12 7v6M12 13l-3 6M12 13l3 6M8 9.5h8" />
             </svg>
-            <span className="text-[8px] font-black uppercase tracking-wider">AR</span>
           </button>
 
-          <button onClick={onSetup} className={`${item} ${setupOpen ? 'opacity-100' : ''}`} title="Practice settings">
+          <button onClick={onSetup} className={`${item} ${setupOpen ? 'opacity-100' : ''}`} aria-label="Setup">
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
               <line x1="2" y1="12" x2="22" y2="12" />
               <line x1="4" y1="17" x2="20" y2="20" />
               <line x1="4" y1="7" x2="20" y2="4" />
               <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
             </svg>
-            <span className={label}>Setup</span>
           </button>
 
-          <button onClick={() => setMoreOpen(!moreOpen)} className={item} title="More">
+          <button onClick={() => setMoreOpen(!moreOpen)} className={item} aria-label="More">
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
               <circle cx="5" cy="12" r="1.6" fill="currentColor" />
               <circle cx="12" cy="12" r="1.6" fill="currentColor" />
               <circle cx="19" cy="12" r="1.6" fill="currentColor" />
             </svg>
-            <span className={label}>More</span>
           </button>
         </div>
       </div>

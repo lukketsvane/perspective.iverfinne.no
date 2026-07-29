@@ -6,13 +6,12 @@ import { CameraFeed } from './components/CameraFeed';
 import { ConeOfVision } from './components/ConeOfVision';
 import { SelectionBar } from './components/SelectionBar';
 import { MobileBar } from './components/MobileBar';
-import { ARSheet } from './components/ARSheet';
-import { InstallTip } from './components/InstallTip';
+import { MeshSheet } from './components/MeshSheet';
 import { useStore, saveSettings } from './store';
 import { captureView, captureFileName } from './lib/capture';
 import { enableDeviceOrientation, disableDeviceOrientation } from './lib/walkInput';
-import { loadModelFile, MODEL_ACCEPT } from './lib/loadModel';
-import { openModelInAR, supportsQuickLook } from './lib/ar';
+import { loadModelFile, loadModelFromUrl, findFreeSpot, modelRadius } from './lib/loadModel';
+import { MESH_LIBRARY } from './lib/meshLibrary';
 import { focusPoint } from './lib/focus';
 import { sceneFromUrl, shareScene } from './lib/share';
 import { GoogleGenAI } from "@google/genai";
@@ -46,7 +45,6 @@ export default function App() {
   const selectedId = useStore(s => s.selectedId);
   const isViewMode = useStore(s => s.isViewMode);
   const toggleViewMode = useStore(s => s.toggleViewMode);
-  const currentSceneName = useStore(s => s.currentSceneName);
   const sceneHistory = useStore(s => s.sceneHistory);
   const saveCurrentScene = useStore(s => s.saveCurrentScene);
   const loadScene = useStore(s => s.loadScene);
@@ -70,9 +68,8 @@ export default function App() {
   const [loadingText, setLoadingText] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
-  const [notice, setNotice] = useState<{ message: string; action?: { label: string; run: () => void } } | null>(null);
-  const [loadingModel, setLoadingModel] = useState(false);
-  const [showAR, setShowAR] = useState(false);
+  const [showMeshes, setShowMeshes] = useState(false);
+  const [busyMesh, setBusyMesh] = useState<string | null>(null);
   
   // Text Prompt State
   const [showPromptInput, setShowPromptInput] = useState(false);
@@ -89,7 +86,6 @@ export default function App() {
     const shared = sceneFromUrl();
     if (!shared) return;
     setBoxes(shared.map((box) => ({ ...box, id: uuidv4() })));
-    showNotice(`Opened a shared study — ${shared.length} boxes.`);
   }, [setBoxes]);
 
   // Remember how the tool is set up (never what is in the scene).
@@ -150,10 +146,51 @@ export default function App() {
     );
   };
 
-  const openAR = () => {
+  const openMeshes = () => {
     setShowPanel(false);
     setShowHistory(false);
-    setShowAR(true);
+    setShowMeshes(true);
+  };
+
+  /** A drop point clear of everything already standing there. */
+  const freeSpot = (footprint: number): [number, number] =>
+    findFreeSpot(
+      useStore.getState().models.map((m) => ({ position: m.position, radius: modelRadius(m) })),
+      [focusPoint.x, focusPoint.z],
+      footprint
+    );
+
+  const placeLibraryMesh = async (id: string) => {
+    const entry = MESH_LIBRARY.find((m) => m.id === id);
+    if (!entry) return;
+    setBusyMesh(id);
+    try {
+      const { model } = await loadModelFromUrl(entry.url, entry.name, [focusPoint.x, focusPoint.z]);
+      const [x, z] = freeSpot(modelRadius(model));
+      addModel({ ...model, position: [x, 0, z] });
+      setShowMeshes(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setBusyMesh(null);
+    }
+  };
+
+  /** Import one file or twenty; none of them land on top of each other. */
+  const importModels = async (files: FileList) => {
+    setBusyMesh('import');
+    try {
+      for (const file of Array.from(files)) {
+        const { model } = await loadModelFile(file, [focusPoint.x, focusPoint.z]);
+        const [x, z] = freeSpot(modelRadius(model));
+        addModel({ ...model, position: [x, 0, z] });
+      }
+      setShowMeshes(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setBusyMesh(null);
+    }
   };
 
   const handleSparkleClick = () => {
@@ -164,16 +201,13 @@ export default function App() {
       setShowPromptInput(!showPromptInput);
   };
 
-  const showNotice = useCallback((message: string, action?: { label: string; run: () => void }) => {
-    setNotice({ message, action });
+  /**
+   * Anything worth saying is said by the scene itself. Failures go to the
+   * console for debugging; nothing interrupts the view.
+   */
+  const showNotice = useCallback((message: string) => {
+    console.info(message);
   }, []);
-
-  // Notices clear themselves; one with an action gets longer to be read.
-  useEffect(() => {
-    if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(null), notice.action ? 12000 : 6000);
-    return () => window.clearTimeout(timer);
-  }, [notice]);
 
   /**
    * Enter walk mode.
@@ -195,41 +229,6 @@ export default function App() {
     if (viewMode === 'orbit') disableDeviceOrientation();
   }, [viewMode]);
 
-  const processModel = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setLoadingModel(true);
-    try {
-      const { model, warning } = await loadModelFile(file, [focusPoint.x, focusPoint.z]);
-      addModel(model);
-
-      if (warning) {
-        // The file is still usable in AR even when it cannot be drawn here.
-        const canQuickLook = supportsQuickLook() && model.format === 'usdz';
-        showNotice(
-          warning,
-          canQuickLook
-            ? {
-                label: 'Open in AR',
-                run: () => {
-                  const stored = useStore.getState().models.find((m) => m.fileUrl === model.fileUrl);
-                  if (stored) openModelInAR(stored);
-                },
-              }
-            : undefined
-        );
-      } else {
-        showNotice(`${model.name} placed — ${model.size.map((v) => v.toFixed(2)).join(' × ')} m`);
-      }
-    } catch (error) {
-      console.error(error);
-      showNotice('Could not read that file.');
-    } finally {
-      setLoadingModel(false);
-      if (modelInputRef.current) modelInputRef.current.value = '';
-    }
-  };
 
   const generateBoxesFromStream = async (aiStream: any) => {
       let buffer = '';
@@ -286,7 +285,7 @@ export default function App() {
 
       **THE TOOL YOU ARE BUILDING FOR:**
       Everything is measured in METRES. The viewer stands at a human eye level
-      (1.6-1.9 m) and can walk the scene at 1:1 or drop it on a real floor in AR.
+      (1.6-1.9 m) and walks the scene at 1:1.
       Sizes therefore have to be believable: a door is 2 m, a table 0.75 m, a
       storey 3 m, a bus 3 m tall. A box that is the wrong size teaches the wrong
       thing.
@@ -303,8 +302,7 @@ export default function App() {
          something to act on.
       5. **GROUNDED.** y = 0 is the floor. A box's y is its CENTRE, so a 3 m tall
          box sitting on the ground has y = 1.5.
-      6. **WALKABLE.** Keep it inside roughly 30 x 30 m so it can be walked and
-         taken into AR.
+      6. **WALKABLE.** Keep it inside roughly 30 x 30 m so it can be walked.
 
       **OUTPUT:** Stream NDJSON, one box per line, no other text.
       {"name": "label", "position": [x, y, z], "scale": [w, h, d], "rotation": [0, ry, 0]}
@@ -405,37 +403,6 @@ export default function App() {
   // The feed lives behind the canvas, so the shell must not paint over it.
   const bgColor = cameraFeed ? 'bg-transparent' : isDark ? 'bg-[#0c0c0e]' : 'bg-[#f3f3f1]';
 
-  const noticeBanner = notice && (
-    <div className="absolute inset-x-0 top-0 z-[60] safe-top pt-16 flex justify-center px-4 pointer-events-none">
-      <div
-        className={`flex items-center gap-3 max-w-md px-4 py-2.5 rounded-xl border backdrop-blur-md shadow-lg pointer-events-auto ${
-          isDark || cameraFeed ? 'bg-black/80 border-gray-700 text-gray-100' : 'bg-white/90 border-gray-200 text-gray-900'
-        }`}
-      >
-        <span className="text-[11px] leading-snug flex-1">{notice.message}</span>
-        {notice.action && (
-          <button
-            onClick={() => { notice.action?.run(); setNotice(null); }}
-            className={`shrink-0 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${
-              isDark || cameraFeed ? 'bg-white text-black' : 'bg-gray-900 text-white'
-            }`}
-          >
-            {notice.action.label}
-          </button>
-        )}
-        <button
-          onClick={() => setNotice(null)}
-          className="shrink-0 opacity-60 hover:opacity-100"
-          aria-label="Dismiss"
-        >
-          <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
 
   // Walk mode takes the whole screen: no rail, no panels, just the scene and
   // the thumb controls.
@@ -444,10 +411,7 @@ export default function App() {
       <div className={`fixed inset-0 w-screen h-screen ${bgColor} font-sans selection:bg-none`} style={{ minHeight: '100dvh' }}>
         {cameraFeed && <CameraFeed onError={(message) => { setCameraFeed(false); showNotice(message); }} />}
         <Scene />
-        <WalkOverlay onNotice={showNotice} onAR={openAR} />
-        {showAR && <ARSheet onClose={() => setShowAR(false)} onNotice={showNotice} />}
-      <InstallTip />
-        {noticeBanner}
+        <WalkOverlay onNotice={showNotice} />
       </div>
     );
   }
@@ -463,23 +427,28 @@ export default function App() {
       )}
 
       {!isViewMode && <SelectionBar />}
-      {noticeBanner}
 
       {/* Phone layout: thumb-sized targets along the bottom, AR in the middle */}
       <MobileBar
-        onAR={openAR}
+        onMeshes={openMeshes}
         onWalk={enterWalkMode}
         onAdd={handleAddAtFocus}
         onSetup={() => setShowPanel(!showPanel)}
         onCapture={handleCapture}
         onShare={handleShare}
-        onUpload={() => modelInputRef.current?.click()}
         onPrompt={handleTextToggle}
         onHistory={() => setShowHistory(!showHistory)}
         setupOpen={showPanel}
       />
 
-      {showAR && <ARSheet onClose={() => setShowAR(false)} onNotice={showNotice} />}
+      {showMeshes && (
+        <MeshSheet
+          onClose={() => setShowMeshes(false)}
+          onPlace={placeLibraryMesh}
+          onImport={importModels}
+          busyId={busyMesh}
+        />
+      )}
 
       {/* Loading Overlay */}
       {loading && (
@@ -544,124 +513,14 @@ export default function App() {
           </div>
       )}
 
-      {/* HUD Info — the numbers that define the shot you are drawing */}
+      {/* HUD: two numbers, no words. Eye height and focal length are the
+          shot; everything else about it is visible in the scene itself. */}
       <div className={`absolute inset-safe-top inset-safe-right pointer-events-none z-30 ${showPanel ? 'hidden' : ''}`}>
-        <div className="flex flex-col items-end gap-0.5">
-          <div className="flex items-baseline gap-1.5">
-            <span className={`text-[9px] font-bold uppercase tracking-[0.2em] ${labelColor}`}>Eye</span>
-            <span className={`text-sm font-black ${textColor} tracking-tight tabular-nums`}>
-              {cameraHeight.toFixed(2)} m
-            </span>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className={`text-[9px] font-bold uppercase tracking-[0.2em] ${labelColor}`}>ƒ</span>
-            <span className={`text-sm font-black ${textColor} tracking-tight tabular-nums`}>
-              {Math.round(fov)}°
-            </span>
-          </div>
-          <div className={`text-[9px] font-bold uppercase tracking-[0.2em] ${labelColor}`}>
-            {perspectiveMode === 'curvilinear'
-              ? '5 point curvilinear'
-              : lockEyeLevel
-              ? '2 point · level'
-              : '3 point · free'}
-          </div>
+        <div className="flex flex-col items-end gap-0.5 tabular-nums">
+          <span className={`text-sm font-black ${textColor} tracking-tight`}>{cameraHeight.toFixed(2)} m</span>
+          <span className={`text-sm font-black ${labelColor} tracking-tight`}>{Math.round(fov)}°</span>
         </div>
       </div>
-
-      {/* Current Scene Name Display */}
-      {currentSceneName && (
-        <div className="absolute inset-safe-top left-4 pointer-events-none z-30">
-          <div className={`px-3 py-1.5 rounded-full backdrop-blur-md border ${isDark ? 'bg-black/40 border-gray-700' : 'bg-white/40 border-gray-200'}`}>
-            <span className={`text-[10px] font-bold uppercase tracking-widest ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              {currentSceneName}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* History Panel */}
-      {showHistory && (
-        <div className="fixed inset-x-2 top-16 bottom-24 z-50 md:inset-x-auto md:left-4 md:top-4 md:bottom-4 md:w-72">
-          <div className={`h-full rounded-xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${isDark ? 'bg-[#1a1a1a]/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
-            {/* Header */}
-            <div className={`flex items-center justify-between px-4 py-3 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-              <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                Scene History
-              </span>
-              <button 
-                onClick={() => setShowHistory(false)}
-                className={`p-1 rounded-md transition-colors ${isDark ? 'text-gray-400 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-black/5'}`}
-              >
-                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-            
-            {/* Scene List */}
-            <div className="flex-1 overflow-y-auto">
-              {sceneHistory.length === 0 ? (
-                <div className={`flex flex-col items-center justify-center h-full p-6 text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                  <svg viewBox="0 0 24 24" className="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                  </svg>
-                  <span className="text-xs font-medium">No saved scenes yet</span>
-                  <span className="text-[10px] mt-1">Generate a scene to start your history</span>
-                </div>
-              ) : (
-                <div className="p-2 space-y-1">
-                  {sceneHistory.map((scene) => (
-                    <div 
-                      key={scene.id}
-                      className={`group p-3 rounded-lg cursor-pointer transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-black/5'}`}
-                      onClick={() => {
-                        loadScene(scene.id);
-                        setShowHistory(false);
-                      }}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                            {scene.name}
-                          </div>
-                          <div className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                            {formatDate(scene.createdAt)} • {scene.boxes.length} boxes
-                          </div>
-                          {scene.prompt && (
-                            <div className={`text-[10px] mt-1 truncate italic ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                              "{scene.prompt}"
-                            </div>
-                          )}
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm('Delete this scene?')) {
-                              deleteScene(scene.id);
-                            }
-                          }}
-                          className={`opacity-0 group-hover:opacity-100 p-1 rounded transition-all ${isDark ? 'text-gray-500 hover:text-red-400' : 'text-gray-400 hover:text-red-500'}`}
-                        >
-                          <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            {/* Footer with box count */}
-            <div className={`px-4 py-2 border-t text-[10px] ${isDark ? 'border-gray-700 text-gray-500' : 'border-gray-200 text-gray-400'}`}>
-              Current: {boxes.length} boxes
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Practice Panel — everything that departs from the defaults lives here */}
       {showPanel && (
@@ -686,23 +545,11 @@ export default function App() {
             </svg>
           </button>
 
-           {/* AR — the shortest path to standing in the study */}
-           <button
-            onClick={openAR}
-            className={`group flex items-center justify-center w-8 h-8 transition-transform active:scale-95 duration-200 cursor-pointer ${isDark ? 'text-white hover:text-emerald-300' : 'text-gray-900 hover:text-emerald-600'}`}
-            title="View in AR"
-          >
-            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M3 8V5.5A1.5 1.5 0 0 1 4.5 4H7M17 4h2.5A1.5 1.5 0 0 1 21 5.5V8M21 16v2.5a1.5 1.5 0 0 1-1.5 1.5H17M7 20H4.5A1.5 1.5 0 0 1 3 18.5V16" />
-              <path d="M12 8.2 8 10.4v3.2l4 2.2 4-2.2v-3.2z" />
-            </svg>
-          </button>
-
            {/* Walk mode — stand in the scene at 1:1 */}
            <button
             onClick={enterWalkMode}
             className={`group flex items-center justify-center w-8 h-8 transition-transform active:scale-95 duration-200 cursor-pointer ${isDark ? 'text-white hover:text-emerald-300' : 'text-gray-900 hover:text-emerald-600'}`}
-            title="Walk the scene at real scale (AR)"
+            aria-label="Walk"
           >
             {/* A figure standing on the ground plane */}
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
@@ -712,29 +559,17 @@ export default function App() {
             </svg>
           </button>
 
-           {/* Upload a model (USDZ / glTF) */}
-           <div className="relative">
-             <input
-               type="file"
-               ref={modelInputRef}
-               onChange={processModel}
-               accept={MODEL_ACCEPT}
-               className="hidden"
-             />
-             <button
-              onClick={() => modelInputRef.current?.click()}
-              disabled={loadingModel}
-              className={`group flex items-center justify-center w-8 h-8 transition-transform active:scale-95 duration-200 cursor-pointer disabled:opacity-50 ${models.length > 0 ? (isDark ? 'text-amber-300' : 'text-amber-600') : (isDark ? 'text-white hover:text-amber-300' : 'text-gray-900 hover:text-amber-600')}`}
-              title="Place a USDZ or glTF model"
-            >
-              {/* A box with an arrow going in */}
-              <svg viewBox="0 0 24 24" className={`w-5 h-5 ${loadingModel ? 'animate-pulse' : ''}`} fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" strokeOpacity="0.45" />
-                <path d="M12 15V7" />
-                <polyline points="9 10 12 7 15 10" />
-              </svg>
-            </button>
-           </div>
+           {/* Mesh library */}
+           <button
+            onClick={openMeshes}
+            className={`group flex items-center justify-center w-8 h-8 transition-transform active:scale-95 duration-200 cursor-pointer ${models.length > 0 ? (isDark ? 'text-amber-300' : 'text-amber-600') : (isDark ? 'text-white hover:text-amber-300' : 'text-gray-900 hover:text-amber-600')}`}
+            aria-label="Meshes"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="12" cy="4.5" r="2" />
+              <path d="M12 7v6M12 13l-3 6M12 13l3 6M8 9.5h8" />
+            </svg>
+          </button>
 
            {/* Practice Settings — eye level, projection, primitives, guides */}
            <button

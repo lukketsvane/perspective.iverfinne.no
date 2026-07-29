@@ -8,7 +8,7 @@ import { BoxData } from '../types';
  * with - the ones Kim Jung Gi runs through before anything curves - each set up
  * as a whole shot: the geometry, the eye level it reads from, the lens, and
  * where to stand. Every one is measured in metres, so any of them can be walked
- * into or dropped on a floor in AR.
+ * at 1:1.
  */
 
 export interface Study {
@@ -139,7 +139,7 @@ export const STUDIES: Study[] = [
   {
     id: 'room',
     name: 'A room at 1:1',
-    hint: 'Everyday sizes: a 0.75 m table, a 0.45 m seat, a 2.0 m door. Built to fit inside a real room — take this one into AR and check it against your own furniture.',
+    hint: 'Everyday sizes: a 0.75 m table, a 0.45 m seat, a 2.0 m door — the measurements you are supposed to already know by eye.',
     boxes: [
       box([0, 0.375, 0], [1.6, 0.75, 0.9]),          // table
       box([-1.2, 0.225, 0], [0.45, 0.45, 0.45]),      // seat
