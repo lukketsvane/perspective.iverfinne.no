@@ -1,4 +1,6 @@
 import React, { useEffect, useRef } from 'react';
+import { feedState } from '../lib/cameraFeed';
+import { useStore } from '../store';
 
 /**
  * The live rear camera, painted behind the canvas.
@@ -32,6 +34,15 @@ export const CameraFeed: React.FC<{ onError: (message: string) => void }> = ({ o
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => undefined);
+          // The lens match needs the stream's own size, not the element's.
+          const publish = () => {
+            feedState.videoWidth = videoRef.current?.videoWidth ?? 0;
+            feedState.videoHeight = videoRef.current?.videoHeight ?? 0;
+            useStore.getState().noteFeedSize();
+          };
+          publish();
+          videoRef.current.addEventListener('loadedmetadata', publish);
+          videoRef.current.addEventListener('resize', publish);
         }
       } catch {
         // Denied, already in use, or not served over https.
@@ -44,6 +55,8 @@ export const CameraFeed: React.FC<{ onError: (message: string) => void }> = ({ o
     return () => {
       cancelled = true;
       stream?.getTracks().forEach((track) => track.stop());
+      feedState.videoWidth = 0;
+      feedState.videoHeight = 0;
     };
   }, [onError]);
 

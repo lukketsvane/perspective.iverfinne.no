@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { BoxData, SceneState, SavedScene, SpawnKind } from './types';
 import { findStudy } from './lib/studies';
+import { DEFAULT_SENSOR_FOV } from './lib/cameraFeed';
 
 // Helper for random range
 const rng = (min: number, max: number) => Math.random() * (max - min) + min;
@@ -108,7 +109,7 @@ const SETTINGS_KEY = 'kjg-perspective-settings';
 
 type PersistedSettings = Pick<
   SceneState,
-  'theme' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'matteModels'
+  'theme' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'matteModels' | 'sensorFov'
 >;
 
 const loadSettings = (): Partial<PersistedSettings> => {
@@ -148,6 +149,7 @@ const writeSettings = (state: SceneState) => {
       fov: state.fov,
       snapStep: state.snapStep,
       matteModels: state.matteModels,
+      sensorFov: state.sensorFov,
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch {
@@ -197,6 +199,9 @@ export const useStore = create<SceneState>((set, get) => ({
   models: [],
   selectedModelId: null,
   matteModels: false,
+  sensorFov: DEFAULT_SENSOR_FOV,
+  viewLocked: false,
+  feedNonce: 0,
   cameraPose: null,
   activeStudyId: null,
   theme: 'light',
@@ -346,6 +351,12 @@ export const useStore = create<SceneState>((set, get) => ({
   toggleCone: () => set((state) => ({ showCone: !state.showCone })),
 
   toggleMatte: () => set((state) => ({ matteModels: !state.matteModels })),
+
+  setSensorFov: (degrees) => set({ sensorFov: Math.max(35, Math.min(120, degrees)) }),
+
+  toggleViewLock: () => set((state) => ({ viewLocked: !state.viewLocked })),
+
+  noteFeedSize: () => set((state) => ({ feedNonce: state.feedNonce + 1 })),
 
   setSnapStep: (step) => set({ snapStep: Math.max(0, step) }),
 

@@ -72,9 +72,35 @@ stick appears wherever your left thumb lands and the right side of the screen
 looks, so both work at once; with the camera on, the virtual lens is matched to
 the real one so the cubes stay planted as you turn.
 
-The bottom bar has the four things you need standing up:
+### Matching the room
 
-- **Eye** — tap to cycle 1.2 / 1.6 / 1.9 / 2.5 m.
+With the camera on, the virtual lens has to match the real one or the cubes
+slide against the floor every time you turn. Three things do that, under the
+sun icon:
+
+- **Height** — where the phone actually is off the floor, to the centimetre.
+  This is what sets the virtual floor onto the real one.
+- **Lens** — the angle the camera covers. No browser reports focal length, so
+  it starts at 63° (a phone main camera) and is adjustable by hand until a real
+  edge and the grid agree. The crop matters as much as the angle: the video is
+  painted object-cover, so a 640 × 480 stream in a portrait window is showing
+  less than half its width, and the match accounts for that.
+- **Recentre** — drops the study's origin under your feet and re-zeros the
+  compass, which is the whole of the alignment that can be done without
+  positional tracking.
+
+The **lock** freezes the framed view: the phone can be turned, put down or drawn
+from and the scene holds still.
+
+Precision has a ceiling here, and it is worth being plain about it. The phone
+reports orientation, not position, so turning is tracked and *walking is not* —
+step sideways and the scene does not shift with parallax. That is a limit of
+what a browser can see, not a setting.
+
+The bottom bar has the things you need standing up:
+
+- **Height** — tap to cycle 1.2 / 1.6 / 1.9 / 2.5 m, or set it exactly under the
+  sun icon.
 - **Camera** — the live rear camera behind the scene. Off by default, in every
   mode: the reference reads better on a clean field, and the camera is there
   for when you want the metric grid and the horizon lying over the actual floor

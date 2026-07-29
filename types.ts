@@ -97,6 +97,12 @@ export interface SceneState {
   selectedModelId: string | null;
   /** Replace model materials with a plain white matte, for reading form. */
   matteModels: boolean;
+  /** Horizontal angle the real camera covers, in degrees. Hand-calibrated. */
+  sensorFov: number;
+  /** Freeze the walk camera so a framed view stops moving. */
+  viewLocked: boolean;
+  /** Bumped when the live stream reports its size, so the lens match redoes. */
+  feedNonce: number;
   /** Set when a study asks the camera to move; the scene consumes it. */
   cameraPose: CameraPose | null;
   activeStudyId: string | null;
@@ -133,6 +139,9 @@ export interface SceneState {
   /** Uniform scale on a placed model. */
   scaleModel: (id: string, scale: number) => void;
   toggleMatte: () => void;
+  setSensorFov: (degrees: number) => void;
+  toggleViewLock: () => void;
+  noteFeedSize: () => void;
   toggleTheme: () => void;
   toggleViewMode: () => void; // New action
   saveCurrentScene: (name: string, prompt?: string) => void;

@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '../store';
 import { walkInput } from '../lib/walkInput';
+import { matchedVerticalFov } from '../lib/cameraFeed';
 
 /**
  * First person camera for walk mode.
@@ -20,6 +21,9 @@ export const WalkControls = () => {
   const cameraHeight = useStore((state) => state.cameraHeight);
   const cameraFeed = useStore((state) => state.cameraFeed);
   const fov = useStore((state) => state.fov);
+  const sensorFov = useStore((state) => state.sensorFov);
+  const viewLocked = useStore((state) => state.viewLocked);
+  const feedNonce = useStore((state) => state.feedNonce);
 
   const temp = useMemo(
     () => ({
@@ -33,19 +37,15 @@ export const WalkControls = () => {
 
   /**
    * With the room showing through, the virtual lens has to match the real one
-   * or the cubes slide against the floor as you turn. iPhone main cameras are
-   * around 63 degrees across the frame's short side in landscape terms, so the
-   * vertical angle follows from the aspect the canvas actually has - which on a
-   * portrait phone is very wide indeed.
+   * or the cubes slide against the floor as you turn. That means the sensor's
+   * own angle *and* the crop the object-cover video is doing to it - and since
+   * no browser reports focal length, the sensor figure is adjustable by hand.
    */
   useEffect(() => {
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
     if (!cameraFeed) return;
 
-    const aspect = size.width / size.height;
-    const horizontal = THREE.MathUtils.degToRad(63);
-    const vertical = 2 * Math.atan(Math.tan(horizontal / 2) / Math.max(aspect, 0.0001));
-    camera.fov = THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(vertical), 40, 120);
+    camera.fov = matchedVerticalFov(sensorFov, size.width, size.height);
     camera.updateProjectionMatrix();
 
     return () => {
@@ -53,7 +53,7 @@ export const WalkControls = () => {
       camera.fov = fov;
       camera.updateProjectionMatrix();
     };
-  }, [cameraFeed, camera, size.width, size.height, fov]);
+  }, [cameraFeed, camera, size.width, size.height, fov, sensorFov, feedNonce]);
 
   // Step into the scene where the orbit camera was standing, keeping its
   // heading, so entering walk mode is a change of stance and not a teleport.
@@ -68,6 +68,10 @@ export const WalkControls = () => {
   }, [camera]);
 
   useFrame((_, rawDelta) => {
+    // Locked, the framed view holds still - the phone can be moved, put down or
+    // drawn from without the scene following it.
+    if (viewLocked) return;
+
     // Cap the step so a backgrounded tab does not fire the walker across the map.
     const delta = Math.min(rawDelta, 0.1);
 
