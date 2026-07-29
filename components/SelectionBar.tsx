@@ -72,7 +72,7 @@ export const SelectionBar: React.FC = () => {
               step={0.01}
               value={sliderValue}
               onChange={(e) => scaleModel(model.id, Math.pow(10, parseFloat(e.target.value)))}
-              onDoubleClick={() => scaleModel(model.id, 1)}
+              onDoubleClick={() => scaleModel(model.id, model.baseScale)}
               className="w-36 mt-2 accent-current align-middle"
               aria-label="Scale"
             />
