@@ -103,6 +103,8 @@ export interface SceneState {
   viewLocked: boolean;
   /** Bumped when the live stream reports its size, so the lens match redoes. */
   feedNonce: number;
+  /** Scenes to step back through. Newest last. */
+  undoStack: { boxes: BoxData[]; models: SceneModel[] }[];
   /** Set when a study asks the camera to move; the scene consumes it. */
   cameraPose: CameraPose | null;
   activeStudyId: string | null;
@@ -142,6 +144,9 @@ export interface SceneState {
   setSensorFov: (degrees: number) => void;
   toggleViewLock: () => void;
   noteFeedSize: () => void;
+  /** Snapshot the scene before something destructive. */
+  pushUndo: () => void;
+  undo: () => void;
   toggleTheme: () => void;
   toggleViewMode: () => void; // New action
   saveCurrentScene: (name: string, prompt?: string) => void;

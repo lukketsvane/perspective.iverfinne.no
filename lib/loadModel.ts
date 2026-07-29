@@ -111,6 +111,9 @@ const buildModel = (
  */
 const sources = new Map<string, Promise<{ object: THREE.Object3D | null; warning?: string }>>();
 
+/** URLs with a parsed source in memory. */
+export const cachedSourceUrls = (): string[] => Array.from(sources.keys());
+
 /**
  * Let go of a source once nothing is standing on it any more.
  *

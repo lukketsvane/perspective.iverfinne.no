@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { BoxData, SceneState, SavedScene, SpawnKind } from './types';
 import { findStudy } from './lib/studies';
 import { DEFAULT_SENSOR_FOV } from './lib/cameraFeed';
-import { releaseSource } from './lib/loadModel';
+import { releaseSource, cachedSourceUrls } from './lib/loadModel';
 
 // Helper for random range
 const rng = (min: number, max: number) => Math.random() * (max - min) + min;
@@ -180,6 +180,26 @@ const saveScenesToStorage = (scenes: SavedScene[]) => {
 
 const remembered = loadSettings();
 
+/** How many steps back you can take. */
+const UNDO_DEPTH = 25;
+
+/**
+ * Drop any parsed mesh that nothing references any more - not the live scene,
+ * and not anything still sitting in the undo stack, since stepping back has to
+ * be able to put it on screen again.
+ */
+const releaseUnreferenced = (state: Pick<SceneState, 'models' | 'undoStack'>) => {
+  const live = new Set<string>();
+  state.models.forEach((m) => live.add(m.fileUrl));
+  state.undoStack.forEach((entry) => entry.models.forEach((m) => live.add(m.fileUrl)));
+
+  cachedSourceUrls().forEach((url) => {
+    if (live.has(url)) return;
+    releaseSource(url);
+    if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+  });
+};
+
 export const useStore = create<SceneState>((set, get) => ({
   boxes: generateInitialScene(),
   selectedId: null,
@@ -203,6 +223,7 @@ export const useStore = create<SceneState>((set, get) => ({
   sensorFov: DEFAULT_SENSOR_FOV,
   viewLocked: false,
   feedNonce: 0,
+  undoStack: [],
   cameraPose: null,
   activeStudyId: null,
   theme: 'light',
@@ -252,18 +273,23 @@ export const useStore = create<SceneState>((set, get) => ({
 
   removeBox: (id) =>
     set((state) => ({
+      undoStack: [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
       boxes: state.boxes.filter((b) => b.id !== id),
       selectedId: state.selectedId === id ? null : state.selectedId,
     })),
 
-  setBoxes: (boxes) => set({ boxes }),
+  setBoxes: (boxes) => set((state) => ({
+    undoStack: [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
+    boxes,
+  })),
 
-  resetScene: () => set({
+  resetScene: () => set((state) => ({
+    undoStack: [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
     boxes: generateInitialScene(),
     selectedId: null,
     currentSceneName: null,
     activeStudyId: null,
-  }),
+  })),
 
   selectBox: (id) => set({ selectedId: id, selectedModelId: null }),
 
@@ -280,6 +306,7 @@ export const useStore = create<SceneState>((set, get) => ({
     const study = findStudy(id);
     if (!study) return {};
     return {
+      undoStack: [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
       boxes: study.boxes.map((box) => ({ id: uuidv4(), ...box })),
       cameraHeight: study.cameraHeight,
       fov: study.fov,
@@ -310,20 +337,15 @@ export const useStore = create<SceneState>((set, get) => ({
   })),
 
   removeModel: (id) => set((state) => {
-    const model = state.models.find((m) => m.id === id);
-    const remaining = state.models.filter((m) => m.id !== id);
-
-    // Instances share their buffers with the parsed original, so the GPU side
-    // only goes back when the last one standing on it is gone.
-    if (model && !remaining.some((m) => m.fileUrl === model.fileUrl)) {
-      releaseSource(model.fileUrl);
-      if (model.fileUrl.startsWith('blob:')) URL.revokeObjectURL(model.fileUrl);
-    }
-
-    return {
-      models: remaining,
+    const next = {
+      undoStack: [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
+      models: state.models.filter((m) => m.id !== id),
       selectedModelId: state.selectedModelId === id ? null : state.selectedModelId,
     };
+    // Instances share their buffers with the parsed original, so the GPU side
+    // only goes back when nothing live - and nothing undoable - needs it.
+    releaseUnreferenced(next);
+    return next;
   }),
 
   selectModel: (id) => set({ selectedModelId: id, selectedId: null }),
@@ -366,6 +388,30 @@ export const useStore = create<SceneState>((set, get) => ({
   toggleViewLock: () => set((state) => ({ viewLocked: !state.viewLocked })),
 
   noteFeedSize: () => set((state) => ({ feedNonce: state.feedNonce + 1 })),
+
+  pushUndo: () => set((state) => ({
+    undoStack: [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
+  })),
+
+  /**
+   * Step back one scene.
+   *
+   * Boxes and models are restored together, because the actions worth undoing -
+   * a delete, a clear, loading a drill over your work - move both.
+   */
+  undo: () => set((state) => {
+    const previous = state.undoStack[state.undoStack.length - 1];
+    if (!previous) return {};
+    const next = {
+      boxes: previous.boxes,
+      models: previous.models,
+      undoStack: state.undoStack.slice(0, -1),
+      selectedId: null,
+      selectedModelId: null,
+    };
+    releaseUnreferenced(next);
+    return next;
+  }),
 
   setSnapStep: (step) => set({ snapStep: Math.max(0, step) }),
 
