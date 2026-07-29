@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../store';
+import { useTouchLayout } from '../lib/useTouchLayout';
 
 const STEP = Math.PI / 12; // 15 degrees
 
@@ -11,6 +12,7 @@ const STEP = Math.PI / 12; // 15 degrees
  */
 export const SelectionBar: React.FC = () => {
   const theme = useStore((s) => s.theme);
+  const touchLayout = useTouchLayout();
   const cameraFeed = useStore((s) => s.cameraFeed);
   const boxes = useStore((s) => s.boxes);
   const models = useStore((s) => s.models);
@@ -46,7 +48,7 @@ export const SelectionBar: React.FC = () => {
   const height = model ? model.size[1] * model.scale : 0;
 
   return (
-    <div className="absolute inset-x-0 bottom-28 md:bottom-6 z-40 flex justify-center px-4 pointer-events-none">
+    <div className={`absolute inset-x-0 ${touchLayout ? 'bottom-28' : 'bottom-6'} z-40 flex justify-center px-4 pointer-events-none`}>
       <div className="flex items-center gap-2 pointer-events-auto">
         <button onClick={() => rotateSelection(-STEP)} className={iconButton} aria-label="Turn left">
           <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">

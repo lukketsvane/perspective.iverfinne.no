@@ -92,7 +92,7 @@ export const MobileBar: React.FC<MobileBarProps> = ({
         </div>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-[56] safe-bottom px-3 pb-3 pointer-events-none md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-[56] safe-bottom px-3 pb-3 pointer-events-none">
         <div className={`flex items-center justify-between px-2 py-1.5 rounded-3xl border backdrop-blur-xl shadow-lg pointer-events-auto ${shell}`}>
           <button onClick={onAdd} className={item} aria-label="Add cube">
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
