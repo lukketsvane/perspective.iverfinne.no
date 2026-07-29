@@ -45,6 +45,8 @@ export interface SceneModel {
   rotationY: number;
   /** Uniform multiplier on the file's own size. 1 is as authored. */
   scale: number;
+  /** The scale it was placed at - pose-corrected for library figures. */
+  baseScale: number;
   /** Bounding box in metres as authored, before `scale`. */
   size: [number, number, number];
   fileUrl: string;

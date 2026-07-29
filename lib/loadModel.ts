@@ -92,6 +92,7 @@ const buildModel = (
     position: [dropAt[0], 0, dropAt[1]],
     rotationY: 0,
     scale: 1,
+    baseScale: 1,
     size,
     fileUrl,
     format: isUsdz ? 'usdz' : 'gltf',
@@ -268,6 +269,9 @@ export const loadModelFromUrl = async (
   const model = buildModel(instanceOf(object), name, url, /\.usdz$/i.test(url), dropAt);
   if (targetHeight && model.size[1] > 0.001) {
     model.scale = targetHeight / model.size[1];
+    // Resetting the slider should come back to the pose's real height, not to
+    // the file's own - which for anything kneeling is the giant it shipped as.
+    model.baseScale = model.scale;
   }
   return { model, warning };
 };
