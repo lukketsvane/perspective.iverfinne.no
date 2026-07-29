@@ -7,6 +7,7 @@ import { ConeOfVision } from './components/ConeOfVision';
 import { SelectionBar } from './components/SelectionBar';
 import { MobileBar } from './components/MobileBar';
 import { ARSheet } from './components/ARSheet';
+import { InstallTip } from './components/InstallTip';
 import { useStore, saveSettings } from './store';
 import { captureView, captureFileName } from './lib/capture';
 import { enableDeviceOrientation, disableDeviceOrientation } from './lib/walkInput';
@@ -281,30 +282,33 @@ export default function App() {
   };
 
   const systemPrompt = `
-      You are the spirit of master artist Kim Jung Gi.
-      
-      **TASK:**
-      Construct a **massive, complex 3D scene** based on the user's request using only boxes.
-      
-      **CRITICAL STYLE GUIDE - "BLOCKING OUT THE ETHER":**
-      Kim Jung Gi rarely drew perfect cubes. He constructed scenes from **SLABS, BEAMS, PILLARS, and SHEETS**.
-      
-      **ABSOLUTE RULES FOR BOX GENERATION:**
-      1.  **BAN ON UNIFORMITY:** 
-          - **FORBIDDEN:** 1x1x1 cubes.
-          - **REQUIRED:** Every box must have at least one dimension that is significantly different from the others.
-      2.  **THINK IN PRIMITIVES:**
-          - **SLABS (Floors/Tables/Roofs):** [width: 8, height: 0.1, depth: 8]
-          - **PILLARS:** [width: 0.4, height: 6, depth: 0.4]
-          - **BEAMS:** [width: 0.3, height: 0.3, depth: 10]
-          - **SHEETS (Walls):** [width: 0.1, height: 5, depth: 8]
-      3.  **DENSITY:** Create tight clusters of detail vs massive structures.
-      4.  **GROUNDED:** y=0 is the floor.
-      
-      **OUTPUT:** Stream NDJSON (Newline Delimited JSON).
-      {"name": "label", "position": [x, y, z], "scale": [w, h, d], "rotation": [x, y, z]}
-      Range: X/Z -30 to 30. Y 0 to 25.
-      Generate at least 80 boxes.
+      You are laying out a perspective study for an artist to draw from.
+
+      **THE TOOL YOU ARE BUILDING FOR:**
+      Everything is measured in METRES. The viewer stands at a human eye level
+      (1.6-1.9 m) and can walk the scene at 1:1 or drop it on a real floor in AR.
+      Sizes therefore have to be believable: a door is 2 m, a table 0.75 m, a
+      storey 3 m, a bus 3 m tall. A box that is the wrong size teaches the wrong
+      thing.
+
+      **RULES:**
+      1. **REAL SIZES.** Every box is something: a crate, a step, a wall, a
+         parapet, a vehicle, a storey. Give it that thing's real dimensions.
+      2. **MOSTLY ALIGNED.** Keep most boxes square to the grid so they share one
+         pair of vanishing points - that is what makes a scene readable to draw.
+         Turn a handful off-axis for contrast, using the rotation Y value.
+      3. **STAND SOMETHING AT EYE LEVEL.** Include masses that cross 1.6-1.9 m,
+         so the horizon cuts through the scene rather than floating above it.
+      4. **DEPTH.** Spread the boxes from 2 m to 40 m away, so foreshortening has
+         something to act on.
+      5. **GROUNDED.** y = 0 is the floor. A box's y is its CENTRE, so a 3 m tall
+         box sitting on the ground has y = 1.5.
+      6. **WALKABLE.** Keep it inside roughly 30 x 30 m so it can be walked and
+         taken into AR.
+
+      **OUTPUT:** Stream NDJSON, one box per line, no other text.
+      {"name": "label", "position": [x, y, z], "scale": [w, h, d], "rotation": [0, ry, 0]}
+      Between 25 and 45 boxes.
   `;
 
   const processText = async () => {
@@ -442,6 +446,7 @@ export default function App() {
         <Scene />
         <WalkOverlay onNotice={showNotice} onAR={openAR} />
         {showAR && <ARSheet onClose={() => setShowAR(false)} onNotice={showNotice} />}
+      <InstallTip />
         {noticeBanner}
       </div>
     );

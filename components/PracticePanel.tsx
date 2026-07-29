@@ -2,6 +2,7 @@ import React from 'react';
 import { useStore, EYE_LEVEL_PRESETS, SPAWN_PRESETS, FIGURE_HEIGHT } from '../store';
 import { SpawnKind } from '../types';
 import { openModelInAR, supportsQuickLook } from '../lib/ar';
+import { STUDIES, findStudy } from '../lib/studies';
 
 const SPAWN_ORDER: SpawnKind[] = ['cube', 'slab', 'pillar', 'beam', 'block'];
 
@@ -41,6 +42,9 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   const selectedModelId = useStore((s) => s.selectedModelId);
   const selectModel = useStore((s) => s.selectModel);
   const quickLook = supportsQuickLook();
+  const activeStudyId = useStore((s) => s.activeStudyId);
+  const loadStudy = useStore((s) => s.loadStudy);
+  const activeStudy = findStudy(activeStudyId);
 
   const isDark = theme === 'dark';
   const panel = isDark ? 'bg-[#1a1a1a]/95 border-gray-700' : 'bg-white/95 border-gray-200';
@@ -86,6 +90,23 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        {/* ---------------------------------------------------------------- */}
+        <Row title="Study">
+          <div className="flex flex-wrap gap-1">
+            <button onClick={resetScene} className={chip(!activeStudyId)}>Sandbox</button>
+            {STUDIES.map((study) => (
+              <button key={study.id} onClick={() => loadStudy(study.id)} className={chip(activeStudyId === study.id)}>
+                {study.name}
+              </button>
+            ))}
+          </div>
+          <p className={`mt-2 text-[9px] leading-tight ${label}`}>
+            {activeStudy
+              ? activeStudy.hint
+              : 'Eleven 1 m cubes to poke at. Pick a drill to load its geometry, eye level, lens and viewpoint together.'}
+          </p>
+        </Row>
+
         {/* ---------------------------------------------------------------- */}
         <Row title={`Eye level — ${cameraHeight.toFixed(2)} m from ground`}>
           <div className="flex gap-1 mb-2">

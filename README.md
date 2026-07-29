@@ -8,6 +8,24 @@ A reference guide for practising perspective, set up the way Kim Jung Gi teaches
 it in his lectures: real-world metres, boxes, and a camera that stands where a
 person stands.
 
+## The drills
+
+Setup opens on a row of studies. Each one loads as a whole shot — geometry, eye
+level, lens and where to stand, because one-point only looks like one-point from
+square on:
+
+| Study | What it is for |
+| --- | --- |
+| **The horizon** | A cube below, at and above eye level. The top face closes to a line as it reaches the horizon, then opens again as the underside. |
+| **Two point street** | Every box shares one pair of vanishing points; any two parallel edges meet on the horizon, left and right. |
+| **One point corridor** | Square to the boxes, one pair of edges stops converging altogether and everything else runs to a single point ahead. |
+| **Every box its own pair** | Eight cubes on eight headings — eight pairs of vanishing points, all landing on the same horizon. |
+| **Looking up** | Off eye level with the gaze tilted: verticals stop being vertical and run to a third point overhead. |
+| **Foreshortening ladder** | The same 1 m cube at 2, 4, 8, 16 and 32 m. Doubling the distance halves the height. |
+| **A room at 1:1** | A 0.75 m table, a 0.45 m seat, a 2.0 m door, sized to fit a real room — take this one into AR and check it against your own furniture. |
+
+**Sandbox** goes back to the eleven loose cubes.
+
 ## The defaults
 
 Open it and you get cubes, nothing else. Everything past that is a deliberate

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { BoxData, SceneState, SavedScene, SpawnKind } from './types';
+import { findStudy } from './lib/studies';
 
 // Helper for random range
 const rng = (min: number, max: number) => Math.random() * (max - min) + min;
@@ -194,6 +195,8 @@ export const useStore = create<SceneState>((set, get) => ({
   cameraFeed: false, // The camera stays off until it is asked for
   models: [],
   selectedModelId: null,
+  cameraPose: null,
+  activeStudyId: null,
   theme: 'light',
   currentSceneName: null,
   sceneHistory: [],
@@ -251,11 +254,39 @@ export const useStore = create<SceneState>((set, get) => ({
     boxes: generateInitialScene(),
     selectedId: null,
     currentSceneName: null,
+    activeStudyId: null,
   }),
 
   selectBox: (id) => set({ selectedId: id, selectedModelId: null }),
 
   setViewMode: (mode) => set({ viewMode: mode, selectedId: null, selectedModelId: null }),
+
+  /**
+   * Load a drill as a whole shot.
+   *
+   * A study is not just geometry: the eye level it reads from and the spot it
+   * reads from are the exercise. Projection is left alone - straight or
+   * curvilinear stays the viewer's choice.
+   */
+  loadStudy: (id) => set((state) => {
+    const study = findStudy(id);
+    if (!study) return {};
+    return {
+      boxes: study.boxes.map((box) => ({ id: uuidv4(), ...box })),
+      cameraHeight: study.cameraHeight,
+      fov: study.fov,
+      lockEyeLevel: study.lockEyeLevel,
+      activeStudyId: study.id,
+      currentSceneName: study.name,
+      selectedId: null,
+      selectedModelId: null,
+      cameraPose: {
+        position: study.camera.position,
+        target: study.camera.target,
+        nonce: (state.cameraPose?.nonce ?? 0) + 1,
+      },
+    };
+  }),
 
   setCameraFeed: (on) => set({ cameraFeed: on }),
 
