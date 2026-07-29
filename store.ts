@@ -283,13 +283,26 @@ export const useStore = create<SceneState>((set, get) => ({
     boxes,
   })),
 
-  resetScene: () => set((state) => ({
-    undoStack: [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
-    boxes: generateInitialScene(),
-    selectedId: null,
-    currentSceneName: null,
-    activeStudyId: null,
-  })),
+  /**
+   * Back to the opening cubes - the whole scene, figures included.
+   *
+   * Leaving models behind meant "reset" put you in a clean set of boxes with
+   * yesterday's figures still standing in them. Undoable, like every other
+   * destructive action.
+   */
+  resetScene: () => set((state) => {
+    const next = {
+      undoStack: [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
+      boxes: generateInitialScene(),
+      models: [],
+      selectedId: null,
+      selectedModelId: null,
+      currentSceneName: null,
+      activeStudyId: null,
+    };
+    releaseUnreferenced(next);
+    return next;
+  }),
 
   selectBox: (id) => set({ selectedId: id, selectedModelId: null }),
 
@@ -305,9 +318,12 @@ export const useStore = create<SceneState>((set, get) => ({
   loadStudy: (id) => set((state) => {
     const study = findStudy(id);
     if (!study) return {};
-    return {
+    // A drill is a whole shot, and figures placed for another one end up
+    // standing inside its walls - so they come out with the old boxes.
+    const next = {
       undoStack: [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
       boxes: study.boxes.map((box) => ({ id: uuidv4(), ...box })),
+      models: [],
       cameraHeight: study.cameraHeight,
       fov: study.fov,
       lockEyeLevel: study.lockEyeLevel,
@@ -321,6 +337,8 @@ export const useStore = create<SceneState>((set, get) => ({
         nonce: (state.cameraPose?.nonce ?? 0) + 1,
       },
     };
+    releaseUnreferenced(next);
+    return next;
   }),
 
   setCameraFeed: (on) => set({ cameraFeed: on }),
