@@ -16,6 +16,8 @@ export const MeshSheet: React.FC<{
   busyId: string | null;
 }> = ({ onClose, onPlace, onImport, busyId }) => {
   const theme = useStore((s) => s.theme);
+  const matteModels = useStore((s) => s.matteModels);
+  const toggleMatte = useStore((s) => s.toggleMatte);
   const isDark = theme === 'dark';
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -29,7 +31,18 @@ export const MeshSheet: React.FC<{
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
 
       <div className={`relative w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border shadow-2xl safe-bottom ${panel}`}>
-        <div className="flex items-center justify-end px-3 pt-3">
+        <div className="flex items-center justify-between px-4 pt-3">
+          {/* Plain white instead of the file's own skin and fabric */}
+          <button
+            onClick={toggleMatte}
+            className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${
+              matteModels
+                ? isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'
+                : isDark ? 'bg-white/10 text-gray-400' : 'bg-black/5 text-gray-500'
+            }`}
+          >
+            Matte
+          </button>
           <button onClick={onClose} className="p-2 opacity-50" aria-label="Close">
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" />

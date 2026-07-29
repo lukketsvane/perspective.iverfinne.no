@@ -133,11 +133,18 @@ export const loadModelFile = async (file: File, dropAt: [number, number]): Promi
   };
 };
 
-/** Load one of the built-in meshes, fetched on demand. */
+/**
+ * Load one of the built-in meshes, fetched on demand.
+ *
+ * `targetHeight` is the real height of the pose. The library files are all
+ * normalised to the same box height whatever they are doing, so this is what
+ * stops a kneeling figure arriving as tall as a standing one.
+ */
 export const loadModelFromUrl = async (
   url: string,
   name: string,
-  dropAt: [number, number]
+  dropAt: [number, number],
+  targetHeight?: number
 ): Promise<LoadResult> => {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Failed to fetch ${url}`);
@@ -145,5 +152,9 @@ export const loadModelFromUrl = async (
   const isUsdz = /\.usdz$/i.test(url);
   const { object, warning } = await parseBuffer(buffer, isUsdz);
 
-  return { model: buildModel(object, name, url, isUsdz, dropAt), warning };
+  const model = buildModel(object, name, url, isUsdz, dropAt);
+  if (targetHeight && model.size[1] > 0.001) {
+    model.scale = targetHeight / model.size[1];
+  }
+  return { model, warning };
 };

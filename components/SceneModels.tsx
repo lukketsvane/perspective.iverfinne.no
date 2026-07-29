@@ -1,8 +1,21 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { ThreeEvent, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '../store';
 import { SceneModel } from '../types';
+
+/**
+ * One matte white material, shared by every model that is switched to it.
+ *
+ * Photographed skin and fabric is a lot of information to draw past. Swapped
+ * for plain white, a figure reads as form and value only - which is what it is
+ * doing in a perspective scene full of white boxes.
+ */
+const MATTE = new THREE.MeshStandardMaterial({
+  color: 0xf2f2f0,
+  roughness: 0.92,
+  metalness: 0,
+});
 
 /**
  * An uploaded model standing in the scene.
@@ -19,8 +32,28 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
   const isViewMode = useStore((state) => state.isViewMode);
   const theme = useStore((state) => state.theme);
 
+  const matteModels = useStore((state) => state.matteModels);
   const { camera, gl, controls } = useThree();
   const isSelected = selectedModelId === model.id;
+
+  /**
+   * Swap materials in place, keeping each mesh's own on the side so the switch
+   * goes both ways without reloading the file.
+   */
+  useEffect(() => {
+    const object = model.object;
+    if (!object) return;
+    object.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      if (matteModels) {
+        if (!mesh.userData.originalMaterial) mesh.userData.originalMaterial = mesh.material;
+        mesh.material = MATTE;
+      } else if (mesh.userData.originalMaterial) {
+        mesh.material = mesh.userData.originalMaterial as THREE.Material;
+      }
+    });
+  }, [matteModels, model.object]);
   const outlineColor = theme === 'dark' ? '#ff5555' : '#ff3b30';
 
   const ground = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);

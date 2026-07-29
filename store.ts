@@ -108,7 +108,7 @@ const SETTINGS_KEY = 'kjg-perspective-settings';
 
 type PersistedSettings = Pick<
   SceneState,
-  'theme' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep'
+  'theme' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'matteModels'
 >;
 
 const loadSettings = (): Partial<PersistedSettings> => {
@@ -147,6 +147,7 @@ const writeSettings = (state: SceneState) => {
       spawnKind: state.spawnKind,
       fov: state.fov,
       snapStep: state.snapStep,
+      matteModels: state.matteModels,
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch {
@@ -195,6 +196,7 @@ export const useStore = create<SceneState>((set, get) => ({
   cameraFeed: false, // The camera stays off until it is asked for
   models: [],
   selectedModelId: null,
+  matteModels: false,
   cameraPose: null,
   activeStudyId: null,
   theme: 'light',
@@ -342,6 +344,8 @@ export const useStore = create<SceneState>((set, get) => ({
   toggleGuides: () => set((state) => ({ showGuides: !state.showGuides })),
 
   toggleCone: () => set((state) => ({ showCone: !state.showCone })),
+
+  toggleMatte: () => set((state) => ({ matteModels: !state.matteModels })),
 
   setSnapStep: (step) => set({ snapStep: Math.max(0, step) }),
 

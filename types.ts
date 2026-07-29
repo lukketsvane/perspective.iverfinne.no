@@ -95,6 +95,8 @@ export interface SceneState {
   cameraFeed: boolean;
   models: SceneModel[];
   selectedModelId: string | null;
+  /** Replace model materials with a plain white matte, for reading form. */
+  matteModels: boolean;
   /** Set when a study asks the camera to move; the scene consumes it. */
   cameraPose: CameraPose | null;
   activeStudyId: string | null;
@@ -130,6 +132,7 @@ export interface SceneState {
   updateModel: (id: string, updates: Partial<Omit<SceneModel, 'id'>>) => void;
   /** Uniform scale on a placed model. */
   scaleModel: (id: string, scale: number) => void;
+  toggleMatte: () => void;
   toggleTheme: () => void;
   toggleViewMode: () => void; // New action
   saveCurrentScene: (name: string, prompt?: string) => void;
