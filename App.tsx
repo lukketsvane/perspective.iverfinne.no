@@ -86,8 +86,20 @@ export default function App() {
   useEffect(() => {
     const shared = sceneFromUrl();
     if (!shared) return;
-    setBoxes(shared.map((box) => ({ ...box, id: uuidv4() })));
-  }, [setBoxes]);
+    setBoxes(shared.boxes.map((box) => ({ ...box, id: uuidv4() })));
+
+    // Figures travel by library id, and are fetched here rather than sent.
+    shared.models.forEach(async (packed) => {
+      const entry = MESH_LIBRARY.find((m) => m.id === packed.meshId);
+      if (!entry) return;
+      try {
+        const { model } = await loadModelFromUrl(entry.url, entry.name, [packed.position[0], packed.position[2]]);
+        addModel({ ...model, position: packed.position, rotationY: packed.rotationY, scale: packed.scale });
+      } catch (error) {
+        console.error(error);
+      }
+    });
+  }, [setBoxes, addModel]);
 
   // Remember how the tool is set up (never what is in the scene).
   useEffect(() => useStore.subscribe((state) => saveSettings(state)), []);
@@ -143,7 +155,7 @@ export default function App() {
   };
 
   const handleShare = async () => {
-    const result = await shareScene(boxes);
+    const result = await shareScene(boxes, models);
     showNotice(
       result === 'copied'
         ? 'Link copied — it carries this study.'

@@ -107,9 +107,11 @@ The bottom bar has the things you need standing up:
   you are standing on. Needs https and permission.
 - **Exit** — back to the drawing board (Escape works too).
 
-The link carries the study, so a scene composed on a laptop opens on the phone:
-*Send link* in More, then open it there. Nothing is uploaded — it rides in the
-URL fragment.
+The link carries the study — boxes and library figures, with their positions,
+turns and sizes — so a scene composed on a laptop opens on the phone: *Send
+link* in More, then open it there. Nothing is uploaded; it rides in the URL
+fragment. Imported files are the exception, since they only exist in the browser
+that loaded them.
 
 ## Meshes
 
