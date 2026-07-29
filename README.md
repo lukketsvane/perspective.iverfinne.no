@@ -22,7 +22,7 @@ square on:
 | **Every box its own pair** | Eight cubes on eight headings — eight pairs of vanishing points, all landing on the same horizon. |
 | **Looking up** | Off eye level with the gaze tilted: verticals stop being vertical and run to a third point overhead. |
 | **Foreshortening ladder** | The same 1 m cube at 2, 4, 8, 16 and 32 m. Doubling the distance halves the height. |
-| **A room at 1:1** | A 0.75 m table, a 0.45 m seat, a 2.0 m door, sized to fit a real room — take this one into AR and check it against your own furniture. |
+| **A room at 1:1** | A 0.75 m table, a 0.45 m seat, a 2.0 m door — everyday sizes, to check the ones in your head against. |
 
 **Sandbox** goes back to the eleven loose cubes.
 
@@ -51,29 +51,15 @@ turned off-axis with their own pairs, a three-cube stack crosses the horizon so
 you can watch a top face flip to an underside, and one cube sits far back as a
 foreshortening check.
 
-## On an iPhone
+## On a phone
 
-This is the tool's home. Add it to the Home Screen and it opens full screen with
-its own icon; the AR button in the middle of the bottom bar is one tap from
-standing inside the study.
+Add it to the Home Screen and it runs full screen with its own icon. The bar
+along the bottom is the whole interface: add a cube where you are looking, walk
+the scene, open the mesh library, setup, more. No words on any of it.
 
-**AR runs through Quick Look**, because Safari has no WebXR — there is no other
-way to get real positional tracking on an iPhone. Two things make it a
-perspective tool rather than a model viewer:
-
-- **True scale.** The scene is modelled in metres and exported with
-  `metersPerUnit = 1`, so a 1 m cube arrives one metre tall on your floor.
-- **Locked scale.** Quick Look lets you pinch a model bigger by default, which
-  would quietly destroy the only thing being taught. The export sets
-  `#allowsContentScaling=0`, so what you walk around is what you built.
-
-Pick **Room** (1:1, walk through it) or **Tabletop** (1:10, the whole study on a
-desk) on the way in — an 18 m study at full size runs through the walls, which
-is fine to walk into but not always what you want.
-
-Composing is easier on a big screen, so **the link carries the study**: build it
-on a laptop, hit *Send to phone*, open the link on the iPhone, tap AR. Nothing
-is uploaded — the scene rides in the URL fragment.
+There is no AR. Safari has no WebXR, and the AR Quick Look route - export a
+USDZ, hand it to Apple's viewer - was tried and taken back out: it leaves the
+app, and what comes back is not the tool.
 
 ## Walking it at 1:1
 
@@ -93,27 +79,27 @@ The bottom bar has the four things you need standing up:
   mode: the reference reads better on a clean field, and the camera is there
   for when you want the metric grid and the horizon lying over the actual floor
   you are standing on. Needs https and permission.
-- **AR** — on iOS, exports the scene to USDZ and hands it to Apple's AR Quick
-  Look, which anchors it to a real floor plane at true scale so you can
-  physically walk around the cubes. Safari has no WebXR, so this is the way to
-  get real positional tracking on an iPhone; the button only appears where
-  Quick Look exists.
 - **Exit** — back to the drawing board (Escape works too).
 
-## Models
+The link carries the study, so a scene composed on a laptop opens on the phone:
+*Send link* in More, then open it there. Nothing is uploaded — it rides in the
+URL fragment.
 
-The box-with-an-arrow icon places a **USDZ** or **glTF/GLB** file in the scene.
-Nothing is uploaded anywhere — the file is read in the browser. Models keep
-their real size, so a 0.9 m chair stands next to the 1 m cubes at 0.9 m. Tap one
-to select it and drag to slide it along the floor; the Practice panel lists what
-is loaded with each model's dimensions.
+## Meshes
 
-One caveat worth knowing: three.js only reads the ASCII flavour of USDZ, and
-most USDZ files in the wild (Reality Composer, Quick Look galleries, Sketchfab)
-are binary *crate* archives. Those still load into the app, they just cannot be
-drawn in the scene — the app says so and offers to open that file in AR Quick
-Look instead, which reads crate natively. For guaranteed in-scene placement,
-use glTF/GLB.
+The centre button opens the library: figures to drop into the scene, and a tile
+for your own files. Import as many at once as you like — **GLB/glTF** or USDZ —
+and nothing lands on top of anything else; each one takes the nearest free spot
+to where you are looking.
+
+Models arrive at the size the file says, which is often not the size you want,
+so a selected model gets a scale slider in the selection bar with its height in
+metres above it. Double-click the slider to go back to 1:1. Drag a model to
+slide it along the floor, and turn it with the arrows.
+
+Nothing is uploaded anywhere — files are read in the browser. three.js only
+reads the ASCII flavour of USDZ, so a binary *crate* USDZ will not draw; use
+GLB.
 
 ## Handling
 
@@ -127,13 +113,11 @@ use glTF/GLB.
   A box off the grid gets its own pair of vanishing points, which is half of
   what makes a box study worth drawing. `Delete` removes the selection,
   `Escape` clears it.
-- **Save the view** — the download icon writes the frame to a PNG
-  (`perspective-eye1.90m-60deg-<date>.png`) so you can draw from it on paper or
-  a second screen. The 3D guides are in the image; the on-screen chrome is not.
+- **Save the view** — writes the frame to a PNG so you can draw from it on paper
+  or a second screen. The 3D guides are in the image; the on-screen chrome is not.
 - **Lens** — 3-finger vertical drag changes the field of view. Curvature is only
   ever a deliberate mode switch, never a side effect.
 - **Reset to cubes** — bottom of the Practice panel.
-- **Walk / AR** — the figure icon; **place a model** — the box-with-arrow icon.
 
 Image and text prompts (the sparkle and pen icons) build denser scenes with
 Gemini. Those are opt-in too, and they append to whatever is already there.

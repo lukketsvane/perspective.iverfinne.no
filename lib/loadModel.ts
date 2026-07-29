@@ -3,7 +3,7 @@ import { USDZLoader } from 'three/examples/jsm/loaders/USDZLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { SceneModel } from '../types';
 
-export const MODEL_ACCEPT = '.usdz,.glb,.gltf,model/vnd.usdz+zip,model/gltf-binary';
+export const MODEL_ACCEPT = '.glb,.gltf,.usdz,model/gltf-binary,model/vnd.usdz+zip';
 
 export interface LoadResult {
   model: Omit<SceneModel, 'id'>;
@@ -13,8 +13,9 @@ export interface LoadResult {
 
 /**
  * Sit an object on the ground with its footprint centred on the origin, and
- * measure it. USDZ and glTF both use metres, so no scaling is applied - a chair
- * that is 0.9 m tall stays 0.9 m tall next to the 1 m cubes.
+ * measure it. glTF and USDZ are both authored in metres, so nothing is
+ * rescaled on the way in - a model that comes in at the wrong size is a fact
+ * about the file, and the scale handle is there to fix it.
  */
 const groundAndMeasure = (object: THREE.Object3D): [number, number, number] => {
   const box = new THREE.Box3().setFromObject(object);
@@ -25,7 +26,6 @@ const groundAndMeasure = (object: THREE.Object3D): [number, number, number] => {
   box.getSize(size);
   box.getCenter(centre);
 
-  // Re-origin the object: centred in X/Z, resting on y = 0.
   object.position.x -= centre.x;
   object.position.z -= centre.z;
   object.position.y -= box.min.y;
@@ -42,61 +42,108 @@ const readFile = (file: File): Promise<ArrayBuffer> =>
   });
 
 /**
- * Load a dropped model file.
+ * Somewhere clear to stand.
  *
- * USDZ is the format Apple's tools produce, so it is what people have on an
- * iPhone - but three's USDZ loader only reads the ASCII (.usda) flavour, and
- * most real-world USDZ files are binary crate archives. Those still load into
- * the app, they just cannot be drawn in the scene: the file is kept so it can
- * be opened in AR Quick Look, which reads crate files natively. glTF/GLB is
- * the reliable path for in-scene placement.
+ * Dropping several models at once, or one after another, used to pile them on
+ * the same spot. Walk a widening ring around the wanted point until there is
+ * room for this one's footprint next to everything already placed.
  */
-export const loadModelFile = async (file: File, dropAt: [number, number]): Promise<LoadResult> => {
-  const buffer = await readFile(file);
-  const fileUrl = URL.createObjectURL(
-    new Blob([buffer], {
-      type: file.name.toLowerCase().endsWith('.usdz') ? 'model/vnd.usdz+zip' : file.type,
-    })
-  );
-  const name = file.name.replace(/\.[^.]+$/, '');
-  const isUsdz = /\.usdz$/i.test(file.name);
+export const findFreeSpot = (
+  taken: { position: [number, number, number]; radius: number }[],
+  wanted: [number, number],
+  radius: number
+): [number, number] => {
+  const clashes = (x: number, z: number) =>
+    taken.some((other) => {
+      const gap = Math.hypot(x - other.position[0], z - other.position[2]);
+      return gap < radius + other.radius + 0.5;
+    });
 
-  let object: THREE.Object3D | null = null;
-  let warning: string | undefined;
+  if (!clashes(wanted[0], wanted[1])) return wanted;
 
+  const step = Math.max(0.6, radius * 2);
+  for (let ring = 1; ring < 12; ring++) {
+    const count = ring * 6;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const x = wanted[0] + Math.cos(angle) * ring * step;
+      const z = wanted[1] + Math.sin(angle) * ring * step;
+      if (!clashes(x, z)) return [x, z];
+    }
+  }
+  return wanted;
+};
+
+/** Footprint radius of a placed model, for spacing. */
+export const modelRadius = (model: { size: [number, number, number]; scale: number }) =>
+  (Math.max(model.size[0], model.size[2]) * model.scale) / 2;
+
+const buildModel = (
+  object: THREE.Object3D | null,
+  name: string,
+  fileUrl: string,
+  isUsdz: boolean,
+  dropAt: [number, number]
+): Omit<SceneModel, 'id'> => {
+  const size = object ? groundAndMeasure(object) : ([0, 0, 0] as [number, number, number]);
+  return {
+    name,
+    object,
+    position: [dropAt[0], 0, dropAt[1]],
+    rotationY: 0,
+    scale: 1,
+    size,
+    fileUrl,
+    format: isUsdz ? 'usdz' : 'gltf',
+    previewSupported: object !== null,
+  };
+};
+
+const parseBuffer = async (
+  buffer: ArrayBuffer,
+  isUsdz: boolean
+): Promise<{ object: THREE.Object3D | null; warning?: string }> => {
   try {
     if (isUsdz) {
       const group = new USDZLoader().parse(buffer);
-      // A crate archive parses to an empty group (the loader warns and skips).
-      if (group.children.length > 0) {
-        object = group;
-      } else {
-        warning = `${file.name} is a binary USDZ, which cannot be drawn in the scene. Open it in AR instead.`;
-      }
-    } else {
-      const gltf = await new GLTFLoader().parseAsync(buffer, '');
-      object = gltf.scene;
+      // A binary crate archive parses to an empty group.
+      if (group.children.length > 0) return { object: group };
+      return { object: null, warning: 'binary USDZ — use glTF/GLB' };
     }
+    const gltf = await new GLTFLoader().parseAsync(buffer, '');
+    return { object: gltf.scene };
   } catch (error) {
     console.error('Failed to load model:', error);
-    warning = isUsdz
-      ? `${file.name} could not be read in the browser. Open it in AR instead.`
-      : `${file.name} could not be read.`;
+    return { object: null, warning: 'could not be read' };
   }
+};
 
-  const size = object ? groundAndMeasure(object) : ([0, 0, 0] as [number, number, number]);
+/** Load a dropped file. */
+export const loadModelFile = async (file: File, dropAt: [number, number]): Promise<LoadResult> => {
+  const buffer = await readFile(file);
+  const isUsdz = /\.usdz$/i.test(file.name);
+  const fileUrl = URL.createObjectURL(
+    new Blob([buffer], { type: isUsdz ? 'model/vnd.usdz+zip' : file.type })
+  );
+  const { object, warning } = await parseBuffer(buffer, isUsdz);
 
   return {
-    model: {
-      name,
-      object,
-      position: [dropAt[0], 0, dropAt[1]],
-      rotationY: 0,
-      size,
-      fileUrl,
-      format: isUsdz ? 'usdz' : 'gltf',
-      previewSupported: object !== null,
-    },
+    model: buildModel(object, file.name.replace(/\.[^.]+$/, ''), fileUrl, isUsdz, dropAt),
     warning,
   };
+};
+
+/** Load one of the built-in meshes, fetched on demand. */
+export const loadModelFromUrl = async (
+  url: string,
+  name: string,
+  dropAt: [number, number]
+): Promise<LoadResult> => {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+  const buffer = await response.arrayBuffer();
+  const isUsdz = /\.usdz$/i.test(url);
+  const { object, warning } = await parseBuffer(buffer, isUsdz);
+
+  return { model: buildModel(object, name, url, isUsdz, dropAt), warning };
 };

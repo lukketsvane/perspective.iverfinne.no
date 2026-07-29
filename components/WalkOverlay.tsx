@@ -16,10 +16,7 @@ const STICK_RADIUS = 56; // px
  * orientation sensor is driving the view, the whole screen becomes stick, since
  * looking is the phone's job by then.
  */
-export const WalkOverlay: React.FC<{ onNotice: (message: string) => void; onAR: () => void }> = ({
-  onNotice,
-  onAR,
-}) => {
+export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({ onNotice }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const cameraFeed = useStore((s) => s.cameraFeed);
@@ -33,20 +30,6 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void; onAR: 
   const chrome = onCamera
     ? 'bg-black/60 text-white border-white/25'
     : 'bg-white/75 text-gray-900 border-gray-300';
-
-  // The sensor only reports after the first event, which lands a moment after
-  // the mode opens - watch for it so the hint tells the truth.
-  const [usingSensor, setUsingSensor] = useState(walkInput.useDeviceOrientation);
-  useEffect(() => {
-    if (usingSensor) return;
-    const timer = window.setInterval(() => {
-      if (walkInput.useDeviceOrientation) {
-        setUsingSensor(true);
-        window.clearInterval(timer);
-      }
-    }, 300);
-    return () => window.clearInterval(timer);
-  }, [usingSensor]);
 
   // --------------------------------------------------------------- gestures
   const look = useRef<{ id: number; x: number; y: number } | null>(null);
@@ -149,7 +132,8 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void; onAR: 
     onNotice('Cube placed where you are looking.');
   };
 
-  const button = `px-3 py-2 rounded-full border backdrop-blur-md text-[10px] font-bold uppercase tracking-widest transition-transform active:scale-95 ${chrome}`;
+  const button = `px-3 py-2 rounded-full border backdrop-blur-md text-[10px] font-black tracking-widest transition-transform active:scale-95 ${chrome}`;
+  const iconButton = `flex items-center justify-center w-10 h-10 rounded-full border backdrop-blur-md transition-transform active:scale-95 ${chrome}`;
 
   return (
     <>
@@ -185,27 +169,30 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void; onAR: 
         </div>
       )}
 
-      {/* Bottom bar */}
+      {/* Bottom bar: the height number, and two icons */}
       <div className="fixed inset-x-0 bottom-0 z-40 safe-bottom px-3 pb-4 flex justify-center pointer-events-none">
-        <div className="flex items-center gap-2 pointer-events-auto flex-wrap justify-center">
-          <button onClick={cycleHeight} className={button} title="Eye height above the ground">
+        <div className="flex items-center gap-2 pointer-events-auto">
+          <button onClick={cycleHeight} className={`${button} tabular-nums`} aria-label="Eye height">
             {cameraHeight.toFixed(2)} m
           </button>
 
           <button
             onClick={() => setCameraFeed(!cameraFeed)}
-            title={cameraFeed ? 'Hide the live camera' : 'Show the live camera behind the scene'}
-            className={`${button} ${cameraFeed ? '!bg-sky-500 !text-white !border-sky-400' : ''}`}
+            aria-label="Camera"
+            className={`${iconButton} ${cameraFeed ? '!bg-sky-500 !text-white !border-sky-400' : ''}`}
           >
-            Camera
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
           </button>
 
-          <button onClick={dropBox} className={button} title="Put a cube where you are looking">
-            + Cube
-          </button>
-
-          <button onClick={onAR} className={`${button} !font-black`} title="Stand in it for real">
-            AR
+          <button onClick={dropBox} className={iconButton} aria-label="Add cube">
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+              <line x1="12" y1="22.08" x2="12" y2="12" />
+            </svg>
           </button>
         </div>
       </div>
@@ -214,7 +201,7 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void; onAR: 
       <button
         onClick={() => setViewMode('orbit')}
         className={`fixed z-40 inset-safe-top inset-safe-right flex items-center justify-center w-9 h-9 rounded-full border backdrop-blur-md transition-transform active:scale-95 ${chrome}`}
-        title="Back to the drawing board"
+        aria-label="Exit"
       >
         <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="18" y1="6" x2="6" y2="18" />
@@ -222,14 +209,6 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void; onAR: 
         </svg>
       </button>
 
-      {/* Hint */}
-      <div className="fixed inset-x-0 top-0 z-30 safe-top pt-3 flex justify-center pointer-events-none px-16">
-        <span
-          className={`px-3 py-1.5 rounded-full border backdrop-blur-md text-[9px] font-bold uppercase tracking-widest text-center ${chrome}`}
-        >
-          {usingSensor ? 'Turn with the phone · hold to walk' : 'Right side looks · left thumb walks'}
-        </span>
-      </div>
     </>
   );
 };

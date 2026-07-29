@@ -33,9 +33,8 @@ export type ViewMode = 'orbit' | 'walk';
 /**
  * A model dropped into the scene from a file.
  *
- * `object` is the loaded three.js object, or null when the file cannot be
- * previewed in the browser (binary crate USDZ). `fileUrl` always points at the
- * original file, so it can still be opened in AR Quick Look on iOS.
+ * `object` is the loaded three.js object, or null when the file cannot be read
+ * in the browser (binary crate USDZ).
  */
 export interface SceneModel {
   id: string;
@@ -44,7 +43,9 @@ export interface SceneModel {
   /** Footprint centre on the ground plane. */
   position: [number, number, number];
   rotationY: number;
-  /** Bounding box in metres, for the readout. */
+  /** Uniform multiplier on the file's own size. 1 is as authored. */
+  scale: number;
+  /** Bounding box in metres as authored, before `scale`. */
   size: [number, number, number];
   fileUrl: string;
   format: 'usdz' | 'gltf';
@@ -127,6 +128,8 @@ export interface SceneState {
   removeModel: (id: string) => void;
   selectModel: (id: string | null) => void;
   updateModel: (id: string, updates: Partial<Omit<SceneModel, 'id'>>) => void;
+  /** Uniform scale on a placed model. */
+  scaleModel: (id: string, scale: number) => void;
   toggleTheme: () => void;
   toggleViewMode: () => void; // New action
   saveCurrentScene: (name: string, prompt?: string) => void;

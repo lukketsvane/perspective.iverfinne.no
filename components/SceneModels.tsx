@@ -88,6 +88,7 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
     <group
       position={model.position}
       rotation={[0, model.rotationY, 0]}
+      scale={model.scale}
       onPointerDown={handlePointerDown}
       onClick={(e) => { if (!isViewMode) e.stopPropagation(); }}
       onDoubleClick={(e) => { if (!isViewMode) e.stopPropagation(); }}
