@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { BoxData, SceneState, SavedScene, SpawnKind } from './types';
 import { findStudy } from './lib/studies';
 import { DEFAULT_SENSOR_FOV } from './lib/cameraFeed';
-import { releaseSource, cachedSourceUrls } from './lib/loadModel';
+import { releaseSource, cachedSourceUrls, modelRadius, findFreeSpot } from './lib/loadModel';
 
 // Helper for random range
 const rng = (min: number, max: number) => Math.random() * (max - min) + min;
@@ -325,9 +325,12 @@ export const useStore = create<SceneState>((set, get) => ({
 
   setCameraFeed: (on) => set({ cameraFeed: on }),
 
-  addModel: (model) => set((state) => ({
-    models: [...state.models, { id: uuidv4(), ...model }],
-  })),
+  addModel: (model) => set((state) => {
+    // Select what was just placed: the next thing anyone does to a new figure
+    // is size it or move it, and both need it selected.
+    const placed = { id: uuidv4(), ...model };
+    return { models: [...state.models, placed], selectedModelId: placed.id, selectedId: null };
+  }),
 
   /** Scale a placed model about its feet, so it stays on the ground. */
   scaleModel: (id, scale) => set((state) => ({
@@ -380,6 +383,46 @@ export const useStore = create<SceneState>((set, get) => ({
   toggleGuides: () => set((state) => ({ showGuides: !state.showGuides })),
 
   toggleCone: () => set((state) => ({ showCone: !state.showCone })),
+
+  /**
+   * Copy the selection.
+   *
+   * A crowd is one figure placed nine times, and a colonnade is one box copied
+   * along a line - both of which meant going back to the library or the spawn
+   * button and re-sizing from scratch. The copy lands clear of its original and
+   * becomes the selection, so it can be dragged straight into place.
+   */
+  duplicateSelection: () => set((state) => {
+    const snapshot = [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH);
+
+    if (state.selectedModelId) {
+      const original = state.models.find((m) => m.id === state.selectedModelId);
+      if (!original?.object) return {};
+
+      const [x, z] = findFreeSpot(
+        state.models.map((m) => ({ position: m.position, radius: modelRadius(m) })),
+        [original.position[0], original.position[2]],
+        modelRadius(original)
+      );
+      // A fresh instance: sharing the Object3D itself would move both copies.
+      const copy = { ...original, id: uuidv4(), object: original.object.clone(true), position: [x, 0, z] as [number, number, number] };
+      return { undoStack: snapshot, models: [...state.models, copy], selectedModelId: copy.id };
+    }
+
+    if (state.selectedId) {
+      const original = state.boxes.find((b) => b.id === state.selectedId);
+      if (!original) return {};
+      const step = Math.max(original.scale[0], 0.5) + 0.5;
+      const copy: BoxData = {
+        ...original,
+        id: uuidv4(),
+        position: [original.position[0] + step, original.position[1], original.position[2]],
+      };
+      return { undoStack: snapshot, boxes: [...state.boxes, copy], selectedId: copy.id };
+    }
+
+    return {};
+  }),
 
   toggleMatte: () => set((state) => ({ matteModels: !state.matteModels })),
 

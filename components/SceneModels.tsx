@@ -81,8 +81,11 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       const onMove = (moveEvent: PointerEvent) => {
         const now = pointOnGround(moveEvent.clientX, moveEvent.clientY);
         if (!now) return;
+        // Same snap as the boxes, so a figure can be lined up on the grid.
+        const snap = useStore.getState().snapStep;
+        const place = (v: number) => (snap > 0 ? Math.round(v / snap) * snap : v);
         updateModel(model.id, {
-          position: [start[0] + (now.x - grabbed.x), 0, start[2] + (now.z - grabbed.z)],
+          position: [place(start[0] + (now.x - grabbed.x)), 0, place(start[2] + (now.z - grabbed.z))],
         });
       };
 
