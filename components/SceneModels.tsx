@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo } from 'react';
 import { ThreeEvent, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '../store';
+import { noteDragEnd } from '../lib/dragGuard';
+import { createGroundPicker } from '../lib/groundDrag';
 import { SceneModel } from '../types';
 
 /**
@@ -56,11 +58,6 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
   }, [matteModels, model.object]);
   const outlineColor = theme === 'dark' ? '#ff5555' : '#ff3b30';
 
-  const ground = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
-  const raycaster = useMemo(() => new THREE.Raycaster(), []);
-  const pointer = useMemo(() => new THREE.Vector2(), []);
-  const hit = useMemo(() => new THREE.Vector3(), []);
-
   const handlePointerDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
       if (isViewMode) return;
@@ -76,29 +73,21 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       if (controls) (controls as any).enabled = false;
       document.body.style.cursor = 'grabbing';
 
-      const rect = gl.domElement.getBoundingClientRect();
       const start: [number, number, number] = [...model.position];
-
-      const pointOnGround = (clientX: number, clientY: number) => {
-        pointer.set(
-          ((clientX - rect.left) / rect.width) * 2 - 1,
-          -((clientY - rect.top) / rect.height) * 2 + 1
-        );
-        raycaster.setFromCamera(pointer, camera);
-        return raycaster.ray.intersectPlane(ground, hit) ? hit.clone() : null;
-      };
-
-      const grabbed = pointOnGround(e.clientX, e.clientY);
+      const pointOnGround = createGroundPicker(camera, gl.domElement);
+      const grabbed =
+        pointOnGround(e.clientX, e.clientY) ?? new THREE.Vector3(start[0], 0, start[2]);
 
       const onMove = (moveEvent: PointerEvent) => {
         const now = pointOnGround(moveEvent.clientX, moveEvent.clientY);
-        if (!now || !grabbed) return;
+        if (!now) return;
         updateModel(model.id, {
           position: [start[0] + (now.x - grabbed.x), 0, start[2] + (now.z - grabbed.z)],
         });
       };
 
       const onUp = () => {
+        noteDragEnd();
         setIsDragging(false);
         if (controls) (controls as any).enabled = true;
         document.body.style.cursor = 'auto';
@@ -109,10 +98,7 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
     },
-    [
-      isSelected, isViewMode, model.id, model.position, selectModel, updateModel,
-      setIsDragging, controls, camera, gl, ground, raycaster, pointer, hit,
-    ]
+    [isSelected, isViewMode, model.id, model.position, selectModel, updateModel, setIsDragging, controls, camera, gl]
   );
 
   if (!model.object) return null;
