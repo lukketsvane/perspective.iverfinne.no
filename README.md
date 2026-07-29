@@ -87,10 +87,22 @@ URL fragment.
 
 ## Meshes
 
-The centre button opens the library: figures to drop into the scene, and a tile
-for your own files. Import as many at once as you like — **GLB/glTF** or USDZ —
-and nothing lands on top of anything else; each one takes the nearest free spot
-to where you are looking.
+The centre button opens the library: nine figures to drop into the scene, and a
+tile for your own files. Import as many at once as you like — **GLB/glTF** or
+USDZ — and nothing lands on top of anything else; each one takes the nearest
+free spot to where you are looking.
+
+The library files are all normalised to exactly 1.70 m tall whatever the pose,
+which is meaningless for anything that is not standing up — a figure kneeling
+face-down is about a metre tall, and at face value it arrives as a giant. So
+each one carries the height its pose really has (1.15 m squatting, 1.00 m folded
+forward, 1.25 m seated, 1.30 m kneeling upright, 1.70 m standing) and is scaled
+to it on the way in.
+
+**Matte**, at the top of the library, replaces model materials with plain white.
+Photographed skin and fabric is a lot of information to draw past; switched off,
+a figure reads as form and value only, which is what it is doing in a scene full
+of white boxes.
 
 Models arrive at the size the file says, which is often not the size you want,
 so a selected model gets a scale slider in the selection bar with its height in

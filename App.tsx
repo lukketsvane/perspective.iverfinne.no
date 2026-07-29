@@ -165,7 +165,7 @@ export default function App() {
     if (!entry) return;
     setBusyMesh(id);
     try {
-      const { model } = await loadModelFromUrl(entry.url, entry.name, [focusPoint.x, focusPoint.z]);
+      const { model } = await loadModelFromUrl(entry.url, entry.name, [focusPoint.x, focusPoint.z], entry.height);
       const [x, z] = freeSpot(modelRadius(model));
       addModel({ ...model, position: [x, 0, z] });
       setShowMeshes(false);
