@@ -549,6 +549,58 @@ export default function App() {
         </div>
       </div>
 
+      {/* Saved scenes. Deleted by accident during the text strip, and worth
+          having back: it is the only way to keep a composition you might want
+          again without leaving the app. Names and counts only. */}
+      {showHistory && (
+        <div className="fixed inset-x-2 top-16 bottom-24 z-50 md:inset-x-auto md:left-4 md:top-4 md:bottom-4 md:w-64">
+          <div className={`h-full rounded-2xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${isDark ? 'bg-[#141416]/95 border-gray-800 text-gray-100' : 'bg-white/95 border-gray-200 text-gray-900'}`}>
+            <div className={`flex items-center justify-between px-3 py-2.5 border-b ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
+              <button
+                onClick={() =>
+                  saveCurrentScene(
+                    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  )
+                }
+                className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}
+              >
+                Save
+              </button>
+              <button onClick={() => setShowHistory(false)} className="p-1.5 opacity-50" aria-label="Close">
+                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {sceneHistory.map((scene) => (
+                <div
+                  key={scene.id}
+                  onClick={() => { loadScene(scene.id); setShowHistory(false); }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-black/5 hover:bg-black/10'}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] font-bold truncate">{scene.name}</div>
+                    <div className={`text-[9px] tabular-nums ${labelColor}`}>{scene.boxes.length}</div>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteScene(scene.id); }}
+                    className={`shrink-0 p-1 ${isDark ? 'text-gray-500 hover:text-red-400' : 'text-gray-400 hover:text-red-500'}`}
+                    aria-label="Delete scene"
+                  >
+                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Practice Panel — everything that departs from the defaults lives here */}
       {showPanel && (
         <div className="fixed inset-x-2 bottom-24 top-16 z-50 md:inset-x-auto md:top-4 md:bottom-4 md:right-20 md:w-60">
