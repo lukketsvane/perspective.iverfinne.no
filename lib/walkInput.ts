@@ -105,6 +105,22 @@ export const enableDeviceOrientation = async (): Promise<boolean> => {
   return true;
 };
 
+/**
+ * Put the scene where you are standing, facing where you are pointing.
+ *
+ * The compass drifts, and the study's origin is wherever you happened to be
+ * when you entered - neither of which you want when lining the grid up with a
+ * real floor. This drops the walker back on the origin and re-zeros the heading
+ * against the next sensor reading, which is the whole of the alignment work
+ * that can be done without positional tracking.
+ */
+export const recentre = () => {
+  walkInput.position.set(0, 0, 0);
+  walkInput.pitch = 0;
+  walkInput.yaw = 0;
+  hasAlphaOffset = false;
+};
+
 export const disableDeviceOrientation = () => {
   if (listening) {
     window.removeEventListener('deviceorientation', onDeviceOrientation, true);

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
-import { walkInput } from '../lib/walkInput';
+import { walkInput, recentre } from '../lib/walkInput';
 import { focusPoint } from '../lib/focus';
 
 const LOOK_SENSITIVITY = 0.0045; // radians per pixel
@@ -24,6 +24,11 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
   const setCameraHeight = useStore((s) => s.setCameraHeight);
   const setViewMode = useStore((s) => s.setViewMode);
   const addBox = useStore((s) => s.addBox);
+  const sensorFov = useStore((s) => s.sensorFov);
+  const setSensorFov = useStore((s) => s.setSensorFov);
+  const viewLocked = useStore((s) => s.viewLocked);
+  const toggleViewLock = useStore((s) => s.toggleViewLock);
+  const [tuning, setTuning] = useState(false);
 
   const isDark = theme === 'dark';
   const onCamera = cameraFeed || isDark;
@@ -56,6 +61,7 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
+    if (viewLocked) return;
     // Capture keeps a thumb that slides off the layer still driving it, but it
     // throws for a pointer the browser no longer considers active - and an
     // exception here would take the whole gesture down with it.
@@ -194,8 +200,76 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
               <line x1="12" y1="22.08" x2="12" y2="12" />
             </svg>
           </button>
+
+          {/* Hold the frame still to draw from it */}
+          <button
+            onClick={toggleViewLock}
+            aria-label="Lock view"
+            className={`${iconButton} ${viewLocked ? '!bg-amber-400 !text-black !border-amber-300' : ''}`}
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="4" y="10.5" width="16" height="10" rx="2" />
+              {viewLocked ? <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /> : <path d="M8 10.5V7a4 4 0 0 1 7.5-2" />}
+            </svg>
+          </button>
+
+          <button
+            onClick={() => setTuning(!tuning)}
+            aria-label="Align"
+            className={`${iconButton} ${tuning ? '!bg-sky-500 !text-white !border-sky-400' : ''}`}
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="3.2" />
+              <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1" />
+            </svg>
+          </button>
         </div>
       </div>
+
+      {/* Alignment: the phone's height off the floor, the lens angle, and a
+          recentre for compass drift. Numbers only. */}
+      {tuning && (
+        <div className="fixed inset-x-0 bottom-24 z-40 px-4 flex justify-center pointer-events-none">
+          <div className={`w-full max-w-xs rounded-2xl border backdrop-blur-md px-4 py-3 pointer-events-auto ${chrome}`}>
+            <div className="flex items-center justify-between text-[10px] font-black tabular-nums">
+              <span className="opacity-60">↕</span>
+              <span>{cameraHeight.toFixed(2)} m</span>
+            </div>
+            <input
+              type="range"
+              min={0.4}
+              max={2.4}
+              step={0.01}
+              value={cameraHeight}
+              onChange={(e) => setCameraHeight(parseFloat(e.target.value))}
+              className="w-full accent-current"
+              aria-label="Height"
+            />
+
+            <div className="flex items-center justify-between text-[10px] font-black tabular-nums mt-2">
+              <span className="opacity-60">◱</span>
+              <span>{Math.round(sensorFov)}°</span>
+            </div>
+            <input
+              type="range"
+              min={40}
+              max={110}
+              step={0.5}
+              value={sensorFov}
+              onChange={(e) => setSensorFov(parseFloat(e.target.value))}
+              className="w-full accent-current"
+              aria-label="Lens"
+            />
+
+            <button
+              onClick={recentre}
+              className="mt-2 w-full py-2 rounded-xl border border-current/30 text-[9px] font-black uppercase tracking-widest"
+            >
+              Recentre
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Leaving, out of the way of the thumbs */}
       <button
