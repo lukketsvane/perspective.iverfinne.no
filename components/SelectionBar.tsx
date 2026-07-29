@@ -17,6 +17,7 @@ export const SelectionBar: React.FC = () => {
   const selectedId = useStore((s) => s.selectedId);
   const selectedModelId = useStore((s) => s.selectedModelId);
   const rotateSelection = useStore((s) => s.rotateSelection);
+  const duplicateSelection = useStore((s) => s.duplicateSelection);
   const scaleModel = useStore((s) => s.scaleModel);
   const removeBox = useStore((s) => s.removeBox);
   const removeModel = useStore((s) => s.removeModel);
@@ -80,6 +81,13 @@ export const SelectionBar: React.FC = () => {
           <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 12a9 9 0 1 1-3-6.7" />
             <polyline points="21 4 21 9 16 9" />
+          </svg>
+        </button>
+
+        <button onClick={duplicateSelection} className={iconButton} aria-label="Duplicate">
+          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="9" y="9" width="12" height="12" rx="2" />
+            <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
           </svg>
         </button>
 

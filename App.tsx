@@ -124,6 +124,12 @@ export default function App() {
         return;
       }
 
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        state.duplicateSelection();
+        return;
+      }
+
       if (e.key === 'Escape') {
         state.selectBox(null);
         state.selectModel(null);

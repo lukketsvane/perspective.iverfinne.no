@@ -140,6 +140,8 @@ export interface SceneState {
   updateModel: (id: string, updates: Partial<Omit<SceneModel, 'id'>>) => void;
   /** Uniform scale on a placed model. */
   scaleModel: (id: string, scale: number) => void;
+  /** Copy whatever is selected, placed clear of the original. */
+  duplicateSelection: () => void;
   toggleMatte: () => void;
   setSensorFov: (degrees: number) => void;
   toggleViewLock: () => void;
