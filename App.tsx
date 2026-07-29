@@ -96,6 +96,7 @@ export default function App() {
       if (!entry) return;
       try {
         const { model } = await loadModelFromUrl(entry.url, entry.name, [packed.position[0], packed.position[2]]);
+        if (!model.previewSupported) return;
         addModel({ ...model, position: packed.position, rotationY: packed.rotationY, scale: packed.scale });
       } catch (error) {
         console.error(error);
@@ -193,6 +194,7 @@ export default function App() {
     setBusyMesh(id);
     try {
       const { model } = await loadModelFromUrl(entry.url, entry.name, [focusPoint.x, focusPoint.z], entry.height);
+      if (!model.previewSupported) return;
       const [x, z] = freeSpot(modelRadius(model));
       addModel({ ...model, position: [x, 0, z] });
       setShowMeshes(false);
@@ -206,17 +208,29 @@ export default function App() {
   /** Import one file or twenty; none of them land on top of each other. */
   const importModels = async (files: FileList) => {
     setBusyMesh('import');
+    let placed = 0;
     try {
       for (const file of Array.from(files)) {
-        const { model } = await loadModelFile(file, [focusPoint.x, focusPoint.z]);
+        const { model, warning } = await loadModelFile(file, [focusPoint.x, focusPoint.z]);
+
+        // A file that could not be read is not a model. Adding it anyway left
+        // an invisible row in the scene that could never be selected or seen.
+        if (!model.previewSupported) {
+          console.warn(`${file.name}: ${warning ?? 'could not be read'}`);
+          continue;
+        }
+
         const [x, z] = freeSpot(modelRadius(model));
         addModel({ ...model, position: [x, 0, z] });
+        placed += 1;
       }
-      setShowMeshes(false);
     } catch (error) {
       console.error(error);
     } finally {
       setBusyMesh(null);
+      // Closing the sheet is how a placement confirms itself, so a run that
+      // placed nothing leaves it open rather than saying so in a banner.
+      if (placed > 0) setShowMeshes(false);
     }
   };
 
