@@ -60,6 +60,7 @@ export default function App() {
   const removeModel = useStore(s => s.removeModel);
   const selectedModelId = useStore(s => s.selectedModelId);
   const showCone = useStore(s => s.showCone);
+  const canUndo = useStore(s => s.undoStack.length > 0);
   const addBox = useStore(s => s.addBox);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -104,6 +105,12 @@ export default function App() {
 
       // Read through the store so this listener never goes stale.
       const state = useStore.getState();
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        state.undo();
+        return;
+      }
 
       if (e.key === 'Escape') {
         state.selectBox(null);
@@ -434,6 +441,8 @@ export default function App() {
         onWalk={enterWalkMode}
         onAdd={handleAddAtFocus}
         onSetup={() => setShowPanel(!showPanel)}
+        onUndo={() => useStore.getState().undo()}
+        canUndo={canUndo}
         onCapture={handleCapture}
         onShare={handleShare}
         onPrompt={handleTextToggle}

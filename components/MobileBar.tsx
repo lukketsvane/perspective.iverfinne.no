@@ -3,6 +3,8 @@ import { useStore } from '../store';
 
 interface MobileBarProps {
   onMeshes: () => void;
+  onUndo: () => void;
+  canUndo: boolean;
   onWalk: () => void;
   onAdd: () => void;
   onSetup: () => void;
@@ -20,7 +22,7 @@ interface MobileBarProps {
  * big targets along the bottom edge, and no words on any of them.
  */
 export const MobileBar: React.FC<MobileBarProps> = ({
-  onMeshes, onWalk, onAdd, onSetup, onCapture, onShare, onPrompt, onHistory, setupOpen,
+  onMeshes, onUndo, canUndo, onWalk, onAdd, onSetup, onCapture, onShare, onPrompt, onHistory, setupOpen,
 }) => {
   const theme = useStore((s) => s.theme);
   const toggleTheme = useStore((s) => s.toggleTheme);
@@ -36,7 +38,11 @@ export const MobileBar: React.FC<MobileBarProps> = ({
   const item = 'flex items-center justify-center w-14 h-14 rounded-2xl transition-transform active:scale-95';
   const label = 'text-[8px] font-bold uppercase tracking-wider opacity-60';
 
-  const more: { label: string; run: () => void; icon: React.ReactNode }[] = [
+  const more: { label: string; run: () => void; icon: React.ReactNode; disabled?: boolean }[] = [
+    {
+      label: 'Undo', run: onUndo, disabled: !canUndo,
+      icon: (<><path d="M3 7v6h6" /><path d="M3.5 13a9 9 0 1 0 2.2-9.3L3 7" /></>),
+    },
     {
       label: 'Save view', run: onCapture,
       icon: (<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>),
@@ -73,7 +79,8 @@ export const MobileBar: React.FC<MobileBarProps> = ({
               <button
                 key={entry.label}
                 onClick={() => { setMoreOpen(false); entry.run(); }}
-                className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl transition-transform active:scale-95"
+                disabled={entry.disabled}
+                className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl transition-transform active:scale-95 disabled:opacity-30"
               >
                 <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
                   {entry.icon}
