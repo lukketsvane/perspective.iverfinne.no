@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { BoxData, SceneState, SavedScene, SpawnKind } from './types';
 import { findStudy } from './lib/studies';
 import { DEFAULT_SENSOR_FOV } from './lib/cameraFeed';
+import { releaseSource } from './lib/loadModel';
 
 // Helper for random range
 const rng = (min: number, max: number) => Math.random() * (max - min) + min;
@@ -310,9 +311,17 @@ export const useStore = create<SceneState>((set, get) => ({
 
   removeModel: (id) => set((state) => {
     const model = state.models.find((m) => m.id === id);
-    if (model) URL.revokeObjectURL(model.fileUrl);
+    const remaining = state.models.filter((m) => m.id !== id);
+
+    // Instances share their buffers with the parsed original, so the GPU side
+    // only goes back when the last one standing on it is gone.
+    if (model && !remaining.some((m) => m.fileUrl === model.fileUrl)) {
+      releaseSource(model.fileUrl);
+      if (model.fileUrl.startsWith('blob:')) URL.revokeObjectURL(model.fileUrl);
+    }
+
     return {
-      models: state.models.filter((m) => m.id !== id),
+      models: remaining,
       selectedModelId: state.selectedModelId === id ? null : state.selectedModelId,
     };
   }),
