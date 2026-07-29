@@ -4,6 +4,8 @@ import { Edges, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { BoxData } from '../types';
 import { useStore } from '../store';
+import { noteDragEnd } from '../lib/dragGuard';
+import { createGroundPicker } from '../lib/groundDrag';
 
 interface KimBoxProps {
   data: BoxData;
@@ -18,7 +20,7 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
   const theme = useStore((state) => state.theme);
   const isViewMode = useStore((state) => state.isViewMode);
   
-  const { camera, controls } = useThree();
+  const { camera, controls, gl } = useThree();
   
   const isSelected = selectedId === data.id;
   const isDark = theme === 'dark';
@@ -162,6 +164,7 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
 
     const handleWindowUp = () => {
         // --- END DRAG ---
+        noteDragEnd();
         setIsDraggingGlobal(false);
         if (controls) (controls as any).enabled = true;
         document.body.style.cursor = 'auto';
@@ -184,6 +187,46 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
     window.addEventListener('pointerup', handleWindowUp);
 
   }, [isSelected, controls, data, selectBox, updateBox, setIsDraggingGlobal, isViewMode, camera]);
+
+  /** Slide the box across the floor, keeping its height and its size. */
+  const handleMoveDown = useCallback((e: ThreeEvent<PointerEvent>) => {
+    if (isViewMode) return;
+    e.stopPropagation();
+
+    setIsDraggingGlobal(true);
+    if (controls) (controls as any).enabled = false;
+    document.body.style.cursor = 'grabbing';
+
+    const start: [number, number, number] = [...data.position];
+    const onGround = createGroundPicker(camera, gl.domElement);
+    // The handle floats above the box, so the ray through it can be too flat to
+    // meet the floor within reach. That is fine for an anchor - fall back to
+    // where the box already stands and drag relative to that.
+    const grabbed =
+      onGround(e.clientX, e.clientY) ?? new THREE.Vector3(start[0], 0, start[2]);
+
+    const onMove = (moveEvent: PointerEvent) => {
+      const now = onGround(moveEvent.clientX, moveEvent.clientY);
+      if (!now) return;
+      const snap = useStore.getState().snapStep;
+      const place = (v: number) => (snap > 0 ? Math.round(v / snap) * snap : v);
+      updateBox(data.id, {
+        position: [place(start[0] + (now.x - grabbed.x)), start[1], place(start[2] + (now.z - grabbed.z))],
+      });
+    };
+
+    const onUp = () => {
+      noteDragEnd();
+      setIsDraggingGlobal(false);
+      if (controls) (controls as any).enabled = true;
+      document.body.style.cursor = 'auto';
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, [isViewMode, controls, data.id, data.position, setIsDraggingGlobal, updateBox, camera, gl]);
 
   return (
     <group>
@@ -208,6 +251,29 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
             >
                 <planeGeometry args={[data.scale[0] + 0.4, data.scale[2] + 0.4]} />
                 <meshBasicMaterial color={edgeColor} transparent opacity={0.1} />
+            </mesh>
+
+            {/*
+              * Move handle.
+              *
+              * Dragging a face resizes, so moving needs a target of its own.
+              * It floats above the box rather than sitting on the floor
+              * underneath it: a handle the box itself occludes is a handle the
+              * ray never reaches, however well it draws.
+              */}
+            <mesh
+                position={[
+                  data.position[0],
+                  data.position[1] + data.scale[1] / 2 + 0.42,
+                  data.position[2],
+                ]}
+                onPointerDown={handleMoveDown}
+                onClick={(e) => e.stopPropagation()}
+                onDoubleClick={(e) => e.stopPropagation()}
+                renderOrder={999}
+            >
+                <sphereGeometry args={[0.16, 20, 14]} />
+                <meshBasicMaterial color={edgeColor} depthTest={false} toneMapped={false} />
             </mesh>
         </group>
       )}

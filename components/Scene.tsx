@@ -11,6 +11,7 @@ import { HorizonLine, ScaleFigure } from './Reference';
 import { SceneModels } from './SceneModels';
 import { WalkControls } from './WalkControls';
 import { updateFocus } from '../lib/focus';
+import { dragJustEnded } from '../lib/dragGuard';
 import { useGesture } from '@use-gesture/react';
 
 // Custom Shader for Kim Jung Gi 5-Point Curvilinear Perspective
@@ -375,7 +376,7 @@ const SceneContent = () => {
               addBox([e.point.x, e.point.y, e.point.z]);
           }}
           onClick={(e) => {
-              if (isViewMode) return;
+              if (isViewMode || dragJustEnded()) return;
               e.stopPropagation();
               selectBox(null);
           }}
@@ -391,7 +392,7 @@ const SceneContent = () => {
             addBox([e.point.x, e.point.y, e.point.z]);
         }}
         onClick={(e) => {
-            if (isViewMode) return;
+            if (isViewMode || dragJustEnded()) return;
             e.stopPropagation();
             selectBox(null);
         }}
