@@ -416,7 +416,7 @@ const SceneContent = () => {
 
       {/* The curvilinear pass only exists while that mode is on */}
       {curvilinear && (
-        <EffectComposer enableNormalPass={false}>
+        <EffectComposer disableNormalPass>
           <Fisheye strength={distortion} bgColorHex={bgColor} />
         </EffectComposer>
       )}
