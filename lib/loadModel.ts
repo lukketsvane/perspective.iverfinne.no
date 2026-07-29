@@ -143,6 +143,62 @@ export const releaseSource = (url: string) => {
     .catch(() => undefined);
 };
 
+/**
+ * The largest texture worth keeping, in pixels on the long edge.
+ *
+ * The library figures ship 2048 and 4096 square maps - three of them each on
+ * most files. Uploaded as they are, nine figures come to roughly 650 MB of
+ * texture memory, which is well past what Safari on a phone will hand out
+ * before it drops the tab. Downscaling to 1024 on a phone cuts that by four to
+ * sixteen times, and at the size a figure occupies on screen in a perspective
+ * study - usually a few hundred pixels tall, often in flat matte white - the
+ * difference is not visible.
+ */
+const textureCap = () => {
+  if (typeof window === 'undefined') return 2048;
+  return Math.min(window.innerWidth, window.innerHeight) < 900 ? 1024 : 2048;
+};
+
+/** Redraw an oversized texture at the cap, in place, before it is ever uploaded. */
+const shrinkTextures = (root: THREE.Object3D) => {
+  const cap = textureCap();
+  const done = new Set<THREE.Texture>();
+
+  root.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+
+    materials.forEach((material) => {
+      if (!material) return;
+      Object.values(material).forEach((value) => {
+        const texture = value as THREE.Texture;
+        if (!texture?.isTexture || done.has(texture)) return;
+        done.add(texture);
+
+        const image = texture.image as (ImageBitmap | HTMLImageElement | null);
+        const width = image?.width ?? 0;
+        const height = image?.height ?? 0;
+        const longest = Math.max(width, height);
+        if (!image || longest <= cap) return;
+
+        const ratio = cap / longest;
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(width * ratio));
+        canvas.height = Math.max(1, Math.round(height * ratio));
+        const context = canvas.getContext('2d');
+        if (!context) return;
+
+        context.drawImage(image as CanvasImageSource, 0, 0, canvas.width, canvas.height);
+        texture.image = canvas;
+        texture.needsUpdate = true;
+        // The decoded original is no use to anyone now.
+        (image as ImageBitmap).close?.();
+      });
+    });
+  });
+};
+
 const parseBuffer = async (
   buffer: ArrayBuffer,
   isUsdz: boolean
@@ -155,6 +211,7 @@ const parseBuffer = async (
       return { object: null, warning: 'binary USDZ — use glTF/GLB' };
     }
     const gltf = await new GLTFLoader().parseAsync(buffer, '');
+    shrinkTextures(gltf.scene);
     return { object: gltf.scene };
   } catch (error) {
     console.error('Failed to load model:', error);
