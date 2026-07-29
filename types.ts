@@ -146,8 +146,7 @@ export interface SceneState {
   setSensorFov: (degrees: number) => void;
   toggleViewLock: () => void;
   noteFeedSize: () => void;
-  /** Snapshot the scene before something destructive. */
-  pushUndo: () => void;
+  /** Step back one scene. Destructive actions snapshot themselves. */
   undo: () => void;
   toggleTheme: () => void;
   toggleViewMode: () => void; // New action

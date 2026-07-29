@@ -29,7 +29,8 @@ square on:
 ## The defaults
 
 Open it and you get cubes, nothing else. Everything past that is a deliberate
-switch in the **Practice** panel (the sliders icon in the right rail).
+switch in the **Practice** panel — the sliders icon, in the bottom bar on a
+touch device and in the right rail with a mouse.
 
 | | Default | Why |
 | --- | --- | --- |
@@ -63,7 +64,7 @@ app, and what comes back is not the tool.
 
 ## Walking it at 1:1
 
-The figure icon in the right rail drops you into the scene in first person, at
+The walking figure drops you into the scene in first person, at
 whatever eye height is set — so the reference stops being a model on a screen
 and becomes a room you are standing in. Turn with the phone (iOS asks for motion
 permission on the way in; refuse it and you get drag-to-look), walk with the
@@ -149,18 +150,30 @@ GLB.
 - **Resize** — tap a box to select it, then drag a face to push or pull it. Its
   size in metres counts up under your thumb in the selection bar, snapped to
   0.25 m.
+- **Move** — select a box and drag the handle floating above it. Figures are
+  dragged directly. Both snap to the same 0.25 m.
 - **Turn** — the arrows in the selection bar, or `R` / `shift+R`, in 15° steps.
   A box off the grid gets its own pair of vanishing points, which is half of
-  what makes a box study worth drawing. `Delete` removes the selection,
-  `Escape` clears it.
+  what makes a box study worth drawing.
+- **Copy** — the duplicate button, or `cmd`/`ctrl+D`. A crowd is one figure
+  placed once and copied.
+- **Undo** — `cmd`/`ctrl+Z`, or the entry in More, twenty-five steps deep across
+  boxes and figures alike. `Delete` removes the selection, `Escape` clears it.
 - **Save the view** — writes the frame to a PNG so you can draw from it on paper
   or a second screen. The 3D guides are in the image; the on-screen chrome is not.
 - **Lens** — 3-finger vertical drag changes the field of view. Curvature is only
   ever a deliberate mode switch, never a side effect.
-- **Reset to cubes** — bottom of the Practice panel.
+- **Reset to cubes** — bottom of the Practice panel. It clears the figures too;
+  a drill load does the same, since a figure placed for one study ends up inside
+  the next one's walls.
 
-Image and text prompts (the sparkle and pen icons) build denser scenes with
-Gemini. Those are opt-in too, and they append to whatever is already there.
+**Save** keeps the current scene in the list under the clock icon, and loads it
+back later. Image and text prompts (the sparkle and pen icons) build denser
+scenes with Gemini; they are opt-in and append to what is already there.
+
+Nine figures placed together would be about 650 MB of texture memory at the size
+the files ship, which is more than a phone will give a browser, so textures are
+redrawn to 1024 on a phone and 2048 on a desktop before they are uploaded.
 
 ## Run locally
 

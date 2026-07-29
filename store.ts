@@ -450,10 +450,6 @@ export const useStore = create<SceneState>((set, get) => ({
 
   noteFeedSize: () => set((state) => ({ feedNonce: state.feedNonce + 1 })),
 
-  pushUndo: () => set((state) => ({
-    undoStack: [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
-  })),
-
   /**
    * Step back one scene.
    *
