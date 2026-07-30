@@ -73,6 +73,8 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
   const divider = isDark ? 'border-white/10' : 'border-gray-100';
 
   const size = touch ? 'w-10 h-10' : 'w-8 h-8';
+  /** Every cell in the phone grid is this square. */
+  const cellSize = 'w-12 h-12 shrink-0';
   const rowPad = touch ? 'px-3 py-3' : 'px-3 py-2.5';
   const slider = touch ? 'w-full accent-current h-6' : 'w-full accent-current';
 
@@ -166,6 +168,65 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
     );
   };
 
+  /**
+   * A square that reads a number and takes a drag.
+   *
+   * The grid version of Scrub: icon over value, sized like every other cell so
+   * a column of them lines up. Drag in any direction - right and up raise it -
+   * because in a grid there is no obvious axis.
+   */
+  const Cell: React.FC<{
+    icon: React.ReactNode;
+    label: string;
+    reading: string;
+    value: number;
+    min: number;
+    max: number;
+    step: number;
+    cycle?: number[];
+    wrap?: boolean;
+    onChange: (v: number) => void;
+  }> = ({ icon, label, reading, value: current, min, max, step, cycle, wrap, onChange }) => {
+    const drag = useRef<{ id: number; x: number; y: number; from: number; moved: boolean } | null>(null);
+
+    const settle = (v: number) => {
+      const snapped = Math.round(v / step) * step;
+      if (wrap) return ((snapped % max) + max) % max;
+      return Math.min(max, Math.max(min, snapped));
+    };
+
+    return (
+      <button
+        className={`${cellSize} flex flex-col items-center justify-center gap-0.5 rounded-xl border touch-none ${
+          isDark ? 'bg-black/40 border-white/15 text-white' : 'bg-black/5 border-black/10 text-gray-900'
+        }`}
+        aria-label={label}
+        title={label}
+        onPointerDown={(e) => {
+          try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* not capturable */ }
+          drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, from: current, moved: false };
+        }}
+        onPointerMove={(e) => {
+          if (drag.current?.id !== e.pointerId) return;
+          const travel = (e.clientX - drag.current.x) + (drag.current.y - e.clientY);
+          if (Math.abs(travel) > 4) drag.current.moved = true;
+          if (!drag.current.moved) return;
+          onChange(settle(drag.current.from + (travel / 200) * (max - min)));
+        }}
+        onPointerUp={(e) => {
+          const held = drag.current;
+          drag.current = null;
+          if (held?.id !== e.pointerId || held.moved || !cycle?.length) return;
+          onChange(cycle.find((v) => v > current + 0.001) ?? cycle[0]);
+        }}
+        onPointerCancel={() => { drag.current = null; }}
+      >
+        <Icon path={icon} className="w-4 h-4 opacity-50" />
+        <span className="text-[10px] font-black tabular-nums leading-none">{reading}</span>
+      </button>
+    );
+  };
+
   /** A slider with its reading, and an icon saying what it is. */
   const Dial: React.FC<{
     icon: React.ReactNode;
@@ -196,6 +257,143 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
   );
 
   const activeStudy = STUDIES.find((s) => s.id === activeStudyId) ?? null;
+
+  /**
+   * The phone build: a block of squares in the bottom right corner.
+   *
+   * A sheet across the bottom half of a phone is the panel winning an argument
+   * with the scene, and the scene is the whole point. Every control here is one
+   * square you either tap or drag - the five primitives are one square you tap
+   * through, the projection is one square that flips, the numbers are squares
+   * you drag - so the entire panel is three columns wide and stays out of the
+   * left two thirds of the glass.
+   */
+  if (layout === 'phone') {
+    const cellToggle = (on: boolean, onClick: () => void, path: React.ReactNode, label: string) => (
+      <button
+        onClick={onClick}
+        aria-label={label}
+        aria-pressed={on}
+        title={label}
+        className={`${cellSize} flex items-center justify-center rounded-xl border transition-colors ${
+          on
+            ? isDark ? 'bg-white text-black border-white' : 'bg-gray-900 text-white border-gray-900'
+            : isDark ? 'bg-black/40 text-gray-400 border-white/15' : 'bg-black/5 text-gray-500 border-black/10'
+        }`}
+      >
+        <Icon path={path} className="w-5 h-5" />
+      </button>
+    );
+
+    const nextSpawn = () =>
+      setSpawnKind(SPAWN_ORDER[(SPAWN_ORDER.indexOf(spawnKind) + 1) % SPAWN_ORDER.length]);
+
+    return (
+      <div className="relative flex flex-col items-end gap-1.5 pointer-events-auto">
+        {studiesOpen && (
+          <div className={`absolute bottom-full right-0 mb-2 w-52 rounded-xl border shadow-2xl overflow-hidden ${sheet}`}>
+            <button
+              onClick={() => { resetScene(); setStudiesOpen(false); }}
+              className={`w-full text-left px-3 py-3 text-[11px] font-bold ${!activeStudyId ? value : muted}`}
+            >
+              —
+            </button>
+            {STUDIES.map((study) => (
+              <button
+                key={study.id}
+                onClick={() => { loadStudy(study.id); setStudiesOpen(false); }}
+                className={`w-full text-left px-3 py-3 text-[11px] font-bold ${
+                  activeStudyId === study.id ? value : muted
+                }`}
+              >
+                {study.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="grid grid-cols-3 gap-1.5">
+          {cellToggle(studiesOpen, () => setStudiesOpen(!studiesOpen), I.study, 'Study')}
+          <Cell
+            icon={I.horizon}
+            label="Eye level"
+            reading={cameraHeight.toFixed(2)}
+            value={cameraHeight}
+            min={0.4}
+            max={12}
+            step={0.05}
+            cycle={EYE_LEVEL_PRESETS.map((preset) => preset.height)}
+            onChange={setCameraHeight}
+          />
+          {cellToggle(lockEyeLevel, toggleEyeLevelLock, lockEyeLevel ? I.levelLocked : I.levelFree, 'Level gaze')}
+
+          {cellToggle(
+            perspectiveMode === 'curvilinear',
+            () => setPerspectiveMode(perspectiveMode === 'linear' ? 'curvilinear' : 'linear'),
+            perspectiveMode === 'linear' ? I.straight : I.curved,
+            perspectiveMode === 'linear' ? 'Straight lines' : 'Curvilinear'
+          )}
+          <Cell
+            icon={I.cone}
+            label="Field of view"
+            reading={`${Math.round(fov)}°`}
+            value={fov}
+            min={25}
+            max={360}
+            step={1}
+            cycle={[35, 50, 60, 90, 120]}
+            onChange={(v) => setLens(v)}
+          />
+          {cellToggle(showCone, toggleCone, I.cone, 'Cone of vision')}
+
+          {cellToggle(true, nextSpawn, SPAWN_ICON[spawnKind], SPAWN_PRESETS[spawnKind].label)}
+          {cellToggle(snapStep > 0, () => setSnapStep(snapStep > 0 ? 0 : 0.25), I.snap, 'Snap to the grid')}
+          {cellToggle(showGuides, toggleGuides, I.horizon, 'Horizon and grid')}
+
+          {cellToggle(showFigure, toggleFigure, I.person, 'Scale figure')}
+          {cellToggle(cameraFeed, () => setCameraFeed(!cameraFeed), I.camera, 'Camera feed')}
+          {cellToggle(matteModels, toggleMatte, I.matte, 'Matte white models')}
+
+          <Cell
+            icon={I.bearing}
+            label="Sun bearing"
+            reading={`${Math.round(sun.azimuth)}°`}
+            value={sun.azimuth}
+            min={0}
+            max={360}
+            step={1}
+            wrap
+            onChange={(v) => setSun({ azimuth: v })}
+          />
+          <Cell
+            icon={I.elevation}
+            label="Sun height"
+            reading={`${Math.round(sun.elevation)}°`}
+            value={sun.elevation}
+            min={4}
+            max={88}
+            step={1}
+            onChange={(v) => setSun({ elevation: v })}
+          />
+          <Cell
+            icon={I.sun}
+            label="Sun strength"
+            reading={sun.intensity.toFixed(1)}
+            value={sun.intensity}
+            min={0.2}
+            max={8}
+            step={0.1}
+            onChange={(v) => setSun({ intensity: v })}
+          />
+
+          {cellToggle(sun.shadows, () => setSun({ shadows: !sun.shadows }), I.shadow, 'Cast shadows')}
+          {cellToggle(false, resetScene, I.reset, 'Reset to cubes')}
+          {cellToggle(false, onClose, I.close, 'Close')}
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className={`w-full max-h-full pointer-events-auto rounded-xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${panel}`}>

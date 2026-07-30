@@ -96,12 +96,12 @@ export default function App() {
 
   // The panel is short now that it is drawn in icons, so it takes only the
   // height it needs rather than standing as a column the height of the screen.
-  // A phone gets the bottom half, never the whole screen: the horizon and
-  // everything above it stays visible while you change what is under it.
+  // A phone gets no panel at all - it gets a block of squares in the bottom
+  // right corner, so the left two thirds of the glass stays scene.
   const panelFrame = tablet
     ? TABLET_DOCK
     : touchLayout
-    ? 'fixed inset-x-2 above-bar top-[40vh] z-50'
+    ? 'fixed right-2 above-bar z-50 flex justify-end'
     : 'fixed top-4 bottom-4 right-20 w-60 z-50';
 
   // Saved scenes are a short list far more often than a long one, so on a
@@ -110,7 +110,7 @@ export default function App() {
   const historyFrame = tablet
     ? TABLET_DOCK
     : touchLayout
-    ? 'fixed inset-x-2 top-[40vh] above-bar z-50'
+    ? 'fixed inset-x-2 top-[45vh] above-bar z-50'
     : 'fixed left-4 top-4 bottom-4 w-64 z-50';
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -582,9 +582,13 @@ export default function App() {
       {/* Practice Panel — everything that departs from the defaults lives here */}
       {showPanel && (
         <div className={panelFrame}>
-          <div className={dockInner}>
+          {layout === 'phone' ? (
             <PracticePanel layout={layout} onClose={() => setShowPanel(false)} />
-          </div>
+          ) : (
+            <div className={dockInner}>
+              <PracticePanel layout={layout} onClose={() => setShowPanel(false)} />
+            </div>
+          )}
         </div>
       )}
 

@@ -77,10 +77,14 @@
        * first two and landed inside the third, which is how the selection
        * controls ended up underneath the bar on an iPhone.
        */
-      .above-bar { bottom: calc(env(safe-area-inset-bottom, 0px) + 5.75rem); }
-      /* Second row up: clear of the bar *and* of whatever sits on top of it. */
-      .above-bar-2 { bottom: calc(env(safe-area-inset-bottom, 0px) + 10.5rem); }
-      .top-above-bar { top: calc(env(safe-area-inset-bottom, 0px) + 5.75rem); }
+      /*
+       * The bar is 56 px of button + 6 px of its own padding + 12 px of page
+       * padding = 74, then the reserved inset. Eight pixels of air above that
+       * is a gap; anything more is a hole.
+       */
+      .above-bar { bottom: calc(env(safe-area-inset-bottom, 0px) + 5.125rem); }
+      /* Second row up: clear of the bar *and* of the strip sitting on it. */
+      .above-bar-2 { bottom: calc(env(safe-area-inset-bottom, 0px) + 9rem); }
 
       /* A flick strip has no room for a scrollbar, and never needs one. */
       .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }

@@ -229,6 +229,19 @@ const INITIAL_TARGET: [number, number, number] = [0, DEFAULT_CAMERA_HEIGHT, 0];
 /** Closest the orbit camera may get to the floor, in metres. */
 const GROUND_CLEARANCE = 0.25;
 
+/**
+ * The selection the orbit pivot last moved to.
+ *
+ * Module level rather than a ref, because the rig unmounts while you are
+ * walking. A ref would come back as null, the effect would read the still-live
+ * selection as new, and moving the pivot re-aims the camera - which is exactly
+ * the jump on leaving walk mode that this is all here to avoid.
+ */
+let lastFollowed: string | null = null;
+
+/** Set once the opening shot has been framed, so it is never re-framed. */
+let orbitPlaced = false;
+
 /** Where the scale figure stands - clear of the default cubes, near the camera. */
 const FIGURE_POSITION: [number, number, number] = [-1.5, 0, 1.5];
 
@@ -254,22 +267,45 @@ const EyeLevelRig = () => {
   const selectedModelId = useStore((state) => state.selectedModelId);
 
   /**
-   * Coming back from a walk, keep the frame.
+   * Where the orbit pivot goes when the rig appears.
    *
-   * This has to run before the eye-level effect below, which would otherwise
-   * see a camera sitting on top of the stale target and shove it three metres
-   * backwards along its heading.
+   * The very first time, straight ahead at standing eye level - the opening
+   * shot. Every time after that the rig is remounting because walk mode just
+   * handed the camera back, so the pivot goes six metres out along whatever
+   * heading the walk ended on and the frame does not move.
+   *
+   * This used to be a `target` prop on OrbitControls, which looked like it only
+   * applied on mount and did not: drei re-asserts its props, so any later
+   * render snapped the pivot back to the origin and swung the camera round to
+   * face it. That was the jump on leaving walk mode.
+   *
+   * It has to run before the eye-level effect below, which would otherwise see
+   * a camera sitting on top of the stale pivot and shove it three metres back.
    */
   useEffect(() => {
     const orbit = controls as any;
-    if (!orbit?.target || !resumeOrbitView.pending) return;
+    if (!orbit?.target) return;
+
+    if (!orbitPlaced) {
+      orbitPlaced = true;
+      orbit.target.set(...INITIAL_TARGET);
+      orbit.update();
+      return;
+    }
+
+    if (!resumeOrbitView.pending) return;
     resumeOrbitView.pending = false;
 
-    const heading = new THREE.Vector3();
-    camera.getWorldDirection(heading);
+    // Put the frame back before working out where to pivot: by now the fresh
+    // controls have already aimed the camera at the origin.
+    camera.position.copy(resumeOrbitView.position);
+    camera.quaternion.copy(resumeOrbitView.quaternion);
+
+    const heading = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
     if (heading.lengthSq() < 1e-6) heading.set(0, 0, -1);
     // Far enough out that orbiting feels like turning your head rather than
-    // spinning on a pin, and near enough to stay inside the scene.
+    // spinning on a pin, and near enough to stay inside the scene. Being
+    // exactly along the heading is what makes the controls' own lookAt a no-op.
     orbit.target.copy(camera.position).addScaledVector(heading.normalize(), 6);
     orbit.update();
   }, [camera, controls]);
@@ -286,6 +322,13 @@ const EyeLevelRig = () => {
   useEffect(() => {
     const orbit = controls as any;
     if (!orbit?.target) return;
+
+    // Only follow a selection that actually changed. Running on mount would
+    // fight the view walk mode just handed back, which is the jump this whole
+    // pair of effects exists to prevent.
+    const chosen = selectedId ?? selectedModelId ?? null;
+    if (chosen === lastFollowed) return;
+    lastFollowed = chosen;
 
     const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
     const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
@@ -472,16 +515,24 @@ const SceneContent = () => {
     }
   }, [fov, camera, isWalking, cameraFeed]);
 
-  // Global Gestures
+  /**
+   * Three fingers dragged up and down set the focal length.
+   *
+   * `movement` is measured from where the gesture started, not from the last
+   * event, so applying it to the *current* fov re-applied the whole travel on
+   * every frame and the lens shot to one end of its range the moment you moved.
+   * It is anchored to the fov the gesture began at instead, and at a fifth of
+   * the old rate - three fingers on glass is not a precision instrument.
+   */
+  const lensGesture = useRef<{ from: number; origin: number } | null>(null);
   useGesture(
     {
-      onDrag: ({ movement: [, my], touches }) => {
-        // 3-Finger Vertical Drag adjusts the lens (focal length only).
-        // Curvature is a deliberate mode switch, never a side effect.
-        if (touches === 3) {
-          const sensitivity = 0.2;
-          setLens(fov + my * -1 * sensitivity);
-        }
+      onDrag: ({ movement: [, my], touches, last }) => {
+        // A third finger can land part-way through a drag, so the anchor is
+        // taken when the count reaches three rather than when the drag began.
+        if (last || touches !== 3) { lensGesture.current = null; return; }
+        if (!lensGesture.current) lensGesture.current = { from: fov, origin: my };
+        setLens(lensGesture.current.from - (my - lensGesture.current.origin) * 0.04);
       },
     },
     {
@@ -602,9 +653,6 @@ const SceneContent = () => {
           <OrbitControls
             ref={controlsRef}
             makeDefault
-            // Constant, so it is only applied on mount: after that EyeLevelRig owns
-            // the height and panning owns the ground position.
-            target={INITIAL_TARGET}
             enabled={!isDragging} // Disable controls when dragging an object
             // Locked: the gaze stays level, so verticals stay vertical (2-point).
             // Unlocked: climb up to pick up the third vanishing point.
