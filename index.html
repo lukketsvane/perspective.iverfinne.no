@@ -67,6 +67,24 @@
       .inset-safe-top    { top: calc(env(safe-area-inset-top, 0px) + 0.75rem); }
       .inset-safe-bottom { bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem); }
       .inset-safe-right  { right: calc(env(safe-area-inset-right, 0px) + 0.75rem); }
+
+      /*
+       * Clearance above the thumb bar.
+       *
+       * The bar is 56 px of buttons plus its own padding, and then however much
+       * home-indicator the phone reserves - which is 34 px on a notched iPhone
+       * and nothing on a desktop. A fixed bottom-24 was measured against the
+       * first two and landed inside the third, which is how the selection
+       * controls ended up underneath the bar on an iPhone.
+       */
+      .above-bar { bottom: calc(env(safe-area-inset-bottom, 0px) + 5.75rem); }
+      /* Second row up: clear of the bar *and* of whatever sits on top of it. */
+      .above-bar-2 { bottom: calc(env(safe-area-inset-bottom, 0px) + 10.5rem); }
+      .top-above-bar { top: calc(env(safe-area-inset-bottom, 0px) + 5.75rem); }
+
+      /* A flick strip has no room for a scrollbar, and never needs one. */
+      .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+      .scrollbar-none::-webkit-scrollbar { display: none; }
     </style>
   <script type="importmap">
 {

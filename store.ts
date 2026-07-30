@@ -240,7 +240,6 @@ export const useStore = create<SceneState>((set, get) => ({
   models: [],
   selectedModelId: null,
   matteModels: false,
-  sun: DEFAULT_SUN,
   sensorFov: DEFAULT_SENSOR_FOV,
   viewLocked: false,
   feedNonce: 0,

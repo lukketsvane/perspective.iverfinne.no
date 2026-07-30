@@ -150,6 +150,17 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
           />
         </button>
 
+        <button
+          // No confirmation: a reset is one undo away, and a modal asking
+          // "are you sure" is the most text a button can cost.
+          onClick={resetScene}
+          className={`shrink-0 ${muted}`}
+          aria-label="Reset to cubes"
+          title="Reset to cubes"
+        >
+          <Icon path={I.reset} className="w-4 h-4" />
+        </button>
+
         <button onClick={onClose} className={`shrink-0 ${muted}`} aria-label="Close">
           <Icon path={I.close} className="w-4 h-4" />
         </button>
@@ -335,16 +346,6 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
         </div>
       </div>
 
-      <div className={`${rowPad} border-t ${divider} flex justify-end`}>
-        <Toggle
-          on={false}
-          // No confirmation: a reset is one undo away, and a modal asking
-          // "are you sure" is the most text a button can cost.
-          onClick={resetScene}
-          path={I.reset}
-          label="Reset to cubes"
-        />
-      </div>
     </div>
   );
 };
