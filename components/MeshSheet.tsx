@@ -29,9 +29,9 @@ export const MeshSheet: React.FC<{
 
   const onCamera = isDark;
   const shell = onCamera
-    ? 'bg-black/75 border-white/15 text-white'
+    ? 'bg-black/80 border-white/12 text-white'
     : 'bg-white/90 border-gray-200 text-gray-900';
-  const tile = isDark ? 'bg-white/5 active:bg-white/15' : 'bg-black/5 active:bg-black/15';
+  const tile = isDark ? 'bg-black/40 active:bg-black/70' : 'bg-black/5 active:bg-black/15';
 
   const side = `flex items-center justify-center w-11 h-11 shrink-0 rounded-full transition-colors`;
 
