@@ -35,7 +35,7 @@ export const MeshSheet: React.FC<{
     : 'border-gray-200 hover:border-gray-400 bg-black/[0.03]';
 
   const card = tablet
-    ? `w-[22rem] max-h-full overflow-y-auto rounded-3xl border shadow-2xl pointer-events-auto ${panel}`
+    ? `w-full max-h-full overflow-y-auto rounded-3xl border shadow-2xl pointer-events-auto ${panel}`
     : `relative w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border shadow-2xl safe-bottom ${panel}`;
 
   const body = (
@@ -60,7 +60,9 @@ export const MeshSheet: React.FC<{
         </button>
       </div>
 
-      <div className={`px-4 pb-5 grid gap-2 ${tablet ? 'grid-cols-4' : 'grid-cols-3'}`}>
+      <div className={`px-4 pb-5 grid gap-2 ${
+        tablet ? 'landscape:grid-cols-3 portrait:grid-cols-6' : 'grid-cols-3'
+      }`}>
         {MESH_LIBRARY.map((mesh) => (
           <button
             key={mesh.id}
@@ -119,7 +121,15 @@ export const MeshSheet: React.FC<{
   // invisible dead strip down a third of the screen.
   if (tablet) {
     return (
-      <div className="fixed top-4 bottom-4 right-24 z-[70] flex items-start pointer-events-none">{body}</div>
+      <div
+        className={
+          'fixed z-[70] flex pointer-events-none ' +
+          'landscape:top-3 landscape:bottom-3 landscape:right-24 landscape:w-64 landscape:items-start ' +
+          'portrait:left-3 portrait:right-24 portrait:bottom-3 portrait:max-h-[46vh] portrait:items-end'
+        }
+      >
+        {body}
+      </div>
     );
   }
 

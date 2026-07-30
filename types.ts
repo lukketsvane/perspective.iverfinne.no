@@ -54,6 +54,21 @@ export interface SceneModel {
   previewSupported: boolean;
 }
 
+/**
+ * Where the sun is and how hard it burns.
+ *
+ * Azimuth is the compass bearing it shines *from*, in degrees clockwise from
+ * -Z; elevation is its height above the horizon. Together they place the one
+ * light in the scene, which is what decides where every cast shadow falls.
+ */
+export interface SunState {
+  azimuth: number;
+  elevation: number;
+  intensity: number;
+  /** Cast real shadows from the sun. */
+  shadows: boolean;
+}
+
 export interface SavedScene {
   id: string;
   name: string;
@@ -99,6 +114,12 @@ export interface SceneState {
   selectedModelId: string | null;
   /** Replace model materials with a plain white matte, for reading form. */
   matteModels: boolean;
+  /**
+   * The sun. It is the only light in the scene - no ambient, no environment -
+   * so a face turned away from it is genuinely unlit, which is what makes a
+   * box read as a box.
+   */
+  sun: SunState;
   /** Horizontal angle the real camera covers, in degrees. Hand-calibrated. */
   sensorFov: number;
   /** Freeze the walk camera so a framed view stops moving. */
@@ -145,6 +166,8 @@ export interface SceneState {
   /** Copy whatever is selected, placed clear of the original. */
   duplicateSelection: () => void;
   toggleMatte: () => void;
+  /** Move the sun, or change how hard it burns. */
+  setSun: (sun: Partial<SunState>) => void;
   setSensorFov: (degrees: number) => void;
   toggleViewLock: () => void;
   noteFeedSize: () => void;

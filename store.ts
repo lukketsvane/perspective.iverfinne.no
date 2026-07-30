@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import { BoxData, SceneState, SavedScene, SpawnKind } from './types';
+import { BoxData, SceneState, SavedScene, SpawnKind, SunState } from './types';
 import { findStudy } from './lib/studies';
 import { DEFAULT_SENSOR_FOV } from './lib/cameraFeed';
 import { releaseSource, cachedSourceUrls, modelRadius, findFreeSpot } from './lib/loadModel';
@@ -28,6 +28,25 @@ export const DEFAULT_CAMERA_HEIGHT = 1.9;
 
 /** Height of the scale figure, in metres. */
 export const FIGURE_HEIGHT = 1.75;
+
+/**
+ * The sun, as it stands when the tool opens.
+ *
+ * Mid-morning and off to one side: high enough that the ground reads, low
+ * enough that a 1 m cube throws a shadow about its own length, and swung off
+ * the view axis so the two visible vertical faces take different values. That
+ * difference is the whole reason for having a light at all.
+ */
+export const DEFAULT_SUN: SunState = {
+  // Over the viewer's left shoulder, so both faces of a cube you can see are
+  // lit - but at different angles, which is the value separation you draw.
+  // Swung round behind the scene it would put every visible face in the dark,
+  // and with no fill light there is nothing to lift them back out.
+  azimuth: 55,
+  elevation: 48,
+  intensity: 3.2,
+  shadows: true,
+};
 
 /** Eye-level presets, in metres. */
 export const EYE_LEVEL_PRESETS: { label: string; note: string; height: number }[] = [
@@ -110,7 +129,7 @@ const SETTINGS_KEY = 'kjg-perspective-settings';
 
 type PersistedSettings = Pick<
   SceneState,
-  'theme' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'matteModels' | 'sensorFov'
+  'theme' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'matteModels' | 'sensorFov' | 'sun'
 >;
 
 const loadSettings = (): Partial<PersistedSettings> => {
@@ -151,6 +170,7 @@ const writeSettings = (state: SceneState) => {
       snapStep: state.snapStep,
       matteModels: state.matteModels,
       sensorFov: state.sensorFov,
+      sun: state.sun,
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch {
@@ -220,6 +240,7 @@ export const useStore = create<SceneState>((set, get) => ({
   models: [],
   selectedModelId: null,
   matteModels: false,
+  sun: DEFAULT_SUN,
   sensorFov: DEFAULT_SENSOR_FOV,
   viewLocked: false,
   feedNonce: 0,
@@ -233,6 +254,9 @@ export const useStore = create<SceneState>((set, get) => ({
   // Anything remembered from last time overrides the defaults above. Only the
   // setup is remembered - never the scene, the projection or the camera.
   ...remembered,
+  // A setup stored before the sun existed, or by a version that knew fewer of
+  // its fields, must not leave the scene with no light in it.
+  sun: { ...DEFAULT_SUN, ...(remembered.sun ?? {}) },
 
   addBox: (position) =>
     set((state) => {
@@ -443,6 +467,8 @@ export const useStore = create<SceneState>((set, get) => ({
   }),
 
   toggleMatte: () => set((state) => ({ matteModels: !state.matteModels })),
+
+  setSun: (sun) => set((state) => ({ sun: { ...state.sun, ...sun } })),
 
   setSensorFov: (degrees) => set({ sensorFov: Math.max(35, Math.min(120, degrees)) }),
 

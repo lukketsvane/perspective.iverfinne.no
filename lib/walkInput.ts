@@ -45,9 +45,94 @@ const q0 = new THREE.Quaternion();
 // Camera looks down -Z, the phone reports its screen normal: -90 degrees about X.
 const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
 
+const raw = new THREE.Quaternion();
+const rightAxis = new THREE.Vector3();
+const upAxis = new THREE.Vector3();
+
+const QUARTER = Math.PI / 2;
+
+/**
+ * Below this, the view axis is close enough to vertical - device flat on a
+ * table, or held overhead - that the roll measurement is noise.
+ */
+const ROLL_CONFIDENCE = 0.35;
+
+/**
+ * How far past the current quarter turn the device has to be rolled before the
+ * screen is treated as having rotated. Snaps are 90 degrees apart, so 55 leaves
+ * a 35 degree run-up on the far side and no flapping at the boundary.
+ */
+const ROLL_HYSTERESIS = THREE.MathUtils.degToRad(55);
+
+/**
+ * The orientation the sensor reports, before any correction for how the screen
+ * is turned. Exported for the roll measurement below and for testing.
+ */
+export const sensorQuaternion = (
+  alpha: number,
+  beta: number,
+  gamma: number,
+  into: THREE.Quaternion
+): THREE.Quaternion => {
+  euler.set(beta, alpha, -gamma, 'YXZ');
+  return into.setFromEuler(euler).multiply(q1);
+};
+
+/**
+ * Which way up the screen is, measured from gravity rather than asked for.
+ *
+ * `screen.orientation.angle` is supposed to say this, and on an iPad held in
+ * landscape it can report zero - which left the whole scene lying on its side,
+ * ground plane running up the left edge. The sensor already knows: with the
+ * device level, the camera's own right axis is horizontal, so however far that
+ * axis is lifted out of horizontal *is* the screen's rotation. Reading it this
+ * way needs no cooperation from the platform and cannot disagree with the
+ * orientation the same event stream is reporting.
+ *
+ * Returns radians, or null when the device is pointing too close to straight up
+ * or straight down for the measurement to mean anything.
+ */
+export const measureScreenRoll = (alpha: number, beta: number, gamma: number): number | null => {
+  sensorQuaternion(alpha, beta, gamma, raw);
+  rightAxis.set(1, 0, 0).applyQuaternion(raw);
+  upAxis.set(0, 1, 0).applyQuaternion(raw);
+  if (Math.hypot(rightAxis.y, upAxis.y) < ROLL_CONFIDENCE) return null;
+  return Math.atan2(rightAxis.y, upAxis.y);
+};
+
+/** Signed distance between two angles, in (-pi, pi]. */
+const wrap = (angle: number) => {
+  const turned = (angle + Math.PI) % (Math.PI * 2);
+  return (turned < 0 ? turned + Math.PI * 2 : turned) - Math.PI;
+};
+
 let alphaOffset = 0;
 let hasAlphaOffset = false;
 let listening = false;
+/** The quarter turn currently being taken out, in radians. */
+let screenRoll = 0;
+let hasScreenRoll = false;
+
+/**
+ * Follow the screen's rotation, in quarter turns, with a dead zone.
+ *
+ * Only the quarter turns are removed: a device tilted 20 degrees still shows a
+ * horizon tilted 20 degrees, which is what holding a camera crooked does.
+ */
+const trackScreenRoll = (alpha: number, beta: number, gamma: number) => {
+  const measured = measureScreenRoll(alpha, beta, gamma);
+  if (measured === null) return;
+
+  if (!hasScreenRoll) {
+    screenRoll = Math.round(measured / QUARTER) * QUARTER;
+    hasScreenRoll = true;
+    return;
+  }
+
+  if (Math.abs(wrap(measured - screenRoll)) > ROLL_HYSTERESIS) {
+    screenRoll = Math.round(measured / QUARTER) * QUARTER;
+  }
+};
 
 const onDeviceOrientation = (event: DeviceOrientationEvent) => {
   if (event.alpha === null || event.beta === null || event.gamma === null) return;
@@ -62,12 +147,11 @@ const onDeviceOrientation = (event: DeviceOrientationEvent) => {
   const alpha = THREE.MathUtils.degToRad(event.alpha) - alphaOffset;
   const beta = THREE.MathUtils.degToRad(event.beta);
   const gamma = THREE.MathUtils.degToRad(event.gamma);
-  const orient = THREE.MathUtils.degToRad((screen.orientation?.angle ?? 0) as number);
 
-  euler.set(beta, alpha, -gamma, 'YXZ');
-  walkInput.deviceQuaternion.setFromEuler(euler);
-  walkInput.deviceQuaternion.multiply(q1);
-  walkInput.deviceQuaternion.multiply(q0.setFromAxisAngle(zee, -orient));
+  trackScreenRoll(alpha, beta, gamma);
+
+  sensorQuaternion(alpha, beta, gamma, walkInput.deviceQuaternion);
+  walkInput.deviceQuaternion.multiply(q0.setFromAxisAngle(zee, -screenRoll));
 
   walkInput.useDeviceOrientation = true;
 };
@@ -119,6 +203,9 @@ export const recentre = () => {
   walkInput.pitch = 0;
   walkInput.yaw = 0;
   hasAlphaOffset = false;
+  // Re-measure which way up the screen is, rather than carrying over a reading
+  // taken while the device happened to be flat.
+  hasScreenRoll = false;
 };
 
 export const disableDeviceOrientation = () => {
@@ -128,4 +215,5 @@ export const disableDeviceOrientation = () => {
   }
   walkInput.useDeviceOrientation = false;
   hasAlphaOffset = false;
+  hasScreenRoll = false;
 };

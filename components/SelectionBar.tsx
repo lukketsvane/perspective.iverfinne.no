@@ -49,10 +49,16 @@ export const SelectionBar: React.FC = () => {
   const height = model ? model.size[1] * model.scale : 0;
 
   return (
-    // Clear of whichever control surface this layout has: the phone's bottom
-    // bar, or the tablet's right-hand rail.
+    // Clear of whichever control surface this layout has. On a tablet that
+    // means the top edge: the rail owns the right, and a panel can be docked
+    // along the bottom in portrait - which is exactly how this bar used to end
+    // up underneath a menu, unreachable.
     <div className={`absolute inset-x-0 z-40 flex justify-center pointer-events-none ${
-      layout === 'phone' ? 'bottom-28 px-4' : layout === 'tablet' ? 'bottom-6 pl-4 pr-24' : 'bottom-6 px-4'
+      layout === 'phone'
+        ? 'bottom-28 px-4'
+        : layout === 'tablet'
+        ? 'top-4 pl-4 pr-24 safe-top'
+        : 'bottom-6 px-4'
     }`}>
       <div className="flex items-center gap-2 pointer-events-auto">
         <button onClick={() => rotateSelection(-STEP)} className={iconButton} aria-label="Turn left">
