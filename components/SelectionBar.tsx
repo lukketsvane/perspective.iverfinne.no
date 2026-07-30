@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '../store';
-import { useTouchLayout } from '../lib/useTouchLayout';
+import { useLayout } from '../lib/useLayout';
 
 const STEP = Math.PI / 12; // 15 degrees
 
@@ -12,7 +12,7 @@ const STEP = Math.PI / 12; // 15 degrees
  */
 export const SelectionBar: React.FC = () => {
   const theme = useStore((s) => s.theme);
-  const touchLayout = useTouchLayout();
+  const layout = useLayout();
   const cameraFeed = useStore((s) => s.cameraFeed);
   const boxes = useStore((s) => s.boxes);
   const models = useStore((s) => s.models);
@@ -40,7 +40,8 @@ export const SelectionBar: React.FC = () => {
     else if (box) { removeBox(box.id); selectBox(null); }
   };
 
-  const iconButton = `flex items-center justify-center w-10 h-10 rounded-full border backdrop-blur-md transition-transform active:scale-95 ${chrome}`;
+  const size = layout === 'desktop' ? 'w-10 h-10' : 'w-12 h-12';
+  const iconButton = `flex items-center justify-center ${size} rounded-full border backdrop-blur-md transition-transform active:scale-95 ${chrome}`;
 
   // Models scale uniformly; the slider is logarithmic so the useful range -
   // a doll to a building - fits under one thumb.
@@ -48,7 +49,11 @@ export const SelectionBar: React.FC = () => {
   const height = model ? model.size[1] * model.scale : 0;
 
   return (
-    <div className={`absolute inset-x-0 ${touchLayout ? 'bottom-28' : 'bottom-6'} z-40 flex justify-center px-4 pointer-events-none`}>
+    // Clear of whichever control surface this layout has: the phone's bottom
+    // bar, or the tablet's right-hand rail.
+    <div className={`absolute inset-x-0 z-40 flex justify-center pointer-events-none ${
+      layout === 'phone' ? 'bottom-28 px-4' : layout === 'tablet' ? 'bottom-6 pl-4 pr-24' : 'bottom-6 px-4'
+    }`}>
       <div className="flex items-center gap-2 pointer-events-auto">
         <button onClick={() => rotateSelection(-STEP)} className={iconButton} aria-label="Turn left">
           <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">

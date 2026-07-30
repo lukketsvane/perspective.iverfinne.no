@@ -5,10 +5,10 @@ import { WalkOverlay } from './components/WalkOverlay';
 import { CameraFeed } from './components/CameraFeed';
 import { ConeOfVision } from './components/ConeOfVision';
 import { SelectionBar } from './components/SelectionBar';
-import { MobileBar } from './components/MobileBar';
+import { TouchControls } from './components/TouchControls';
 import { MeshSheet } from './components/MeshSheet';
 import { useStore, saveSettings } from './store';
-import { useTouchLayout } from './lib/useTouchLayout';
+import { useLayout } from './lib/useLayout';
 import { captureView, captureFileName } from './lib/capture';
 import { enableDeviceOrientation, disableDeviceOrientation } from './lib/walkInput';
 import { loadModelFile, loadModelFromUrl, findFreeSpot, modelRadius } from './lib/loadModel';
@@ -63,7 +63,37 @@ export default function App() {
   const showCone = useStore(s => s.showCone);
   const canUndo = useStore(s => s.undoStack.length > 0);
   const addBox = useStore(s => s.addBox);
-  const touchLayout = useTouchLayout();
+
+  // Three shapes, not two. A tablet gets finger-sized targets like a phone, but
+  // gathered into a rail and docked panels, because it has the room a phone
+  // does not and none of the precision a mouse has.
+  const layout = useLayout();
+  const touchLayout = layout !== 'desktop';
+  const tablet = layout === 'tablet';
+
+  /**
+   * Where a floating panel sits, in each of the three shapes.
+   *
+   * On a tablet it docks beside the rail as a card of readable width, leaving
+   * the scene visible while you change it - a full-bleed sheet over 1200 px of
+   * iPad hides the very thing the controls are acting on.
+   */
+  const panelFrame = tablet
+    ? 'fixed top-4 bottom-4 right-24 w-[22rem] z-50'
+    : touchLayout
+    ? 'fixed inset-x-2 top-16 bottom-24 z-50'
+    : 'fixed top-4 bottom-4 right-20 w-60 z-50';
+
+  // Saved scenes are a short list far more often than a long one, so on a
+  // tablet the card shrinks to what is in it rather than standing as an empty
+  // column the height of the screen.
+  const historyFrame = tablet
+    ? 'fixed top-4 bottom-4 right-24 w-[22rem] z-50 flex items-start pointer-events-none'
+    : touchLayout
+    ? 'fixed inset-x-2 top-16 bottom-24 z-50'
+    : 'fixed left-4 top-4 bottom-4 w-64 z-50';
+
+  const historyCard = tablet ? 'w-full max-h-full pointer-events-auto' : 'h-full';
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
@@ -174,10 +204,24 @@ export default function App() {
     );
   };
 
+  // The docked panels share one slot on a tablet, so opening any of them puts
+  // the others away rather than stacking cards on top of each other.
   const openMeshes = () => {
     setShowPanel(false);
     setShowHistory(false);
-    setShowMeshes(true);
+    setShowMeshes((open) => !open);
+  };
+
+  const togglePanel = () => {
+    setShowHistory(false);
+    setShowMeshes(false);
+    setShowPanel((open) => !open);
+  };
+
+  const toggleHistory = () => {
+    setShowPanel(false);
+    setShowMeshes(false);
+    setShowHistory((open) => !open);
   };
 
   /** A drop point clear of everything already standing there. */
@@ -197,7 +241,9 @@ export default function App() {
       if (!model.previewSupported) return;
       const [x, z] = freeSpot(modelRadius(model));
       addModel({ ...model, position: [x, 0, z] });
-      setShowMeshes(false);
+      // The tablet's library is docked beside the scene rather than over it,
+      // so it stays open: placing a crowd is one tap per figure.
+      if (!tablet) setShowMeshes(false);
     } catch (error) {
       console.error(error);
     } finally {
@@ -229,8 +275,9 @@ export default function App() {
     } finally {
       setBusyMesh(null);
       // Closing the sheet is how a placement confirms itself, so a run that
-      // placed nothing leaves it open rather than saying so in a banner.
-      if (placed > 0) setShowMeshes(false);
+      // placed nothing leaves it open rather than saying so in a banner. The
+      // tablet's docked library never has to get out of the way.
+      if (placed > 0 && !tablet) setShowMeshes(false);
     }
   };
 
@@ -469,26 +516,30 @@ export default function App() {
 
       {!isViewMode && <SelectionBar />}
 
-      {/* Thumbs get the bottom bar, mice get the rail - decided by the pointer,
-          not the width, so a phone turned sideways keeps its controls. */}
+      {/* Fingers get big targets either way: a phone puts them in a bar under
+          the thumbs, a tablet gathers the same targets into a rail on the right
+          rather than flinging five icons across 1200 px. Decided by the pointer
+          and the short edge, so a phone turned sideways keeps its bar. */}
       {touchLayout && (
-      <MobileBar
+      <TouchControls
+        variant={tablet ? 'rail' : 'bar'}
         onMeshes={openMeshes}
         onWalk={enterWalkMode}
         onAdd={handleAddAtFocus}
-        onSetup={() => setShowPanel(!showPanel)}
+        onSetup={togglePanel}
         onUndo={() => useStore.getState().undo()}
         canUndo={canUndo}
         onCapture={handleCapture}
         onShare={handleShare}
         onPrompt={handleTextToggle}
-        onHistory={() => setShowHistory(!showHistory)}
+        onHistory={toggleHistory}
         setupOpen={showPanel}
       />
       )}
 
       {showMeshes && (
         <MeshSheet
+          layout={layout}
           onClose={() => setShowMeshes(false)}
           onPlace={placeLibraryMesh}
           onImport={importModels}
@@ -572,10 +623,8 @@ export default function App() {
           having back: it is the only way to keep a composition you might want
           again without leaving the app. Names and counts only. */}
       {showHistory && (
-        <div className={touchLayout
-          ? 'fixed inset-x-2 top-16 bottom-24 z-50'
-          : 'fixed left-4 top-4 bottom-4 w-64 z-50'}>
-          <div className={`h-full rounded-2xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${isDark ? 'bg-[#141416]/95 border-gray-800 text-gray-100' : 'bg-white/95 border-gray-200 text-gray-900'}`}>
+        <div className={historyFrame}>
+          <div className={`${historyCard} rounded-2xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${isDark ? 'bg-[#141416]/95 border-gray-800 text-gray-100' : 'bg-white/95 border-gray-200 text-gray-900'}`}>
             <div className={`flex items-center justify-between px-3 py-2.5 border-b ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
               <button
                 onClick={() =>
@@ -624,10 +673,8 @@ export default function App() {
 
       {/* Practice Panel — everything that departs from the defaults lives here */}
       {showPanel && (
-        <div className={touchLayout
-          ? 'fixed inset-x-2 bottom-24 top-16 z-50'
-          : 'fixed top-4 bottom-4 right-20 w-60 z-50'}>
-          <PracticePanel onClose={() => setShowPanel(false)} />
+        <div className={panelFrame}>
+          <PracticePanel layout={layout} onClose={() => setShowPanel(false)} />
         </div>
       )}
 

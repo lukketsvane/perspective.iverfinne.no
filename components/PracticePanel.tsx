@@ -2,6 +2,7 @@ import React from 'react';
 import { useStore, EYE_LEVEL_PRESETS, SPAWN_PRESETS, FIGURE_HEIGHT } from '../store';
 import { SpawnKind } from '../types';
 import { STUDIES, findStudy } from '../lib/studies';
+import type { Layout } from '../lib/useLayout';
 
 const SPAWN_ORDER: SpawnKind[] = ['cube', 'slab', 'pillar', 'beam', 'block'];
 
@@ -11,8 +12,12 @@ const SPAWN_ORDER: SpawnKind[] = ['cube', 'slab', 'pillar', 'beam', 'block'];
  * Everything in here is a deliberate departure from the defaults: the tool
  * opens as 1 m cubes seen in straight-line perspective from a standing eye
  * level, and stays that way until something here is touched.
+ *
+ * The chips are laid out for whichever pointer is driving: a mouse can hit a
+ * 22 px target, a finger cannot, and on a tablet there is room to give it the
+ * 44 px it needs without the panel growing past a card.
  */
-export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = ({ layout, onClose }) => {
   const theme = useStore((s) => s.theme);
   const fov = useStore((s) => s.fov);
   const distortion = useStore((s) => s.distortion);
@@ -50,8 +55,13 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   const value = isDark ? 'text-white' : 'text-gray-900';
   const divider = isDark ? 'border-gray-800' : 'border-gray-100';
 
+  const touch = layout !== 'desktop';
+  const chipSize = touch ? 'px-3 py-2.5 rounded-lg text-[11px]' : 'px-2 py-1 rounded-md text-[10px]';
+  const rowPad = touch ? 'px-4 py-4' : 'px-4 py-3';
+  const slider = touch ? 'w-full accent-current h-6' : 'w-full accent-current';
+
   const chip = (active: boolean) =>
-    `px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${
+    `${chipSize} font-bold uppercase tracking-wider transition-colors ${
       active
         ? isDark
           ? 'bg-white text-black'
@@ -62,7 +72,7 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
     }`;
 
   const Row: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-    <div className={`px-4 py-3 border-b ${divider}`}>
+    <div className={`${rowPad} border-b ${divider}`}>
       <div className={`text-[9px] font-bold uppercase tracking-[0.2em] mb-2 ${label}`}>{title}</div>
       {children}
     </div>
@@ -121,7 +131,7 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
             step={0.05}
             value={cameraHeight}
             onChange={(e) => setCameraHeight(parseFloat(e.target.value))}
-            className="w-full accent-current"
+            className={slider}
           />
           <button
             onClick={toggleEyeLevelLock}
@@ -161,7 +171,7 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 step={0.01}
                 value={distortion}
                 onChange={(e) => setLens(fov, parseFloat(e.target.value))}
-                className="w-full accent-current"
+                className={slider}
               />
             </div>
           )}
@@ -178,7 +188,7 @@ export const PracticePanel: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               step={1}
               value={fov}
               onChange={(e) => setLens(parseFloat(e.target.value))}
-              className="w-full accent-current"
+              className={slider}
             />
           </div>
         </Row>
