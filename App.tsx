@@ -5,6 +5,7 @@ import { WalkOverlay } from './components/WalkOverlay';
 import { CameraFeed } from './components/CameraFeed';
 import { ConeOfVision } from './components/ConeOfVision';
 import { VanishingPoints } from './components/VanishingPoints';
+import { CurvilinearGrid } from './components/CurvilinearGrid';
 import { SelectionBar } from './components/SelectionBar';
 import { TouchControls } from './components/TouchControls';
 import { MeshSheet } from './components/MeshSheet';
@@ -63,6 +64,7 @@ export default function App() {
   const removeModel = useStore(s => s.removeModel);
   const selectedModelId = useStore(s => s.selectedModelId);
   const showCone = useStore(s => s.showCone);
+  const showGuides = useStore(s => s.showGuides);
   const addBox = useStore(s => s.addBox);
 
   // Three shapes, not two. A tablet gets finger-sized targets like a phone, but
@@ -466,6 +468,11 @@ export default function App() {
       {/* Where a rectilinear projection still matches an eye */}
       {showCone && perspectiveMode === 'linear' && (
         <ConeOfVision fov={fov} color={isDark || cameraFeed ? '#8ab4ff' : '#1f6feb'} />
+      )}
+
+      {/* The spherical construction, when the view is drawn on a sphere */}
+      {showGuides && perspectiveMode === 'curvilinear' && (
+        <CurvilinearGrid color={isDark || cameraFeed ? '#ff6a5e' : '#e0342a'} />
       )}
 
       {/* Every box has its own pair of vanishing points, and they are the
