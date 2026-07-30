@@ -48,6 +48,12 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
     object.traverse((child) => {
       const mesh = child as THREE.Mesh;
       if (!mesh.isMesh) return;
+
+      // A figure standing in the sun has to throw a shadow like everything
+      // else, or it reads as a sticker on the floor.
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+
       if (matteModels) {
         if (!mesh.userData.originalMaterial) mesh.userData.originalMaterial = mesh.material;
         mesh.material = MATTE;

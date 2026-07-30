@@ -74,12 +74,19 @@ export default function App() {
   /**
    * Where a floating panel sits, in each of the three shapes.
    *
-   * On a tablet it docks beside the rail as a card of readable width, leaving
-   * the scene visible while you change it - a full-bleed sheet over 1200 px of
-   * iPad hides the very thing the controls are acting on.
+   * On a tablet a panel must never be the thing you are looking at. Held
+   * landscape it is a narrow column beside the rail; held portrait it lies
+   * along the bottom edge, clear of the rail, leaving the horizon and
+   * everything above it untouched. Either way it takes about a fifth of the
+   * glass instead of a third, and the scene it is acting on stays in view.
    */
+  const TABLET_DOCK =
+    'fixed z-50 flex pointer-events-none ' +
+    'landscape:top-3 landscape:bottom-3 landscape:right-24 landscape:w-64 ' +
+    'portrait:left-3 portrait:right-24 portrait:bottom-3';
+
   const panelFrame = tablet
-    ? 'fixed top-4 bottom-4 right-24 w-[22rem] z-50'
+    ? `${TABLET_DOCK} landscape:items-stretch portrait:h-[46vh] portrait:items-stretch`
     : touchLayout
     ? 'fixed inset-x-2 top-16 bottom-24 z-50'
     : 'fixed top-4 bottom-4 right-20 w-60 z-50';
@@ -88,7 +95,7 @@ export default function App() {
   // tablet the card shrinks to what is in it rather than standing as an empty
   // column the height of the screen.
   const historyFrame = tablet
-    ? 'fixed top-4 bottom-4 right-24 w-[22rem] z-50 flex items-start pointer-events-none'
+    ? `${TABLET_DOCK} landscape:items-start portrait:max-h-[46vh] portrait:items-end`
     : touchLayout
     ? 'fixed inset-x-2 top-16 bottom-24 z-50'
     : 'fixed left-4 top-4 bottom-4 w-64 z-50';
@@ -674,7 +681,9 @@ export default function App() {
       {/* Practice Panel — everything that departs from the defaults lives here */}
       {showPanel && (
         <div className={panelFrame}>
-          <PracticePanel layout={layout} onClose={() => setShowPanel(false)} />
+          <div className="w-full h-full pointer-events-auto">
+            <PracticePanel layout={layout} onClose={() => setShowPanel(false)} />
+          </div>
         </div>
       )}
 

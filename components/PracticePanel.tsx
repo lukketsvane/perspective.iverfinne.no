@@ -45,6 +45,10 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
   const removeModel = useStore((s) => s.removeModel);
   const selectedModelId = useStore((s) => s.selectedModelId);
   const selectModel = useStore((s) => s.selectModel);
+  const sun = useStore((s) => s.sun);
+  const setSun = useStore((s) => s.setSun);
+  const matteModels = useStore((s) => s.matteModels);
+  const toggleMatte = useStore((s) => s.toggleMatte);
   const activeStudyId = useStore((s) => s.activeStudyId);
   const loadStudy = useStore((s) => s.loadStudy);
   const activeStudy = findStudy(activeStudyId);
@@ -229,9 +233,59 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
           </div>
         </Row>
 
+        {/* ----------------------------------------------------------------
+            The sun is the only light in the scene. Moving it is how you decide
+            which faces are lit and where every shadow falls - the two things a
+            perspective study is drawn from after the geometry itself. */}
+        <Row title={`Sun — ${Math.round(sun.azimuth)}° at ${Math.round(sun.elevation)}° up`}>
+          <input
+            type="range"
+            min={0}
+            max={360}
+            step={1}
+            value={sun.azimuth}
+            onChange={(e) => setSun({ azimuth: parseFloat(e.target.value) })}
+            className={slider}
+            aria-label="Sun bearing"
+          />
+          <input
+            type="range"
+            min={4}
+            max={88}
+            step={1}
+            value={sun.elevation}
+            onChange={(e) => setSun({ elevation: parseFloat(e.target.value) })}
+            className={`${slider} mt-1`}
+            aria-label="Sun height"
+          />
+          <div className={`flex justify-between text-[9px] uppercase tracking-wider mt-2 ${label}`}>
+            <span>Strength</span>
+            <span className={value}>{sun.intensity.toFixed(1)}</span>
+          </div>
+          <input
+            type="range"
+            min={0.2}
+            max={8}
+            step={0.1}
+            value={sun.intensity}
+            onChange={(e) => setSun({ intensity: parseFloat(e.target.value) })}
+            className={slider}
+            aria-label="Sun strength"
+          />
+          <button
+            onClick={() => setSun({ shadows: !sun.shadows })}
+            className={`mt-2 w-full ${chip(sun.shadows)}`}
+          >
+            {sun.shadows ? 'Shadows on' : 'Shadows off'}
+          </button>
+        </Row>
+
         {/* ---------------------------------------------------------------- */}
         {models.length > 0 && (
           <Row title="Models">
+            <button onClick={toggleMatte} className={`w-full mb-2 ${chip(matteModels)}`}>
+              {matteModels ? 'Matte white' : 'Own materials'}
+            </button>
             <div className="space-y-1">
               {models.map((model) => (
                 <div

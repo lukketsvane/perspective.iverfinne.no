@@ -283,6 +283,10 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
         position={data.position as any}
         rotation={data.rotation as any}
         scale={data.scale as any}
+        // A box that throws no shadow is a box with no relationship to the
+        // ground, which is half of what a perspective study is about.
+        castShadow
+        receiveShadow
         // If in view mode, we essentially disable pointer events so clicks pass through to controls
         onPointerDown={handlePointerDown}
         // The ground plane below deselects on click and spawns on double click.

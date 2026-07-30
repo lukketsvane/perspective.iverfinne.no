@@ -269,6 +269,55 @@ const EyeLevelRig = () => {
   return null;
 };
 
+/** How far off the sun is placed. Only its direction matters. */
+const SUN_DISTANCE = 60;
+
+/** Where a bearing and a height above the horizon put the sun. */
+export const sunPosition = (azimuth: number, elevation: number): [number, number, number] => {
+  const a = THREE.MathUtils.degToRad(azimuth);
+  const e = THREE.MathUtils.degToRad(elevation);
+  const flat = Math.cos(e) * SUN_DISTANCE;
+  return [Math.sin(a) * flat, Math.sin(e) * SUN_DISTANCE, Math.cos(a) * flat];
+};
+
+/**
+ * The scene's only light.
+ *
+ * The shadow camera is a fixed 80 m box around the origin: big enough for a
+ * study you can walk, small enough that a 2048 map still resolves the edge of a
+ * cube's shadow. A phone gets half that map - it is the one number here that
+ * costs real memory.
+ */
+const Sun: React.FC = () => {
+  const sun = useStore((state) => state.sun);
+  const position = useMemo(() => sunPosition(sun.azimuth, sun.elevation), [sun.azimuth, sun.elevation]);
+  const mapSize = useMemo(
+    () =>
+      typeof window !== 'undefined' && Math.min(window.innerWidth, window.innerHeight) < 900
+        ? 1024
+        : 2048,
+    []
+  );
+
+  return (
+    <directionalLight
+      position={position}
+      intensity={sun.intensity}
+      castShadow={sun.shadows}
+      shadow-mapSize-width={mapSize}
+      shadow-mapSize-height={mapSize}
+      shadow-bias={-0.0005}
+      shadow-normalBias={0.02}
+      shadow-camera-near={1}
+      shadow-camera-far={SUN_DISTANCE * 2.5}
+      shadow-camera-left={-40}
+      shadow-camera-right={40}
+      shadow-camera-top={40}
+      shadow-camera-bottom={-40}
+    />
+  );
+};
+
 const SceneContent = () => {
   const { camera } = useThree();
   const boxes = useStore((state) => state.boxes);
@@ -287,6 +336,7 @@ const SceneContent = () => {
   const theme = useStore((state) => state.theme);
   const viewMode = useStore((state) => state.viewMode);
   const cameraFeed = useStore((state) => state.cameraFeed);
+  const sunShadows = useStore((state) => state.sun.shadows);
 
   const controlsRef = useRef<any>(null);
   const isDark = theme === 'dark';
@@ -330,13 +380,14 @@ const SceneContent = () => {
       {/* With the camera feed on the canvas has to stay transparent so the room
           shows through; otherwise the paper/ink field is the background. */}
       {!cameraFeed && <color attach="background" args={[bgColor]} />}
-      {/* Dynamic Lighting for better form reading */}
-      <ambientLight intensity={isDark ? 0.3 : 0.6} />
-      <directionalLight position={[15, 25, 10]} intensity={isDark ? 0.8 : 1.2} castShadow />
-      <directionalLight position={[-15, 10, -10]} intensity={0.4} color={isDark ? "#445" : "#ccf"} />
+      {/* One sun, and nothing else.
 
-      {/* Rim light for edges */}
-      <pointLight position={[0, 5, 0]} intensity={0.2} color="#ffffff" />
+          No ambient term and no environment map: a face turned away from the
+          sun is unlit, exactly as it would be under a hard key with no bounce.
+          That is the point - value separation between the three faces of a box
+          is what you are reading when you draw one, and a fill light is what
+          washes it out. */}
+      <Sun />
 
       <group>
         {boxes.map((box) => (
@@ -401,9 +452,18 @@ const SceneContent = () => {
         <meshBasicMaterial visible={false} />
       </mesh>
 
-      {/* Grounding shadows read as a dark disc once there is a real room
-          behind the scene, so they come off with the feed on. */}
-      {!cameraFeed && (
+      {/* The floor catches the sun's shadows and nothing else, so it works over
+          the camera feed too - there a cast shadow on the real floor is the
+          only thing tying the scene to the room. */}
+      {sunShadows && (
+        <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} raycast={() => null}>
+          <planeGeometry args={[200, 200]} />
+          <shadowMaterial transparent opacity={isDark ? 0.55 : 0.42} />
+        </mesh>
+      )}
+
+      {/* With the sun's shadows off, boxes need something to sit on. */}
+      {!sunShadows && !cameraFeed && (
         <ContactShadows
           position={[0, 0, 0]}
           opacity={isDark ? 0.8 : 0.6}
