@@ -171,7 +171,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
               <input
                 type="range"
                 min={0}
-                max={1}
+                max={3}
                 step={0.01}
                 value={distortion}
                 onChange={(e) => setLens(fov, parseFloat(e.target.value))}
@@ -188,7 +188,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
             <input
               type="range"
               min={25}
-              max={120}
+              max={360}
               step={1}
               value={fov}
               onChange={(e) => setLens(parseFloat(e.target.value))}

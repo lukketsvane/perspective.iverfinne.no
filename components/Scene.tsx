@@ -352,7 +352,9 @@ const SceneContent = () => {
   useEffect(() => {
     if (isWalking && cameraFeed) return;
     if (camera instanceof THREE.PerspectiveCamera) {
-      camera.fov = fov;
+      // A perspective camera goes singular at 180: the frustum turns inside
+      // out. Past that the curvilinear pass is what carries the extra field.
+      camera.fov = Math.min(fov, 179);
       camera.updateProjectionMatrix();
     }
   }, [fov, camera, isWalking, cameraFeed]);

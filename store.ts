@@ -402,10 +402,14 @@ export const useStore = create<SceneState>((set, get) => ({
   setIsDragging: (isDragging) => set({ isDragging }),
 
   setLens: (fov, distortion) => set((state) => ({
-    fov: Math.max(10, Math.min(140, fov)),
+    // The setting goes all the way round. A straight-line camera cannot -
+    // Scene clamps the actual lens just short of 180, where a rectilinear
+    // projection stops meaning anything - but the curvilinear pass can, and
+    // that is the mode you want a 360 field in.
+    fov: Math.max(10, Math.min(360, fov)),
     distortion: distortion === undefined
       ? state.distortion
-      : Math.max(0, Math.min(1.5, distortion)),
+      : Math.max(0, Math.min(3, distortion)),
   })),
 
   setPerspectiveMode: (mode) => set((state) => ({
