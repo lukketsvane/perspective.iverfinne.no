@@ -338,7 +338,9 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
       <div className={`${rowPad} border-t ${divider} flex justify-end`}>
         <Toggle
           on={false}
-          onClick={() => { if (window.confirm('Reset to the default cube study?')) resetScene(); }}
+          // No confirmation: a reset is one undo away, and a modal asking
+          // "are you sure" is the most text a button can cost.
+          onClick={resetScene}
           path={I.reset}
           label="Reset to cubes"
         />

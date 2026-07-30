@@ -1,14 +1,30 @@
-import React from 'react';
+import React, { useCallback, useRef } from 'react';
 import { useStore } from '../store';
 import { useLayout } from '../lib/useLayout';
+import { Icon, I } from './icons';
 
 const STEP = Math.PI / 12; // 15 degrees
+
+/** Everything sizes to the centimetre. Below that is not a drawing decision. */
+const CM = 0.01;
+
+/** Smallest and largest a placed model may be made, in metres. */
+const MIN_HEIGHT = 0.05;
+const MAX_HEIGHT = 200;
+
+const quantise = (metres: number) =>
+  Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.round(metres / CM) * CM));
 
 /**
  * What you can do to the thing you just tapped: turn it, size it, delete it.
  *
- * Numbers only - the readout is metres, which is the one piece of text worth
- * keeping on screen, because sizing against a known height is the whole point.
+ * Sizing is the one that has to be exact, because the whole tool is about a
+ * figure being the right height next to a 1 m cube. So the height is a control
+ * rather than a readout: drag it to scrub, and it moves by a fixed proportion
+ * of what it already is - so 5 cm and 5 m are equally reachable - landing on
+ * whole centimetres either way. The buttons on each side step one centimetre
+ * exactly, which is what a slider could never do. Double-tap to go back to the
+ * height it was placed at.
  */
 export const SelectionBar: React.FC = () => {
   const theme = useStore((s) => s.theme);
@@ -25,8 +41,22 @@ export const SelectionBar: React.FC = () => {
   const removeModel = useStore((s) => s.removeModel);
   const selectBox = useStore((s) => s.selectBox);
 
+  const scrub = useRef<{ id: number; x: number; height: number } | null>(null);
+
   const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
   const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
+
+  const height = model ? model.size[1] * model.scale : 0;
+
+  /** Set the model's height in metres, on the centimetre. */
+  const setHeight = useCallback(
+    (metres: number) => {
+      if (!model || model.size[1] < 1e-6) return;
+      scaleModel(model.id, quantise(metres) / model.size[1]);
+    },
+    [model, scaleModel]
+  );
+
   if (!box && !model) return null;
 
   const isDark = theme === 'dark';
@@ -43,10 +73,23 @@ export const SelectionBar: React.FC = () => {
   const size = layout === 'desktop' ? 'w-10 h-10' : 'w-12 h-12';
   const iconButton = `flex items-center justify-center ${size} rounded-full border backdrop-blur-md transition-transform active:scale-95 ${chrome}`;
 
-  // Models scale uniformly; the slider is logarithmic so the useful range -
-  // a doll to a building - fits under one thumb.
-  const sliderValue = model ? Math.log10(model.scale) : 0;
-  const height = model ? model.size[1] * model.scale : 0;
+  // A drag across the readout multiplies the height, so the control has the
+  // same feel at every size instead of crawling at one end and flying at the
+  // other. 0.6% per pixel: a thumb's width is about 30%.
+  const onScrubDown = (e: React.PointerEvent) => {
+    if (!model) return;
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* not capturable */ }
+    scrub.current = { id: e.pointerId, x: e.clientX, height };
+  };
+
+  const onScrubMove = (e: React.PointerEvent) => {
+    if (!scrub.current || scrub.current.id !== e.pointerId) return;
+    setHeight(scrub.current.height * Math.pow(1.006, e.clientX - scrub.current.x));
+  };
+
+  const onScrubUp = (e: React.PointerEvent) => {
+    if (scrub.current?.id === e.pointerId) scrub.current = null;
+  };
 
   return (
     // Clear of whichever control surface this layout has. On a tablet that
@@ -60,54 +103,62 @@ export const SelectionBar: React.FC = () => {
         ? 'top-4 pl-4 pr-24 safe-top'
         : 'bottom-6 px-4'
     }`}>
-      <div className="flex items-center gap-2 pointer-events-auto">
+      <div className="flex items-center gap-1.5 pointer-events-auto">
         <button onClick={() => rotateSelection(-STEP)} className={iconButton} aria-label="Turn left">
-          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 12a9 9 0 1 0 3-6.7" />
-            <polyline points="3 4 3 9 8 9" />
-          </svg>
+          <Icon path={I.turnLeft} className="w-4 h-4" />
         </button>
-
-        <div className={`px-3 py-2 rounded-2xl border backdrop-blur-md ${chrome}`}>
-          <div className="text-[11px] font-black tabular-nums leading-none text-center">
-            {model
-              ? `${height.toFixed(2)} m`
-              : `${box!.scale.map((v) => v.toFixed(2)).join(' × ')} m`}
-          </div>
-
-          {model && (
-            <input
-              type="range"
-              min={-1.4}
-              max={1.4}
-              step={0.01}
-              value={sliderValue}
-              onChange={(e) => scaleModel(model.id, Math.pow(10, parseFloat(e.target.value)))}
-              onDoubleClick={() => scaleModel(model.id, model.baseScale)}
-              className="w-36 mt-2 accent-current align-middle"
-              aria-label="Scale"
-            />
-          )}
-        </div>
-
         <button onClick={() => rotateSelection(STEP)} className={iconButton} aria-label="Turn right">
-          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 12a9 9 0 1 1-3-6.7" />
-            <polyline points="21 4 21 9 16 9" />
-          </svg>
+          <Icon path={I.turnRight} className="w-4 h-4" />
         </button>
+
+        {model ? (
+          <div className={`flex items-center rounded-full border backdrop-blur-md ${chrome}`}>
+            <button
+              onClick={() => setHeight(height - CM)}
+              className={`flex items-center justify-center ${size} rounded-full active:scale-95`}
+              aria-label="Shorter"
+            >
+              <Icon path={I.minus} className="w-4 h-4" />
+            </button>
+
+            <div
+              onPointerDown={onScrubDown}
+              onPointerMove={onScrubMove}
+              onPointerUp={onScrubUp}
+              onPointerCancel={onScrubUp}
+              onDoubleClick={() => scaleModel(model.id, model.baseScale)}
+              className="px-1 min-w-[5.5rem] text-center text-[13px] font-black tabular-nums cursor-ew-resize touch-none select-none"
+              role="slider"
+              aria-label="Height"
+              aria-valuenow={Math.round(height * 100)}
+              aria-valuemin={Math.round(MIN_HEIGHT * 100)}
+              aria-valuemax={Math.round(MAX_HEIGHT * 100)}
+            >
+              {height.toFixed(2)} m
+            </div>
+
+            <button
+              onClick={() => setHeight(height + CM)}
+              className={`flex items-center justify-center ${size} rounded-full active:scale-95`}
+              aria-label="Taller"
+            >
+              <Icon path={I.plus} className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className={`px-3 ${layout === 'desktop' ? 'h-10' : 'h-12'} flex items-center rounded-full border backdrop-blur-md ${chrome}`}>
+            <span className="text-[13px] font-black tabular-nums">
+              {box!.scale.map((v) => v.toFixed(2)).join(' × ')}
+            </span>
+          </div>
+        )}
 
         <button onClick={duplicateSelection} className={iconButton} aria-label="Duplicate">
-          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="9" y="9" width="12" height="12" rx="2" />
-            <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
-          </svg>
+          <Icon path={I.duplicate} className="w-4 h-4" />
         </button>
 
         <button onClick={remove} className={`${iconButton} !text-red-500`} aria-label="Delete">
-          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-          </svg>
+          <Icon path={I.trash} className="w-4 h-4" />
         </button>
       </div>
     </div>
