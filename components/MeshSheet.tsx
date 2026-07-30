@@ -3,6 +3,7 @@ import { useStore } from '../store';
 import { MESH_LIBRARY } from '../lib/meshLibrary';
 import { MODEL_ACCEPT } from '../lib/loadModel';
 import type { Layout } from '../lib/useLayout';
+import { Icon, I } from './icons';
 
 /**
  * The mesh library.
@@ -35,7 +36,7 @@ export const MeshSheet: React.FC<{
     : 'border-gray-200 hover:border-gray-400 bg-black/[0.03]';
 
   const card = tablet
-    ? `w-full max-h-full overflow-y-auto rounded-3xl border shadow-2xl pointer-events-auto ${panel}`
+    ? `w-full max-h-full overflow-y-auto rounded-3xl border shadow-2xl pointer-events-auto ${panel}`.trim()
     : `relative w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border shadow-2xl safe-bottom ${panel}`;
 
   const body = (
@@ -44,13 +45,16 @@ export const MeshSheet: React.FC<{
         {/* Plain white instead of the file's own skin and fabric */}
         <button
           onClick={toggleMatte}
-          className={`px-3 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-colors ${
+          aria-label="Matte white models"
+          aria-pressed={matteModels}
+          title="Matte white models"
+          className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
             matteModels
               ? isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'
               : isDark ? 'bg-white/10 text-gray-400' : 'bg-black/5 text-gray-500'
           }`}
         >
-          Matte
+          <Icon path={I.matte} className="w-5 h-5" />
         </button>
         <button onClick={onClose} className="p-2 opacity-50" aria-label="Close">
           <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
@@ -80,7 +84,7 @@ export const MeshSheet: React.FC<{
               <circle cx="12" cy="4.5" r="2" />
               <path d="M12 7v6M12 13l-3 6M12 13l3 6M8 9.5h8" />
             </svg>
-            <span className="text-[9px] font-bold uppercase tracking-wider opacity-60 tabular-nums">
+            <span className="text-[9px] font-bold opacity-50 tabular-nums">
               {mesh.name.replace('Figure ', '')}
             </span>
           </button>
@@ -123,12 +127,14 @@ export const MeshSheet: React.FC<{
     return (
       <div
         className={
-          'fixed z-[70] flex pointer-events-none ' +
-          'landscape:top-3 landscape:bottom-3 landscape:right-24 landscape:w-64 landscape:items-start ' +
-          'portrait:left-3 portrait:right-24 portrait:bottom-3 portrait:max-h-[46vh] portrait:items-end'
+          'fixed z-[70] pointer-events-none ' +
+          'landscape:top-3 landscape:bottom-3 landscape:right-24 landscape:w-64 ' +
+          'portrait:left-3 portrait:right-24 portrait:bottom-3 portrait:top-[54vh]'
         }
       >
-        {body}
+        <div className="w-full h-full flex pointer-events-none landscape:items-start portrait:items-end">
+          {body}
+        </div>
       </div>
     );
   }

@@ -1,10 +1,18 @@
-import React from 'react';
-import { useStore, EYE_LEVEL_PRESETS, SPAWN_PRESETS, FIGURE_HEIGHT } from '../store';
+import React, { useState } from 'react';
+import { useStore, EYE_LEVEL_PRESETS, SPAWN_PRESETS } from '../store';
 import { SpawnKind } from '../types';
-import { STUDIES, findStudy } from '../lib/studies';
+import { STUDIES } from '../lib/studies';
 import type { Layout } from '../lib/useLayout';
+import { Icon, I } from './icons';
 
 const SPAWN_ORDER: SpawnKind[] = ['cube', 'slab', 'pillar', 'beam', 'block'];
+const SPAWN_ICON: Record<SpawnKind, React.ReactNode> = {
+  cube: I.cube,
+  slab: I.slab,
+  pillar: I.pillar,
+  beam: I.beam,
+  block: I.block,
+};
 
 /**
  * The practice controls.
@@ -13,9 +21,12 @@ const SPAWN_ORDER: SpawnKind[] = ['cube', 'slab', 'pillar', 'beam', 'block'];
  * opens as 1 m cubes seen in straight-line perspective from a standing eye
  * level, and stays that way until something here is touched.
  *
- * The chips are laid out for whichever pointer is driving: a mouse can hit a
- * 22 px target, a finger cannot, and on a tablet there is room to give it the
- * 44 px it needs without the panel growing past a card.
+ * It is drawn almost entirely in icons and numbers. Words were taking up more
+ * of the panel than the controls were - eight named drills, five named
+ * primitives, six named toggles - and a word under a button is read once and
+ * then never again. What is left in text is the name of the loaded drill,
+ * folded away in a dropdown, and measurements: metres, degrees. Those are the
+ * subject, not the chrome.
  */
 export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = ({ layout, onClose }) => {
   const theme = useStore((s) => s.theme);
@@ -41,295 +52,296 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
   const resetScene = useStore((s) => s.resetScene);
   const cameraFeed = useStore((s) => s.cameraFeed);
   const setCameraFeed = useStore((s) => s.setCameraFeed);
-  const models = useStore((s) => s.models);
-  const removeModel = useStore((s) => s.removeModel);
-  const selectedModelId = useStore((s) => s.selectedModelId);
-  const selectModel = useStore((s) => s.selectModel);
   const sun = useStore((s) => s.sun);
   const setSun = useStore((s) => s.setSun);
   const matteModels = useStore((s) => s.matteModels);
   const toggleMatte = useStore((s) => s.toggleMatte);
   const activeStudyId = useStore((s) => s.activeStudyId);
   const loadStudy = useStore((s) => s.loadStudy);
-  const activeStudy = findStudy(activeStudyId);
+
+  const [studiesOpen, setStudiesOpen] = useState(false);
 
   const isDark = theme === 'dark';
+  const touch = layout !== 'desktop';
+
   const panel = isDark ? 'bg-[#1a1a1a]/95 border-gray-700' : 'bg-white/95 border-gray-200';
-  const label = isDark ? 'text-gray-500' : 'text-gray-400';
+  // The list sits over the controls it replaces, so it has to be opaque - at
+  // 95% the sliders underneath read straight through the drill names.
+  const sheet = isDark ? 'bg-[#1a1a1a] border-gray-700' : 'bg-white border-gray-200';
+  const muted = isDark ? 'text-gray-500' : 'text-gray-400';
   const value = isDark ? 'text-white' : 'text-gray-900';
   const divider = isDark ? 'border-gray-800' : 'border-gray-100';
 
-  const touch = layout !== 'desktop';
-  const chipSize = touch ? 'px-3 py-2.5 rounded-lg text-[11px]' : 'px-2 py-1 rounded-md text-[10px]';
-  const rowPad = touch ? 'px-4 py-4' : 'px-4 py-3';
+  const size = touch ? 'w-10 h-10' : 'w-8 h-8';
+  const rowPad = touch ? 'px-3 py-3' : 'px-3 py-2.5';
   const slider = touch ? 'w-full accent-current h-6' : 'w-full accent-current';
 
-  const chip = (active: boolean) =>
-    `${chipSize} font-bold uppercase tracking-wider transition-colors ${
-      active
-        ? isDark
-          ? 'bg-white text-black'
-          : 'bg-gray-900 text-white'
-        : isDark
-        ? 'bg-white/5 text-gray-400 hover:bg-white/10'
-        : 'bg-black/5 text-gray-500 hover:bg-black/10'
-    }`;
+  /** A square icon control, filled in when it is on. */
+  const Toggle: React.FC<{
+    on: boolean;
+    onClick: () => void;
+    path: React.ReactNode;
+    label: string;
+    className?: string;
+  }> = ({ on, onClick, path, label, className = '' }) => (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={on}
+      title={label}
+      className={`flex items-center justify-center ${size} rounded-lg transition-colors ${
+        on
+          ? isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'
+          : isDark ? 'bg-white/5 text-gray-400' : 'bg-black/5 text-gray-500'
+      } ${className}`}
+    >
+      <Icon path={path} className={touch ? 'w-5 h-5' : 'w-[18px] h-[18px]'} />
+    </button>
+  );
 
-  const Row: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-    <div className={`${rowPad} border-b ${divider}`}>
-      <div className={`text-[9px] font-bold uppercase tracking-[0.2em] mb-2 ${label}`}>{title}</div>
-      {children}
+  /** A slider with its reading, and an icon saying what it is. */
+  const Dial: React.FC<{
+    icon: React.ReactNode;
+    label: string;
+    reading: string;
+    min: number;
+    max: number;
+    step: number;
+    value: number;
+    onChange: (v: number) => void;
+  }> = ({ icon, label, reading, min, max, step, value: current, onChange }) => (
+    <div className="flex items-center gap-2">
+      <span className={`shrink-0 ${muted}`}>
+        <Icon path={icon} className="w-4 h-4" />
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={current}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className={slider}
+        aria-label={label}
+      />
+      <span className={`shrink-0 w-12 text-right text-[11px] font-black tabular-nums ${value}`}>{reading}</span>
     </div>
   );
 
-  return (
-    <div
-      className={`h-full rounded-xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${panel}`}
-    >
-      <div className={`flex items-center justify-between px-4 py-3 border-b ${divider}`}>
-        <span className={`text-xs font-bold uppercase tracking-widest ${value}`}>Practice</span>
-        <button
-          onClick={onClose}
-          className={`p-1 rounded-md transition-colors ${
-            isDark ? 'text-gray-400 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-black/5'
-          }`}
-        >
-          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
+  const activeStudy = STUDIES.find((s) => s.id === activeStudyId) ?? null;
 
-      <div className="flex-1 overflow-y-auto">
-        {/* ---------------------------------------------------------------- */}
-        <Row title="Study">
-          <div className="flex flex-wrap gap-1">
-            <button onClick={resetScene} className={chip(!activeStudyId)}>Sandbox</button>
+  return (
+    <div className={`w-full max-h-full pointer-events-auto rounded-xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${panel}`}>
+      {/* Which drill is loaded - the one name worth showing, and it folds away. */}
+      <div className={`relative flex items-center gap-2 ${rowPad} border-b ${divider}`}>
+        <button
+          onClick={() => setStudiesOpen(!studiesOpen)}
+          className={`flex-1 flex items-center gap-2 min-w-0 ${value}`}
+          aria-label="Study"
+          aria-expanded={studiesOpen}
+        >
+          <Icon path={I.study} className="w-[18px] h-[18px] shrink-0" />
+          <span className="flex-1 text-left text-[11px] font-bold truncate">
+            {activeStudy ? activeStudy.name : '—'}
+          </span>
+          <Icon
+            path={I.chevron}
+            className={`w-4 h-4 shrink-0 transition-transform ${studiesOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        <button onClick={onClose} className={`shrink-0 ${muted}`} aria-label="Close">
+          <Icon path={I.close} className="w-4 h-4" />
+        </button>
+
+        {studiesOpen && (
+          <div
+            className={`absolute left-2 right-2 top-full z-10 mt-1 rounded-xl border shadow-2xl overflow-hidden ${sheet}`}
+          >
+            <button
+              onClick={() => { resetScene(); setStudiesOpen(false); }}
+              className={`w-full text-left px-3 ${touch ? 'py-3' : 'py-2'} text-[11px] font-bold ${
+                !activeStudyId ? value : muted
+              } ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
+            >
+              —
+            </button>
             {STUDIES.map((study) => (
-              <button key={study.id} onClick={() => loadStudy(study.id)} className={chip(activeStudyId === study.id)}>
+              <button
+                key={study.id}
+                onClick={() => { loadStudy(study.id); setStudiesOpen(false); }}
+                className={`w-full text-left px-3 ${touch ? 'py-3' : 'py-2'} text-[11px] font-bold ${
+                  activeStudyId === study.id ? value : muted
+                } ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
+              >
                 {study.name}
               </button>
             ))}
           </div>
-        </Row>
+        )}
+      </div>
 
-        {/* ---------------------------------------------------------------- */}
-        <Row title={`Eye level — ${cameraHeight.toFixed(2)} m from ground`}>
-          <div className="flex gap-1 mb-2">
+      <div className="flex-1 overflow-y-auto">
+        {/* ------------------------------------------------ eye level, in metres */}
+        <div className={`${rowPad} border-b ${divider} space-y-2`}>
+          <div className="flex items-center gap-1">
             {EYE_LEVEL_PRESETS.map((preset) => (
               <button
                 key={preset.height}
                 onClick={() => setCameraHeight(preset.height)}
                 title={preset.note}
-                className={`${chip(Math.abs(cameraHeight - preset.height) < 0.001)} flex-1`}
+                className={`flex-1 ${touch ? 'py-2.5' : 'py-1.5'} rounded-lg text-[11px] font-black tabular-nums transition-colors ${
+                  Math.abs(cameraHeight - preset.height) < 0.001
+                    ? isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'
+                    : isDark ? 'bg-white/5 text-gray-400' : 'bg-black/5 text-gray-500'
+                }`}
               >
                 {preset.label}
               </button>
             ))}
+            <Toggle
+              on={lockEyeLevel}
+              onClick={toggleEyeLevelLock}
+              path={lockEyeLevel ? I.levelLocked : I.levelFree}
+              label="Level gaze"
+              className="shrink-0 ml-1"
+            />
           </div>
-          <input
-            type="range"
+          <Dial
+            icon={I.horizon}
+            label="Eye level"
+            reading={`${cameraHeight.toFixed(2)}m`}
             min={0.5}
             max={6}
             step={0.05}
             value={cameraHeight}
-            onChange={(e) => setCameraHeight(parseFloat(e.target.value))}
-            className={slider}
+            onChange={setCameraHeight}
           />
-          <button
-            onClick={toggleEyeLevelLock}
-            className={`mt-2 w-full ${chip(lockEyeLevel)} !text-[9px]`}
-          >
-            {lockEyeLevel ? 'Level gaze — 2 point' : 'Free orbit — 3 point'}
-          </button>
-        </Row>
+        </div>
 
-        {/* ---------------------------------------------------------------- */}
-        <Row title="Projection">
-          <div className="flex gap-1">
-            <button
+        {/* ------------------------------------------------------- the projection */}
+        <div className={`${rowPad} border-b ${divider} space-y-2`}>
+          <div className="flex items-center gap-1">
+            <Toggle
+              on={perspectiveMode === 'linear'}
               onClick={() => setPerspectiveMode('linear')}
-              className={`${chip(perspectiveMode === 'linear')} flex-1`}
-            >
-              Straight
-            </button>
-            <button
+              path={I.straight}
+              label="Straight lines"
+            />
+            <Toggle
+              on={perspectiveMode === 'curvilinear'}
               onClick={() => setPerspectiveMode('curvilinear')}
-              className={`${chip(perspectiveMode === 'curvilinear')} flex-1`}
-            >
-              Curvilinear
-            </button>
-          </div>
-
-          {perspectiveMode === 'curvilinear' && (
-            <div className="mt-2">
-              <div className={`flex justify-between text-[9px] uppercase tracking-wider ${label}`}>
-                <span>Curvature</span>
-                <span className={value}>{distortion.toFixed(2)}</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={3}
-                step={0.01}
-                value={distortion}
-                onChange={(e) => setLens(fov, parseFloat(e.target.value))}
-                className={slider}
-              />
-            </div>
-          )}
-
-          <div className="mt-2">
-            <div className={`flex justify-between text-[9px] uppercase tracking-wider ${label}`}>
-              <span>Field of view</span>
-              <span className={value}>{Math.round(fov)}°</span>
-            </div>
-            <input
-              type="range"
-              min={25}
-              max={360}
-              step={1}
-              value={fov}
-              onChange={(e) => setLens(parseFloat(e.target.value))}
-              className={slider}
+              path={I.curved}
+              label="Curvilinear"
             />
           </div>
-        </Row>
+          <Dial
+            icon={I.cone}
+            label="Field of view"
+            reading={`${Math.round(fov)}°`}
+            min={25}
+            max={360}
+            step={1}
+            value={fov}
+            onChange={(v) => setLens(v)}
+          />
+          {perspectiveMode === 'curvilinear' && (
+            <Dial
+              icon={I.curved}
+              label="Curvature"
+              reading={distortion.toFixed(2)}
+              min={0}
+              max={3}
+              step={0.01}
+              value={distortion}
+              onChange={(v) => setLens(fov, v)}
+            />
+          )}
+        </div>
 
-        {/* ---------------------------------------------------------------- */}
-        <Row title="Primitive">
-          <div className="flex flex-wrap gap-1">
-            {SPAWN_ORDER.map((kind) => (
-              <button key={kind} onClick={() => setSpawnKind(kind)} className={chip(spawnKind === kind)}>
-                {SPAWN_PRESETS[kind].label}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-1 mt-2">
-            <button onClick={() => setSnapStep(snapStep > 0 ? 0 : 0.25)} className={`${chip(snapStep > 0)} flex-1`}>
-              {snapStep > 0 ? `Snap ${snapStep} m` : 'Free size'}
-            </button>
-          </div>
-        </Row>
+        {/* --------------------------------------------- what a tap drops, and snap */}
+        <div className={`${rowPad} border-b ${divider} flex items-center gap-1`}>
+          {SPAWN_ORDER.map((kind) => (
+            <Toggle
+              key={kind}
+              on={spawnKind === kind}
+              onClick={() => setSpawnKind(kind)}
+              path={SPAWN_ICON[kind]}
+              label={SPAWN_PRESETS[kind].label}
+              className="flex-1"
+            />
+          ))}
+          <Toggle
+            on={snapStep > 0}
+            onClick={() => setSnapStep(snapStep > 0 ? 0 : 0.25)}
+            path={I.snap}
+            label="Snap to the grid"
+            className="flex-1 ml-1"
+          />
+        </div>
 
-        {/* ---------------------------------------------------------------- */}
-        <Row title="Reference">
-          <div className="flex gap-1">
-            <button onClick={toggleGuides} className={`${chip(showGuides)} flex-1`}>
-              Horizon
-            </button>
-            <button onClick={toggleFigure} className={`${chip(showFigure)} flex-1`}>
-              {FIGURE_HEIGHT.toFixed(2)} m
-            </button>
-          </div>
-          <div className="flex gap-1 mt-1">
-            <button onClick={toggleCone} className={`${chip(showCone)} flex-1`} title="The 60° cone of vision">
-              60° cone
-            </button>
-            <button onClick={() => setCameraFeed(!cameraFeed)} className={`${chip(cameraFeed)} flex-1`}>
-              Camera {cameraFeed ? 'on' : 'off'}
-            </button>
-          </div>
-        </Row>
+        {/* ------------------------------------------------ what is drawn over it */}
+        <div className={`${rowPad} border-b ${divider} flex items-center gap-1`}>
+          <Toggle on={showGuides} onClick={toggleGuides} path={I.horizon} label="Horizon and grid" className="flex-1" />
+          <Toggle on={showFigure} onClick={toggleFigure} path={I.figure} label="Scale figure" className="flex-1" />
+          <Toggle on={showCone} onClick={toggleCone} path={I.cone} label="Cone of vision" className="flex-1" />
+          <Toggle on={cameraFeed} onClick={() => setCameraFeed(!cameraFeed)} path={I.camera} label="Camera feed" className="flex-1" />
+          <Toggle on={matteModels} onClick={toggleMatte} path={I.matte} label="Matte white models" className="flex-1" />
+        </div>
 
-        {/* ----------------------------------------------------------------
-            The sun is the only light in the scene. Moving it is how you decide
-            which faces are lit and where every shadow falls - the two things a
-            perspective study is drawn from after the geometry itself. */}
-        <Row title={`Sun — ${Math.round(sun.azimuth)}° at ${Math.round(sun.elevation)}° up`}>
-          <input
-            type="range"
+        {/* ---------------------------------------------------------------- the sun */}
+        <div className={`${rowPad} border-b ${divider} space-y-2`}>
+          <Dial
+            icon={I.bearing}
+            label="Sun bearing"
+            reading={`${Math.round(sun.azimuth)}°`}
             min={0}
             max={360}
             step={1}
             value={sun.azimuth}
-            onChange={(e) => setSun({ azimuth: parseFloat(e.target.value) })}
-            className={slider}
-            aria-label="Sun bearing"
+            onChange={(v) => setSun({ azimuth: v })}
           />
-          <input
-            type="range"
+          <Dial
+            icon={I.elevation}
+            label="Sun height"
+            reading={`${Math.round(sun.elevation)}°`}
             min={4}
             max={88}
             step={1}
             value={sun.elevation}
-            onChange={(e) => setSun({ elevation: parseFloat(e.target.value) })}
-            className={`${slider} mt-1`}
-            aria-label="Sun height"
+            onChange={(v) => setSun({ elevation: v })}
           />
-          <div className={`flex justify-between text-[9px] uppercase tracking-wider mt-2 ${label}`}>
-            <span>Strength</span>
-            <span className={value}>{sun.intensity.toFixed(1)}</span>
-          </div>
-          <input
-            type="range"
-            min={0.2}
-            max={8}
-            step={0.1}
-            value={sun.intensity}
-            onChange={(e) => setSun({ intensity: parseFloat(e.target.value) })}
-            className={slider}
-            aria-label="Sun strength"
-          />
-          <button
-            onClick={() => setSun({ shadows: !sun.shadows })}
-            className={`mt-2 w-full ${chip(sun.shadows)}`}
-          >
-            {sun.shadows ? 'Shadows on' : 'Shadows off'}
-          </button>
-        </Row>
-
-        {/* ---------------------------------------------------------------- */}
-        {models.length > 0 && (
-          <Row title="Models">
-            <button onClick={toggleMatte} className={`w-full mb-2 ${chip(matteModels)}`}>
-              {matteModels ? 'Matte white' : 'Own materials'}
-            </button>
-            <div className="space-y-1">
-              {models.map((model) => (
-                <div
-                  key={model.id}
-                  onClick={() => model.previewSupported && selectModel(model.id)}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md ${
-                    selectedModelId === model.id
-                      ? isDark ? 'bg-white/10' : 'bg-black/10'
-                      : isDark ? 'bg-white/5' : 'bg-black/5'
-                  } ${model.previewSupported ? 'cursor-pointer' : ''}`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className={`text-[10px] font-bold truncate ${value}`}>{model.name}</div>
-                    <div className={`text-[9px] tabular-nums ${label}`}>
-                      {model.previewSupported
-                        ? `${(model.size[1] * model.scale).toFixed(2)} m`
-                        : '—'}
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removeModel(model.id); }}
-                    className={`shrink-0 p-1 rounded ${isDark ? 'text-gray-500 hover:text-red-400' : 'text-gray-400 hover:text-red-500'}`}
-                    aria-label={`Remove ${model.name}`}
-                  >
-                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <Dial
+                icon={I.sun}
+                label="Sun strength"
+                reading={sun.intensity.toFixed(1)}
+                min={0.2}
+                max={8}
+                step={0.1}
+                value={sun.intensity}
+                onChange={(v) => setSun({ intensity: v })}
+              />
             </div>
-          </Row>
-        )}
+            <Toggle
+              on={sun.shadows}
+              onClick={() => setSun({ shadows: !sun.shadows })}
+              path={I.shadow}
+              label="Cast shadows"
+              className="shrink-0"
+            />
+          </div>
+        </div>
       </div>
 
-      <div className={`px-4 py-3 border-t ${divider}`}>
-        <button
-          onClick={() => {
-            if (window.confirm('Reset to the default cube study?')) resetScene();
-          }}
-          className={`w-full ${chip(false)} !py-1.5`}
-        >
-          Reset to cubes
-        </button>
+      <div className={`${rowPad} border-t ${divider} flex justify-end`}>
+        <Toggle
+          on={false}
+          onClick={() => { if (window.confirm('Reset to the default cube study?')) resetScene(); }}
+          path={I.reset}
+          label="Reset to cubes"
+        />
       </div>
     </div>
   );

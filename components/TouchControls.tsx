@@ -42,7 +42,6 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
 
   const rail = variant === 'rail';
   const item = 'flex items-center justify-center w-14 h-14 rounded-2xl transition-transform active:scale-95';
-  const label = 'text-[9px] font-bold uppercase tracking-wider opacity-60';
 
   const icon = (paths: React.ReactNode, className = 'w-6 h-6') => (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -133,8 +132,8 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
           <div
             className={`absolute rounded-3xl border backdrop-blur-xl shadow-2xl p-2 grid gap-1 ${shell} ${
               rail
-                ? 'right-24 top-1/2 -translate-y-1/2 grid-cols-2 w-64'
-                : 'left-3 right-3 bottom-28 grid-cols-3'
+                ? 'right-24 top-1/2 -translate-y-1/2 grid-cols-2 w-32'
+                : 'left-3 right-3 bottom-28 grid-cols-6'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -143,10 +142,11 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
                 key={entry.label}
                 onClick={() => { setMoreOpen(false); entry.run(); }}
                 disabled={entry.disabled}
-                className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl transition-transform active:scale-95 disabled:opacity-30"
+                aria-label={entry.label}
+                title={entry.label}
+                className="flex items-center justify-center h-14 rounded-2xl transition-transform active:scale-95 disabled:opacity-30"
               >
-                {icon(entry.icon, 'w-5 h-5')}
-                <span className={label}>{entry.label}</span>
+                {icon(entry.icon, 'w-6 h-6')}
               </button>
             ))}
           </div>
