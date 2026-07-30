@@ -1,10 +1,7 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Grid, ContactShadows } from '@react-three/drei';
-import { EffectComposer } from '@react-three/postprocessing';
 import * as THREE from 'three';
-// @ts-ignore
-import { Effect } from 'postprocessing';
 import { useStore, DEFAULT_CAMERA_HEIGHT } from '../store';
 import { KimBox } from './KimBox';
 import { HorizonLine, ScaleFigure } from './Reference';
@@ -12,156 +9,20 @@ import { SceneModels } from './SceneModels';
 import { WalkControls, resumeOrbitView } from './WalkControls';
 import { updateFocus } from '../lib/focus';
 import { updateVanishing, clearVanishing } from '../lib/vanishing';
+import { Panorama } from './Panorama';
+import { updateCurvilinearView } from '../lib/curvilinearView';
 import { dragJustEnded } from '../lib/dragGuard';
 import { useGesture } from '@use-gesture/react';
 
-// Custom Shader for Kim Jung Gi 5-Point Curvilinear Perspective
-//
-// OPT-IN ONLY. The default view is straight-line (rectilinear) perspective,
-// because that is what you are practising when you rule a horizon and two
-// vanishing points on paper. Curvilinear is a mode you switch into.
-//
-// Kim Jung Gi's drawing technique uses 5-point curvilinear perspective:
-// - 5 vanishing points: Left, Right, Top (Zenith), Bottom (Nadir), Center
-// - All straight lines become CURVES that bend toward their respective vanishing points
-// - Horizontal lines curve upward at the top of the image, downward at the bottom
-// - Vertical lines curve leftward on the left side, rightward on the right side
-// - This mimics how we actually see the world through our spherical eye lenses
-//
-// Mathematical basis: Stereographic/Equidistant Azimuthal projection
-// We project the scene onto a sphere, then unwrap it to create the curved line effect
-const fisheyeFragment = `
-uniform float strength;
-uniform vec3 bgColor;
-
-void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
-    // Early exit for no distortion
-    if (strength < 0.001) {
-        outputColor = texture2D(inputBuffer, uv);
-        return;
-    }
-
-    // Center UVs to -1 to 1 range
-    vec2 coord = uv * 2.0 - 1.0;
-
-    // Apply aspect ratio correction
-    float aspect = resolution.x / resolution.y;
-    coord.x *= aspect;
-
-    // =========================================================
-    // KIM JUNG GI 5-POINT CURVILINEAR PERSPECTIVE
-    // =========================================================
-    //
-    // The key insight: We're mapping a flat image onto a sphere's surface,
-    // then viewing that sphere from inside. This causes:
-    // - Lines parallel to X-axis to curve toward Left/Right vanishing points
-    // - Lines parallel to Y-axis to curve toward Zenith/Nadir vanishing points
-    // - The center (5th vanishing point) remains the focal point
-    //
-    // We use an inverse stereographic projection which naturally creates
-    // the curved grid lines characteristic of Kim Jung Gi's work.
-    // =========================================================
-
-    // Control the field of view / curvature intensity
-    // Higher values = more extreme curvature (wider apparent FOV)
-    float curvature = strength * 2.0;
-
-    // Distance from center
-    float r = length(coord);
-
-    // Stereographic projection formula for 5-point perspective
-    // This maps planar coordinates to spherical coordinates and back
-    // creating the characteristic line curvature
-    //
-    // For true 5-point perspective, we need different behavior on X and Y:
-    // - X coordinate determines curvature toward Left/Right VP
-    // - Y coordinate determines curvature toward Zenith/Nadir VP
-
-    // Apply spherical distortion using atan for natural curve falloff
-    // The atan function naturally creates the "fisheye" bending effect
-    float angle = atan(r * curvature);
-
-    // Normalize based on maximum expected angle
-    // PI/2 gives us a hemisphere (180° FOV equivalent)
-    float scale = angle / (r * curvature + 0.0001);
-
-    // Alternative: Use stereographic projection for even more pronounced curves
-    // Stereographic: r' = 2 * tan(θ/2) where θ = atan(r * curvature)
-    // This creates even more dramatic curve toward the edges
-    float stereographicScale = 2.0 * tan(angle * 0.5) / (r + 0.0001);
-
-    // Blend between pure radial and stereographic based on strength
-    // Lower strength = more subtle, higher = more dramatic curvilinear effect
-    float blendedScale = mix(scale, stereographicScale, strength * 0.5);
-
-    // Apply the distortion
-    vec2 coord_dist = coord * blendedScale;
-
-    // Add additional Y-axis dependent horizontal curvature
-    // This makes horizontal lines curve more at top/bottom (toward zenith/nadir)
-    // and vertical lines curve more at left/right (toward L/R vanishing points)
-    float yInfluence = coord.y * coord.y * curvature * 0.15;
-    float xInfluence = coord.x * coord.x * curvature * 0.15;
-
-    // Apply the 5-point specific curvature
-    // Horizontal position is influenced by vertical distance from center
-    // Vertical position is influenced by horizontal distance from center
-    coord_dist.x += coord.x * yInfluence;
-    coord_dist.y += coord.y * xInfluence;
-
-    // Undo aspect ratio correction
-    coord_dist.x /= aspect;
-
-    // Zoom compensation to keep the scene roughly the same size
-    float zoom = 1.0 / (1.0 + strength * 0.3);
-    coord_dist *= zoom;
-
-    // Convert back to 0..1 UV space
-    vec2 uv_src = coord_dist * 0.5 + 0.5;
-
-    // Smooth edge fadeout for artistic vignette
-    float edgeDist = max(abs(uv_src.x - 0.5), abs(uv_src.y - 0.5)) * 2.0;
-    float edgeFade = smoothstep(1.0, 0.92, edgeDist);
-
-    // Check bounds
-    if (uv_src.x < 0.0 || uv_src.x > 1.0 || uv_src.y < 0.0 || uv_src.y > 1.0) {
-       outputColor = vec4(bgColor, 1.0);
-       return;
-    }
-
-    vec4 color = texture2D(inputBuffer, uv_src);
-    outputColor = vec4(color.rgb, color.a * edgeFade);
-}
-`;
-
-// Define the Effect Class
-class FisheyeEffectImpl extends Effect {
-  constructor({ strength = 0, bgColor = new THREE.Vector3(0.95, 0.95, 0.94) } = {}) {
-    super('Fisheye', fisheyeFragment, {
-      uniforms: new Map<string, THREE.Uniform<any>>([
-          ['strength', new THREE.Uniform(strength)],
-          ['bgColor', new THREE.Uniform(bgColor)]
-      ]),
-    });
-  }
-}
-
-// React Wrapper
-const Fisheye = ({ strength, bgColorHex }: { strength: number, bgColorHex: string }) => {
-  const { size } = useThree();
-  const bgColorVector = useMemo(() => {
-    const c = new THREE.Color(bgColorHex);
-    return new THREE.Vector3(c.r, c.g, c.b);
-  }, [bgColorHex]);
-
-  const effect = useMemo(() => new FisheyeEffectImpl({ strength, bgColor: bgColorVector }), [strength, bgColorVector]);
-
-  useEffect(() => {
-    effect.uniforms.get('strength').value = strength;
-    effect.uniforms.get('bgColor').value = bgColorVector;
-  }, [strength, bgColorVector, effect]);
-
-  return <primitive object={effect} dispose={null} />;
+/** Hands the curvilinear overlay the camera, once per frame. */
+const ProjectionTracker: React.FC<{ curvilinear: boolean; spread: number; blend: number }> = ({
+  curvilinear,
+  spread,
+  blend,
+}) => {
+  const { camera } = useThree();
+  useFrame(() => updateCurvilinearView(curvilinear, spread, blend, camera.matrixWorld));
+  return null;
 };
 
 /** Keeps the "put one here" point under the middle of the view. */
@@ -228,16 +89,6 @@ const INITIAL_TARGET: [number, number, number] = [0, DEFAULT_CAMERA_HEIGHT, 0];
 
 /** Closest the orbit camera may get to the floor, in metres. */
 const GROUND_CLEARANCE = 0.25;
-
-/**
- * The selection the orbit pivot last moved to.
- *
- * Module level rather than a ref, because the rig unmounts while you are
- * walking. A ref would come back as null, the effect would read the still-live
- * selection as new, and moving the pivot re-aims the camera - which is exactly
- * the jump on leaving walk mode that this is all here to avoid.
- */
-let lastFollowed: string | null = null;
 
 /** Set once the opening shot has been framed, so it is never re-framed. */
 let orbitPlaced = false;
@@ -309,45 +160,6 @@ const EyeLevelRig = () => {
     orbit.target.copy(camera.position).addScaledVector(heading.normalize(), 6);
     orbit.update();
   }, [camera, controls]);
-
-  /**
-   * Orbit around what you just tapped.
-   *
-   * Turning the view is how you read a form, and turning it about the middle of
-   * the scene while looking at something off to one side swings that thing out
-   * of frame. The camera stays exactly where it is; only the point it pivots on
-   * moves. Height is left to the eye-level rules below - locked, the gaze has
-   * to stay level whatever it is aimed at.
-   */
-  useEffect(() => {
-    const orbit = controls as any;
-    if (!orbit?.target) return;
-
-    // Only follow a selection that actually changed. Running on mount would
-    // fight the view walk mode just handed back, which is the jump this whole
-    // pair of effects exists to prevent.
-    const chosen = selectedId ?? selectedModelId ?? null;
-    if (chosen === lastFollowed) return;
-    lastFollowed = chosen;
-
-    const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
-    const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
-    if (!box && !model) return;
-
-    const centre = box
-      ? new THREE.Vector3(...box.position)
-      : new THREE.Vector3(
-          model!.position[0],
-          (model!.size[1] * model!.scale) / 2,
-          model!.position[2]
-        );
-
-    orbit.target.x = centre.x;
-    orbit.target.z = centre.z;
-    if (!lockEyeLevel) orbit.target.y = centre.y;
-    orbit.update();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, selectedModelId, controls, lockEyeLevel]);
 
   /**
    * A study says where to stand, not just what to look at - one-point only
@@ -501,7 +313,9 @@ const SceneContent = () => {
   const horizonColor = isDark ? '#5cc8ff' : '#1f6feb';
   const figureColor = isDark ? '#7a7a80' : '#5a5a60';
 
-  const curvilinear = perspectiveMode === 'curvilinear' && distortion > 0.001;
+  // Curvilinear is a mode, not an amount: at a blend of zero it is still a
+  // panorama, just the equirectangular one.
+  const curvilinear = perspectiveMode === 'curvilinear';
 
   // Sync FOV with Store. While walking with the room showing through, the lens
   // is matched to the real camera instead - WalkControls owns it there.
@@ -640,12 +454,9 @@ const SceneContent = () => {
         />
       )}
 
-      {/* The curvilinear pass only exists while that mode is on */}
-      {curvilinear && (
-        <EffectComposer disableNormalPass>
-          <Fisheye strength={distortion} bgColorHex={bgColor} />
-        </EffectComposer>
-      )}
+      {/* The curvilinear view is a different projection, not a filter over the
+          flat one, so it takes the frame over entirely while it is on. */}
+      {curvilinear && <Panorama spread={fov} blend={distortion} />}
 
       {/* Orbit is the drawing board; walk mode drives the camera itself. */}
       {!isWalking ? (
@@ -671,6 +482,7 @@ const SceneContent = () => {
         <WalkControls />
       )}
 
+      <ProjectionTracker curvilinear={curvilinear} spread={fov} blend={distortion} />
       <FocusTracker />
       <VanishingTracker />
     </>

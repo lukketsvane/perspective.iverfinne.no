@@ -517,7 +517,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
               reading={distortion.toFixed(2)}
               value={distortion}
               min={0}
-              max={3}
+              max={1}
               step={0.01}
               onChange={(v) => setLens(fov, v)}
             />

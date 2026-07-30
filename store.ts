@@ -406,9 +406,11 @@ export const useStore = create<SceneState>((set, get) => ({
     // projection stops meaning anything - but the curvilinear pass can, and
     // that is the mode you want a 360 field in.
     fov: Math.max(10, Math.min(360, fov)),
+    // The curvature is a blend between two projections now, not a strength:
+    // 0 is the equirectangular panorama, 1 the equidistant fisheye.
     distortion: distortion === undefined
       ? state.distortion
-      : Math.max(0, Math.min(3, distortion)),
+      : Math.max(0, Math.min(1, distortion)),
   })),
 
   setPerspectiveMode: (mode) => set((state) => ({
