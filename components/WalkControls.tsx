@@ -6,15 +6,28 @@ import { walkInput } from '../lib/walkInput';
 import { matchedVerticalFov } from '../lib/cameraFeed';
 
 /**
- * Set when walk mode hands the camera back.
+ * The view walk mode is handing back.
  *
- * OrbitControls takes its target from a prop that only applies on mount, so
- * returning from a walk used to swing the view round to face the origin from
- * wherever the walker had got to. EyeLevelRig reads this on mount and puts the
- * target straight out in front of the camera instead, which leaves the frame
- * exactly as walk mode left it.
+ * A fresh OrbitControls starts with its target at the world origin and aims the
+ * camera there on its first update. That update can land *before* this
+ * component's teardown runs - React flushes passive cleanups on a scheduler
+ * callback, and the render loop is on rAF - so reading the camera at teardown
+ * gave back a camera already swung round to face the middle of the scene. That
+ * was the jump on leaving walk mode.
+ *
+ * So the frame is copied out on every walk frame instead. Whatever order the
+ * two trees tear down and build in, what is stored here is the last frame walk
+ * mode actually drew.
  */
-export const resumeOrbitView = { pending: false };
+export const resumeOrbitView: {
+  pending: boolean;
+  position: THREE.Vector3;
+  quaternion: THREE.Quaternion;
+} = {
+  pending: false,
+  position: new THREE.Vector3(),
+  quaternion: new THREE.Quaternion(),
+};
 
 /**
  * First person camera for walk mode.
@@ -86,7 +99,7 @@ export const WalkControls = () => {
     walkInput.forward = 0;
     walkInput.strafe = 0;
 
-    // On the way out, orbit picks the view up from wherever this left it.
+    // On the way out, the frame stored below is the one to go back to.
     return () => { resumeOrbitView.pending = true; };
   }, [camera]);
 
@@ -135,6 +148,10 @@ export const WalkControls = () => {
     }
 
     camera.position.set(walkInput.position.x, cameraHeight, walkInput.position.z);
+
+    // Keep the way out up to date, every frame. See resumeOrbitView.
+    resumeOrbitView.position.copy(camera.position);
+    resumeOrbitView.quaternion.copy(camera.quaternion);
   });
 
   return null;
