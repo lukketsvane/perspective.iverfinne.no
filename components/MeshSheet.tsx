@@ -3,18 +3,19 @@ import { useStore } from '../store';
 import { MESH_LIBRARY } from '../lib/meshLibrary';
 import { MODEL_ACCEPT } from '../lib/loadModel';
 import type { Layout } from '../lib/useLayout';
-import { Icon, I } from './icons';
+import { Icon, I, POSE_ICON } from './icons';
 
 /**
  * The mesh library.
  *
- * A grid of figures to drop into the scene, plus a way in for your own files -
- * several at once. Names only; nothing here needs explaining.
+ * Thirty figures to drop into the scene, plus a way in for your own files -
+ * several at once. Each tile draws the pose rather than naming it, because
+ * thirty identical stick figures is thirty tiles you have to try one by one.
+ * The number is only there to tell two of the same pose apart.
  *
- * A phone gets it as a sheet off the bottom edge, because that is the only
- * place a sheet can come from. A tablet docks it beside the rail like the other
- * panels, over an undimmed scene: you are placing figures *into* a view, and
- * blacking out that view while you choose is exactly backwards.
+ * It never takes the whole screen. A phone gets a sheet up the bottom half; a
+ * tablet docks it beside the rail. Either way the scene you are placing into
+ * stays in view, which is the entire point of choosing a figure.
  */
 export const MeshSheet: React.FC<{
   layout: Layout;
@@ -35,13 +36,16 @@ export const MeshSheet: React.FC<{
     ? 'border-gray-700 hover:border-gray-500 bg-white/5'
     : 'border-gray-200 hover:border-gray-400 bg-black/[0.03]';
 
+  const phone = layout === 'phone';
   const card = tablet
-    ? `w-full max-h-full overflow-y-auto rounded-3xl border shadow-2xl pointer-events-auto ${panel}`.trim()
-    : `relative w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border shadow-2xl safe-bottom ${panel}`;
+    ? `w-full max-h-full flex flex-col rounded-3xl border shadow-2xl pointer-events-auto overflow-hidden ${panel}`
+    : phone
+    ? `w-full max-h-[56vh] flex flex-col rounded-3xl border shadow-2xl pointer-events-auto overflow-hidden ${panel}`
+    : `w-[26rem] max-h-[70vh] flex flex-col rounded-3xl border shadow-2xl pointer-events-auto overflow-hidden ${panel}`;
 
   const body = (
     <div className={card}>
-      <div className="flex items-center justify-between px-4 pt-3">
+      <div className="shrink-0 flex items-center justify-between px-4 pt-3 pb-1">
         {/* Plain white instead of the file's own skin and fabric */}
         <button
           onClick={toggleMatte}
@@ -56,53 +60,47 @@ export const MeshSheet: React.FC<{
         >
           <Icon path={I.matte} className="w-5 h-5" />
         </button>
-        <button onClick={onClose} className="p-2 opacity-50" aria-label="Close">
-          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
-
-      <div className={`px-4 pb-5 grid gap-2 ${
-        tablet ? 'landscape:grid-cols-3 portrait:grid-cols-6' : 'grid-cols-3'
-      }`}>
-        {MESH_LIBRARY.map((mesh) => (
-          <button
-            key={mesh.id}
-            onClick={() => onPlace(mesh.id)}
-            disabled={busyId !== null}
-            className={`aspect-square rounded-2xl border flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-40 ${tile}`}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className={`w-7 h-7 ${busyId === mesh.id ? 'animate-pulse' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-            >
-              <circle cx="12" cy="4.5" r="2" />
-              <path d="M12 7v6M12 13l-3 6M12 13l3 6M8 9.5h8" />
-            </svg>
-            <span className="text-[9px] font-bold opacity-50 tabular-nums">
-              {mesh.name.replace('Figure ', '')}
-            </span>
-          </button>
-        ))}
 
         {/* Your own files */}
         <button
           onClick={() => inputRef.current?.click()}
           disabled={busyId !== null}
-          className={`aspect-square rounded-2xl border border-dashed flex items-center justify-center transition-transform active:scale-95 disabled:opacity-40 ${tile}`}
           aria-label="Import models"
+          title="Import models"
+          className={`flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 ${
+            isDark ? 'bg-white/10 text-gray-400' : 'bg-black/5 text-gray-500'
+          }`}
         >
-          <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.6">
-            <path d="M12 16V4" />
-            <polyline points="8 8 12 4 16 8" />
-            <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
-          </svg>
+          <Icon path={I.upload} className="w-5 h-5" />
         </button>
+
+        <button onClick={onClose} className="p-2 opacity-50" aria-label="Close">
+          <Icon path={I.close} className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div
+        className={`flex-1 overflow-y-auto px-4 pb-5 pt-2 grid gap-2 ${
+          tablet ? 'landscape:grid-cols-4 portrait:grid-cols-8' : phone ? 'grid-cols-5' : 'grid-cols-6'
+        }`}
+      >
+        {MESH_LIBRARY.map((mesh) => (
+          <button
+            key={mesh.id}
+            onClick={() => onPlace(mesh.id)}
+            disabled={busyId !== null}
+            aria-label={mesh.name}
+            className={`aspect-square rounded-xl border flex items-center justify-center relative transition-transform active:scale-95 disabled:opacity-40 ${tile}`}
+          >
+            <Icon
+              path={POSE_ICON[mesh.pose]}
+              className={`w-7 h-7 ${busyId === mesh.id ? 'animate-pulse' : ''}`}
+            />
+            <span className="absolute bottom-0.5 right-1 text-[8px] font-bold opacity-35 tabular-nums">
+              {mesh.name}
+            </span>
+          </button>
+        ))}
       </div>
 
       <input
@@ -139,9 +137,19 @@ export const MeshSheet: React.FC<{
     );
   }
 
+  // A phone gets the bottom half and no scrim either - dimming the scene while
+  // you pick something to put in it is exactly backwards. It sits clear of the
+  // thumb bar rather than over it.
+  if (phone) {
+    return (
+      <div className="fixed inset-x-2 bottom-24 z-[70] flex justify-center pointer-events-none">
+        {body}
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+    <div className="fixed inset-0 z-[70] flex items-center justify-center pointer-events-none">
       {body}
     </div>
   );

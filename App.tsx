@@ -96,10 +96,12 @@ export default function App() {
 
   // The panel is short now that it is drawn in icons, so it takes only the
   // height it needs rather than standing as a column the height of the screen.
+  // A phone gets the bottom half, never the whole screen: the horizon and
+  // everything above it stays visible while you change what is under it.
   const panelFrame = tablet
     ? TABLET_DOCK
     : touchLayout
-    ? 'fixed inset-x-2 bottom-24 top-16 z-50'
+    ? 'fixed inset-x-2 bottom-24 top-[42vh] z-50'
     : 'fixed top-4 bottom-4 right-20 w-60 z-50';
 
   // Saved scenes are a short list far more often than a long one, so on a
@@ -108,7 +110,7 @@ export default function App() {
   const historyFrame = tablet
     ? TABLET_DOCK
     : touchLayout
-    ? 'fixed inset-x-2 top-16 bottom-24 z-50'
+    ? 'fixed inset-x-2 top-[42vh] bottom-24 z-50'
     : 'fixed left-4 top-4 bottom-4 w-64 z-50';
 
   const fileInputRef = useRef<HTMLInputElement>(null);

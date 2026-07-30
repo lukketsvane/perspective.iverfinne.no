@@ -61,7 +61,46 @@ export const I = {
   matte: (<path d="M12 3s6 6.4 6 10a6 6 0 0 1-12 0c0-3.6 6-10 6-10z" />),
 
   reset: (<><path d="M3 7v6h6" /><path d="M3.5 13a9 9 0 1 0 2.2-9.3L3 7" /></>),
+
+  /** Fine adjustment, one step at a time. */
+  minus: (<line x1="5" y1="12" x2="19" y2="12" />),
+  plus: (<><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></>),
+
+  /** Turn on the spot, and make two of it. */
+  turnLeft: (<><path d="M3 12a9 9 0 1 0 3-6.7" /><polyline points="3 4 3 9 8 9" /></>),
+  turnRight: (<><path d="M21 12a9 9 0 1 1-3-6.7" /><polyline points="21 4 21 9 16 9" /></>),
+  duplicate: (<><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" /></>),
+
   save: (<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>),
   trash: (<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />),
   upload: (<><path d="M12 16V4" /><polyline points="8 8 12 4 16 8" /><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" /></>),
+};
+
+/**
+ * What the body in a library figure is doing, drawn on the ground line.
+ *
+ * Thirty tiles all carrying the same stick figure is thirty tiles you have to
+ * try one by one. The pose is the one thing about a figure worth knowing before
+ * you place it, and it draws in five strokes.
+ */
+const GROUND = <path d="M3 20.4h18" strokeOpacity="0.3" />;
+
+export const POSE_ICON: Record<string, React.ReactNode> = {
+  /** Upright: head over hips over heels. */
+  stand: (<><circle cx="12" cy="4" r="1.8" /><path d="M12 6.2v6.6M12 12.8l-2 7.4M12 12.8l2 7.4M8.6 8.6l3.4 1 3.4-1" />{GROUND}</>),
+
+  /** Folded at the hips: head down and forward, legs straight. */
+  bend: (<><circle cx="6.4" cy="10.6" r="1.8" /><path d="M8.2 10.2l5.4-1.6M13.6 8.6l1 11.6M13.6 8.6l3 11.6M8.6 11.4l-.8 5" />{GROUND}</>),
+
+  /** One knee down, the other up. */
+  kneel: (<><circle cx="10.4" cy="4.6" r="1.8" /><path d="M10.4 6.8v6.4M10.4 13.2l-4.2 5.2 4 1.8M10.4 13.2l3.8 2.6v4.6M10.8 9.4l3.4 2.6" />{GROUND}</>),
+
+  /** Down on the haunches: hips low, knees high, feet under. */
+  crouch: (<><circle cx="11.6" cy="6" r="1.8" /><path d="M11.6 8.2v4.4M11.6 12.6l-3.8 2.2.6 5.4M11.6 12.6l4 2.6-.8 5M9 10l4.6 2" />{GROUND}</>),
+
+  /** Seated: thigh out, shin down. */
+  sit: (<><circle cx="8" cy="6" r="1.8" /><path d="M8 8.2v5.6h6.8M8 13.8v6.4M14.8 13.8v6.4M9 10.4l4.6 2.2" />{GROUND}</>),
+
+  /** Off the ground entirely. */
+  air: (<><circle cx="12" cy="5.2" r="1.8" /><path d="M12 7.4v4.4M12 11.8l-3.6 2.8M12 11.8l3.8 2.4M8 8.4l4 1.2 4-2" /><path d="M3 20.4h18" strokeOpacity="0.22" strokeDasharray="2 3" /></>),
 };
