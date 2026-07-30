@@ -6,16 +6,13 @@ import type { Layout } from '../lib/useLayout';
 import { Icon, I, POSE_ICON } from './icons';
 
 /**
- * The mesh library.
+ * The figure library: one row, scrolled sideways.
  *
- * Thirty figures to drop into the scene, plus a way in for your own files -
- * several at once. Each tile draws the pose rather than naming it, because
- * thirty identical stick figures is thirty tiles you have to try one by one.
- * The number is only there to tell two of the same pose apart.
- *
- * It never takes the whole screen. A phone gets a sheet up the bottom half; a
- * tablet docks it beside the rail. Either way the scene you are placing into
- * stays in view, which is the entire point of choosing a figure.
+ * A grid of twenty-one tiles was a card the depth of a hand covering the scene
+ * you are placing into. A single row is one tile tall - a strip you flick
+ * through, the way you would a roll of film - and the scene stays where it is.
+ * Each tile draws its pose rather than naming it; the number is only there to
+ * tell two of the same apart.
  */
 export const MeshSheet: React.FC<{
   layout: Layout;
@@ -30,78 +27,73 @@ export const MeshSheet: React.FC<{
   const isDark = theme === 'dark';
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const tablet = layout === 'tablet';
-  const panel = isDark ? 'bg-[#141416] border-gray-800 text-gray-100' : 'bg-white border-gray-200 text-gray-900';
-  const tile = isDark
-    ? 'border-gray-700 hover:border-gray-500 bg-white/5'
-    : 'border-gray-200 hover:border-gray-400 bg-black/[0.03]';
+  const onCamera = isDark;
+  const shell = onCamera
+    ? 'bg-black/75 border-white/15 text-white'
+    : 'bg-white/90 border-gray-200 text-gray-900';
+  const tile = isDark ? 'bg-white/5 active:bg-white/15' : 'bg-black/5 active:bg-black/15';
 
-  const phone = layout === 'phone';
-  const card = tablet
-    ? `w-full max-h-full flex flex-col rounded-3xl border shadow-2xl pointer-events-auto overflow-hidden ${panel}`
-    : phone
-    ? `w-full max-h-[56vh] flex flex-col rounded-3xl border shadow-2xl pointer-events-auto overflow-hidden ${panel}`
-    : `w-[26rem] max-h-[70vh] flex flex-col rounded-3xl border shadow-2xl pointer-events-auto overflow-hidden ${panel}`;
+  const side = `flex items-center justify-center w-11 h-11 shrink-0 rounded-full transition-colors`;
 
-  const body = (
-    <div className={card}>
-      <div className="shrink-0 flex items-center justify-between px-4 pt-3 pb-1">
-        {/* Plain white instead of the file's own skin and fabric */}
-        <button
-          onClick={toggleMatte}
-          aria-label="Matte white models"
-          aria-pressed={matteModels}
-          title="Matte white models"
-          className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
-            matteModels
-              ? isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'
-              : isDark ? 'bg-white/10 text-gray-400' : 'bg-black/5 text-gray-500'
-          }`}
-        >
-          <Icon path={I.matte} className="w-5 h-5" />
-        </button>
-
-        {/* Your own files */}
-        <button
-          onClick={() => inputRef.current?.click()}
-          disabled={busyId !== null}
-          aria-label="Import models"
-          title="Import models"
-          className={`flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 ${
-            isDark ? 'bg-white/10 text-gray-400' : 'bg-black/5 text-gray-500'
-          }`}
-        >
-          <Icon path={I.upload} className="w-5 h-5" />
-        </button>
-
-        <button onClick={onClose} className="p-2 opacity-50" aria-label="Close">
-          <Icon path={I.close} className="w-5 h-5" />
-        </button>
-      </div>
-
-      <div
-        className={`flex-1 overflow-y-auto px-4 pb-5 pt-2 grid gap-2 ${
-          tablet ? 'landscape:grid-cols-4 portrait:grid-cols-8' : phone ? 'grid-cols-5' : 'grid-cols-6'
+  const strip = (
+    <div
+      className={`flex items-center gap-1 px-1.5 py-1.5 rounded-3xl border backdrop-blur-xl shadow-lg pointer-events-auto ${shell}`}
+    >
+      {/* Plain white instead of the file's own skin and fabric */}
+      <button
+        onClick={toggleMatte}
+        aria-label="Matte white models"
+        aria-pressed={matteModels}
+        title="Matte white models"
+        className={`${side} ${
+          matteModels
+            ? isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'
+            : 'opacity-50'
         }`}
       >
+        <Icon path={I.matte} className="w-5 h-5" />
+      </button>
+
+      {/*
+        The figures. `overscroll-contain` keeps a flick here from dragging the
+        page behind it, and the scrollbar is left off - on a phone there is
+        never one to see, and on a desktop it would eat a row of pixels the
+        strip does not have.
+      */}
+      <div className="flex-1 min-w-0 flex gap-1 overflow-x-auto overscroll-contain snap-x scrollbar-none">
         {MESH_LIBRARY.map((mesh) => (
           <button
             key={mesh.id}
             onClick={() => onPlace(mesh.id)}
             disabled={busyId !== null}
             aria-label={mesh.name}
-            className={`aspect-square rounded-xl border flex items-center justify-center relative transition-transform active:scale-95 disabled:opacity-40 ${tile}`}
+            className={`relative shrink-0 w-12 h-12 rounded-2xl snap-start flex items-center justify-center transition-transform active:scale-95 disabled:opacity-40 ${tile}`}
           >
             <Icon
               path={POSE_ICON[mesh.pose]}
               className={`w-7 h-7 ${busyId === mesh.id ? 'animate-pulse' : ''}`}
             />
-            <span className="absolute bottom-0.5 right-1 text-[8px] font-bold opacity-35 tabular-nums">
+            <span className="absolute bottom-0 right-1 text-[8px] font-bold opacity-40 tabular-nums">
               {mesh.name}
             </span>
           </button>
         ))}
       </div>
+
+      {/* Your own files */}
+      <button
+        onClick={() => inputRef.current?.click()}
+        disabled={busyId !== null}
+        aria-label="Import models"
+        title="Import models"
+        className={`${side} opacity-50 disabled:opacity-25`}
+      >
+        <Icon path={I.upload} className="w-5 h-5" />
+      </button>
+
+      <button onClick={onClose} className={`${side} opacity-50`} aria-label="Close">
+        <Icon path={I.close} className="w-5 h-5" />
+      </button>
 
       <input
         ref={inputRef}
@@ -117,40 +109,23 @@ export const MeshSheet: React.FC<{
     </div>
   );
 
-  // No scrim and no catcher: the scene stays live underneath, so you can orbit
-  // to where the figure should go and place it without closing anything. The
-  // column below the card has to let the drag through, or it becomes an
-  // invisible dead strip down a third of the screen.
-  if (tablet) {
+  // Beside the rail on a tablet, above the thumb bar on a phone, and along the
+  // bottom on a desktop. Nowhere does it cover the scene it is placing into.
+  if (layout === 'tablet') {
     return (
-      <div
-        className={
-          'fixed z-[70] pointer-events-none ' +
-          'landscape:top-3 landscape:bottom-3 landscape:right-24 landscape:w-64 ' +
-          'portrait:left-3 portrait:right-24 portrait:bottom-3 portrait:top-[54vh]'
-        }
-      >
-        <div className="w-full h-full flex pointer-events-none landscape:items-start portrait:items-end">
-          {body}
-        </div>
+      <div className="fixed z-[70] pointer-events-none landscape:right-24 landscape:left-3 landscape:bottom-3 portrait:left-3 portrait:right-24 portrait:bottom-3">
+        {strip}
       </div>
     );
   }
 
-  // A phone gets the bottom half and no scrim either - dimming the scene while
-  // you pick something to put in it is exactly backwards. It sits clear of the
-  // thumb bar rather than over it.
-  if (phone) {
-    return (
-      <div className="fixed inset-x-2 bottom-24 z-[70] flex justify-center pointer-events-none">
-        {body}
-      </div>
-    );
+  if (layout === 'phone') {
+    return <div className="fixed inset-x-2 above-bar z-[70] pointer-events-none">{strip}</div>;
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center pointer-events-none">
-      {body}
+    <div className="fixed inset-x-0 bottom-6 z-[70] px-24 flex justify-center pointer-events-none">
+      <div className="w-full max-w-3xl">{strip}</div>
     </div>
   );
 };

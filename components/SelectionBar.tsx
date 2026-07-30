@@ -26,7 +26,7 @@ const quantise = (metres: number) =>
  * exactly, which is what a slider could never do. Double-tap to go back to the
  * height it was placed at.
  */
-export const SelectionBar: React.FC = () => {
+export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false }) => {
   const theme = useStore((s) => s.theme);
   const layout = useLayout();
   const cameraFeed = useStore((s) => s.cameraFeed);
@@ -70,7 +70,10 @@ export const SelectionBar: React.FC = () => {
     else if (box) { removeBox(box.id); selectBox(null); }
   };
 
-  const size = layout === 'desktop' ? 'w-10 h-10' : 'w-12 h-12';
+  // Six controls plus a readout have to fit across the narrowest phone there
+  // is - 393 px - without a single one falling off the edge.
+  const size = layout === 'desktop' ? 'w-10 h-10' : layout === 'phone' ? 'w-11 h-11' : 'w-12 h-12';
+  const readout = layout === 'phone' ? 'min-w-[4.25rem]' : 'min-w-[5.5rem]';
   const iconButton = `flex items-center justify-center ${size} rounded-full border backdrop-blur-md transition-transform active:scale-95 ${chrome}`;
 
   // A drag across the readout multiplies the height, so the control has the
@@ -96,14 +99,14 @@ export const SelectionBar: React.FC = () => {
     // means the top edge: the rail owns the right, and a panel can be docked
     // along the bottom in portrait - which is exactly how this bar used to end
     // up underneath a menu, unreachable.
-    <div className={`absolute inset-x-0 z-40 flex justify-center pointer-events-none ${
+    <div className={`fixed inset-x-0 z-40 flex justify-center pointer-events-none ${
       layout === 'phone'
-        ? 'bottom-28 px-4'
+        ? `${raised ? 'above-bar-2' : 'above-bar'} px-2`
         : layout === 'tablet'
         ? 'top-4 pl-4 pr-24 safe-top'
-        : 'bottom-6 px-4'
+        : `${raised ? 'bottom-28' : 'bottom-6'} px-4`
     }`}>
-      <div className="flex items-center gap-1.5 pointer-events-auto">
+      <div className={`flex items-center pointer-events-auto ${layout === 'phone' ? 'gap-1' : 'gap-1.5'}`}>
         <button onClick={() => rotateSelection(-STEP)} className={iconButton} aria-label="Turn left">
           <Icon path={I.turnLeft} className="w-4 h-4" />
         </button>
@@ -127,7 +130,7 @@ export const SelectionBar: React.FC = () => {
               onPointerUp={onScrubUp}
               onPointerCancel={onScrubUp}
               onDoubleClick={() => scaleModel(model.id, model.baseScale)}
-              className="px-1 min-w-[5.5rem] text-center text-[13px] font-black tabular-nums cursor-ew-resize touch-none select-none"
+              className={`px-1 ${readout} text-center text-[13px] font-black tabular-nums cursor-ew-resize touch-none select-none`}
               role="slider"
               aria-label="Height"
               aria-valuenow={Math.round(height * 100)}
@@ -146,7 +149,7 @@ export const SelectionBar: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div className={`px-3 ${layout === 'desktop' ? 'h-10' : 'h-12'} flex items-center rounded-full border backdrop-blur-md ${chrome}`}>
+          <div className={`px-3 ${layout === 'desktop' ? 'h-10' : layout === 'phone' ? 'h-11' : 'h-12'} flex items-center rounded-full border backdrop-blur-md ${chrome}`}>
             <span className="text-[13px] font-black tabular-nums">
               {box!.scale.map((v) => v.toFixed(2)).join(' × ')}
             </span>

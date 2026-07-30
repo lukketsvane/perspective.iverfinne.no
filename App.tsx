@@ -14,7 +14,7 @@ import { enableDeviceOrientation, disableDeviceOrientation } from './lib/walkInp
 import { loadModelFile, loadModelFromUrl, findFreeSpot, modelRadius } from './lib/loadModel';
 import { MESH_LIBRARY } from './lib/meshLibrary';
 import { focusPoint } from './lib/focus';
-import { sceneFromUrl, shareScene } from './lib/share';
+import { sceneFromUrl } from './lib/share';
 import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 import { BoxData } from './types';
@@ -62,7 +62,6 @@ export default function App() {
   const removeModel = useStore(s => s.removeModel);
   const selectedModelId = useStore(s => s.selectedModelId);
   const showCone = useStore(s => s.showCone);
-  const canUndo = useStore(s => s.undoStack.length > 0);
   const addBox = useStore(s => s.addBox);
 
   // Three shapes, not two. A tablet gets finger-sized targets like a phone, but
@@ -101,7 +100,7 @@ export default function App() {
   const panelFrame = tablet
     ? TABLET_DOCK
     : touchLayout
-    ? 'fixed inset-x-2 bottom-24 top-[42vh] z-50'
+    ? 'fixed inset-x-2 above-bar top-[40vh] z-50'
     : 'fixed top-4 bottom-4 right-20 w-60 z-50';
 
   // Saved scenes are a short list far more often than a long one, so on a
@@ -110,7 +109,7 @@ export default function App() {
   const historyFrame = tablet
     ? TABLET_DOCK
     : touchLayout
-    ? 'fixed inset-x-2 top-[42vh] bottom-24 z-50'
+    ? 'fixed inset-x-2 top-[40vh] above-bar z-50'
     : 'fixed left-4 top-4 bottom-4 w-64 z-50';
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -122,10 +121,6 @@ export default function App() {
   const [showMeshes, setShowMeshes] = useState(false);
   const [busyMesh, setBusyMesh] = useState<string | null>(null);
   
-  // Text Prompt State
-  const [showPromptInput, setShowPromptInput] = useState(false);
-  const [textPrompt, setTextPrompt] = useState("");
-
   // Load history from localStorage on mount
   useEffect(() => {
     loadHistoryFromStorage();
@@ -211,19 +206,6 @@ export default function App() {
     addBox([focusPoint.x, 0, focusPoint.z]);
   };
 
-  const handleShare = async () => {
-    const result = await shareScene(boxes, models);
-    showNotice(
-      result === 'copied'
-        ? 'Link copied — it carries this study.'
-        : result === 'shared'
-        ? 'Study shared.'
-        : 'Could not copy the link.'
-    );
-  };
-
-  // The docked panels share one slot on a tablet, so opening any of them puts
-  // the others away rather than stacking cards on top of each other.
   const openMeshes = () => {
     setShowPanel(false);
     setShowHistory(false);
@@ -234,12 +216,6 @@ export default function App() {
     setShowHistory(false);
     setShowMeshes(false);
     setShowPanel((open) => !open);
-  };
-
-  const toggleHistory = () => {
-    setShowPanel(false);
-    setShowMeshes(false);
-    setShowHistory((open) => !open);
   };
 
   /** A drop point clear of everything already standing there. */
@@ -255,13 +231,13 @@ export default function App() {
     if (!entry) return;
     setBusyMesh(id);
     try {
-      const { model } = await loadModelFromUrl(entry.url, entry.name, [focusPoint.x, focusPoint.z], entry.height);
+      // Every library file is true to life, so it is placed as authored.
+      const { model } = await loadModelFromUrl(entry.url, entry.name, [focusPoint.x, focusPoint.z]);
       if (!model.previewSupported) return;
       const [x, z] = freeSpot(modelRadius(model));
       addModel({ ...model, position: [x, 0, z] });
-      // The tablet's library is docked beside the scene rather than over it,
-      // so it stays open: placing a crowd is one tap per figure.
-      if (!tablet) setShowMeshes(false);
+      // The strip never covers the scene, so it stays out: placing a crowd is
+      // one tap per figure.
     } catch (error) {
       console.error(error);
     } finally {
@@ -292,19 +268,11 @@ export default function App() {
       console.error(error);
     } finally {
       setBusyMesh(null);
-      // Closing the sheet is how a placement confirms itself, so a run that
-      // placed nothing leaves it open rather than saying so in a banner. The
-      // tablet's docked library never has to get out of the way.
-      if (placed > 0 && !tablet) setShowMeshes(false);
     }
   };
 
   const handleSparkleClick = () => {
     fileInputRef.current?.click();
-  };
-
-  const handleTextToggle = () => {
-      setShowPromptInput(!showPromptInput);
   };
 
   /**
@@ -326,7 +294,6 @@ export default function App() {
     await enableDeviceOrientation();
     setShowPanel(false);
     setShowHistory(false);
-    setShowPromptInput(false);
     setViewMode('walk');
   };
 
@@ -415,38 +382,6 @@ export default function App() {
       Between 25 and 45 boxes.
   `;
 
-  const processText = async () => {
-      if (!textPrompt.trim()) return;
-      const currentPrompt = textPrompt.trim();
-      setShowPromptInput(false);
-      setLoading(true);
-      setLoadingText("VISUALIZING PROMPT...");
-      // Removed setBoxes([]) to append instead of reset
-
-      try {
-          const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-          const response = await ai.models.generateContentStream({
-            model: 'gemini-3-pro-preview',
-            contents: {
-                parts: [{ text: `User Request: "${currentPrompt}"\n\n${systemPrompt}` }]
-            },
-            config: { thinkingConfig: { thinkingBudget: 5000 } }
-          });
-          await generateBoxesFromStream(response);
-          
-          // After successful generation, save the scene with a name
-          const sceneName = generateSceneName(currentPrompt);
-          saveCurrentScene(sceneName, currentPrompt);
-      } catch (error) {
-          console.error(error);
-          alert("Failed to generate from text.");
-      } finally {
-          setLoading(false);
-          setLoadingText("");
-          setTextPrompt("");
-      }
-  };
-
   const processImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -532,7 +467,8 @@ export default function App() {
         <ConeOfVision fov={fov} color={isDark || cameraFeed ? '#8ab4ff' : '#1f6feb'} />
       )}
 
-      {!isViewMode && <SelectionBar />}
+      {/* Raised a row when the figure strip is out, so the two never stack. */}
+      {!isViewMode && <SelectionBar raised={showMeshes} />}
 
       {/* Fingers get big targets either way: a phone puts them in a bar under
           the thumbs, a tablet gathers the same targets into a rail on the right
@@ -545,12 +481,6 @@ export default function App() {
         onWalk={enterWalkMode}
         onAdd={handleAddAtFocus}
         onSetup={togglePanel}
-        onUndo={() => useStore.getState().undo()}
-        canUndo={canUndo}
-        onCapture={handleCapture}
-        onShare={handleShare}
-        onPrompt={handleTextToggle}
-        onHistory={toggleHistory}
         setupOpen={showPanel}
       />
       )}
@@ -573,53 +503,6 @@ export default function App() {
             <div className={`w-4 h-4 border-2 ${isDark ? 'border-white' : 'border-gray-900'} border-t-transparent rounded-full animate-spin`} />
           </div>
         </div>
-      )}
-
-      {/* Text Prompt Input - Non-invasive Floating Panel */}
-      {showPromptInput && (
-          <div className="absolute bottom-4 left-4 right-16 md:bottom-8 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-96 z-50">
-              <div className={`p-2 rounded-xl shadow-2xl border backdrop-blur-md transition-colors duration-500 ${isDark ? 'bg-[#1a1a1a]/90 border-gray-700' : 'bg-white/90 border-gray-200'}`}>
-                  <textarea 
-                    autoFocus
-                    value={textPrompt}
-                    onChange={(e) => setTextPrompt(e.target.value)}
-                    placeholder="Describe the scene..."
-                    // text-base (16px) prevents iOS zoom
-                    className={`w-full h-20 p-3 text-base bg-transparent outline-none resize-none font-medium leading-tight ${isDark ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'}`}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            processText();
-                        }
-                        if (e.key === 'Escape') {
-                            setShowPromptInput(false);
-                        }
-                    }}
-                  />
-                  <div className="flex justify-between items-center px-1 pt-2 border-t border-dashed border-opacity-20 border-gray-400">
-                      <button
-                          onClick={() => {
-                              if (window.confirm("Clear the entire scene?")) {
-                                  setBoxes([]);
-                              }
-                          }}
-                          className={`p-1.5 rounded-md transition-colors ${isDark ? 'text-gray-500 hover:text-red-400 hover:bg-white/5' : 'text-gray-400 hover:text-red-500 hover:bg-black/5'}`}
-                          aria-label="Clear the scene"
-                          title="Clear the scene"
-                      >
-                          <Icon path={I.trash} className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={processText}
-                        aria-label="Build it"
-                        title="Build it"
-                        className={`flex items-center justify-center w-9 h-9 rounded-full transition-transform active:scale-95 ${isDark ? 'bg-white text-black' : 'bg-black text-white'}`}
-                      >
-                          <Icon path={<polyline points="9 6 15 12 9 18" />} className="w-4 h-4" />
-                      </button>
-                  </div>
-              </div>
-          </div>
       )}
 
       {/* HUD: two numbers, no words. Eye height and focal length are the
@@ -790,30 +673,6 @@ export default function App() {
                 </svg>
              )}
           </button>
-
-           {/* Text Prompt Button - Toggles visibility */}
-          {!isViewMode && (
-              <button 
-                onClick={handleTextToggle}
-                disabled={loading}
-                className={`group flex items-center justify-center w-8 h-8 transition-transform active:scale-95 duration-200 cursor-pointer disabled:opacity-50 ${showPromptInput ? (isDark ? 'text-blue-300' : 'text-blue-500') : (isDark ? 'text-white hover:text-blue-300' : 'text-gray-900 hover:text-blue-500')}`}
-                title="Write Prompt"
-              >
-                {showPromptInput ? (
-                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                ) : (
-                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 19l7-7 3 3-7 7-3-3z" />
-                        <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
-                        <path d="M2 2l7.586 7.586" />
-                        <circle cx="11" cy="11" r="2" />
-                    </svg>
-                )}
-              </button>
-          )}
 
           {/* History Button */}
           <button 
