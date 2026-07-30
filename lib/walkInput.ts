@@ -16,6 +16,16 @@ export const walkInput = {
   /** Look angles in radians, used when device orientation is unavailable. */
   yaw: 0,
   pitch: 0,
+  /**
+   * Drag-to-look on top of the sensor.
+   *
+   * Holding a device up tells it which way you are facing, but it cannot tell
+   * you have turned round in your chair - and on a tablet you often cannot turn
+   * round at all. These turn you on the spot: yaw about world up, pitch about
+   * the camera's own axis, both applied over whatever the sensor reports.
+   */
+  lookYaw: 0,
+  lookPitch: 0,
   /** True once the device is reporting orientation and the user allowed it. */
   useDeviceOrientation: false,
   /** Orientation of the phone, rebuilt on every deviceorientation event. */
@@ -31,6 +41,8 @@ export const resetWalk = (x: number, z: number, yaw: number) => {
   walkInput.position.set(x, 0, z);
   walkInput.yaw = yaw;
   walkInput.pitch = 0;
+  walkInput.lookYaw = 0;
+  walkInput.lookPitch = 0;
   walkInput.forward = 0;
   walkInput.strafe = 0;
 };
@@ -203,6 +215,8 @@ export const recentre = () => {
   walkInput.pitch = 0;
   walkInput.yaw = 0;
   hasAlphaOffset = false;
+  walkInput.lookYaw = 0;
+  walkInput.lookPitch = 0;
   // Re-measure which way up the screen is, rather than carrying over a reading
   // taken while the device happened to be flat.
   hasScreenRoll = false;

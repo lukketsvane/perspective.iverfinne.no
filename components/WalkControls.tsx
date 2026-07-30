@@ -6,6 +6,17 @@ import { walkInput } from '../lib/walkInput';
 import { matchedVerticalFov } from '../lib/cameraFeed';
 
 /**
+ * Set when walk mode hands the camera back.
+ *
+ * OrbitControls takes its target from a prop that only applies on mount, so
+ * returning from a walk used to swing the view round to face the origin from
+ * wherever the walker had got to. EyeLevelRig reads this on mount and puts the
+ * target straight out in front of the camera instead, which leaves the frame
+ * exactly as walk mode left it.
+ */
+export const resumeOrbitView = { pending: false };
+
+/**
  * First person camera for walk mode.
  *
  * The camera stands at the eye level set in the Practice panel and moves in the
@@ -31,6 +42,9 @@ export const WalkControls = () => {
       right: new THREE.Vector3(),
       euler: new THREE.Euler(0, 0, 0, 'YXZ'),
       target: new THREE.Quaternion(),
+      spin: new THREE.Quaternion(),
+      up: new THREE.Vector3(0, 1, 0),
+      side: new THREE.Vector3(1, 0, 0),
     }),
     []
   );
@@ -55,16 +69,25 @@ export const WalkControls = () => {
     };
   }, [cameraFeed, camera, size.width, size.height, fov, sensorFov, feedNonce]);
 
-  // Step into the scene where the orbit camera was standing, keeping its
-  // heading, so entering walk mode is a change of stance and not a teleport.
+  /**
+   * Step into the scene exactly where the orbit camera was standing, looking
+   * exactly where it was looking - including how far up or down. Entering walk
+   * mode is a change of stance, not a cut to another shot, and coming back out
+   * (see `resumeOrbitView`) holds the same frame.
+   */
   useEffect(() => {
     const direction = new THREE.Vector3();
     camera.getWorldDirection(direction);
     walkInput.position.set(camera.position.x, 0, camera.position.z);
     walkInput.yaw = Math.atan2(-direction.x, -direction.z);
-    walkInput.pitch = 0;
+    walkInput.pitch = Math.asin(THREE.MathUtils.clamp(direction.y, -1, 1));
+    walkInput.lookYaw = 0;
+    walkInput.lookPitch = 0;
     walkInput.forward = 0;
     walkInput.strafe = 0;
+
+    // On the way out, orbit picks the view up from wherever this left it.
+    return () => { resumeOrbitView.pending = true; };
   }, [camera]);
 
   useFrame((_, rawDelta) => {
@@ -80,6 +103,16 @@ export const WalkControls = () => {
       // shiver over a live camera. Chase the reading instead of snapping to it,
       // frame-rate independent so it feels the same at 60 and 120 Hz.
       temp.target.copy(walkInput.deviceQuaternion);
+
+      // Drag-to-look on top: yaw turns you about world up, as if you had
+      // swivelled on the spot; pitch tips the view about the camera's own axis.
+      if (walkInput.lookYaw !== 0) {
+        temp.target.premultiply(temp.spin.setFromAxisAngle(temp.up, walkInput.lookYaw));
+      }
+      if (walkInput.lookPitch !== 0) {
+        temp.target.multiply(temp.spin.setFromAxisAngle(temp.side, walkInput.lookPitch));
+      }
+
       camera.quaternion.slerp(temp.target, 1 - Math.exp(-18 * delta));
     } else {
       temp.euler.set(walkInput.pitch, walkInput.yaw, 0, 'YXZ');

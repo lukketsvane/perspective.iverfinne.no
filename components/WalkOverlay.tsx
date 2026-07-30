@@ -41,11 +41,12 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
   const stick = useRef<{ id: number; x: number; y: number } | null>(null);
   const [stickView, setStickView] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
 
-  const isStickZone = (x: number, y: number) => {
-    // With the phone steering the view, anywhere is fair game for walking.
-    if (walkInput.useDeviceOrientation) return true;
-    return x < window.innerWidth * 0.45 && y > window.innerHeight * 0.45;
-  };
+  // One rule whether or not the sensor is driving: the near corner walks, the
+  // rest of the glass looks. Handing the whole screen to the stick, as this
+  // used to when the sensor was on, left no way to turn round without turning
+  // round - which on a tablet on a desk is no way at all.
+  const isStickZone = (x: number, y: number) =>
+    x < window.innerWidth * 0.45 && y > window.innerHeight * 0.45;
 
   const applyStick = (originX: number, originY: number, x: number, y: number) => {
     let dx = x - originX;
@@ -73,7 +74,7 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
     if (!stick.current && isStickZone(e.clientX, e.clientY)) {
       stick.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
       applyStick(e.clientX, e.clientY, e.clientX, e.clientY);
-    } else if (!look.current && !walkInput.useDeviceOrientation) {
+    } else if (!look.current) {
       look.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
     }
   };
@@ -88,8 +89,20 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
       const dy = e.clientY - look.current.y;
       look.current.x = e.clientX;
       look.current.y = e.clientY;
-      walkInput.yaw -= dx * LOOK_SENSITIVITY;
-      walkInput.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, walkInput.pitch - dy * LOOK_SENSITIVITY));
+
+      // With the sensor driving, the drag is an offset on top of it rather than
+      // the heading itself; the sensor keeps reporting where the device points
+      // either way.
+      if (walkInput.useDeviceOrientation) {
+        walkInput.lookYaw -= dx * LOOK_SENSITIVITY;
+        walkInput.lookPitch = Math.max(
+          -MAX_PITCH,
+          Math.min(MAX_PITCH, walkInput.lookPitch - dy * LOOK_SENSITIVITY)
+        );
+      } else {
+        walkInput.yaw -= dx * LOOK_SENSITIVITY;
+        walkInput.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, walkInput.pitch - dy * LOOK_SENSITIVITY));
+      }
     }
   };
 
