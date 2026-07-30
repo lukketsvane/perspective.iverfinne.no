@@ -9,7 +9,7 @@ import { useStore, DEFAULT_CAMERA_HEIGHT } from '../store';
 import { KimBox } from './KimBox';
 import { HorizonLine, ScaleFigure } from './Reference';
 import { SceneModels } from './SceneModels';
-import { WalkControls } from './WalkControls';
+import { WalkControls, resumeOrbitView } from './WalkControls';
 import { updateFocus } from '../lib/focus';
 import { dragJustEnded } from '../lib/dragGuard';
 import { useGesture } from '@use-gesture/react';
@@ -195,6 +195,27 @@ const EyeLevelRig = () => {
   const cameraHeight = useStore((state) => state.cameraHeight);
   const lockEyeLevel = useStore((state) => state.lockEyeLevel);
   const cameraPose = useStore((state) => state.cameraPose);
+
+  /**
+   * Coming back from a walk, keep the frame.
+   *
+   * This has to run before the eye-level effect below, which would otherwise
+   * see a camera sitting on top of the stale target and shove it three metres
+   * backwards along its heading.
+   */
+  useEffect(() => {
+    const orbit = controls as any;
+    if (!orbit?.target || !resumeOrbitView.pending) return;
+    resumeOrbitView.pending = false;
+
+    const heading = new THREE.Vector3();
+    camera.getWorldDirection(heading);
+    if (heading.lengthSq() < 1e-6) heading.set(0, 0, -1);
+    // Far enough out that orbiting feels like turning your head rather than
+    // spinning on a pin, and near enough to stay inside the scene.
+    orbit.target.copy(camera.position).addScaledVector(heading.normalize(), 6);
+    orbit.update();
+  }, [camera, controls]);
 
   /**
    * A study says where to stand, not just what to look at - one-point only
