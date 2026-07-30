@@ -327,8 +327,11 @@ const Sun: React.FC = () => {
       castShadow={sun.shadows}
       shadow-mapSize-width={mapSize}
       shadow-mapSize-height={mapSize}
-      shadow-bias={-0.0005}
-      shadow-normalBias={0.02}
+      // A room at 1:1 puts big flat surfaces almost edge-on to the sun, which
+      // is where a shadow map self-shadows into stripes. Offsetting along the
+      // normal costs a couple of centimetres of contact and kills the banding.
+      shadow-bias={-0.0004}
+      shadow-normalBias={0.05}
       shadow-camera-near={1}
       shadow-camera-far={SUN_DISTANCE * 2.5}
       shadow-camera-left={-40}

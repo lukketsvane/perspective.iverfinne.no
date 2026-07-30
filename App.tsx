@@ -18,6 +18,7 @@ import { sceneFromUrl, shareScene } from './lib/share';
 import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 import { BoxData } from './types';
+import { Icon, I } from './components/icons';
 
 // Simple scene name generator
 const generateSceneName = (prompt?: string): string => {
@@ -80,27 +81,35 @@ export default function App() {
    * everything above it untouched. Either way it takes about a fifth of the
    * glass instead of a third, and the scene it is acting on stays in view.
    */
+  // The frame needs a *definite* height in both orientations, or the card's
+  // own max-height has nothing to resolve against and it grows off the bottom
+  // of the screen. Hence top-[54vh] rather than max-h-[46vh].
   const TABLET_DOCK =
-    'fixed z-50 flex pointer-events-none ' +
+    'fixed z-50 pointer-events-none ' +
     'landscape:top-3 landscape:bottom-3 landscape:right-24 landscape:w-64 ' +
-    'portrait:left-3 portrait:right-24 portrait:bottom-3';
+    'portrait:left-3 portrait:right-24 portrait:bottom-3 portrait:top-[54vh]';
 
+  /** Inside the frame: full height, so the card can cap itself against it. */
+  const dockInner =
+    'w-full h-full flex pointer-events-none ' +
+    (tablet ? 'landscape:items-start portrait:items-end' : touchLayout ? 'items-end' : 'items-start');
+
+  // The panel is short now that it is drawn in icons, so it takes only the
+  // height it needs rather than standing as a column the height of the screen.
   const panelFrame = tablet
-    ? `${TABLET_DOCK} landscape:items-stretch portrait:h-[46vh] portrait:items-stretch`
+    ? TABLET_DOCK
     : touchLayout
-    ? 'fixed inset-x-2 top-16 bottom-24 z-50'
+    ? 'fixed inset-x-2 bottom-24 top-16 z-50'
     : 'fixed top-4 bottom-4 right-20 w-60 z-50';
 
   // Saved scenes are a short list far more often than a long one, so on a
   // tablet the card shrinks to what is in it rather than standing as an empty
   // column the height of the screen.
   const historyFrame = tablet
-    ? `${TABLET_DOCK} landscape:items-start portrait:max-h-[46vh] portrait:items-end`
+    ? TABLET_DOCK
     : touchLayout
     ? 'fixed inset-x-2 top-16 bottom-24 z-50'
     : 'fixed left-4 top-4 bottom-4 w-64 z-50';
-
-  const historyCard = tablet ? 'w-full max-h-full pointer-events-auto' : 'h-full';
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelInputRef = useRef<HTMLInputElement>(null);
@@ -555,14 +564,12 @@ export default function App() {
       )}
 
       {/* Loading Overlay */}
+      {/* Working. A spinner says it; the running commentary did not need to. */}
       {loading && (
-        <div className="absolute top-8 left-8 z-50">
-           <div className={`flex items-center gap-3 ${isDark ? 'bg-black/80 border-gray-800' : 'bg-white/80 border-gray-200'} backdrop-blur-md px-4 py-2 rounded-full shadow-sm border`}>
-              <div className={`w-4 h-4 border-2 ${isDark ? 'border-white' : 'border-gray-900'} border-t-transparent rounded-full animate-spin`} />
-              <span className={`${isDark ? 'text-white' : 'text-gray-900'} font-bold uppercase tracking-widest text-[10px]`}>
-                 {loadingText}
-              </span>
-           </div>
+        <div className="absolute inset-safe-top left-4 z-50">
+          <div className={`w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md shadow-sm ${isDark ? 'bg-black/80 border-gray-800' : 'bg-white/80 border-gray-200'}`}>
+            <div className={`w-4 h-4 border-2 ${isDark ? 'border-white' : 'border-gray-900'} border-t-transparent rounded-full animate-spin`} />
+          </div>
         </div>
       )}
 
@@ -588,29 +595,25 @@ export default function App() {
                     }}
                   />
                   <div className="flex justify-between items-center px-1 pt-2 border-t border-dashed border-opacity-20 border-gray-400">
-                      <div className="flex items-center gap-3">
-                        <button 
-                            onClick={() => {
-                                if (window.confirm("Clear the entire scene?")) {
-                                    setBoxes([]);
-                                }
-                            }}
-                            className={`p-1 rounded-md transition-colors ${isDark ? 'text-gray-500 hover:text-red-400 hover:bg-white/5' : 'text-gray-400 hover:text-red-500 hover:bg-black/5'}`}
-                            title="Clear Canvas"
-                        >
-                             <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                            </svg>
-                        </button>
-                        <span className={`text-[9px] uppercase tracking-widest ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                           Return to send
-                        </span>
-                      </div>
-                      <button 
-                        onClick={processText}
-                        className={`px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-transform active:scale-95 ${isDark ? 'bg-white text-black hover:bg-gray-200' : 'bg-black text-white hover:bg-gray-800'}`}
+                      <button
+                          onClick={() => {
+                              if (window.confirm("Clear the entire scene?")) {
+                                  setBoxes([]);
+                              }
+                          }}
+                          className={`p-1.5 rounded-md transition-colors ${isDark ? 'text-gray-500 hover:text-red-400 hover:bg-white/5' : 'text-gray-400 hover:text-red-500 hover:bg-black/5'}`}
+                          aria-label="Clear the scene"
+                          title="Clear the scene"
                       >
-                          Create
+                          <Icon path={I.trash} className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={processText}
+                        aria-label="Build it"
+                        title="Build it"
+                        className={`flex items-center justify-center w-9 h-9 rounded-full transition-transform active:scale-95 ${isDark ? 'bg-white text-black' : 'bg-black text-white'}`}
+                      >
+                          <Icon path={<polyline points="9 6 15 12 9 18" />} className="w-4 h-4" />
                       </button>
                   </div>
               </div>
@@ -631,7 +634,8 @@ export default function App() {
           again without leaving the app. Names and counts only. */}
       {showHistory && (
         <div className={historyFrame}>
-          <div className={`${historyCard} rounded-2xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${isDark ? 'bg-[#141416]/95 border-gray-800 text-gray-100' : 'bg-white/95 border-gray-200 text-gray-900'}`}>
+          <div className={dockInner}>
+          <div className={`w-full max-h-full pointer-events-auto rounded-2xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${isDark ? 'bg-[#141416]/95 border-gray-800 text-gray-100' : 'bg-white/95 border-gray-200 text-gray-900'}`}>
             <div className={`flex items-center justify-between px-3 py-2.5 border-b ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
               <button
                 onClick={() =>
@@ -639,9 +643,11 @@ export default function App() {
                     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                   )
                 }
-                className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}
+                aria-label="Save this scene"
+                title="Save this scene"
+                className={`flex items-center justify-center w-9 h-9 rounded-full ${isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}
               >
-                Save
+                <Icon path={I.save} className="w-4 h-4" />
               </button>
               <button onClick={() => setShowHistory(false)} className="p-1.5 opacity-50" aria-label="Close">
                 <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
@@ -675,13 +681,14 @@ export default function App() {
               ))}
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {/* Practice Panel — everything that departs from the defaults lives here */}
       {showPanel && (
         <div className={panelFrame}>
-          <div className="w-full h-full pointer-events-auto">
+          <div className={dockInner}>
             <PracticePanel layout={layout} onClose={() => setShowPanel(false)} />
           </div>
         </div>
