@@ -45,6 +45,19 @@ export const I = {
   /** Snap to the grid. */
   snap: (<><path d="M4 9h16M4 15h16M9 4v16M15 4v16" /><circle cx="9" cy="15" r="1.6" fill="currentColor" stroke="none" /></>),
 
+  /**
+   * A body, not a stick. The library button and the scale-figure toggle both
+   * used the same four-line stick man the scene itself draws, which read as a
+   * diagram of a diagram.
+   */
+  person: (<><circle cx="12" cy="6.4" r="3.4" fill="currentColor" stroke="none" /><path d="M4.8 21c0-3.9 3.2-7.1 7.2-7.1s7.2 3.2 7.2 7.1z" fill="currentColor" stroke="none" /></>),
+
+  /**
+   * Stepping into the scene. Footprints and a walking figure both came out as
+   * marks you had to squint at; an arrow going through a doorway does not.
+   */
+  walk: (<><path d="M14 3.6H19a1.4 1.4 0 0 1 1.4 1.4v14a1.4 1.4 0 0 1-1.4 1.4h-5" /><path d="M3.6 12h9.8" /><polyline points="9.6 8.2 13.4 12 9.6 15.8" /></>),
+
   /** Horizon line, scale figure, cone of vision. */
   horizon: (<><line x1="2" y1="12" x2="22" y2="12" /><path d="M4 19l7-5M20 19l-7-5" strokeOpacity="0.45" /></>),
   figure: (<><circle cx="12" cy="4.5" r="1.9" /><path d="M12 7v6M12 13l-2.5 5M12 13l2.5 5M8.5 9.5h7" /><path d="M3 21h18" strokeOpacity="0.4" /></>),

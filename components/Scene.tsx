@@ -11,6 +11,7 @@ import { HorizonLine, ScaleFigure } from './Reference';
 import { SceneModels } from './SceneModels';
 import { WalkControls, resumeOrbitView } from './WalkControls';
 import { updateFocus } from '../lib/focus';
+import { updateVanishing, clearVanishing } from '../lib/vanishing';
 import { dragJustEnded } from '../lib/dragGuard';
 import { useGesture } from '@use-gesture/react';
 
@@ -170,6 +171,58 @@ const FocusTracker = () => {
   return null;
 };
 
+/**
+ * Feeds the vanishing-point overlay.
+ *
+ * Runs every frame because the points move with the camera, not with the box -
+ * which is itself the lesson: turn your head and the box's pair slides along
+ * the horizon, but never off it.
+ */
+const VanishingTracker = () => {
+  const { camera, size } = useThree();
+  const boxes = useStore((state) => state.boxes);
+  const models = useStore((state) => state.models);
+  const selectedId = useStore((state) => state.selectedId);
+  const selectedModelId = useStore((state) => state.selectedModelId);
+  const perspectiveMode = useStore((state) => state.perspectiveMode);
+  const showGuides = useStore((state) => state.showGuides);
+
+  const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
+  const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
+
+  useFrame(() => {
+    // Curvilinear bends every one of these lines somewhere else, so the flat
+    // construction would be a lie there.
+    if (!showGuides || perspectiveMode !== 'linear' || (!box && !model)) {
+      clearVanishing();
+      return;
+    }
+
+    if (box) {
+      updateVanishing(camera, size.width, size.height, {
+        centre: new THREE.Vector3(...box.position),
+        size: new THREE.Vector3(...box.scale),
+        rotationY: box.rotation[1],
+      });
+      return;
+    }
+
+    const height = model!.size[1] * model!.scale;
+    updateVanishing(camera, size.width, size.height, {
+      centre: new THREE.Vector3(model!.position[0], height / 2, model!.position[2]),
+      size: new THREE.Vector3(
+        model!.size[0] * model!.scale,
+        height,
+        model!.size[2] * model!.scale
+      ),
+      rotationY: model!.rotationY,
+    });
+  });
+
+  useEffect(() => clearVanishing, []);
+  return null;
+};
+
 /** Orbit target on mount: straight ahead, at standing eye level. */
 const INITIAL_TARGET: [number, number, number] = [0, DEFAULT_CAMERA_HEIGHT, 0];
 
@@ -195,6 +248,10 @@ const EyeLevelRig = () => {
   const cameraHeight = useStore((state) => state.cameraHeight);
   const lockEyeLevel = useStore((state) => state.lockEyeLevel);
   const cameraPose = useStore((state) => state.cameraPose);
+  const boxes = useStore((state) => state.boxes);
+  const models = useStore((state) => state.models);
+  const selectedId = useStore((state) => state.selectedId);
+  const selectedModelId = useStore((state) => state.selectedModelId);
 
   /**
    * Coming back from a walk, keep the frame.
@@ -216,6 +273,38 @@ const EyeLevelRig = () => {
     orbit.target.copy(camera.position).addScaledVector(heading.normalize(), 6);
     orbit.update();
   }, [camera, controls]);
+
+  /**
+   * Orbit around what you just tapped.
+   *
+   * Turning the view is how you read a form, and turning it about the middle of
+   * the scene while looking at something off to one side swings that thing out
+   * of frame. The camera stays exactly where it is; only the point it pivots on
+   * moves. Height is left to the eye-level rules below - locked, the gaze has
+   * to stay level whatever it is aimed at.
+   */
+  useEffect(() => {
+    const orbit = controls as any;
+    if (!orbit?.target) return;
+
+    const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
+    const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
+    if (!box && !model) return;
+
+    const centre = box
+      ? new THREE.Vector3(...box.position)
+      : new THREE.Vector3(
+          model!.position[0],
+          (model!.size[1] * model!.scale) / 2,
+          model!.position[2]
+        );
+
+    orbit.target.x = centre.x;
+    orbit.target.z = centre.z;
+    if (!lockEyeLevel) orbit.target.y = centre.y;
+    orbit.update();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, selectedModelId, controls, lockEyeLevel]);
 
   /**
    * A study says where to stand, not just what to look at - one-point only
@@ -365,7 +454,7 @@ const SceneContent = () => {
   const controlsRef = useRef<any>(null);
   const isDark = theme === 'dark';
   const isWalking = viewMode === 'walk';
-  const bgColor = isDark ? '#0c0c0e' : '#f3f3f1';
+  const bgColor = isDark ? '#000000' : '#f3f3f1';
   const horizonColor = isDark ? '#5cc8ff' : '#1f6feb';
   const figureColor = isDark ? '#7a7a80' : '#5a5a60';
 
@@ -535,6 +624,7 @@ const SceneContent = () => {
       )}
 
       <FocusTracker />
+      <VanishingTracker />
     </>
   );
 };

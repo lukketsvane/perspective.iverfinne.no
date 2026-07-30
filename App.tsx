@@ -4,6 +4,7 @@ import { PracticePanel } from './components/PracticePanel';
 import { WalkOverlay } from './components/WalkOverlay';
 import { CameraFeed } from './components/CameraFeed';
 import { ConeOfVision } from './components/ConeOfVision';
+import { VanishingPoints } from './components/VanishingPoints';
 import { SelectionBar } from './components/SelectionBar';
 import { TouchControls } from './components/TouchControls';
 import { MeshSheet } from './components/MeshSheet';
@@ -442,7 +443,7 @@ export default function App() {
   const textColor = isDark ? 'text-gray-200' : 'text-gray-900';
   const labelColor = isDark ? 'text-gray-500' : 'text-gray-400';
   // The feed lives behind the canvas, so the shell must not paint over it.
-  const bgColor = cameraFeed ? 'bg-transparent' : isDark ? 'bg-[#0c0c0e]' : 'bg-[#f3f3f1]';
+  const bgColor = cameraFeed ? 'bg-transparent' : isDark ? 'bg-black' : 'bg-[#f3f3f1]';
 
 
   // Walk mode takes the whole screen: no rail, no panels, just the scene and
@@ -467,8 +468,16 @@ export default function App() {
         <ConeOfVision fov={fov} color={isDark || cameraFeed ? '#8ab4ff' : '#1f6feb'} />
       )}
 
-      {/* Raised a row when the figure strip is out, so the two never stack. */}
-      {!isViewMode && <SelectionBar raised={showMeshes} />}
+      {/* Every box has its own pair of vanishing points, and they are the
+          reason the tool exists. Drawn for whatever is selected. */}
+      <VanishingPoints color={isDark || cameraFeed ? '#ff6a5e' : '#e0342a'} />
+
+      {/* Raised a row when the figure strip is out, so the two never stack -
+          and gone entirely while a panel owns the bottom of a phone, which is
+          how these two ended up on top of each other. */}
+      {!isViewMode && !(touchLayout && (showPanel || showHistory)) && (
+        <SelectionBar raised={showMeshes} />
+      )}
 
       {/* Fingers get big targets either way: a phone puts them in a bar under
           the thumbs, a tablet gathers the same targets into a rail on the right
@@ -499,7 +508,7 @@ export default function App() {
       {/* Working. A spinner says it; the running commentary did not need to. */}
       {loading && (
         <div className="absolute inset-safe-top left-4 z-50">
-          <div className={`w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md shadow-sm ${isDark ? 'bg-black/80 border-gray-800' : 'bg-white/80 border-gray-200'}`}>
+          <div className={`w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md shadow-sm ${isDark ? 'bg-black/80 border-white/12' : 'bg-white/80 border-gray-200'}`}>
             <div className={`w-4 h-4 border-2 ${isDark ? 'border-white' : 'border-gray-900'} border-t-transparent rounded-full animate-spin`} />
           </div>
         </div>
@@ -520,8 +529,8 @@ export default function App() {
       {showHistory && (
         <div className={historyFrame}>
           <div className={dockInner}>
-          <div className={`w-full max-h-full pointer-events-auto rounded-2xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${isDark ? 'bg-[#141416]/95 border-gray-800 text-gray-100' : 'bg-white/95 border-gray-200 text-gray-900'}`}>
-            <div className={`flex items-center justify-between px-3 py-2.5 border-b ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
+          <div className={`w-full max-h-full pointer-events-auto rounded-2xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${isDark ? 'bg-black/85 border-white/12 text-gray-100' : 'bg-white/95 border-gray-200 text-gray-900'}`}>
+            <div className={`flex items-center justify-between px-3 py-2.5 border-b ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
               <button
                 onClick={() =>
                   saveCurrentScene(
@@ -547,7 +556,7 @@ export default function App() {
                 <div
                   key={scene.id}
                   onClick={() => { loadScene(scene.id); setShowHistory(false); }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-black/5 hover:bg-black/10'}`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer ${isDark ? 'bg-black/40 hover:bg-black/60' : 'bg-black/5 hover:bg-black/10'}`}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] font-bold truncate">{scene.name}</div>

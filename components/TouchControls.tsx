@@ -36,7 +36,7 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
   const isDark = theme === 'dark';
   const onCameraBg = cameraFeed || isDark;
   const shell = onCameraBg
-    ? 'bg-black/70 border-white/15 text-white'
+    ? 'bg-black/80 border-white/12 text-white'
     : 'bg-white/85 border-gray-200 text-gray-900';
 
   const rail = variant === 'rail';
@@ -49,7 +49,7 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
       </button>
 
       <button onClick={onWalk} className={item} aria-label="Walk">
-        <Icon path={I.figure} className="w-6 h-6" />
+        <Icon path={I.walk} className="w-6 h-6" />
       </button>
 
       <button
@@ -59,7 +59,7 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
         } ${onCameraBg ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}
         aria-label="Meshes"
       >
-        <Icon path={I.figure} className="w-7 h-7" />
+        <Icon path={I.person} className="w-6 h-6" />
       </button>
 
       <button onClick={onSetup} className={item} aria-label="Setup" aria-pressed={setupOpen}>

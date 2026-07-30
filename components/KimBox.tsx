@@ -25,7 +25,8 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
   const isSelected = selectedId === data.id;
   const isDark = theme === 'dark';
 
-  const boxColor = isDark ? (isSelected ? "#333333" : "#1a1a1a") : (isSelected ? "#ffefef" : "#ffffff");
+  // Black boxes on a black ground: the edges and the sun do the describing.
+  const boxColor = isDark ? (isSelected ? "#101010" : "#000000") : (isSelected ? "#ffefef" : "#ffffff");
   const edgeColor = isDark ? (isSelected ? "#ff5555" : "#ffffff") : (isSelected ? "#ff3b30" : "#0a0a0a");
 
   // Cursor style management
