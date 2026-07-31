@@ -420,11 +420,13 @@ export const useStore = create<SceneState>((set, get) => ({
      * panorama in the other, so carrying one value across gives a curvilinear
      * view as narrow as a portrait lens or a flat one turned inside out.
      *
-     * 270 degrees is the useful default here: standing in a room it puts three
-     * of the four walls in the frame at once, which is the thing the projection
-     * is for. 60 is the ordinary cone of vision to come back to.
+     * 160 degrees is the useful default here: wide enough that the walls run
+     * off to both sides and the ceiling and floor curve in, which is the thing
+     * the projection is for, without the whole room shrinking into a bubble in
+     * the middle of the frame the way it does out past 250. 60 is the ordinary
+     * cone of vision to come back to.
      */
-    fov: mode === 'curvilinear' ? (state.fov < 200 ? 270 : state.fov) : Math.min(state.fov, 75),
+    fov: mode === 'curvilinear' ? (state.fov < 120 ? 160 : state.fov) : Math.min(state.fov, 75),
   })),
 
   setCameraHeight: (height) => set({ cameraHeight: Math.max(0.2, Math.min(12, height)) }),

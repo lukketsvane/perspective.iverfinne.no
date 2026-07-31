@@ -15,9 +15,23 @@ const ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const ray = new THREE.Ray();
 const hit = new THREE.Vector3();
 
-/** Nearest and furthest the drop point is allowed to be, in metres. */
-const MIN_RANGE = 1.5;
-const MAX_RANGE = 15;
+/**
+ * Nearest and furthest the drop point is allowed to be, in metres.
+ *
+ * Close enough to be within reach: a figure dropped fifteen metres out is a
+ * smudge on the horizon that then has to be walked to. Two and a half metres is
+ * about where you would stand something down to draw it - near enough to fill
+ * the frame, far enough not to be inside your own eye level.
+ */
+const MIN_RANGE = 1.2;
+const MAX_RANGE = 6;
+
+/**
+ * Where a drop lands when the gaze never meets the floor - looking level, or
+ * up. Same reasoning as the range above: a pace or two ahead, not across the
+ * room.
+ */
+const LEVEL_RANGE = 2.5;
 
 export const updateFocus = (camera: THREE.Camera) => {
   camera.getWorldDirection(forward);
@@ -30,8 +44,8 @@ export const updateFocus = (camera: THREE.Camera) => {
     forward.y = 0;
     if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1);
     forward.normalize();
-    focusPoint.x = camera.position.x + forward.x * 4;
-    focusPoint.z = camera.position.z + forward.z * 4;
+    focusPoint.x = camera.position.x + forward.x * LEVEL_RANGE;
+    focusPoint.z = camera.position.z + forward.z * LEVEL_RANGE;
     return;
   }
 
