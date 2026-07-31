@@ -7,8 +7,9 @@ import { KimBox } from './KimBox';
 import { HorizonLine, ScaleFigure } from './Reference';
 import { SceneModels } from './SceneModels';
 import { WalkControls, resumeOrbitView } from './WalkControls';
-import { updateFocus } from '../lib/focus';
+import { updateFocus, focusPoint } from '../lib/focus';
 import { updateVanishing, clearVanishing } from '../lib/vanishing';
+import { sceneRevision } from '../lib/sceneRevision';
 import { Panorama } from './Panorama';
 import { dragJustEnded } from '../lib/dragGuard';
 import { useGesture } from '@use-gesture/react';
@@ -233,44 +234,102 @@ export const sunPosition = (azimuth: number, elevation: number): [number, number
   return [Math.sin(a) * flat, Math.sin(e) * SUN_DISTANCE, Math.cos(a) * flat];
 };
 
+/** How far the shadow camera reaches either side of where you are looking. */
+const SHADOW_REACH = 14;
+
+/**
+ * How far you have to move before the shadow camera follows.
+ *
+ * Following continuously would invalidate the map every frame and undo the
+ * whole point of drawing it on demand. Snapping to a grid means it only moves
+ * when you have actually gone somewhere.
+ */
+const SHADOW_STEP = 8;
+
 /**
  * The scene's only light.
  *
- * The shadow camera is a fixed 80 m box around the origin: big enough for a
- * study you can walk, small enough that a 2048 map still resolves the edge of a
- * cube's shadow. A phone gets half that map - it is the one number here that
- * costs real memory.
+ * Three things decide how good the shadows look, and the map size is only one.
+ *
+ * The second is how much of that map is spent on the part of the scene you can
+ * see. It used to be an 80 m box fixed on the origin, so a 1 m cube got a few
+ * dozen texels of it. It is a 28 m box now - about eight times the detail on
+ * the same memory - and it follows the point you are looking at, so walking to
+ * the far end of a study does not walk out of the shadows.
+ *
+ * The third is how often it is redrawn. It was redrawn every frame, for a sun
+ * and a set of boxes that had not moved since the last one, which is most of
+ * what made dragging the sun feel like wading. Now it is redrawn when the scene
+ * changes, the sun moves, or you cross into a new cell - and not otherwise.
  */
 const Sun: React.FC = () => {
   const sun = useStore((state) => state.sun);
-  const position = useMemo(() => sunPosition(sun.azimuth, sun.elevation), [sun.azimuth, sun.elevation]);
+  const light = useRef<THREE.DirectionalLight>(null);
+  const anchor = useMemo(() => new THREE.Object3D(), []);
+
+  const offset = useMemo(
+    () => sunPosition(sun.azimuth, sun.elevation),
+    [sun.azimuth, sun.elevation]
+  );
   const mapSize = useMemo(
     () =>
       typeof window !== 'undefined' && Math.min(window.innerWidth, window.innerHeight) < 900
-        ? 1024
-        : 2048,
+        ? 2048
+        : 4096,
     []
   );
 
+  useEffect(() => {
+    const shadow = light.current?.shadow;
+    if (!shadow) return;
+    shadow.autoUpdate = false;
+    shadow.needsUpdate = true;
+  }, []);
+
+  const drawn = useRef({ revision: -1, x: NaN, z: NaN });
+
+  useFrame(() => {
+    const lamp = light.current;
+    if (!lamp) return;
+
+    const cellX = Math.round(focusPoint.x / SHADOW_STEP) * SHADOW_STEP;
+    const cellZ = Math.round(focusPoint.z / SHADOW_STEP) * SHADOW_STEP;
+    const was = drawn.current;
+    if (was.revision === sceneRevision.value && was.x === cellX && was.z === cellZ) return;
+
+    // The lamp keeps its bearing on the sun and slides over the scene with you.
+    anchor.position.set(cellX, 0, cellZ);
+    anchor.updateMatrixWorld();
+    lamp.position.set(cellX + offset[0], offset[1], cellZ + offset[2]);
+
+    drawn.current = { revision: sceneRevision.value, x: cellX, z: cellZ };
+    lamp.shadow.needsUpdate = true;
+  });
+
   return (
-    <directionalLight
-      position={position}
-      intensity={sun.intensity}
-      castShadow={sun.shadows}
-      shadow-mapSize-width={mapSize}
-      shadow-mapSize-height={mapSize}
-      // A room at 1:1 puts big flat surfaces almost edge-on to the sun, which
-      // is where a shadow map self-shadows into stripes. Offsetting along the
-      // normal costs a couple of centimetres of contact and kills the banding.
-      shadow-bias={-0.0004}
-      shadow-normalBias={0.05}
-      shadow-camera-near={1}
-      shadow-camera-far={SUN_DISTANCE * 2.5}
-      shadow-camera-left={-40}
-      shadow-camera-right={40}
-      shadow-camera-top={40}
-      shadow-camera-bottom={-40}
-    />
+    <>
+      <primitive object={anchor} />
+      <directionalLight
+        ref={light}
+        target={anchor}
+        position={offset}
+        intensity={sun.intensity}
+        castShadow={sun.shadows}
+        shadow-mapSize-width={mapSize}
+        shadow-mapSize-height={mapSize}
+        // A room at 1:1 puts big flat surfaces almost edge-on to the sun, which
+        // is where a shadow map self-shadows into stripes. Offsetting along the
+        // normal costs a couple of centimetres of contact and kills the banding.
+        shadow-bias={-0.00015}
+        shadow-normalBias={0.025}
+        shadow-camera-near={SUN_DISTANCE - SHADOW_REACH * 3}
+        shadow-camera-far={SUN_DISTANCE + SHADOW_REACH * 3}
+        shadow-camera-left={-SHADOW_REACH}
+        shadow-camera-right={SHADOW_REACH}
+        shadow-camera-top={SHADOW_REACH}
+        shadow-camera-bottom={-SHADOW_REACH}
+      />
+    </>
   );
 };
 
@@ -451,12 +510,7 @@ const SceneContent = () => {
       {/* The curvilinear view is a different projection, not a filter over the
           flat one, so it takes the frame over entirely while it is on. */}
       {curvilinear && (
-        <Panorama
-          spread={fov}
-          blend={distortion}
-          gridColor={gridColor}
-          gridStrength={showGuides ? 1 : 0}
-        />
+        <Panorama spread={fov} gridColor={gridColor} gridStrength={showGuides ? 1 : 0} />
       )}
 
       {/* Orbit is the drawing board; walk mode drives the camera itself. */}
@@ -507,7 +561,6 @@ const initialCameraPosition = (): [number, number, number] => {
 export const Scene = () => {
   return (
     <Canvas
-      shadows
       // Start standing at eye level, a few metres back, looking level.
       camera={{ position: initialCameraPosition(), fov: 60, near: 0.05, far: 2000 }}
       dpr={[1, 1.5]}
@@ -519,6 +572,9 @@ export const Scene = () => {
         alpha: true,
         preserveDrawingBuffer: true,
       }}
+      // Percentage-closer soft shadows: the edge of a cube's shadow should
+      // read as an edge, not as a staircase.
+      shadows={{ type: THREE.PCFSoftShadowMap }}
       className="transition-colors duration-500"
       style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
     >

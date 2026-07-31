@@ -32,7 +32,6 @@ const SPAWN_ICON: Record<SpawnKind, React.ReactNode> = {
 export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = ({ layout, onClose }) => {
   const theme = useStore((s) => s.theme);
   const fov = useStore((s) => s.fov);
-  const distortion = useStore((s) => s.distortion);
   const perspectiveMode = useStore((s) => s.perspectiveMode);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const lockEyeLevel = useStore((s) => s.lockEyeLevel);
@@ -163,7 +162,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
             min={25}
             max={360}
             step={1}
-            cycle={[35, 50, 60, 90, 120]}
+            cycle={[50, 90, 150, 220, 270, 330]}
             onChange={(v) => setLens(v)}
           />
           {cellToggle(showCone, toggleCone, I.cone, 'Cone of vision')}
@@ -335,24 +334,11 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
               min={25}
               max={360}
               step={1}
-              cycle={[35, 50, 60, 90, 120]}
+              cycle={[50, 90, 150, 220, 270, 330]}
               onChange={(v) => setLens(v)}
             />
           </div>
 
-          {perspectiveMode === 'curvilinear' && (
-            <Scrub
-            skin={skin}
-              icon={I.curved}
-              label="Curvature"
-              reading={distortion.toFixed(2)}
-              value={distortion}
-              min={0}
-              max={1}
-              step={0.01}
-              onChange={(v) => setLens(fov, v)}
-            />
-          )}
         </div>
 
         {/* --------------------------------------------- what a tap drops, and snap */}
