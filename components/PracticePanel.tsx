@@ -1,9 +1,10 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useStore, EYE_LEVEL_PRESETS, SPAWN_PRESETS } from '../store';
 import { SpawnKind } from '../types';
 import { STUDIES } from '../lib/studies';
 import type { Layout } from '../lib/useLayout';
 import { Icon, I } from './icons';
+import { Toggle, Scrub, Cell, type Skin } from './controls';
 
 const SPAWN_ORDER: SpawnKind[] = ['cube', 'slab', 'pillar', 'beam', 'block'];
 const SPAWN_ICON: Record<SpawnKind, React.ReactNode> = {
@@ -72,189 +73,8 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
   const value = isDark ? 'text-white' : 'text-gray-900';
   const divider = isDark ? 'border-white/10' : 'border-gray-100';
 
-  const size = touch ? 'w-10 h-10' : 'w-8 h-8';
-  /** Every cell in the phone grid is this square. */
-  const cellSize = 'w-12 h-12 shrink-0';
   const rowPad = touch ? 'px-3 py-3' : 'px-3 py-2.5';
-  const slider = touch ? 'w-full accent-current h-6' : 'w-full accent-current';
-
-  /** A square icon control, filled in when it is on. */
-  const Toggle: React.FC<{
-    on: boolean;
-    onClick: () => void;
-    path: React.ReactNode;
-    label: string;
-    className?: string;
-  }> = ({ on, onClick, path, label, className = '' }) => (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      aria-pressed={on}
-      title={label}
-      className={`flex items-center justify-center ${size} rounded-lg border transition-colors ${
-        on
-          ? isDark ? 'bg-white text-black border-white' : 'bg-gray-900 text-white border-gray-900'
-          : isDark ? 'bg-black/40 text-gray-400 border-white/15' : 'bg-black/5 text-gray-500 border-transparent'
-      } ${className}`}
-    >
-      <Icon path={path} className={touch ? 'w-5 h-5' : 'w-[18px] h-[18px]'} />
-    </button>
-  );
-
-  /**
-   * A number you drag.
-   *
-   * A row of preset buttons with a slider under it was two controls and a whole
-   * row of chrome to say one thing. This is the thing itself: the reading is
-   * the control. Drag it for any value, tap it to step round the presets - what
-   * the buttons were for. A slider cannot land on 1.90 exactly; this cannot
-   * miss it.
-   */
-  const Scrub: React.FC<{
-    icon: React.ReactNode;
-    label: string;
-    reading: string;
-    value: number;
-    min: number;
-    max: number;
-    step: number;
-    cycle?: number[];
-    wrap?: boolean;
-    onChange: (v: number) => void;
-  }> = ({ icon, label, reading, value: current, min, max, step, cycle, wrap, onChange }) => {
-    const drag = useRef<{ id: number; x: number; from: number; moved: boolean } | null>(null);
-
-    const settle = (v: number) => {
-      const snapped = Math.round(v / step) * step;
-      if (wrap) return ((snapped % max) + max) % max;
-      return Math.min(max, Math.max(min, snapped));
-    };
-
-    return (
-      <button
-        // Over a black panel a black fill is invisible, so the affordance is a
-        // hairline instead: it has to read as something you can take hold of.
-        className={`flex-1 min-w-0 flex items-center gap-1.5 ${touch ? 'h-10' : 'h-8'} px-2 rounded-lg touch-none cursor-ew-resize border ${
-          isDark ? 'bg-black/40 border-white/15' : 'bg-black/5 border-black/10'
-        }`}
-        aria-label={label}
-        title={label}
-        onPointerDown={(e) => {
-          try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* not capturable */ }
-          drag.current = { id: e.pointerId, x: e.clientX, from: current, moved: false };
-        }}
-        onPointerMove={(e) => {
-          if (drag.current?.id !== e.pointerId) return;
-          const travel = e.clientX - drag.current.x;
-          if (Math.abs(travel) > 3) drag.current.moved = true;
-          if (!drag.current.moved) return;
-          // 180 px of travel covers the whole range, whatever the range is.
-          onChange(settle(drag.current.from + (travel / 180) * (max - min)));
-        }}
-        onPointerUp={(e) => {
-          const held = drag.current;
-          drag.current = null;
-          if (held?.id !== e.pointerId || held.moved || !cycle?.length) return;
-          // A tap steps to the next preset up, and round to the bottom again.
-          onChange(cycle.find((v) => v > current + 0.001) ?? cycle[0]);
-        }}
-        onPointerCancel={() => { drag.current = null; }}
-      >
-        <span className={`shrink-0 ${muted}`}>
-          <Icon path={icon} className="w-4 h-4" />
-        </span>
-        <span className={`flex-1 text-right text-[12px] font-black tabular-nums ${value}`}>{reading}</span>
-      </button>
-    );
-  };
-
-  /**
-   * A square that reads a number and takes a drag.
-   *
-   * The grid version of Scrub: icon over value, sized like every other cell so
-   * a column of them lines up. Drag in any direction - right and up raise it -
-   * because in a grid there is no obvious axis.
-   */
-  const Cell: React.FC<{
-    icon: React.ReactNode;
-    label: string;
-    reading: string;
-    value: number;
-    min: number;
-    max: number;
-    step: number;
-    cycle?: number[];
-    wrap?: boolean;
-    onChange: (v: number) => void;
-  }> = ({ icon, label, reading, value: current, min, max, step, cycle, wrap, onChange }) => {
-    const drag = useRef<{ id: number; x: number; y: number; from: number; moved: boolean } | null>(null);
-
-    const settle = (v: number) => {
-      const snapped = Math.round(v / step) * step;
-      if (wrap) return ((snapped % max) + max) % max;
-      return Math.min(max, Math.max(min, snapped));
-    };
-
-    return (
-      <button
-        className={`${cellSize} flex flex-col items-center justify-center gap-0.5 rounded-xl border touch-none ${
-          isDark ? 'bg-black/40 border-white/15 text-white' : 'bg-black/5 border-black/10 text-gray-900'
-        }`}
-        aria-label={label}
-        title={label}
-        onPointerDown={(e) => {
-          try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* not capturable */ }
-          drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, from: current, moved: false };
-        }}
-        onPointerMove={(e) => {
-          if (drag.current?.id !== e.pointerId) return;
-          const travel = (e.clientX - drag.current.x) + (drag.current.y - e.clientY);
-          if (Math.abs(travel) > 4) drag.current.moved = true;
-          if (!drag.current.moved) return;
-          onChange(settle(drag.current.from + (travel / 200) * (max - min)));
-        }}
-        onPointerUp={(e) => {
-          const held = drag.current;
-          drag.current = null;
-          if (held?.id !== e.pointerId || held.moved || !cycle?.length) return;
-          onChange(cycle.find((v) => v > current + 0.001) ?? cycle[0]);
-        }}
-        onPointerCancel={() => { drag.current = null; }}
-      >
-        <Icon path={icon} className="w-4 h-4 opacity-50" />
-        <span className="text-[10px] font-black tabular-nums leading-none">{reading}</span>
-      </button>
-    );
-  };
-
-  /** A slider with its reading, and an icon saying what it is. */
-  const Dial: React.FC<{
-    icon: React.ReactNode;
-    label: string;
-    reading: string;
-    min: number;
-    max: number;
-    step: number;
-    value: number;
-    onChange: (v: number) => void;
-  }> = ({ icon, label, reading, min, max, step, value: current, onChange }) => (
-    <div className="flex items-center gap-2">
-      <span className={`shrink-0 ${muted}`}>
-        <Icon path={icon} className="w-4 h-4" />
-      </span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={current}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        className={slider}
-        aria-label={label}
-      />
-      <span className={`shrink-0 w-12 text-right text-[11px] font-black tabular-nums ${value}`}>{reading}</span>
-    </div>
-  );
+  const skin: Skin = useMemo(() => ({ dark: isDark, touch }), [isDark, touch]);
 
   const activeStudy = STUDIES.find((s) => s.id === activeStudyId) ?? null;
 
@@ -275,7 +95,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
         aria-label={label}
         aria-pressed={on}
         title={label}
-        className={`${cellSize} flex items-center justify-center rounded-xl border transition-colors ${
+        className={`w-12 h-12 shrink-0 flex items-center justify-center rounded-xl border transition-colors ${
           on
             ? isDark ? 'bg-white text-black border-white' : 'bg-gray-900 text-white border-gray-900'
             : isDark ? 'bg-black/40 text-gray-400 border-white/15' : 'bg-black/5 text-gray-500 border-black/10'
@@ -315,13 +135,14 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
         <div className="grid grid-cols-3 gap-1.5">
           {cellToggle(studiesOpen, () => setStudiesOpen(!studiesOpen), I.study, 'Study')}
           <Cell
+            skin={skin}
             icon={I.horizon}
             label="Eye level"
             reading={cameraHeight.toFixed(2)}
             value={cameraHeight}
             min={0.4}
             max={12}
-            step={0.05}
+            step={0.01}
             cycle={EYE_LEVEL_PRESETS.map((preset) => preset.height)}
             onChange={setCameraHeight}
           />
@@ -334,6 +155,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
             perspectiveMode === 'linear' ? 'Straight lines' : 'Curvilinear'
           )}
           <Cell
+            skin={skin}
             icon={I.cone}
             label="Field of view"
             reading={`${Math.round(fov)}°`}
@@ -355,6 +177,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
           {cellToggle(matteModels, toggleMatte, I.matte, 'Matte white models')}
 
           <Cell
+            skin={skin}
             icon={I.bearing}
             label="Sun bearing"
             reading={`${Math.round(sun.azimuth)}°`}
@@ -366,6 +189,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
             onChange={(v) => setSun({ azimuth: v })}
           />
           <Cell
+            skin={skin}
             icon={I.elevation}
             label="Sun height"
             reading={`${Math.round(sun.elevation)}°`}
@@ -376,6 +200,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
             onChange={(v) => setSun({ elevation: v })}
           />
           <Cell
+            skin={skin}
             icon={I.sun}
             label="Sun strength"
             reading={sun.intensity.toFixed(1)}
@@ -461,17 +286,19 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
         {/* ------------------------------------------------ eye level, in metres */}
         <div className={`${rowPad} border-b ${divider} flex items-center gap-1.5`}>
           <Scrub
+            skin={skin}
             icon={I.horizon}
             label="Eye level"
             reading={`${cameraHeight.toFixed(2)} m`}
             value={cameraHeight}
             min={0.4}
             max={12}
-            step={0.05}
+            step={0.01}
             cycle={EYE_LEVEL_PRESETS.map((preset) => preset.height)}
             onChange={setCameraHeight}
           />
           <Toggle
+            skin={skin}
             on={lockEyeLevel}
             onClick={toggleEyeLevelLock}
             path={lockEyeLevel ? I.levelLocked : I.levelFree}
@@ -484,6 +311,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
         <div className={`${rowPad} border-b ${divider} space-y-2`}>
           <div className="flex items-center gap-1.5">
             <Toggle
+            skin={skin}
               on={perspectiveMode === 'linear'}
               onClick={() => setPerspectiveMode('linear')}
               path={I.straight}
@@ -491,6 +319,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
               className="shrink-0"
             />
             <Toggle
+            skin={skin}
               on={perspectiveMode === 'curvilinear'}
               onClick={() => setPerspectiveMode('curvilinear')}
               path={I.curved}
@@ -498,6 +327,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
               className="shrink-0"
             />
             <Scrub
+            skin={skin}
               icon={I.cone}
               label="Field of view"
               reading={`${Math.round(fov)}°`}
@@ -512,6 +342,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
 
           {perspectiveMode === 'curvilinear' && (
             <Scrub
+            skin={skin}
               icon={I.curved}
               label="Curvature"
               reading={distortion.toFixed(2)}
@@ -528,6 +359,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
         <div className={`${rowPad} border-b ${divider} flex items-center gap-1`}>
           {SPAWN_ORDER.map((kind) => (
             <Toggle
+            skin={skin}
               key={kind}
               on={spawnKind === kind}
               onClick={() => setSpawnKind(kind)}
@@ -537,6 +369,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
             />
           ))}
           <Toggle
+            skin={skin}
             on={snapStep > 0}
             onClick={() => setSnapStep(snapStep > 0 ? 0 : 0.25)}
             path={I.snap}
@@ -547,16 +380,17 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
 
         {/* ------------------------------------------------ what is drawn over it */}
         <div className={`${rowPad} border-b ${divider} flex items-center gap-1`}>
-          <Toggle on={showGuides} onClick={toggleGuides} path={I.horizon} label="Horizon and grid" className="flex-1" />
-          <Toggle on={showFigure} onClick={toggleFigure} path={I.person} label="Scale figure" className="flex-1" />
-          <Toggle on={showCone} onClick={toggleCone} path={I.cone} label="Cone of vision" className="flex-1" />
-          <Toggle on={cameraFeed} onClick={() => setCameraFeed(!cameraFeed)} path={I.camera} label="Camera feed" className="flex-1" />
-          <Toggle on={matteModels} onClick={toggleMatte} path={I.matte} label="Matte white models" className="flex-1" />
+          <Toggle skin={skin} on={showGuides} onClick={toggleGuides} path={I.horizon} label="Horizon and grid" className="flex-1" />
+          <Toggle skin={skin} on={showFigure} onClick={toggleFigure} path={I.person} label="Scale figure" className="flex-1" />
+          <Toggle skin={skin} on={showCone} onClick={toggleCone} path={I.cone} label="Cone of vision" className="flex-1" />
+          <Toggle skin={skin} on={cameraFeed} onClick={() => setCameraFeed(!cameraFeed)} path={I.camera} label="Camera feed" className="flex-1" />
+          <Toggle skin={skin} on={matteModels} onClick={toggleMatte} path={I.matte} label="Matte white models" className="flex-1" />
         </div>
 
         {/* ---------------------------------------------------------------- the sun */}
         <div className={`${rowPad} flex items-center gap-1.5`}>
           <Scrub
+            skin={skin}
             icon={I.bearing}
             label="Sun bearing"
             reading={`${Math.round(sun.azimuth)}°`}
@@ -568,6 +402,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
             onChange={(v) => setSun({ azimuth: v })}
           />
           <Scrub
+            skin={skin}
             icon={I.elevation}
             label="Sun height"
             reading={`${Math.round(sun.elevation)}°`}
@@ -578,6 +413,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
             onChange={(v) => setSun({ elevation: v })}
           />
           <Scrub
+            skin={skin}
             icon={I.sun}
             label="Sun strength"
             reading={sun.intensity.toFixed(1)}
@@ -588,6 +424,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
             onChange={(v) => setSun({ intensity: v })}
           />
           <Toggle
+            skin={skin}
             on={sun.shadows}
             onClick={() => setSun({ shadows: !sun.shadows })}
             path={I.shadow}
