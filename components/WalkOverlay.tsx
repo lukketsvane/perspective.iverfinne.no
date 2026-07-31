@@ -2,10 +2,63 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
 import { walkInput, recentre } from '../lib/walkInput';
 import { focusPoint } from '../lib/focus';
+import { matchedVerticalFov } from '../lib/cameraFeed';
 
-const LOOK_SENSITIVITY = 0.0045; // radians per pixel
 const MAX_PITCH = Math.PI / 2 - 0.05;
-const STICK_RADIUS = 56; // px
+const STICK_RADIUS = 64; // px
+
+/**
+ * How fast a drag turns you, relative to grabbing the picture and pulling it.
+ *
+ * At 1 the thing under the finger stays under the finger, which is the calmest
+ * possible answer and also a slow one - turning right round takes several full
+ * sweeps. A little over that keeps the world feeling attached to the hand while
+ * letting a single sweep cover most of a quarter turn.
+ */
+const LOOK_GAIN = 1.4;
+
+/**
+ * Radians of turn per pixel of drag.
+ *
+ * This used to be a constant 0.0045, chosen against nothing, which on an iPad
+ * meant a sweep across the glass spun you three hundred degrees - the reason
+ * looking around felt like it was on ice. What it should depend on is how much
+ * world is on the screen: the same swipe should turn you less when the lens is
+ * wide, because a wide lens already put more of the room in front of you.
+ *
+ * So it is measured off the frame. In curvilinear the width of the canvas *is*
+ * the field, in degrees, because the projection is equidistant - angle from the
+ * centre is distance from the centre, evenly. In straight-line perspective the
+ * setting is vertical, so it is opened out to the horizontal by the frame's
+ * shape; with the camera feed showing through, the lens is the real one being
+ * matched rather than the practice one.
+ */
+const lookRadiansPerPixel = (
+  curvilinear: boolean,
+  fovDegrees: number,
+  width: number,
+  height: number
+) => {
+  const horizontal = curvilinear
+    ? (fovDegrees * Math.PI) / 180
+    : 2 * Math.atan(Math.tan((fovDegrees * Math.PI) / 360) * (width / Math.max(height, 1)));
+  return (horizontal / Math.max(width, 1)) * LOOK_GAIN;
+};
+
+/**
+ * The stick's response: a dead zone, then a curve.
+ *
+ * A thumb resting on the glass drifts a few pixels, and squaring the push means
+ * the first third of the throw is a slow creep - which is what you want when
+ * lining an edge up with something. Full tilt is still full speed.
+ */
+const STICK_DEAD_ZONE = 0.14;
+
+const shapeStick = (magnitude: number) => {
+  if (magnitude <= STICK_DEAD_ZONE) return 0;
+  const t = (magnitude - STICK_DEAD_ZONE) / (1 - STICK_DEAD_ZONE);
+  return t * t;
+};
 
 /**
  * Walk-mode controls, built for two thumbs.
@@ -28,6 +81,8 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
   const setSensorFov = useStore((s) => s.setSensorFov);
   const viewLocked = useStore((s) => s.viewLocked);
   const toggleViewLock = useStore((s) => s.toggleViewLock);
+  const fov = useStore((s) => s.fov);
+  const perspectiveMode = useStore((s) => s.perspectiveMode);
   const [tuning, setTuning] = useState(false);
 
   const isDark = theme === 'dark';
@@ -37,6 +92,30 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
     : 'bg-white/75 text-gray-900 border-gray-300';
 
   // --------------------------------------------------------------- gestures
+  /**
+   * Turn per pixel, kept in a ref so a drag in progress reads the current
+   * figure without the pointer handlers being rebuilt underneath it.
+   */
+  const lookRate = useRef(0.002);
+  useEffect(() => {
+    const measure = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      // Over the camera feed the virtual lens is matched to the real one, and
+      // the panorama is not in play - what is on screen is a flat frame.
+      const curvilinear = perspectiveMode === 'curvilinear' && !cameraFeed;
+      const degrees = cameraFeed ? matchedVerticalFov(sensorFov, width, height) : fov;
+      lookRate.current = lookRadiansPerPixel(curvilinear, degrees, width, height);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    window.addEventListener('orientationchange', measure);
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('orientationchange', measure);
+    };
+  }, [fov, perspectiveMode, cameraFeed, sensorFov]);
+
   const look = useRef<{ id: number; x: number; y: number } | null>(null);
   const stick = useRef<{ id: number; x: number; y: number } | null>(null);
   const [stickView, setStickView] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
@@ -57,8 +136,17 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
       dy = (dy / distance) * STICK_RADIUS;
     }
     setStickView({ x: originX, y: originY, dx, dy });
-    walkInput.strafe = dx / STICK_RADIUS;
-    walkInput.forward = -dy / STICK_RADIUS;
+
+    // Direction from the thumb, speed from the curve above.
+    const push = shapeStick(Math.min(1, distance / STICK_RADIUS));
+    if (push === 0) {
+      walkInput.strafe = 0;
+      walkInput.forward = 0;
+      return;
+    }
+    const length = Math.max(Math.hypot(dx, dy), 1e-5);
+    walkInput.strafe = (dx / length) * push;
+    walkInput.forward = (-dy / length) * push;
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -90,18 +178,20 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
       look.current.x = e.clientX;
       look.current.y = e.clientY;
 
+      const rate = lookRate.current;
+
       // With the sensor driving, the drag is an offset on top of it rather than
       // the heading itself; the sensor keeps reporting where the device points
       // either way.
       if (walkInput.useDeviceOrientation) {
-        walkInput.lookYaw -= dx * LOOK_SENSITIVITY;
+        walkInput.lookYaw -= dx * rate;
         walkInput.lookPitch = Math.max(
           -MAX_PITCH,
-          Math.min(MAX_PITCH, walkInput.lookPitch - dy * LOOK_SENSITIVITY)
+          Math.min(MAX_PITCH, walkInput.lookPitch - dy * rate)
         );
       } else {
-        walkInput.yaw -= dx * LOOK_SENSITIVITY;
-        walkInput.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, walkInput.pitch - dy * LOOK_SENSITIVITY));
+        walkInput.yaw -= dx * rate;
+        walkInput.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, walkInput.pitch - dy * rate));
       }
     }
   };

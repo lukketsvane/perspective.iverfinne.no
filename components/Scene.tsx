@@ -551,11 +551,17 @@ const SceneContent = () => {
  * perspective tool is not to widen the lens - that would falsify the very thing
  * being taught, and the cone of vision with it - but to step back, exactly as
  * you would in a room.
+ *
+ * Only as far back as the frame needs, though. This used to open six metres out
+ * on a phone, which put the cubes in the middle distance: too small to read an
+ * edge off, and every session started by dragging in. Standing at about three
+ * and a half metres puts the nearest cube at the size you would actually draw
+ * it, and the far one still reaches the horizon.
  */
 const initialCameraPosition = (): [number, number, number] => {
   const aspect = typeof window === 'undefined' ? 1.5 : window.innerWidth / window.innerHeight;
-  const backOff = Math.min(2, Math.max(1, 1.5 / Math.max(aspect, 0.3)));
-  return [3 * backOff, DEFAULT_CAMERA_HEIGHT, 5 * backOff];
+  const backOff = Math.min(1.5, Math.max(1, 1.5 / Math.max(aspect, 0.3)));
+  return [1.9 * backOff, DEFAULT_CAMERA_HEIGHT, 3 * backOff];
 };
 
 export const Scene = () => {

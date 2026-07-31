@@ -162,7 +162,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
             min={25}
             max={360}
             step={1}
-            cycle={[50, 90, 150, 220, 270, 330]}
+            cycle={[35, 60, 90, 160, 240, 330]}
             onChange={(v) => setLens(v)}
           />
           {cellToggle(showCone, toggleCone, I.cone, 'Cone of vision')}
@@ -334,7 +334,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
               min={25}
               max={360}
               step={1}
-              cycle={[50, 90, 150, 220, 270, 330]}
+              cycle={[35, 60, 90, 160, 240, 330]}
               onChange={(v) => setLens(v)}
             />
           </div>
