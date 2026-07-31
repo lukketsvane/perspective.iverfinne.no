@@ -415,10 +415,16 @@ export const useStore = create<SceneState>((set, get) => ({
 
   setPerspectiveMode: (mode) => set((state) => ({
     perspectiveMode: mode,
-    // Curvilinear needs curvature and a wide lens to read as 5-point;
-    // linear snaps back to a clean cone of vision.
-    distortion: mode === 'curvilinear' ? (state.distortion > 0 ? state.distortion : 0.35) : 0,
-    fov: mode === 'curvilinear' ? Math.max(state.fov, 85) : Math.min(state.fov, 75),
+    /*
+     * The lens number is a focal length in one mode and the width of a
+     * panorama in the other, so carrying one value across gives a curvilinear
+     * view as narrow as a portrait lens or a flat one turned inside out.
+     *
+     * 270 degrees is the useful default here: standing in a room it puts three
+     * of the four walls in the frame at once, which is the thing the projection
+     * is for. 60 is the ordinary cone of vision to come back to.
+     */
+    fov: mode === 'curvilinear' ? (state.fov < 200 ? 270 : state.fov) : Math.min(state.fov, 75),
   })),
 
   setCameraHeight: (height) => set({ cameraHeight: Math.max(0.2, Math.min(12, height)) }),

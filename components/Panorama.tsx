@@ -1,39 +1,57 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { fieldOf } from '../lib/projection';
+import { sceneRevision } from '../lib/sceneRevision';
 
 /**
- * The curvilinear view, rendered rather than warped.
+ * The curvilinear view: five-point, rendered rather than warped.
  *
- * The scene goes onto the six faces of a cube once per frame, and then one
- * full-screen pass asks, for every pixel, "what is along this ray" and reads it
- * off the cube. That is the whole trick, and it is what makes the difference
- * between this and a post-process fisheye:
+ * The scene goes onto the six faces of a cube, and one full-screen pass asks,
+ * for every pixel, "what is along this ray" and reads it off the cube. That is
+ * what makes the difference between this and a post-process fisheye:
  *
- *  - lines stay smooth, because nothing is being resampled from a stretched
- *    flat image
+ *  - lines stay smooth, because nothing is resampled from a stretched flat
+ *    image
  *  - the field can be the entire 360, because there is a picture in every
  *    direction to read, not just what fitted in a flat frame
  *  - the zenith and the nadir are really there, which is what makes it five
  *    point rather than a bulged two point
  *
- * The cost is six renders instead of one. The scene is boxes and a handful of
- * figures, and the faces are kept small on a phone.
+ * The projection is equidistant: distance from the centre of the frame is the
+ * angle away from where you are looking, the same in every direction. Left,
+ * right, up, down and straight ahead all reachable at once - which is the
+ * construction Kim Jung Gi rules a page with before he draws a room.
  */
 export const Panorama: React.FC<{
   spread: number;
-  blend: number;
   /** The construction grid's colour, and 0 strength to leave it off. */
   gridColor: THREE.Color;
   gridStrength: number;
-}> = ({ spread, blend, gridColor, gridStrength }) => {
-  const { gl, scene, camera, size } = useThree();
+}> = ({ spread, gridColor, gridStrength }) => {
+  const { gl, scene, camera, size, viewport } = useThree();
 
-  const faceSize = useMemo(
-    () => (Math.min(size.width, size.height) < 700 ? 512 : 1024),
-    [size.width, size.height]
-  );
+  /**
+   * How big each cube face has to be.
+   *
+   * The picture is read off the cube by angle, so what matters is how many
+   * pixels of source there are per degree of view against how many pixels of
+   * screen there are to fill. A face spans 90 degrees; the frame spans
+   * `spread`. Match the two and the picture is sharp. Undershoot and you get
+   * exactly what this looked like before the sum was done - a screen's worth of
+   * detail smeared across a screen and a half.
+   */
+  const faceSize = useMemo(() => {
+    const pixels = size.width * Math.min(viewport.dpr, 2);
+    const wanted = (90 / Math.max(spread, 20)) * pixels;
+    // A cube target is six faces: 2048 costs 100 MB of video memory, 4096
+    // costs four hundred. The ceiling is what the device can hold, not what
+    // the sum asks for.
+    const capped = Math.min(size.width < 700 ? 1024 : 2048, Math.max(512, wanted));
+    // Round up to a power of two: cube faces prefer it, and it stops the target
+    // being rebuilt for every degree the field changes by.
+    return 2 ** Math.ceil(Math.log2(capped));
+  }, [size.width, viewport.dpr, spread]);
 
   const rig = useMemo(() => {
     const target = new THREE.WebGLCubeRenderTarget(faceSize, {
@@ -48,7 +66,6 @@ export const Panorama: React.FC<{
         panorama: { value: target.texture },
         halfYaw: { value: 1 },
         halfPitch: { value: 1 },
-        blend: { value: 0 },
         orientation: { value: new THREE.Matrix3() },
         gridColor: { value: new THREE.Color() },
         gridStrength: { value: 0 },
@@ -64,7 +81,6 @@ export const Panorama: React.FC<{
         uniform samplerCube panorama;
         uniform float halfYaw;
         uniform float halfPitch;
-        uniform float blend;
         uniform mat3 orientation;
         uniform vec3 gridColor;
         uniform float gridStrength;
@@ -79,9 +95,9 @@ export const Panorama: React.FC<{
          * a multiple of the spacing.
          *
          * Dividing by the screen-space derivative is what keeps it one pixel
-         * wide whether the meridians are splayed out across the middle of the
-         * frame or crowded together at the edge of a 360 degree field. It is
-         * also what antialiases it: no sampling, no polyline, no stair steps.
+         * wide whether the meridians are splayed across the middle of the frame
+         * or crowded at the edge of a 360 degree field. It is also what
+         * antialiases it: no sampling, no polyline, no stair steps.
          */
         float ruled(float coord, float widthPx) {
           float f = coord / SPACING;
@@ -92,22 +108,16 @@ export const Panorama: React.FC<{
         void main() {
           vec2 clip = vUv * 2.0 - 1.0;
 
-          // Equirectangular: across is bearing, up is elevation, both linear.
-          float yaw = clip.x * halfYaw;
-          float pitch = clip.y * halfPitch;
-          float cosPitch = cos(pitch);
-          vec3 equi = vec3(sin(yaw) * cosPitch, sin(pitch), -cos(yaw) * cosPitch);
-
-          // Equidistant fisheye: distance from centre is angle from centre.
+          // Equidistant: distance from centre is angle from centre, the same
+          // in every direction.
           vec2 radial = vec2(clip.x * halfYaw, clip.y * halfPitch);
           float radius = length(radial);
-          vec3 fish = vec3(0.0, 0.0, -1.0);
+          vec3 direction = vec3(0.0, 0.0, -1.0);
           if (radius > 1e-5) {
-            fish = vec3(radial * (sin(radius) / radius), -cos(radius));
+            direction = vec3(radial * (sin(radius) / radius), -cos(radius));
           }
 
-          vec3 direction = normalize(mix(equi, fish, blend));
-          vec3 world = orientation * direction;
+          vec3 world = orientation * normalize(direction);
           gl_FragColor = textureCube(panorama, world);
           #include <colorspace_fragment>
 
@@ -143,10 +153,23 @@ export const Panorama: React.FC<{
     return { target, cubeCamera, material, quadScene, quadCamera: new THREE.Camera() };
   }, [faceSize]);
 
-  useEffect(() => () => {
-    rig.target.dispose();
-    rig.material.dispose();
-  }, [rig]);
+  useEffect(
+    () => () => {
+      rig.target.dispose();
+      rig.material.dispose();
+    },
+    [rig]
+  );
+
+  /**
+   * What the cube was last drawn for.
+   *
+   * A cube map is indexed by direction, so turning your head does not
+   * invalidate it - only moving does, or the scene itself changing. That is six
+   * renders saved on every frame spent looking around, or dragging the sun, or
+   * doing anything at all that leaves you standing where you were.
+   */
+  const drawnAt = useRef({ x: NaN, y: NaN, z: NaN, revision: -1, faceSize: 0 });
 
   // Priority above zero, so react-three-fiber hands the frame over instead of
   // drawing the flat view underneath this one.
@@ -154,13 +177,27 @@ export const Panorama: React.FC<{
     const { halfYaw, halfPitch } = fieldOf(spread, size.width, size.height);
     rig.material.uniforms.halfYaw.value = halfYaw;
     rig.material.uniforms.halfPitch.value = halfPitch;
-    rig.material.uniforms.blend.value = blend;
+    rig.material.uniforms.orientation.value.setFromMatrix4(camera.matrixWorld);
     rig.material.uniforms.gridColor.value.copy(gridColor);
     rig.material.uniforms.gridStrength.value = gridStrength;
-    rig.material.uniforms.orientation.value.setFromMatrix4(camera.matrixWorld);
 
-    rig.cubeCamera.position.copy(camera.position);
-    rig.cubeCamera.update(gl, scene);
+    const was = drawnAt.current;
+    const moved =
+      Math.abs(was.x - camera.position.x) > 1e-4 ||
+      Math.abs(was.y - camera.position.y) > 1e-4 ||
+      Math.abs(was.z - camera.position.z) > 1e-4;
+
+    if (moved || was.revision !== sceneRevision.value || was.faceSize !== faceSize) {
+      rig.cubeCamera.position.copy(camera.position);
+      rig.cubeCamera.update(gl, scene);
+      drawnAt.current = {
+        x: camera.position.x,
+        y: camera.position.y,
+        z: camera.position.z,
+        revision: sceneRevision.value,
+        faceSize,
+      };
+    }
 
     gl.setRenderTarget(null);
     gl.render(rig.quadScene, rig.quadCamera);
