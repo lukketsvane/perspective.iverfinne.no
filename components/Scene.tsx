@@ -10,20 +10,8 @@ import { WalkControls, resumeOrbitView } from './WalkControls';
 import { updateFocus } from '../lib/focus';
 import { updateVanishing, clearVanishing } from '../lib/vanishing';
 import { Panorama } from './Panorama';
-import { updateCurvilinearView } from '../lib/curvilinearView';
 import { dragJustEnded } from '../lib/dragGuard';
 import { useGesture } from '@use-gesture/react';
-
-/** Hands the curvilinear overlay the camera, once per frame. */
-const ProjectionTracker: React.FC<{ curvilinear: boolean; spread: number; blend: number }> = ({
-  curvilinear,
-  spread,
-  blend,
-}) => {
-  const { camera } = useThree();
-  useFrame(() => updateCurvilinearView(curvilinear, spread, blend, camera.matrixWorld));
-  return null;
-};
 
 /** Keeps the "put one here" point under the middle of the view. */
 const FocusTracker = () => {
@@ -317,6 +305,12 @@ const SceneContent = () => {
   // panorama, just the equirectangular one.
   const curvilinear = perspectiveMode === 'curvilinear';
 
+  /** The construction sheet is ruled in red, on paper and here. */
+  const gridColor = useMemo(
+    () => new THREE.Color(isDark || cameraFeed ? '#ff6a5e' : '#e0342a'),
+    [isDark, cameraFeed]
+  );
+
   // Sync FOV with Store. While walking with the room showing through, the lens
   // is matched to the real camera instead - WalkControls owns it there.
   useEffect(() => {
@@ -456,7 +450,14 @@ const SceneContent = () => {
 
       {/* The curvilinear view is a different projection, not a filter over the
           flat one, so it takes the frame over entirely while it is on. */}
-      {curvilinear && <Panorama spread={fov} blend={distortion} />}
+      {curvilinear && (
+        <Panorama
+          spread={fov}
+          blend={distortion}
+          gridColor={gridColor}
+          gridStrength={showGuides ? 1 : 0}
+        />
+      )}
 
       {/* Orbit is the drawing board; walk mode drives the camera itself. */}
       {!isWalking ? (
@@ -482,7 +483,6 @@ const SceneContent = () => {
         <WalkControls />
       )}
 
-      <ProjectionTracker curvilinear={curvilinear} spread={fov} blend={distortion} />
       <FocusTracker />
       <VanishingTracker />
     </>

@@ -5,7 +5,6 @@ import { WalkOverlay } from './components/WalkOverlay';
 import { CameraFeed } from './components/CameraFeed';
 import { ConeOfVision } from './components/ConeOfVision';
 import { VanishingPoints } from './components/VanishingPoints';
-import { CurvilinearGrid } from './components/CurvilinearGrid';
 import { SelectionBar } from './components/SelectionBar';
 import { TouchControls } from './components/TouchControls';
 import { MeshSheet } from './components/MeshSheet';
@@ -470,10 +469,6 @@ export default function App() {
         <ConeOfVision fov={fov} color={isDark || cameraFeed ? '#8ab4ff' : '#1f6feb'} />
       )}
 
-      {/* The spherical construction, when the view is drawn on a sphere */}
-      {showGuides && perspectiveMode === 'curvilinear' && (
-        <CurvilinearGrid color={isDark || cameraFeed ? '#ff6a5e' : '#e0342a'} />
-      )}
 
       {/* Every box has its own pair of vanishing points, and they are the
           reason the tool exists. Drawn for whatever is selected. */}

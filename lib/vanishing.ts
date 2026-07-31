@@ -121,6 +121,25 @@ export const updateVanishing = (
     points.push({ x: vp[0], y: vp[1], rays });
   }
 
+  // Only wake the overlay when something actually moved. Bumping the nonce
+  // every frame re-rendered the whole SVG sixty times a second for points that
+  // had not shifted a pixel, and that showed up as everything else stuttering.
+  if (settled(vanishing.points, points)) return;
   vanishing.points = points;
   vanishing.nonce += 1;
+};
+
+/** True when two sets of points are the same to within half a pixel. */
+const settled = (before: VanishingPoint[], after: VanishingPoint[]) => {
+  if (before.length !== after.length) return false;
+  for (let i = 0; i < before.length; i++) {
+    if (Math.abs(before[i].x - after[i].x) > 0.5) return false;
+    if (Math.abs(before[i].y - after[i].y) > 0.5) return false;
+    if (before[i].rays.length !== after[i].rays.length) return false;
+    for (let r = 0; r < before[i].rays.length; r++) {
+      if (Math.abs(before[i].rays[r][0] - after[i].rays[r][0]) > 0.5) return false;
+      if (Math.abs(before[i].rays[r][1] - after[i].rays[r][1]) > 0.5) return false;
+    }
+  }
+  return true;
 };
