@@ -120,9 +120,8 @@ const snapToHalf = (v: number) => Math.round(v * 2) / 2;
 // ---------------------------------------------------------------------------
 // How you have the tool set up is worth keeping between sessions; what you are
 // looking at is not. So the eye level, the guides and the theme come back on
-// reload, while the scene, the projection, the camera feed and walk mode all
-// return to their defaults - open the app and it is cubes in straight-line
-// perspective at eye level, every time.
+// reload, while the scene, projection and camera feed return to their defaults
+// and the app opens directly into the first-person walk view.
 // ---------------------------------------------------------------------------
 
 const SETTINGS_KEY = 'kjg-perspective-settings';
@@ -235,7 +234,7 @@ export const useStore = create<SceneState>((set, get) => ({
   showCone: false,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   spawnKind: 'cube',
-  viewMode: 'orbit',
+  viewMode: 'walk',
   cameraFeed: false, // The camera stays off until it is asked for
   models: [],
   selectedModelId: null,
