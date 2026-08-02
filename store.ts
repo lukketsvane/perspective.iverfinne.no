@@ -95,7 +95,7 @@ const SETTINGS_KEY = 'kjg-perspective-settings';
 
 type PersistedSettings = Pick<
   SceneState,
-  'theme' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'matteModels' | 'sun'
+  'theme' | 'backgroundGray' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'matteModels' | 'sun'
 >;
 
 const loadSettings = (): Partial<PersistedSettings> => {
@@ -126,6 +126,7 @@ const writeSettings = (state: SceneState) => {
   try {
     const settings: PersistedSettings = {
       theme: state.theme,
+      backgroundGray: state.backgroundGray,
       cameraHeight: state.cameraHeight,
       lockEyeLevel: state.lockEyeLevel,
       showGuides: state.showGuides,
@@ -163,7 +164,13 @@ const saveScenesToStorage = (scenes: SavedScene[]) => {
   }
 };
 
-const remembered = { ...loadSettings(), showFigure: false };
+const loadedSettings = loadSettings();
+const remembered = {
+  ...loadedSettings,
+  showFigure: false,
+  // Migrate settings written before the continuous background control existed.
+  backgroundGray: loadedSettings.backgroundGray ?? (loadedSettings.theme === 'dark' ? 0 : 243),
+};
 
 /** How many steps back you can take. */
 const UNDO_DEPTH = 25;
@@ -190,9 +197,9 @@ export const useStore = create<SceneState>((set, get) => ({
   selectedId: null,
   isDragging: false,
   isViewMode: false,
-  fov: 60, // The classic 60 degree cone of vision - minimal edge distortion
-  distortion: 0, // Straight-line perspective by default
-  perspectiveMode: 'linear',
+  fov: 210, // A broad field that makes the default curvilinear projection useful
+  distortion: 0, // Start with the equirectangular curvilinear projection
+  perspectiveMode: 'curvilinear',
   cameraHeight: DEFAULT_CAMERA_HEIGHT,
   lockEyeLevel: true, // Level gaze -> true verticals -> 2-point perspective
   showFigure: false,
@@ -209,6 +216,7 @@ export const useStore = create<SceneState>((set, get) => ({
   cameraPose: null,
   activeStudyId: null,
   theme: 'light',
+  backgroundGray: 243,
   currentSceneName: null,
   sceneHistory: [],
 
@@ -380,13 +388,13 @@ export const useStore = create<SceneState>((set, get) => ({
      * panorama in the other, so carrying one value across gives a curvilinear
      * view as narrow as a portrait lens or a flat one turned inside out.
      *
-     * 160 degrees is the useful default here: wide enough that the walls run
+     * 210 degrees is the useful default here: wide enough that the walls run
      * off to both sides and the ceiling and floor curve in, which is the thing
      * the projection is for, without the whole room shrinking into a bubble in
      * the middle of the frame the way it does out past 250. 60 is the ordinary
      * cone of vision to come back to.
      */
-    fov: mode === 'curvilinear' ? (state.fov < 120 ? 160 : state.fov) : Math.min(state.fov, 75),
+    fov: mode === 'curvilinear' ? (state.fov < 120 ? 210 : state.fov) : Math.min(state.fov, 75),
   })),
 
   setCameraHeight: (height) => set({ cameraHeight: Math.max(0.2, Math.min(12, height)) }),
@@ -489,7 +497,15 @@ export const useStore = create<SceneState>((set, get) => ({
 
   setSpawnKind: (kind) => set({ spawnKind: kind }),
 
-  toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
+  toggleTheme: () => set((state) => {
+    const dark = state.theme === 'light';
+    return { theme: dark ? 'dark' : 'light', backgroundGray: dark ? 0 : 255 };
+  }),
+
+  setBackgroundGray: (value) => set({
+    backgroundGray: Math.max(0, Math.min(255, Math.round(value))),
+    theme: value < 128 ? 'dark' : 'light',
+  }),
 
   toggleViewMode: () => set((state) => ({ isViewMode: !state.isViewMode, selectedId: null })),
 
