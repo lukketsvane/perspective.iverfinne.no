@@ -108,8 +108,6 @@ export interface SceneState {
   spawnKind: SpawnKind;
   /** Orbit (drawing board) or walk (first person, real scale). */
   viewMode: ViewMode;
-  /** Live camera behind the scene. Off until asked for, in either view mode. */
-  cameraFeed: boolean;
   models: SceneModel[];
   selectedModelId: string | null;
   /** Replace model materials with a plain white matte, for reading form. */
@@ -120,12 +118,8 @@ export interface SceneState {
    * box read as a box.
    */
   sun: SunState;
-  /** Horizontal angle the real camera covers, in degrees. Hand-calibrated. */
-  sensorFov: number;
   /** Freeze the walk camera so a framed view stops moving. */
   viewLocked: boolean;
-  /** Bumped when the live stream reports its size, so the lens match redoes. */
-  feedNonce: number;
   /** Scenes to step back through. Newest last. */
   undoStack: { boxes: BoxData[]; models: SceneModel[] }[];
   /** Set when a study asks the camera to move; the scene consumes it. */
@@ -156,7 +150,6 @@ export interface SceneState {
   setViewMode: (mode: ViewMode) => void;
   /** Load a drill: geometry, eye level, lens and where to stand. */
   loadStudy: (id: string) => void;
-  setCameraFeed: (on: boolean) => void;
   addModel: (model: Omit<SceneModel, 'id'>) => void;
   removeModel: (id: string) => void;
   selectModel: (id: string | null) => void;
@@ -168,9 +161,7 @@ export interface SceneState {
   toggleMatte: () => void;
   /** Move the sun, or change how hard it burns. */
   setSun: (sun: Partial<SunState>) => void;
-  setSensorFov: (degrees: number) => void;
   toggleViewLock: () => void;
-  noteFeedSize: () => void;
   /** Step back one scene. Destructive actions snapshot themselves. */
   undo: () => void;
   toggleTheme: () => void;

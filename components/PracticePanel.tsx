@@ -47,8 +47,6 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
   const setSnapStep = useStore((s) => s.setSnapStep);
   const setSpawnKind = useStore((s) => s.setSpawnKind);
   const resetScene = useStore((s) => s.resetScene);
-  const cameraFeed = useStore((s) => s.cameraFeed);
-  const setCameraFeed = useStore((s) => s.setCameraFeed);
   const sun = useStore((s) => s.sun);
   const setSun = useStore((s) => s.setSun);
   const matteModels = useStore((s) => s.matteModels);
@@ -136,7 +134,6 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
           {cellToggle(snapStep > 0, () => setSnapStep(snapStep > 0 ? 0 : 0.25), I.snap, 'Snap to the grid')}
           {cellToggle(showGuides, toggleGuides, I.horizon, 'Horizon and grid')}
 
-          {cellToggle(cameraFeed, () => setCameraFeed(!cameraFeed), I.camera, 'Camera feed')}
           {cellToggle(matteModels, toggleMatte, I.matte, 'Matte white models')}
 
           <Cell
@@ -281,7 +278,6 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
         <div className={`${rowPad} border-b ${divider} flex items-center gap-1`}>
           <Toggle skin={skin} on={showGuides} onClick={toggleGuides} path={I.horizon} label="Horizon and grid" className="flex-1" />
           <Toggle skin={skin} on={showCone} onClick={toggleCone} path={I.cone} label="Cone of vision" className="flex-1" />
-          <Toggle skin={skin} on={cameraFeed} onClick={() => setCameraFeed(!cameraFeed)} path={I.camera} label="Camera feed" className="flex-1" />
           <Toggle skin={skin} on={matteModels} onClick={toggleMatte} path={I.matte} label="Matte white models" className="flex-1" />
         </div>
 
