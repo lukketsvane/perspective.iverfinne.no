@@ -353,13 +353,14 @@ const SceneContent = () => {
   const showGuides = useStore((state) => state.showGuides);
   const setLens = useStore((state) => state.setLens);
   const theme = useStore((state) => state.theme);
+  const backgroundGray = useStore((state) => state.backgroundGray);
   const viewMode = useStore((state) => state.viewMode);
   const sunShadows = useStore((state) => state.sun.shadows);
 
   const controlsRef = useRef<any>(null);
   const isDark = theme === 'dark';
   const isWalking = viewMode === 'walk';
-  const bgColor = isDark ? '#000000' : '#f3f3f1';
+  const bgColor = `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})`;
   const horizonColor = isDark ? '#5cc8ff' : '#1f6feb';
 
   // Curvilinear is a mode, not an amount: at a blend of zero it is still a
@@ -395,6 +396,10 @@ const SceneContent = () => {
   useGesture(
     {
       onDrag: ({ movement: [, my], touches, last }) => {
+        // Walk mode reserves three fingers for moving the sun. This listener
+        // lives on window, so without the explicit mode check it also changes
+        // the lens while WalkOverlay handles the very same gesture.
+        if (isWalking) { lensGesture.current = null; return; }
         // A third finger can land part-way through a drag, so the anchor is
         // taken when the count reaches three rather than when the drag began.
         if (last || touches !== 3) { lensGesture.current = null; return; }
