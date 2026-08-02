@@ -44,6 +44,7 @@ export const DEFAULT_SUN: SunState = {
   azimuth: 55,
   elevation: 48,
   intensity: 8,
+  temperature: 5600,
   shadows: true,
 };
 
@@ -95,14 +96,24 @@ const SETTINGS_KEY = 'kjg-perspective-settings';
 
 type PersistedSettings = Pick<
   SceneState,
-  'theme' | 'backgroundGray' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'matteModels' | 'sun'
+  'theme' | 'backgroundGray' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'matteModels' | 'sunEnvironment' | 'sun'
 >;
 
 const loadSettings = (): Partial<PersistedSettings> => {
   if (typeof localStorage === 'undefined') return {};
   try {
     const stored = localStorage.getItem(SETTINGS_KEY);
-    return stored ? JSON.parse(stored) : {};
+    if (!stored) return {};
+    const parsed = JSON.parse(stored) as Record<string, unknown>;
+    // Copy only current settings. Older records may contain removed camera-mode
+    // fields; an allow-list prevents those values from leaking back into state.
+    const allowed = [
+      'theme', 'backgroundGray', 'cameraHeight', 'lockEyeLevel', 'showGuides',
+      'showFigure', 'showCone', 'spawnKind', 'fov', 'snapStep', 'matteModels', 'sunEnvironment', 'sun',
+    ] as const;
+    return Object.fromEntries(
+      allowed.filter((key) => Object.prototype.hasOwnProperty.call(parsed, key)).map((key) => [key, parsed[key]])
+    ) as Partial<PersistedSettings>;
   } catch {
     return {};
   }
@@ -136,6 +147,7 @@ const writeSettings = (state: SceneState) => {
       fov: state.fov,
       snapStep: state.snapStep,
       matteModels: state.matteModels,
+      sunEnvironment: state.sunEnvironment,
       sun: state.sun,
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -207,10 +219,10 @@ export const useStore = create<SceneState>((set, get) => ({
   showCone: false,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   spawnKind: 'cube',
-  viewMode: 'walk',
   models: [],
   selectedModelId: null,
   matteModels: false,
+  sunEnvironment: false,
   viewLocked: false,
   undoStack: [],
   cameraPose: null,
@@ -299,7 +311,6 @@ export const useStore = create<SceneState>((set, get) => ({
 
   selectBox: (id) => set({ selectedId: id, selectedModelId: null }),
 
-  setViewMode: (mode) => set({ viewMode: mode, selectedId: null, selectedModelId: null }),
 
   /**
    * Load a drill as a whole shot.
@@ -448,6 +459,8 @@ export const useStore = create<SceneState>((set, get) => ({
   }),
 
   toggleMatte: () => set((state) => ({ matteModels: !state.matteModels })),
+
+  toggleSunEnvironment: () => set((state) => ({ sunEnvironment: !state.sunEnvironment })),
 
   setSun: (sun) => set((state) => ({ sun: { ...state.sun, ...sun } })),
 

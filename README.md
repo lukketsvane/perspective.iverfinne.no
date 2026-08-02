@@ -11,7 +11,7 @@ person stands.
 ## The defaults
 
 Open it and you get cubes, nothing else. Everything past that is a deliberate
-switch in the **Practice** panel — the sliders icon in the right rail on touch devices or desktops.
+switch under **Extra Tools** — the sliders button in the walk controls.
 
 | | Default | Why |
 | --- | --- | --- |
@@ -25,7 +25,7 @@ switch in the **Practice** panel — the sliders icon in the right rail on touch
 
 How you have the tool set up — eye level, guides, theme, lens, snap — is remembered
 between sessions. What is in the scene is not: reload and you are back to the
-cubes, in straight-line perspective, with the camera off.
+opening cube in the first-person workspace.
 
 The opening arrangement is fixed rather than random, so it works as a reference:
 most cubes are grid-aligned and share one pair of vanishing points, two are
@@ -35,20 +35,20 @@ foreshortening check.
 
 ## On a phone
 
-Add it to the Home Screen and it runs full screen with its own icon. The right-side rail is the whole interface: add a cube where you are looking, walk
-the scene, open the mesh library, setup, more. No words on any of it.
+Add it to the Home Screen and it runs full screen with its own icon. Walk with
+the left thumb and look with the right; the compact controls remain inside the
+safe-area edges.
 
 There is no AR. Safari has no WebXR, and the AR Quick Look route - export a
 USDZ, hand it to Apple's viewer - was tried and taken back out: it leaves the
 app, and what comes back is not the tool.
 
-## Walking it at 1:1
+## The first-person workflow
 
-The walking figure drops you into the scene in first person, at
-whatever eye height is set — so the reference stops being a model on a screen
-and becomes a room you are standing in. Turn with the phone (iOS asks for motion
-permission on the way in; refuse it and you get drag-to-look), walk with the
-thumbstick or WASD, and the horizon stays pinned to your eyes as you move. The
+The application opens directly in first person at whatever eye height is set,
+so the reference is a room you are standing in rather than a model on a screen.
+Walk with the thumbstick or WASD and drag to look; the horizon stays pinned to
+your eyes as you move. The
 stick appears wherever your left thumb lands and the right side of the screen
 looks, so both work at once; with the camera on, the virtual lens is matched to
 the real one so the cubes stay planted as you turn.
@@ -78,17 +78,20 @@ reports orientation, not position, so turning is tracked and *walking is not* �
 step sideways and the scene does not shift with parallax. That is a limit of
 what a browser can see, not a setting.
 
-The bottom bar has the things you need standing up:
+The walk controls contain the things you need while standing in the scene:
 
 - **Height** — tap to cycle 1.2 / 1.6 / 1.9 / 2.5 m, or set it exactly under the
   Align control.
-- **Camera** — the live rear camera behind the scene. Off by default, in every
-  mode: the reference reads better on a clean field, and the camera is there
-  for when you want the metric grid and the horizon lying over the actual floor
-  you are standing on. Needs https and permission.
-- **Align** — adjusts height and lens matching, plus the directional sun's
-  bearing, elevation, intensity and shadows without leaving walk mode.
-- **Exit** — back to the drawing board (Escape works too).
+- **Add Cube** — places the selected primitive on the ground where the centre
+  of the view is aimed.
+- **Models** — opens the figure and model library without changing camera mode.
+- **Extra Tools** — opens a compact panel for primitive type, snap, projection,
+  guides, cone, eye-level lock, matte models, sun bearing/elevation/intensity,
+  shadows and reset. `Escape` closes this panel.
+- **Theme** — tap the sun/moon button to switch the neutral theme. Double-tap
+  it to replace the neutral background with a clear, physically modelled sky
+  driven by the directional sun's bearing, elevation, intensity and colour
+  temperature. Double-tap again to return to black, white or the chosen gray.
 
 The link carries the study — boxes and library figures, with their positions,
 turns and sizes — so a scene composed on a laptop opens on the phone: *Send
@@ -126,21 +129,21 @@ GLB.
 
 ## Handling
 
-- **Orbit / zoom** — drag, scroll or pinch.
-- **Add a cube** — double-tap the ground. New cubes land grid-aligned, so they
-  share the scene's vanishing points.
+- **Walk / look** — use WASD or the left thumb to move and drag elsewhere to look.
+- **Add a cube** — press **Add Cube**. It lands at the focus point, grid-aligned,
+  so it shares the scene's vanishing points.
 - **Resize** — tap a box to select it, then drag a face to push or pull it. Its
   size in metres counts up under your thumb in the selection bar, snapped to
   0.25 m.
 - **Move** — select a box and drag the handle floating above it. Figures are
   dragged directly. Both snap to the same 0.25 m.
-- **Turn** — the arrows in the selection bar, or `R` / `shift+R`, in 15° steps.
+- **Turn** — use the arrows in the selection bar in 15° steps.
   A box off the grid gets its own pair of vanishing points, which is half of
   what makes a box study worth drawing.
-- **Copy** — the duplicate button, or `cmd`/`ctrl+D`. A crowd is one figure
+- **Copy** — use the duplicate button. A crowd is one figure
   placed once and copied.
-- **Undo** — `cmd`/`ctrl+Z`, or the entry in More, twenty-five steps deep across
-  boxes and figures alike. `Delete` removes the selection, `Escape` clears it.
+- **Undo** — available through the shared editing controls, twenty-five steps
+  deep across boxes and figures alike.
 - **Save the view** — writes the frame to a PNG so you can draw from it on paper
   or a second screen. The 3D guides are in the image; the on-screen chrome is not.
 - **Lens** — 3-finger vertical drag changes the field of view. Curvature is only

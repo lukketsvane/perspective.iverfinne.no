@@ -24,13 +24,6 @@ export type PerspectiveMode = 'linear' | 'curvilinear';
 export type SpawnKind = 'cube' | 'slab' | 'pillar' | 'beam' | 'block';
 
 /**
- * How you are looking at the scene.
- * - 'orbit': the drawing-board view, camera on a leash around a target.
- * - 'walk': first person at your real eye height, walking the scene at 1:1.
- */
-export type ViewMode = 'orbit' | 'walk';
-
-/**
  * A model dropped into the scene from a file.
  *
  * `object` is the loaded three.js object, or null when the file cannot be read
@@ -65,6 +58,8 @@ export interface SunState {
   azimuth: number;
   elevation: number;
   intensity: number;
+  /** Black-body colour temperature used by both the lamp and procedural sky. */
+  temperature: number;
   /** Cast real shadows from the sun. */
   shadows: boolean;
 }
@@ -106,12 +101,12 @@ export interface SceneState {
   /** Metres that edits snap to while dragging. 0 is free. */
   snapStep: number;
   spawnKind: SpawnKind;
-  /** Orbit (drawing board) or walk (first person, real scale). */
-  viewMode: ViewMode;
   models: SceneModel[];
   selectedModelId: string | null;
   /** Replace model materials with a plain white matte, for reading form. */
   matteModels: boolean;
+  /** Use the directional sun to generate a full-frame sky gradient. */
+  sunEnvironment: boolean;
   /**
    * The sun. It is the only light in the scene - no ambient, no environment -
    * so a face turned away from it is genuinely unlit, which is what makes a
@@ -149,7 +144,6 @@ export interface SceneState {
   /** Turn the selection (box or model) about its own vertical axis. */
   rotateSelection: (radians: number) => void;
   setSpawnKind: (kind: SpawnKind) => void;
-  setViewMode: (mode: ViewMode) => void;
   /** Load a drill: geometry, eye level, lens and where to stand. */
   loadStudy: (id: string) => void;
   addModel: (model: Omit<SceneModel, 'id'>) => void;
@@ -161,6 +155,7 @@ export interface SceneState {
   /** Copy whatever is selected, placed clear of the original. */
   duplicateSelection: () => void;
   toggleMatte: () => void;
+  toggleSunEnvironment: () => void;
   /** Move the sun, or change how hard it burns. */
   setSun: (sun: Partial<SunState>) => void;
   toggleViewLock: () => void;
