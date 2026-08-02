@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
-import { walkInput, recentre } from '../lib/walkInput';
+import { walkInput } from '../lib/walkInput';
 import { matchedVerticalFov } from '../lib/cameraFeed';
+import { Icon, I } from './icons';
 
 const MAX_PITCH = Math.PI / 2 - 0.05;
 const STICK_RADIUS = 64; // px
@@ -68,7 +69,7 @@ const shapeStick = (magnitude: number) => {
  * orientation sensor is driving the view, the whole screen becomes stick, since
  * looking is the phone's job by then.
  */
-export const WalkOverlay: React.FC = () => {
+export const WalkOverlay: React.FC<{ onModels: () => void }> = ({ onModels }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const cameraFeed = useStore((s) => s.cameraFeed);
@@ -76,14 +77,13 @@ export const WalkOverlay: React.FC = () => {
   const setCameraHeight = useStore((s) => s.setCameraHeight);
   const setViewMode = useStore((s) => s.setViewMode);
   const sensorFov = useStore((s) => s.sensorFov);
-  const setSensorFov = useStore((s) => s.setSensorFov);
   const viewLocked = useStore((s) => s.viewLocked);
   const toggleViewLock = useStore((s) => s.toggleViewLock);
   const fov = useStore((s) => s.fov);
   const perspectiveMode = useStore((s) => s.perspectiveMode);
   const sun = useStore((s) => s.sun);
   const setSun = useStore((s) => s.setSun);
-  const [tuning, setTuning] = useState(false);
+  const toggleTheme = useStore((s) => s.toggleTheme);
 
   const isDark = theme === 'dark';
   const onCamera = cameraFeed || isDark;
@@ -118,6 +118,8 @@ export const WalkOverlay: React.FC = () => {
 
   const look = useRef<{ id: number; x: number; y: number } | null>(null);
   const stick = useRef<{ id: number; x: number; y: number } | null>(null);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const sunPan = useRef<{ x: number; y: number; azimuth: number; elevation: number } | null>(null);
   const [stickView, setStickView] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
 
   // One rule whether or not the sensor is driving: the near corner walks, the
@@ -151,6 +153,7 @@ export const WalkOverlay: React.FC = () => {
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (viewLocked) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     // Capture keeps a thumb that slides off the layer still driving it, but it
     // throws for a pointer the browser no longer considers active - and an
     // exception here would take the whole gesture down with it.
@@ -159,7 +162,22 @@ export const WalkOverlay: React.FC = () => {
     } catch {
       /* not capturable; the window-level handlers still see the moves */
     }
-    if (!stick.current && isStickZone(e.clientX, e.clientY)) {
+    if (pointers.current.size === 3) {
+      // Three fingers grab the light rather than the camera. Horizontal motion
+      // circles the scene; vertical motion raises and lowers the sun.
+      const points = [...pointers.current.values()];
+      sunPan.current = {
+        x: points.reduce((sum, point) => sum + point.x, 0) / 3,
+        y: points.reduce((sum, point) => sum + point.y, 0) / 3,
+        azimuth: sun.azimuth,
+        elevation: sun.elevation,
+      };
+      stick.current = null;
+      look.current = null;
+      setStickView(null);
+      walkInput.forward = 0;
+      walkInput.strafe = 0;
+    } else if (pointers.current.size < 3 && !stick.current && isStickZone(e.clientX, e.clientY)) {
       stick.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
       applyStick(e.clientX, e.clientY, e.clientX, e.clientY);
     } else if (!look.current) {
@@ -168,6 +186,19 @@ export const WalkOverlay: React.FC = () => {
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    if (pointers.current.has(e.pointerId)) {
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+    if (sunPan.current && pointers.current.size >= 3) {
+      const points = [...pointers.current.values()].slice(0, 3);
+      const x = points.reduce((sum, point) => sum + point.x, 0) / 3;
+      const y = points.reduce((sum, point) => sum + point.y, 0) / 3;
+      setSun({
+        azimuth: (sunPan.current.azimuth + (x - sunPan.current.x) * 0.45 + 360) % 360,
+        elevation: Math.max(4, Math.min(88, sunPan.current.elevation - (y - sunPan.current.y) * 0.3)),
+      });
+      return;
+    }
     if (stick.current?.id === e.pointerId) {
       applyStick(stick.current.x, stick.current.y, e.clientX, e.clientY);
       return;
@@ -197,6 +228,11 @@ export const WalkOverlay: React.FC = () => {
   };
 
   const endPointer = (e: React.PointerEvent) => {
+    pointers.current.delete(e.pointerId);
+    if (sunPan.current) {
+      if (pointers.current.size < 3) sunPan.current = null;
+      return;
+    }
     if (stick.current?.id === e.pointerId) {
       stick.current = null;
       setStickView(null);
@@ -303,118 +339,15 @@ export const WalkOverlay: React.FC = () => {
             </svg>
           </button>
 
-          <button
-            onClick={() => setTuning(!tuning)}
-            aria-label="Align"
-            className={`${iconButton} ${tuning ? '!bg-sky-500 !text-white !border-sky-400' : ''}`}
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="3.2" />
-              <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1" />
-            </svg>
+          <button onClick={onModels} aria-label="Add or edit models" className={iconButton}>
+            <Icon path={I.figure} className="w-4 h-4" />
+          </button>
+
+          <button onClick={toggleTheme} aria-label="Toggle dark mode" className={iconButton}>
+            <Icon path={isDark ? I.light : I.dark} className="w-4 h-4" />
           </button>
         </div>
       </div>
-
-      {/* Alignment: the phone's height off the floor, the lens angle, and a
-          recentre for compass drift. Numbers only. */}
-      {tuning && (
-        <div className="fixed inset-x-0 bottom-24 z-40 px-4 flex justify-center pointer-events-none">
-          <div className={`w-full max-w-xs max-h-[calc(100dvh-8rem)] overflow-y-auto rounded-2xl border backdrop-blur-md px-4 py-3 pointer-events-auto ${chrome}`}>
-            <div className="flex items-center justify-between text-[10px] font-black tabular-nums">
-              <span className="opacity-60">↕</span>
-              <span>{cameraHeight.toFixed(2)} m</span>
-            </div>
-            <input
-              type="range"
-              min={0.4}
-              max={2.4}
-              step={0.01}
-              value={cameraHeight}
-              onChange={(e) => setCameraHeight(parseFloat(e.target.value))}
-              className="w-full accent-current"
-              aria-label="Height"
-            />
-
-            <div className="flex items-center justify-between text-[10px] font-black tabular-nums mt-2">
-              <span className="opacity-60">◱</span>
-              <span>{Math.round(sensorFov)}°</span>
-            </div>
-            <input
-              type="range"
-              min={40}
-              max={110}
-              step={0.5}
-              value={sensorFov}
-              onChange={(e) => setSensorFov(parseFloat(e.target.value))}
-              className="w-full accent-current"
-              aria-label="Lens"
-            />
-
-            <div className="flex items-center justify-between text-[10px] font-black tabular-nums mt-2">
-              <span className="opacity-60">SUN ↻</span>
-              <span>{Math.round(sun.azimuth)}°</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={360}
-              step={1}
-              value={sun.azimuth}
-              onChange={(e) => setSun({ azimuth: parseFloat(e.target.value) })}
-              className="w-full accent-current"
-              aria-label="Sun direction"
-            />
-
-            <div className="flex items-center justify-between text-[10px] font-black tabular-nums mt-2">
-              <span className="opacity-60">SUN ↥</span>
-              <span>{Math.round(sun.elevation)}°</span>
-            </div>
-            <input
-              type="range"
-              min={4}
-              max={88}
-              step={1}
-              value={sun.elevation}
-              onChange={(e) => setSun({ elevation: parseFloat(e.target.value) })}
-              className="w-full accent-current"
-              aria-label="Sun elevation"
-            />
-
-            <div className="flex items-center justify-between text-[10px] font-black tabular-nums mt-2">
-              <span className="opacity-60">SUN</span>
-              <span>{sun.intensity.toFixed(1)}</span>
-            </div>
-            <input
-              type="range"
-              min={0.2}
-              max={8}
-              step={0.1}
-              value={sun.intensity}
-              onChange={(e) => setSun({ intensity: parseFloat(e.target.value) })}
-              className="w-full accent-current"
-              aria-label="Sun intensity"
-            />
-
-            <button
-              onClick={() => setSun({ shadows: !sun.shadows })}
-              aria-pressed={sun.shadows}
-              className={`mt-2 w-full py-2 rounded-xl border text-[9px] font-black uppercase tracking-widest ${
-                sun.shadows ? 'border-current/50' : 'border-current/20 opacity-50'
-              }`}
-            >
-              Shadows {sun.shadows ? 'on' : 'off'}
-            </button>
-
-            <button
-              onClick={recentre}
-              className="mt-2 w-full py-2 rounded-xl border border-current/30 text-[9px] font-black uppercase tracking-widest"
-            >
-              Recentre
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Leaving, out of the way of the thumbs */}
       <button
