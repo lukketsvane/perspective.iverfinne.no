@@ -115,6 +115,7 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
 
   return (
     <group
+      userData={{ selectableType: 'model', selectableId: model.id }}
       position={model.position}
       rotation={[0, model.rotationY, 0]}
       scale={model.scale}

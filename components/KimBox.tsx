@@ -230,7 +230,7 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
   }, [isViewMode, controls, data.id, data.position, setIsDraggingGlobal, updateBox, camera, gl]);
 
   return (
-    <group>
+    <group userData={{ selectableType: 'box', selectableId: data.id }}>
       {/* Helper Lines (Only when selected AND not in View Mode) */}
       {isSelected && !isViewMode && (
         <group>
