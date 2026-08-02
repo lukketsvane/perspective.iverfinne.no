@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore } from '../store';
 import { Icon, I } from './icons';
+import { useGrayThemeControl } from './controls';
 
 interface TouchControlsProps {
   variant: 'bar' | 'rail';
@@ -29,7 +30,7 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
   variant, onMeshes, onWalk, onAdd, onSetup, setupOpen,
 }) => {
   const theme = useStore((s) => s.theme);
-  const toggleTheme = useStore((s) => s.toggleTheme);
+  const grayThemeControl = useGrayThemeControl();
   const isDark = theme === 'dark';
   const shell = isDark
     ? 'bg-black/80 border-white/12 text-white'
@@ -61,7 +62,7 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
         <Icon path={I.sliders} className="w-6 h-6" />
       </button>
 
-      <button onClick={toggleTheme} className={item} aria-label={isDark ? 'Light' : 'Dark'}>
+      <button {...grayThemeControl} className={`${item} touch-none`} aria-label="Toggle or drag to adjust background gray">
         <Icon path={isDark ? I.light : I.dark} className="w-6 h-6" />
       </button>
     </>
