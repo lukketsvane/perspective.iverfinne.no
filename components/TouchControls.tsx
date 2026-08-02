@@ -30,11 +30,8 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
 }) => {
   const theme = useStore((s) => s.theme);
   const toggleTheme = useStore((s) => s.toggleTheme);
-  const cameraFeed = useStore((s) => s.cameraFeed);
-
   const isDark = theme === 'dark';
-  const onCameraBg = cameraFeed || isDark;
-  const shell = onCameraBg
+  const shell = isDark
     ? 'bg-black/80 border-white/12 text-white'
     : 'bg-white/85 border-gray-200 text-gray-900';
 
@@ -54,7 +51,7 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
       <button
         onClick={onMeshes}
         className={`flex items-center justify-center w-14 h-14 min-h-14 rounded-full shadow-xl transition-transform active:scale-95 ${
-          onCameraBg ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}
+          isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}
         aria-label="Meshes"
       >
         <Icon path={I.person} className="w-6 h-6" />

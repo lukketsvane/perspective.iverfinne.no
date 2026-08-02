@@ -354,7 +354,6 @@ const SceneContent = () => {
   const setLens = useStore((state) => state.setLens);
   const theme = useStore((state) => state.theme);
   const viewMode = useStore((state) => state.viewMode);
-  const cameraFeed = useStore((state) => state.cameraFeed);
   const sunShadows = useStore((state) => state.sun.shadows);
 
   const controlsRef = useRef<any>(null);
@@ -369,21 +368,19 @@ const SceneContent = () => {
 
   /** The construction sheet is ruled in red, on paper and here. */
   const gridColor = useMemo(
-    () => new THREE.Color(isDark || cameraFeed ? '#ff6a5e' : '#e0342a'),
-    [isDark, cameraFeed]
+    () => new THREE.Color(isDark ? '#ff6a5e' : '#e0342a'),
+    [isDark]
   );
 
-  // Sync FOV with Store. While walking with the room showing through, the lens
-  // is matched to the real camera instead - WalkControls owns it there.
+  // Sync FOV with the store.
   useEffect(() => {
-    if (isWalking && cameraFeed) return;
     if (camera instanceof THREE.PerspectiveCamera) {
       // A perspective camera goes singular at 180: the frustum turns inside
       // out. Past that the curvilinear pass is what carries the extra field.
       camera.fov = Math.min(fov, 179);
       camera.updateProjectionMatrix();
     }
-  }, [fov, camera, isWalking, cameraFeed]);
+  }, [fov, camera]);
 
   /**
    * Three fingers dragged up and down set the focal length.
@@ -413,9 +410,7 @@ const SceneContent = () => {
 
   return (
     <>
-      {/* With the camera feed on the canvas has to stay transparent so the room
-          shows through; otherwise the paper/ink field is the background. */}
-      {!cameraFeed && <color attach="background" args={[bgColor]} />}
+      <color attach="background" args={[bgColor]} />
       {/* One sun, and nothing else.
 
           No ambient term and no environment map: a face turned away from the
@@ -448,11 +443,8 @@ const SceneContent = () => {
           sectionSize={5}
           sectionThickness={1.0}
           sectionColor={isDark ? "#666666" : "#333333"}
-          // At grazing angles the lines converge into a solid sheet, which over
-          // a live camera reads as haze on the floor. Keep it to a pool of grid
-          // around your feet when the room is showing.
-          fadeDistance={cameraFeed ? 10 : 60}
-          fadeStrength={cameraFeed ? 3 : 1.5}
+          fadeDistance={60}
+          fadeStrength={1.5}
           infiniteGrid
           onDoubleClick={(e) => {
               if (isViewMode) return;
@@ -485,9 +477,7 @@ const SceneContent = () => {
         <meshBasicMaterial visible={false} />
       </mesh>
 
-      {/* The floor catches the sun's shadows and nothing else, so it works over
-          the camera feed too - there a cast shadow on the real floor is the
-          only thing tying the scene to the room. */}
+      {/* The floor catches the sun's shadows and nothing else. */}
       {sunShadows && (
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} raycast={() => null}>
           <planeGeometry args={[200, 200]} />
@@ -496,7 +486,7 @@ const SceneContent = () => {
       )}
 
       {/* With the sun's shadows off, boxes need something to sit on. */}
-      {!sunShadows && !cameraFeed && (
+      {!sunShadows && (
         <ContactShadows
           position={[0, 0, 0]}
           opacity={isDark ? 0.8 : 0.6}
@@ -570,12 +560,12 @@ export const Scene = () => {
       // Start standing at eye level, a few metres back, looking level.
       camera={{ position: initialCameraPosition(), fov: 60, near: 0.05, far: 2000 }}
       dpr={[1, 1.5]}
-      // alpha lets the camera feed show through; preserveDrawingBuffer keeps
-      // the last frame readable so the view can be saved as a PNG at any time.
+      // preserveDrawingBuffer keeps the last frame readable so the view can be
+      // saved as a PNG at any time.
       gl={{
         antialias: true,
         toneMapping: THREE.ACESFilmicToneMapping,
-        alpha: true,
+        alpha: false,
         preserveDrawingBuffer: true,
       }}
       // Percentage-closer soft shadows: the edge of a cube's shadow should

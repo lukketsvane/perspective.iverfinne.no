@@ -29,7 +29,6 @@ const quantise = (metres: number) =>
 export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false }) => {
   const theme = useStore((s) => s.theme);
   const layout = useLayout();
-  const cameraFeed = useStore((s) => s.cameraFeed);
   const boxes = useStore((s) => s.boxes);
   const models = useStore((s) => s.models);
   const selectedId = useStore((s) => s.selectedId);
@@ -60,8 +59,7 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   if (!box && !model) return null;
 
   const isDark = theme === 'dark';
-  const onCamera = cameraFeed || isDark;
-  const chrome = onCamera
+  const chrome = isDark
     ? 'bg-black/60 text-white border-white/25'
     : 'bg-white/80 text-gray-900 border-gray-300';
 

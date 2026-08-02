@@ -62,8 +62,6 @@ export const I = {
   horizon: (<><line x1="2" y1="12" x2="22" y2="12" /><path d="M4 19l7-5M20 19l-7-5" strokeOpacity="0.45" /></>),
   figure: (<><circle cx="12" cy="4.5" r="1.9" /><path d="M12 7v6M12 13l-2.5 5M12 13l2.5 5M8.5 9.5h7" /><path d="M3 21h18" strokeOpacity="0.4" /></>),
   cone: (<><path d="M12 3L4 20h16z" /><path d="M6.5 14h11" strokeOpacity="0.45" /></>),
-  camera: (<><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="3.6" /></>),
-
   /** The sun, its bearing, its height, and the shadows it throws. */
   sun: (<><circle cx="12" cy="12" r="4.2" /><path d="M12 2v2.4M12 19.6V22M3.5 12H1.1M22.9 12h-2.4M5.6 5.6L3.9 3.9M20.1 20.1l-1.7-1.7M18.4 5.6l1.7-1.7M3.9 20.1l1.7-1.7" /></>),
   bearing: (<><circle cx="12" cy="12" r="9" /><path d="M15.5 8.5l-2 5.2-5.2 2 2-5.2z" /></>),
