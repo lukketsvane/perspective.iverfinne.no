@@ -1,9 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useStore } from '../store';
 import { MESH_LIBRARY } from '../lib/meshLibrary';
 import { MODEL_ACCEPT } from '../lib/loadModel';
 import type { Layout } from '../lib/useLayout';
 import { Icon, I, POSE_ICON } from './icons';
+import { exportScaledModel } from '../lib/exportModel';
 
 /**
  * The figure library: one row, scrolled sideways.
@@ -24,8 +25,24 @@ export const MeshSheet: React.FC<{
   const theme = useStore((s) => s.theme);
   const matteModels = useStore((s) => s.matteModels);
   const toggleMatte = useStore((s) => s.toggleMatte);
+  const models = useStore((s) => s.models);
+  const selectedModelId = useStore((s) => s.selectedModelId);
   const isDark = theme === 'dark';
   const inputRef = useRef<HTMLInputElement>(null);
+  const [exporting, setExporting] = useState(false);
+  const selectedModel = models.find((model) => model.id === selectedModelId);
+
+  const exportSelected = async () => {
+    if (!selectedModel?.object || exporting) return;
+    setExporting(true);
+    try {
+      await exportScaledModel(selectedModel);
+    } catch (error) {
+      console.error('Failed to export model:', error);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const onCamera = isDark;
   const shell = onCamera
@@ -80,7 +97,17 @@ export const MeshSheet: React.FC<{
         ))}
       </div>
 
-      {/* Your own files */}
+      {/* Save the selected figure at its corrected size, then add your own files. */}
+      <button
+        onClick={exportSelected}
+        disabled={!selectedModel?.object || exporting || busyId !== null}
+        aria-label="Export selected model at current scale"
+        title={selectedModel ? 'Export selected model at current scale' : 'Select a model to export'}
+        className={`${side} opacity-50 disabled:opacity-20`}
+      >
+        <Icon path={I.save} className={`w-5 h-5 ${exporting ? 'animate-pulse' : ''}`} />
+      </button>
+
       <button
         onClick={() => inputRef.current?.click()}
         disabled={busyId !== null}
