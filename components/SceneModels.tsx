@@ -5,6 +5,7 @@ import { useStore } from '../store';
 import { noteDragEnd } from '../lib/dragGuard';
 import { createGroundPicker } from '../lib/groundDrag';
 import { SceneModel } from '../types';
+import { Edges } from '@react-three/drei';
 
 /**
  * One matte white material, shared by every model that is switched to it.
@@ -126,7 +127,10 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       {isSelected && !isViewMode && (
         <mesh position={[0, model.size[1] / 2, 0]} raycast={() => null}>
           <boxGeometry args={[model.size[0], model.size[1], model.size[2]]} />
-          <meshBasicMaterial color={outlineColor} wireframe transparent opacity={0.5} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          {/* Geometry wireframes include each face's triangulation. Edges keeps
+              only the twelve outside cage segments. */}
+          <Edges threshold={15} color={outlineColor} />
         </mesh>
       )}
     </group>

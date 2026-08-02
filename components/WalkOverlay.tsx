@@ -3,6 +3,8 @@ import { useStore, EYE_LEVEL_PRESETS } from '../store';
 import { walkInput } from '../lib/walkInput';
 import { Icon, I } from './icons';
 import { Scrub, useGrayThemeControl } from './controls';
+import { PracticePanel } from './PracticePanel';
+import type { Layout } from '../lib/useLayout';
 
 const MAX_PITCH = Math.PI / 2 - 0.05;
 const STICK_RADIUS = 64; // px
@@ -68,11 +70,14 @@ const shapeStick = (magnitude: number) => {
  * orientation sensor is driving the view, the whole screen becomes stick, since
  * looking is the phone's job by then.
  */
-export const WalkOverlay: React.FC<{ onModels: () => void }> = ({ onModels }) => {
+export const WalkOverlay: React.FC<{
+  onModels: () => void;
+  onAddCube: () => void;
+  layout: Layout;
+}> = ({ onModels, onAddCube, layout }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
-  const setViewMode = useStore((s) => s.setViewMode);
   const viewLocked = useStore((s) => s.viewLocked);
   const toggleViewLock = useStore((s) => s.toggleViewLock);
   const fov = useStore((s) => s.fov);
@@ -80,7 +85,10 @@ export const WalkOverlay: React.FC<{ onModels: () => void }> = ({ onModels }) =>
   const perspectiveMode = useStore((s) => s.perspectiveMode);
   const sun = useStore((s) => s.sun);
   const setSun = useStore((s) => s.setSun);
-  const grayThemeControl = useGrayThemeControl();
+  const sunEnvironment = useStore((s) => s.sunEnvironment);
+  const toggleSunEnvironment = useStore((s) => s.toggleSunEnvironment);
+  const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
+  const [showTools, setShowTools] = useState(false);
 
   const isDark = theme === 'dark';
   const chrome = isDark
@@ -243,7 +251,9 @@ export const WalkOverlay: React.FC<{ onModels: () => void }> = ({ onModels }) =>
       walkInput.strafe = (keys.has('d') || keys.has('arrowright') ? 1 : 0) + (keys.has('a') || keys.has('arrowleft') ? -1 : 0);
     };
     const down = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setViewMode('orbit'); return; }
+      if (e.key === 'Escape' && showTools) { setShowTools(false); return; }
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('button, input, textarea, select')) return;
       keys.add(e.key.toLowerCase());
       apply();
     };
@@ -256,7 +266,7 @@ export const WalkOverlay: React.FC<{ onModels: () => void }> = ({ onModels }) =>
       walkInput.forward = 0;
       walkInput.strafe = 0;
     };
-  }, [setViewMode]);
+  }, [showTools]);
 
   // ---------------------------------------------------------------- actions
   const cycleHeight = () => {
@@ -341,23 +351,41 @@ export const WalkOverlay: React.FC<{ onModels: () => void }> = ({ onModels }) =>
             <Icon path={I.figure} className="w-4 h-4" />
           </button>
 
-          <button {...grayThemeControl} aria-label="Toggle or drag to adjust background gray" className={`${iconButton} touch-none`}>
-            <Icon path={isDark ? I.light : I.dark} className="w-4 h-4" />
+          <button onClick={onAddCube} aria-label="Add cube" className={iconButton}>
+            <Icon path={I.cube} className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => setShowTools((open) => !open)}
+            aria-label="Extra tools"
+            aria-expanded={showTools}
+            className={`${iconButton} ${showTools ? '!bg-sky-500 !text-white' : ''}`}
+          >
+            <Icon path={I.sliders} className="w-4 h-4" />
+          </button>
+
+          <button
+            {...grayThemeControl}
+            aria-label="Toggle theme; double tap for sun environment"
+            aria-pressed={sunEnvironment}
+            className={`${iconButton} touch-none ${sunEnvironment ? '!bg-sky-500 !text-white' : ''}`}
+          >
+            <Icon path={sunEnvironment ? I.sky : isDark ? I.light : I.dark} className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Leaving, out of the way of the thumbs */}
-      <button
-        onClick={() => setViewMode('orbit')}
-        className={`fixed z-40 inset-safe-top inset-safe-right flex items-center justify-center w-9 h-9 rounded-full border backdrop-blur-md transition-transform active:scale-95 ${chrome}`}
-        aria-label="Exit"
-      >
-        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
+      {showTools && (
+        <div
+          className="fixed z-50 top-safe-panel bottom-safe-panel right-safe-rail w-[min(20rem,calc(100vw-5.5rem))] pointer-events-auto flex items-center"
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerMove={(event) => event.stopPropagation()}
+          onPointerUp={(event) => event.stopPropagation()}
+          onPointerCancel={(event) => event.stopPropagation()}
+        >
+          <PracticePanel layout={layout === 'phone' ? 'tablet' : layout} onClose={() => setShowTools(false)} />
+        </div>
+      )}
 
     </>
   );

@@ -170,6 +170,17 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
             step={0.1}
             onChange={(v) => setSun({ intensity: v })}
           />
+          <Cell
+            skin={skin}
+            icon={I.light}
+            label="Sun colour temperature"
+            reading={`${Math.round(sun.temperature)}K`}
+            value={sun.temperature}
+            min={1800}
+            max={12000}
+            step={100}
+            onChange={(v) => setSun({ temperature: v })}
+          />
 
           {cellToggle(sun.shadows, () => setSun({ shadows: !sun.shadows }), I.shadow, 'Cast shadows')}
           {cellToggle(false, resetScene, I.reset, 'Reset to cubes')}
@@ -316,6 +327,18 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
             max={8}
             step={0.1}
             onChange={(v) => setSun({ intensity: v })}
+          />
+          <Scrub
+            skin={skin}
+            icon={I.light}
+            label="Sun colour temperature"
+            reading={`${Math.round(sun.temperature)} K`}
+            value={sun.temperature}
+            min={1800}
+            max={12000}
+            step={100}
+            cycle={[2700, 4000, 5600, 6500, 9000]}
+            onChange={(v) => setSun({ temperature: v })}
           />
           <Toggle
             skin={skin}
