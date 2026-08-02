@@ -126,6 +126,8 @@ export interface SceneState {
   currentSceneName: string | null;
   sceneHistory: SavedScene[];
   addBox: (position: [number, number, number]) => void;
+  /** Place the toolbar's canonical one-metre reference cube. */
+  addCube: (position: [number, number, number]) => void;
   appendBox: (data: Omit<BoxData, 'id'>) => void;
   updateBox: (id: string, updates: Partial<BoxData>) => void;
   removeBox: (id: string) => void;

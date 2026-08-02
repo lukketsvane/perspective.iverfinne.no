@@ -120,6 +120,7 @@ export const WalkOverlay: React.FC<{
   const look = useRef<{ id: number; x: number; y: number } | null>(null);
   const stick = useRef<{ id: number; x: number; y: number } | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const tapStarts = useRef(new Map<number, { x: number; y: number; at: number; cancelled: boolean }>());
   const sunPan = useRef<{ x: number; y: number; azimuth: number; elevation: number } | null>(null);
   const [stickView, setStickView] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
 
@@ -153,8 +154,14 @@ export const WalkOverlay: React.FC<{
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (viewLocked) return;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    tapStarts.current.set(e.pointerId, { x: e.clientX, y: e.clientY, at: performance.now(), cancelled: false });
+    if (pointers.current.size > 1) {
+      tapStarts.current.forEach((tap) => { tap.cancelled = true; });
+    }
+    // Lock freezes the camera, not the scene editor. Keep tracking a possible
+    // selection tap, but do not start a walk/look gesture.
+    if (viewLocked) return;
     // Capture keeps a thumb that slides off the layer still driving it, but it
     // throws for a pointer the browser no longer considers active - and an
     // exception here would take the whole gesture down with it.
@@ -187,6 +194,8 @@ export const WalkOverlay: React.FC<{
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    const tap = tapStarts.current.get(e.pointerId);
+    if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 9) tap.cancelled = true;
     if (pointers.current.has(e.pointerId)) {
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     }
@@ -229,7 +238,15 @@ export const WalkOverlay: React.FC<{
   };
 
   const endPointer = (e: React.PointerEvent) => {
+    const tap = tapStarts.current.get(e.pointerId);
+    const wasSinglePointer = pointers.current.size === 1;
     pointers.current.delete(e.pointerId);
+    tapStarts.current.delete(e.pointerId);
+    if (tap && wasSinglePointer && !tap.cancelled && performance.now() - tap.at < 400) {
+      window.dispatchEvent(new CustomEvent('perspective:scene-tap', {
+        detail: { clientX: e.clientX, clientY: e.clientY },
+      }));
+    }
     if (sunPan.current) {
       if (pointers.current.size < 3) sunPan.current = null;
       return;
@@ -241,6 +258,12 @@ export const WalkOverlay: React.FC<{
       walkInput.strafe = 0;
     }
     if (look.current?.id === e.pointerId) look.current = null;
+  };
+
+  const cancelPointer = (e: React.PointerEvent) => {
+    const tap = tapStarts.current.get(e.pointerId);
+    if (tap) tap.cancelled = true;
+    endPointer(e);
   };
 
   // --------------------------------------------------------------- keyboard
@@ -286,7 +309,7 @@ export const WalkOverlay: React.FC<{
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endPointer}
-        onPointerCancel={endPointer}
+        onPointerCancel={cancelPointer}
       />
 
       {/* The stick, drawn where the thumb actually landed */}

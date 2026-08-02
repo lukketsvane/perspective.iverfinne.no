@@ -12,6 +12,7 @@ import { updateVanishing, clearVanishing } from '../lib/vanishing';
 import { sceneRevision } from '../lib/sceneRevision';
 import { Panorama } from './Panorama';
 import { dragJustEnded } from '../lib/dragGuard';
+import { fieldOf } from '../lib/projection';
 
 /** Keeps the "put one here" point under the middle of the view. */
 const FocusTracker = () => {
@@ -222,7 +223,7 @@ const Sun: React.FC = () => {
 };
 
 const SceneContent = () => {
-  const { camera } = useThree();
+  const { camera, gl, scene, size } = useThree();
   const boxes = useStore((state) => state.boxes);
   const selectBox = useStore((state) => state.selectBox);
   const isViewMode = useStore((state) => state.isViewMode);
@@ -235,6 +236,48 @@ const SceneContent = () => {
   const backgroundGray = useStore((state) => state.backgroundGray);
   const sunShadows = useStore((state) => state.sun.shadows);
   const sunEnvironment = useStore((state) => state.sunEnvironment);
+
+  // The full-screen walk layer owns touch gestures, so browser pointer events
+  // cannot reach R3F. Turn a confirmed tap back into the exact scene ray here.
+  // Curvilinear mode needs the same spherical projection as Panorama; using a
+  // normal perspective ray is why visible meshes previously felt untappable.
+  useEffect(() => {
+    const raycaster = new THREE.Raycaster();
+    const direction = new THREE.Vector3();
+    const onTap = (event: Event) => {
+      if (isViewMode) return;
+      const { clientX, clientY } = (event as CustomEvent<{ clientX: number; clientY: number }>).detail;
+      const rect = gl.domElement.getBoundingClientRect();
+      const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      const y = 1 - ((clientY - rect.top) / rect.height) * 2;
+
+      if (perspectiveMode === 'curvilinear') {
+        const { halfYaw, halfPitch } = fieldOf(fov, size.width, size.height);
+        const rx = x * halfYaw;
+        const ry = y * halfPitch;
+        const radius = Math.hypot(rx, ry);
+        if (radius > Math.PI) return;
+        const scale = radius > 1e-5 ? Math.sin(radius) / radius : 1;
+        direction.set(rx * scale, ry * scale, -Math.cos(radius)).applyQuaternion(camera.quaternion).normalize();
+        raycaster.set(camera.position, direction);
+      } else {
+        raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+      }
+
+      const hits = raycaster.intersectObjects(scene.children, true);
+      for (const hit of hits) {
+        let object: THREE.Object3D | null = hit.object;
+        while (object && !object.userData.selectableType) object = object.parent;
+        if (!object) continue;
+        if (object.userData.selectableType === 'box') selectBox(object.userData.selectableId);
+        else useStore.getState().selectModel(object.userData.selectableId);
+        return;
+      }
+      selectBox(null);
+    };
+    window.addEventListener('perspective:scene-tap', onTap);
+    return () => window.removeEventListener('perspective:scene-tap', onTap);
+  }, [camera, fov, gl, isViewMode, perspectiveMode, scene, selectBox, size.height, size.width]);
 
   const isDark = theme === 'dark';
   const bgColor = `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})`;
