@@ -21,10 +21,9 @@ interface TouchControlsProps {
  * them is the light/dark switch now, which is the one thing in there you touch
  * while working.
  *
- * A phone gets a bar across the bottom, because that is where the thumbs are.
- * A tablet gets the same targets, the same size, gathered into a rail down the
- * right edge - spreading five icons across 1200 px of bar puts them nowhere
- * near the hand holding the thing, and eats the width the scene wants.
+ * Touch devices use a right-hand rail. It stays under the thumb in either
+ * iPhone orientation, leaves the home-indicator edge clear, and does not jump
+ * when Safari's bottom chrome expands or contracts.
  */
 export const TouchControls: React.FC<TouchControlsProps> = ({
   variant, onMeshes, onWalk, onAdd, onSetup, setupOpen,
@@ -40,7 +39,7 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
     : 'bg-white/85 border-gray-200 text-gray-900';
 
   const rail = variant === 'rail';
-  const item = 'flex items-center justify-center w-14 h-14 rounded-2xl transition-transform active:scale-95';
+  const item = 'flex items-center justify-center w-12 h-12 min-h-12 rounded-2xl transition-transform active:scale-95';
 
   const buttons = (
     <>
@@ -54,9 +53,8 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
 
       <button
         onClick={onMeshes}
-        className={`flex items-center justify-center w-16 h-16 rounded-full shadow-xl transition-transform active:scale-95 ${
-          rail ? '' : '-mt-5'
-        } ${onCameraBg ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}
+        className={`flex items-center justify-center w-14 h-14 min-h-14 rounded-full shadow-xl transition-transform active:scale-95 ${
+          onCameraBg ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}
         aria-label="Meshes"
       >
         <Icon path={I.person} className="w-6 h-6" />
@@ -73,7 +71,7 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
   );
 
   return rail ? (
-    <div className="fixed inset-y-0 right-0 z-[56] safe-x flex items-center pr-3 pointer-events-none">
+    <div className="fixed inset-y-0 right-0 z-[56] safe-right safe-y flex items-center pr-2 pointer-events-none">
       <div className={`flex flex-col items-center gap-1 px-1.5 py-2 rounded-3xl border backdrop-blur-xl shadow-lg pointer-events-auto ${shell}`}>
         {buttons}
       </div>

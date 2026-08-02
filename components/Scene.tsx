@@ -4,7 +4,7 @@ import { OrbitControls, Grid, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore, DEFAULT_CAMERA_HEIGHT } from '../store';
 import { KimBox } from './KimBox';
-import { HorizonLine, ScaleFigure } from './Reference';
+import { HorizonLine } from './Reference';
 import { SceneModels } from './SceneModels';
 import { WalkControls, resumeOrbitView } from './WalkControls';
 import { updateFocus, focusPoint } from '../lib/focus';
@@ -83,7 +83,6 @@ const GROUND_CLEARANCE = 0.25;
 let orbitPlaced = false;
 
 /** Where the scale figure stands - clear of the default cubes, near the camera. */
-const FIGURE_POSITION: [number, number, number] = [-1.5, 0, 1.5];
 
 /**
  * Keeps the camera at a human eye height.
@@ -288,6 +287,12 @@ const Sun: React.FC = () => {
 
   const drawn = useRef({ revision: -1, x: NaN, z: NaN });
 
+  // A direction change must move the lamp and invalidate its cached shadow
+  // even when neither the geometry nor the viewer has moved.
+  useEffect(() => {
+    drawn.current.revision = -1;
+  }, [sun.azimuth, sun.elevation, sun.shadows]);
+
   useFrame(() => {
     const lamp = light.current;
     if (!lamp) return;
@@ -345,7 +350,6 @@ const SceneContent = () => {
   const distortion = useStore((state) => state.distortion);
   const perspectiveMode = useStore((state) => state.perspectiveMode);
   const lockEyeLevel = useStore((state) => state.lockEyeLevel);
-  const showFigure = useStore((state) => state.showFigure);
   const showGuides = useStore((state) => state.showGuides);
   const setLens = useStore((state) => state.setLens);
   const theme = useStore((state) => state.theme);
@@ -358,7 +362,6 @@ const SceneContent = () => {
   const isWalking = viewMode === 'walk';
   const bgColor = isDark ? '#000000' : '#f3f3f1';
   const horizonColor = isDark ? '#5cc8ff' : '#1f6feb';
-  const figureColor = isDark ? '#7a7a80' : '#5a5a60';
 
   // Curvilinear is a mode, not an amount: at a blend of zero it is still a
   // panorama, just the equirectangular one.
@@ -433,9 +436,6 @@ const SceneContent = () => {
 
       {/* Eye level / horizon line - every horizontal VP in the scene sits on it */}
       {showGuides && <HorizonLine color={horizonColor} />}
-
-      {/* 1.75 m human, for reading the 1 m cubes against a real body */}
-      {showFigure && <ScaleFigure position={FIGURE_POSITION} color={figureColor} />}
 
       {/* Ground plane in metres: 1 m cells, 5 m sections */}
       {showGuides && (

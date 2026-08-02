@@ -102,7 +102,7 @@ export default function App() {
   const panelFrame = tablet
     ? TABLET_DOCK
     : touchLayout
-    ? 'fixed right-2 above-bar z-50 flex justify-end'
+    ? 'fixed top-safe-panel bottom-safe-panel right-safe-rail z-50 flex items-center overflow-y-auto scrollbar-none'
     : 'fixed top-4 bottom-4 right-20 w-60 z-50';
 
   // Saved scenes are a short list far more often than a long one, so on a
@@ -454,7 +454,7 @@ export default function App() {
       <div className={`fixed inset-0 w-screen h-screen ${bgColor} font-sans selection:bg-none`} style={{ minHeight: '100dvh' }}>
         {cameraFeed && <CameraFeed onError={(message) => { setCameraFeed(false); showNotice(message); }} />}
         <Scene />
-        <WalkOverlay onNotice={showNotice} />
+        <WalkOverlay />
       </div>
     );
   }
@@ -487,7 +487,7 @@ export default function App() {
           and the short edge, so a phone turned sideways keeps its bar. */}
       {touchLayout && (
       <TouchControls
-        variant={tablet ? 'rail' : 'bar'}
+        variant="rail"
         onMeshes={openMeshes}
         onWalk={enterWalkMode}
         onAdd={handleAddAtFocus}

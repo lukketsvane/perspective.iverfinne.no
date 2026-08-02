@@ -1,7 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useStore, EYE_LEVEL_PRESETS, SPAWN_PRESETS } from '../store';
 import { SpawnKind } from '../types';
-import { STUDIES } from '../lib/studies';
 import type { Layout } from '../lib/useLayout';
 import { Icon, I } from './icons';
 import { Toggle, Scrub, Cell, type Skin } from './controls';
@@ -35,14 +34,12 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
   const perspectiveMode = useStore((s) => s.perspectiveMode);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const lockEyeLevel = useStore((s) => s.lockEyeLevel);
-  const showFigure = useStore((s) => s.showFigure);
   const showGuides = useStore((s) => s.showGuides);
   const spawnKind = useStore((s) => s.spawnKind);
   const setLens = useStore((s) => s.setLens);
   const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
   const toggleEyeLevelLock = useStore((s) => s.toggleEyeLevelLock);
-  const toggleFigure = useStore((s) => s.toggleFigure);
   const toggleGuides = useStore((s) => s.toggleGuides);
   const showCone = useStore((s) => s.showCone);
   const toggleCone = useStore((s) => s.toggleCone);
@@ -56,26 +53,17 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
   const setSun = useStore((s) => s.setSun);
   const matteModels = useStore((s) => s.matteModels);
   const toggleMatte = useStore((s) => s.toggleMatte);
-  const activeStudyId = useStore((s) => s.activeStudyId);
-  const loadStudy = useStore((s) => s.loadStudy);
-
-  const [studiesOpen, setStudiesOpen] = useState(false);
 
   const isDark = theme === 'dark';
   const touch = layout !== 'desktop';
 
   const panel = isDark ? 'bg-black/85 border-white/12' : 'bg-white/95 border-gray-200';
-  // The list sits over the controls it replaces, so it has to be opaque - at
-  // 95% the sliders underneath read straight through the drill names.
-  const sheet = isDark ? 'bg-black border-white/15' : 'bg-white border-gray-200';
   const muted = isDark ? 'text-gray-500' : 'text-gray-400';
   const value = isDark ? 'text-white' : 'text-gray-900';
   const divider = isDark ? 'border-white/10' : 'border-gray-100';
 
   const rowPad = touch ? 'px-3 py-3' : 'px-3 py-2.5';
   const skin: Skin = useMemo(() => ({ dark: isDark, touch }), [isDark, touch]);
-
-  const activeStudy = STUDIES.find((s) => s.id === activeStudyId) ?? null;
 
   /**
    * The phone build: a block of squares in the bottom right corner.
@@ -109,30 +97,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
 
     return (
       <div className="relative flex flex-col items-end gap-1.5 pointer-events-auto">
-        {studiesOpen && (
-          <div className={`absolute bottom-full right-0 mb-2 w-52 rounded-xl border shadow-2xl overflow-hidden ${sheet}`}>
-            <button
-              onClick={() => { resetScene(); setStudiesOpen(false); }}
-              className={`w-full text-left px-3 py-3 text-[11px] font-bold ${!activeStudyId ? value : muted}`}
-            >
-              —
-            </button>
-            {STUDIES.map((study) => (
-              <button
-                key={study.id}
-                onClick={() => { loadStudy(study.id); setStudiesOpen(false); }}
-                className={`w-full text-left px-3 py-3 text-[11px] font-bold ${
-                  activeStudyId === study.id ? value : muted
-                }`}
-              >
-                {study.name}
-              </button>
-            ))}
-          </div>
-        )}
-
         <div className="grid grid-cols-3 gap-1.5">
-          {cellToggle(studiesOpen, () => setStudiesOpen(!studiesOpen), I.study, 'Study')}
           <Cell
             skin={skin}
             icon={I.horizon}
@@ -171,7 +136,6 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
           {cellToggle(snapStep > 0, () => setSnapStep(snapStep > 0 ? 0 : 0.25), I.snap, 'Snap to the grid')}
           {cellToggle(showGuides, toggleGuides, I.horizon, 'Horizon and grid')}
 
-          {cellToggle(showFigure, toggleFigure, I.person, 'Scale figure')}
           {cellToggle(cameraFeed, () => setCameraFeed(!cameraFeed), I.camera, 'Camera feed')}
           {cellToggle(matteModels, toggleMatte, I.matte, 'Matte white models')}
 
@@ -221,64 +185,13 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
 
   return (
     <div className={`w-full max-h-full pointer-events-auto rounded-xl shadow-2xl border backdrop-blur-md overflow-hidden flex flex-col ${panel}`}>
-      {/* Which drill is loaded - the one name worth showing, and it folds away. */}
-      <div className={`relative flex items-center gap-2 ${rowPad} border-b ${divider}`}>
-        <button
-          onClick={() => setStudiesOpen(!studiesOpen)}
-          className={`flex-1 flex items-center gap-2 min-w-0 ${value}`}
-          aria-label="Study"
-          aria-expanded={studiesOpen}
-        >
-          <Icon path={I.study} className="w-[18px] h-[18px] shrink-0" />
-          <span className="flex-1 text-left text-[11px] font-bold truncate">
-            {activeStudy ? activeStudy.name : '—'}
-          </span>
-          <Icon
-            path={I.chevron}
-            className={`w-4 h-4 shrink-0 transition-transform ${studiesOpen ? 'rotate-180' : ''}`}
-          />
-        </button>
-
-        <button
-          // No confirmation: a reset is one undo away, and a modal asking
-          // "are you sure" is the most text a button can cost.
-          onClick={resetScene}
-          className={`shrink-0 ${muted}`}
-          aria-label="Reset to cubes"
-          title="Reset to cubes"
-        >
+      <div className={`flex items-center justify-end gap-3 ${rowPad} border-b ${divider}`}>
+        <button onClick={resetScene} className={muted} aria-label="Reset to cubes" title="Reset to cubes">
           <Icon path={I.reset} className="w-4 h-4" />
         </button>
-
-        <button onClick={onClose} className={`shrink-0 ${muted}`} aria-label="Close">
+        <button onClick={onClose} className={muted} aria-label="Close">
           <Icon path={I.close} className="w-4 h-4" />
         </button>
-
-        {studiesOpen && (
-          <div
-            className={`absolute left-2 right-2 top-full z-10 mt-1 rounded-xl border shadow-2xl overflow-hidden ${sheet}`}
-          >
-            <button
-              onClick={() => { resetScene(); setStudiesOpen(false); }}
-              className={`w-full text-left px-3 ${touch ? 'py-3' : 'py-2'} text-[11px] font-bold ${
-                !activeStudyId ? value : muted
-              } ${isDark ? 'hover:bg-black/60' : 'hover:bg-black/5'}`}
-            >
-              —
-            </button>
-            {STUDIES.map((study) => (
-              <button
-                key={study.id}
-                onClick={() => { loadStudy(study.id); setStudiesOpen(false); }}
-                className={`w-full text-left px-3 ${touch ? 'py-3' : 'py-2'} text-[11px] font-bold ${
-                  activeStudyId === study.id ? value : muted
-                } ${isDark ? 'hover:bg-black/60' : 'hover:bg-black/5'}`}
-              >
-                {study.name}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -367,7 +280,6 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
         {/* ------------------------------------------------ what is drawn over it */}
         <div className={`${rowPad} border-b ${divider} flex items-center gap-1`}>
           <Toggle skin={skin} on={showGuides} onClick={toggleGuides} path={I.horizon} label="Horizon and grid" className="flex-1" />
-          <Toggle skin={skin} on={showFigure} onClick={toggleFigure} path={I.person} label="Scale figure" className="flex-1" />
           <Toggle skin={skin} on={showCone} onClick={toggleCone} path={I.cone} label="Cone of vision" className="flex-1" />
           <Toggle skin={skin} on={cameraFeed} onClick={() => setCameraFeed(!cameraFeed)} path={I.camera} label="Camera feed" className="flex-1" />
           <Toggle skin={skin} on={matteModels} onClick={toggleMatte} path={I.matte} label="Matte white models" className="flex-1" />

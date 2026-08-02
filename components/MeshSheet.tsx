@@ -109,8 +109,8 @@ export const MeshSheet: React.FC<{
     </div>
   );
 
-  // Beside the rail on a tablet, above the thumb bar on a phone, and along the
-  // bottom on a desktop. Nowhere does it cover the scene it is placing into.
+  // Beside the rail on touch screens and along the bottom on desktop. Nowhere
+  // does it cover the controls used to place into the scene.
   if (layout === 'tablet') {
     return (
       <div className="fixed z-[70] pointer-events-none landscape:right-24 landscape:left-3 landscape:bottom-3 portrait:left-3 portrait:right-24 portrait:bottom-3">
@@ -120,7 +120,7 @@ export const MeshSheet: React.FC<{
   }
 
   if (layout === 'phone') {
-    return <div className="fixed inset-x-2 above-bar z-[70] pointer-events-none">{strip}</div>;
+    return <div className="fixed left-2 right-safe-rail bottom-safe-panel z-[70] pointer-events-none">{strip}</div>;
   }
 
   return (
