@@ -260,6 +260,26 @@ export const useStore = create<SceneState>((set, get) => ({
       };
     }),
 
+  // The always-visible cube button is deliberately independent of the
+  // primitive selected in the practice panel. It is the reliable 1 m ruler.
+  addCube: (position) =>
+    set((state) => {
+      const id = uuidv4();
+      return {
+        boxes: [
+          ...state.boxes,
+          {
+            id,
+            position: [snapToCell(position[0]), UNIT / 2, snapToCell(position[2])],
+            scale: [UNIT, UNIT, UNIT],
+            rotation: [0, 0, 0],
+          },
+        ],
+        selectedId: id,
+        selectedModelId: null,
+      };
+    }),
+
   appendBox: (data) =>
     set((state) => ({
       boxes: [

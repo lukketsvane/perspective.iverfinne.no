@@ -19,7 +19,7 @@ export default function App() {
   const fov = useStore((s) => s.fov);
   const perspectiveMode = useStore((s) => s.perspectiveMode);
   const showCone = useStore((s) => s.showCone);
-  const addBox = useStore((s) => s.addBox);
+  const addCube = useStore((s) => s.addCube);
   const addModel = useStore((s) => s.addModel);
   const loadHistoryFromStorage = useStore((s) => s.loadHistoryFromStorage);
   const [showMeshes, setShowMeshes] = useState(false);
@@ -28,7 +28,7 @@ export default function App() {
   useEffect(() => loadHistoryFromStorage(), [loadHistoryFromStorage]);
   useEffect(() => useStore.subscribe((state) => saveSettings(state)), []);
 
-  const handleAddAtFocus = () => addBox([focusPoint.x, 0, focusPoint.z]);
+  const handleAddAtFocus = () => addCube([focusPoint.x, 0, focusPoint.z]);
 
   const freeSpot = (footprint: number): [number, number] =>
     findFreeSpot(
