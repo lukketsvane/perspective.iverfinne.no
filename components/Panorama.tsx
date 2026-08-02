@@ -112,6 +112,15 @@ export const Panorama: React.FC<{
           // in every direction.
           vec2 radial = vec2(clip.x * halfYaw, clip.y * halfPitch);
           float radius = length(radial);
+
+          // An equidistant sphere ends at the antipode. At a full 360-degree
+          // diameter the frame's corners lie beyond that circle; sampling them
+          // would wrap the world back around and duplicate the scene.
+          if (radius > PI) {
+            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            return;
+          }
+
           vec3 direction = vec3(0.0, 0.0, -1.0);
           if (radius > 1e-5) {
             direction = vec3(radial * (sin(radius) / radius), -cos(radius));

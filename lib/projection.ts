@@ -17,11 +17,22 @@ import * as THREE from 'three';
  * here is the size of the field it covers.
  *
  * In curvilinear mode the lens setting stops being a focal length and becomes
- * the width of the panorama, which is why it runs to 360. The vertical follows
- * the frame's shape, so a square on the horizon stays square.
+ * the angular diameter of the drawing. That diameter follows the longest edge
+ * of the frame. Most importantly, both axes use the same pixels-per-radian
+ * scale: changing orientation crops/reveals the sphere, but can never squeeze
+ * a cube into a tall sliver.
  */
 export const fieldOf = (degrees: number, width: number, height: number) => {
-  const halfYaw = THREE.MathUtils.degToRad(Math.min(360, Math.max(20, degrees))) / 2;
-  const halfPitch = Math.min(Math.PI / 2, (halfYaw * height) / Math.max(width, 1));
+  const angularRadius = THREE.MathUtils.degToRad(Math.min(360, Math.max(20, degrees))) / 2;
+  const safeWidth = Math.max(width, 1);
+  const safeHeight = Math.max(height, 1);
+  const longestEdge = Math.max(safeWidth, safeHeight);
+
+  // One angular scale for both dimensions. The previous vertical clamp to 90°
+  // broke this invariant on portrait screens once the requested horizontal
+  // field grew past ~100°, producing the severe vertical stretching reported
+  // on phones.
+  const halfYaw = angularRadius * (safeWidth / longestEdge);
+  const halfPitch = angularRadius * (safeHeight / longestEdge);
   return { halfYaw, halfPitch };
 };
