@@ -44,7 +44,7 @@ export const DEFAULT_SUN: SunState = {
   // and with no fill light there is nothing to lift them back out.
   azimuth: 55,
   elevation: 48,
-  intensity: 3.2,
+  intensity: 8,
   shadows: true,
 };
 
@@ -198,7 +198,7 @@ const saveScenesToStorage = (scenes: SavedScene[]) => {
   }
 };
 
-const remembered = loadSettings();
+const remembered = { ...loadSettings(), showFigure: false };
 
 /** How many steps back you can take. */
 const UNDO_DEPTH = 25;
@@ -230,7 +230,7 @@ export const useStore = create<SceneState>((set, get) => ({
   perspectiveMode: 'linear',
   cameraHeight: DEFAULT_CAMERA_HEIGHT,
   lockEyeLevel: true, // Level gaze -> true verticals -> 2-point perspective
-  showFigure: true,
+  showFigure: false,
   showGuides: true,
   showCone: false,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
