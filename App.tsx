@@ -8,6 +8,7 @@ import { VanishingPoints } from './components/VanishingPoints';
 import { SelectionBar } from './components/SelectionBar';
 import { TouchControls } from './components/TouchControls';
 import { MeshSheet } from './components/MeshSheet';
+import { WalkModelPicker } from './components/WalkModelPicker';
 import { useStore, saveSettings } from './store';
 import { useLayout } from './lib/useLayout';
 import { captureView, captureFileName } from './lib/capture';
@@ -454,7 +455,20 @@ export default function App() {
       <div className={`fixed inset-0 w-screen h-screen ${bgColor} font-sans selection:bg-none`} style={{ minHeight: '100dvh' }}>
         {cameraFeed && <CameraFeed onError={(message) => { setCameraFeed(false); showNotice(message); }} />}
         <Scene />
-        <WalkOverlay />
+        <WalkOverlay onModels={openMeshes} />
+        {showMeshes && (
+          <>
+            <MeshSheet
+              layout={layout}
+              onClose={() => setShowMeshes(false)}
+              onPlace={placeLibraryMesh}
+              onImport={importModels}
+              busyId={busyMesh}
+            />
+            <WalkModelPicker />
+          </>
+        )}
+        <SelectionBar raised={showMeshes} />
       </div>
     );
   }
