@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
 import { walkInput } from '../lib/walkInput';
-import { matchedVerticalFov } from '../lib/cameraFeed';
 import { Icon, I } from './icons';
 
 const MAX_PITCH = Math.PI / 2 - 0.05;
@@ -30,8 +29,7 @@ const LOOK_GAIN = 1.4;
  * the field, in degrees, because the projection is equidistant - angle from the
  * centre is distance from the centre, evenly. In straight-line perspective the
  * setting is vertical, so it is opened out to the horizontal by the frame's
- * shape; with the camera feed showing through, the lens is the real one being
- * matched rather than the practice one.
+ * shape.
  */
 const lookRadiansPerPixel = (
   curvilinear: boolean,
@@ -72,11 +70,8 @@ const shapeStick = (magnitude: number) => {
 export const WalkOverlay: React.FC<{ onModels: () => void }> = ({ onModels }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
-  const cameraFeed = useStore((s) => s.cameraFeed);
-  const setCameraFeed = useStore((s) => s.setCameraFeed);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
   const setViewMode = useStore((s) => s.setViewMode);
-  const sensorFov = useStore((s) => s.sensorFov);
   const viewLocked = useStore((s) => s.viewLocked);
   const toggleViewLock = useStore((s) => s.toggleViewLock);
   const fov = useStore((s) => s.fov);
@@ -86,8 +81,7 @@ export const WalkOverlay: React.FC<{ onModels: () => void }> = ({ onModels }) =>
   const toggleTheme = useStore((s) => s.toggleTheme);
 
   const isDark = theme === 'dark';
-  const onCamera = cameraFeed || isDark;
-  const chrome = onCamera
+  const chrome = isDark
     ? 'bg-black/60 text-white border-white/25'
     : 'bg-white/75 text-gray-900 border-gray-300';
 
@@ -101,11 +95,8 @@ export const WalkOverlay: React.FC<{ onModels: () => void }> = ({ onModels }) =>
     const measure = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      // Over the camera feed the virtual lens is matched to the real one, and
-      // the panorama is not in play - what is on screen is a flat frame.
-      const curvilinear = perspectiveMode === 'curvilinear' && !cameraFeed;
-      const degrees = cameraFeed ? matchedVerticalFov(sensorFov, width, height) : fov;
-      lookRate.current = lookRadiansPerPixel(curvilinear, degrees, width, height);
+      const curvilinear = perspectiveMode === 'curvilinear';
+      lookRate.current = lookRadiansPerPixel(curvilinear, fov, width, height);
     };
     measure();
     window.addEventListener('resize', measure);
@@ -114,7 +105,7 @@ export const WalkOverlay: React.FC<{ onModels: () => void }> = ({ onModels }) =>
       window.removeEventListener('resize', measure);
       window.removeEventListener('orientationchange', measure);
     };
-  }, [fov, perspectiveMode, cameraFeed, sensorFov]);
+  }, [fov, perspectiveMode]);
 
   const look = useRef<{ id: number; x: number; y: number } | null>(null);
   const stick = useRef<{ id: number; x: number; y: number } | null>(null);
@@ -314,17 +305,6 @@ export const WalkOverlay: React.FC<{ onModels: () => void }> = ({ onModels }) =>
         <div className="flex items-center gap-2 pointer-events-auto">
           <button onClick={cycleHeight} className={`${button} tabular-nums`} aria-label="Eye height">
             {cameraHeight.toFixed(2)} m
-          </button>
-
-          <button
-            onClick={() => setCameraFeed(!cameraFeed)}
-            aria-label="Camera"
-            className={`${iconButton} ${cameraFeed ? '!bg-sky-500 !text-white !border-sky-400' : ''}`}
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-              <circle cx="12" cy="13" r="4" />
-            </svg>
           </button>
 
           {/* Hold the frame still to draw from it */}

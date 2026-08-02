@@ -3,7 +3,6 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '../store';
 import { walkInput } from '../lib/walkInput';
-import { matchedVerticalFov } from '../lib/cameraFeed';
 
 /**
  * The view walk mode is handing back.
@@ -41,13 +40,9 @@ export const resumeOrbitView: {
  * permitted, and from drag-to-look otherwise (which is also what desktop gets).
  */
 export const WalkControls = () => {
-  const { camera, size } = useThree();
+  const { camera } = useThree();
   const cameraHeight = useStore((state) => state.cameraHeight);
-  const cameraFeed = useStore((state) => state.cameraFeed);
-  const fov = useStore((state) => state.fov);
-  const sensorFov = useStore((state) => state.sensorFov);
   const viewLocked = useStore((state) => state.viewLocked);
-  const feedNonce = useStore((state) => state.feedNonce);
 
   const temp = useMemo(
     () => ({
@@ -61,26 +56,6 @@ export const WalkControls = () => {
     }),
     []
   );
-
-  /**
-   * With the room showing through, the virtual lens has to match the real one
-   * or the cubes slide against the floor as you turn. That means the sensor's
-   * own angle *and* the crop the object-cover video is doing to it - and since
-   * no browser reports focal length, the sensor figure is adjustable by hand.
-   */
-  useEffect(() => {
-    if (!(camera instanceof THREE.PerspectiveCamera)) return;
-    if (!cameraFeed) return;
-
-    camera.fov = matchedVerticalFov(sensorFov, size.width, size.height);
-    camera.updateProjectionMatrix();
-
-    return () => {
-      // Hand the practice lens back on the way out.
-      camera.fov = fov;
-      camera.updateProjectionMatrix();
-    };
-  }, [cameraFeed, camera, size.width, size.height, fov, sensorFov, feedNonce]);
 
   /**
    * Step into the scene exactly where the orbit camera was standing, looking
