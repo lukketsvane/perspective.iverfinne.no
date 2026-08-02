@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
 import { walkInput, recentre } from '../lib/walkInput';
-import { focusPoint } from '../lib/focus';
 import { matchedVerticalFov } from '../lib/cameraFeed';
 
 const MAX_PITCH = Math.PI / 2 - 0.05;
@@ -69,20 +68,21 @@ const shapeStick = (magnitude: number) => {
  * orientation sensor is driving the view, the whole screen becomes stick, since
  * looking is the phone's job by then.
  */
-export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({ onNotice }) => {
+export const WalkOverlay: React.FC = () => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const cameraFeed = useStore((s) => s.cameraFeed);
   const setCameraFeed = useStore((s) => s.setCameraFeed);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
   const setViewMode = useStore((s) => s.setViewMode);
-  const addBox = useStore((s) => s.addBox);
   const sensorFov = useStore((s) => s.sensorFov);
   const setSensorFov = useStore((s) => s.setSensorFov);
   const viewLocked = useStore((s) => s.viewLocked);
   const toggleViewLock = useStore((s) => s.toggleViewLock);
   const fov = useStore((s) => s.fov);
   const perspectiveMode = useStore((s) => s.perspectiveMode);
+  const sun = useStore((s) => s.sun);
+  const setSun = useStore((s) => s.setSun);
   const [tuning, setTuning] = useState(false);
 
   const isDark = theme === 'dark';
@@ -236,11 +236,6 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
     setCameraHeight(next.height);
   };
 
-  const dropBox = () => {
-    addBox([focusPoint.x, 0, focusPoint.z]);
-    onNotice('Cube placed where you are looking.');
-  };
-
   const button = `px-3 py-2 rounded-full border backdrop-blur-md text-[10px] font-black tracking-widest transition-transform active:scale-95 ${chrome}`;
   const iconButton = `flex items-center justify-center w-10 h-10 rounded-full border backdrop-blur-md transition-transform active:scale-95 ${chrome}`;
 
@@ -278,7 +273,7 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
         </div>
       )}
 
-      {/* Bottom bar: the height number, and two icons */}
+      {/* Bottom bar: height, camera, view lock, and alignment */}
       <div className="fixed inset-x-0 bottom-0 z-40 safe-bottom px-3 pb-4 flex justify-center pointer-events-none">
         <div className="flex items-center gap-2 pointer-events-auto">
           <button onClick={cycleHeight} className={`${button} tabular-nums`} aria-label="Eye height">
@@ -293,14 +288,6 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
             <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
               <circle cx="12" cy="13" r="4" />
-            </svg>
-          </button>
-
-          <button onClick={dropBox} className={iconButton} aria-label="Add cube">
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-              <line x1="12" y1="22.08" x2="12" y2="12" />
             </svg>
           </button>
 
@@ -333,7 +320,7 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
           recentre for compass drift. Numbers only. */}
       {tuning && (
         <div className="fixed inset-x-0 bottom-24 z-40 px-4 flex justify-center pointer-events-none">
-          <div className={`w-full max-w-xs rounded-2xl border backdrop-blur-md px-4 py-3 pointer-events-auto ${chrome}`}>
+          <div className={`w-full max-w-xs max-h-[calc(100dvh-8rem)] overflow-y-auto rounded-2xl border backdrop-blur-md px-4 py-3 pointer-events-auto ${chrome}`}>
             <div className="flex items-center justify-between text-[10px] font-black tabular-nums">
               <span className="opacity-60">↕</span>
               <span>{cameraHeight.toFixed(2)} m</span>
@@ -363,6 +350,61 @@ export const WalkOverlay: React.FC<{ onNotice: (message: string) => void }> = ({
               className="w-full accent-current"
               aria-label="Lens"
             />
+
+            <div className="flex items-center justify-between text-[10px] font-black tabular-nums mt-2">
+              <span className="opacity-60">SUN ↻</span>
+              <span>{Math.round(sun.azimuth)}°</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={360}
+              step={1}
+              value={sun.azimuth}
+              onChange={(e) => setSun({ azimuth: parseFloat(e.target.value) })}
+              className="w-full accent-current"
+              aria-label="Sun direction"
+            />
+
+            <div className="flex items-center justify-between text-[10px] font-black tabular-nums mt-2">
+              <span className="opacity-60">SUN ↥</span>
+              <span>{Math.round(sun.elevation)}°</span>
+            </div>
+            <input
+              type="range"
+              min={4}
+              max={88}
+              step={1}
+              value={sun.elevation}
+              onChange={(e) => setSun({ elevation: parseFloat(e.target.value) })}
+              className="w-full accent-current"
+              aria-label="Sun elevation"
+            />
+
+            <div className="flex items-center justify-between text-[10px] font-black tabular-nums mt-2">
+              <span className="opacity-60">SUN</span>
+              <span>{sun.intensity.toFixed(1)}</span>
+            </div>
+            <input
+              type="range"
+              min={0.2}
+              max={8}
+              step={0.1}
+              value={sun.intensity}
+              onChange={(e) => setSun({ intensity: parseFloat(e.target.value) })}
+              className="w-full accent-current"
+              aria-label="Sun intensity"
+            />
+
+            <button
+              onClick={() => setSun({ shadows: !sun.shadows })}
+              aria-pressed={sun.shadows}
+              className={`mt-2 w-full py-2 rounded-xl border text-[9px] font-black uppercase tracking-widest ${
+                sun.shadows ? 'border-current/50' : 'border-current/20 opacity-50'
+              }`}
+            >
+              Shadows {sun.shadows ? 'on' : 'off'}
+            </button>
 
             <button
               onClick={recentre}
