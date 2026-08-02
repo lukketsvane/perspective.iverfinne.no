@@ -101,7 +101,7 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
     // up underneath a menu, unreachable.
     <div className={`fixed inset-x-0 z-40 flex justify-center pointer-events-none ${
       layout === 'phone'
-        ? `${raised ? 'above-bar-2' : 'above-bar'} px-2`
+        ? `${raised ? 'above-rail-strip' : 'bottom-safe-panel'} pl-2 pr-[5.25rem] justify-end`
         : layout === 'tablet'
         ? 'top-4 pl-4 pr-24 safe-top'
         : `${raised ? 'bottom-28' : 'bottom-6'} px-4`
