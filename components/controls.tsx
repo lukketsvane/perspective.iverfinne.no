@@ -81,11 +81,13 @@ const SWEEP = 220;
  * toolbar space, and pointer capture makes the full range available even from
  * a small icon button.
  */
-export const useGrayThemeControl = () => {
+export const useGrayThemeControl = (onDoubleTap?: () => void) => {
   const value = useStore((state) => state.backgroundGray);
   const setValue = useStore((state) => state.setBackgroundGray);
   const toggle = useStore((state) => state.toggleTheme);
   const drag = useRef<{ id: number; x: number; y: number; from: number; moved: boolean } | null>(null);
+  const lastTap = useRef(0);
+  const tapTimer = useRef<number | undefined>(undefined);
 
   return {
     onPointerDown: (event: React.PointerEvent) => {
@@ -103,7 +105,23 @@ export const useGrayThemeControl = () => {
     onPointerUp: (event: React.PointerEvent) => {
       const held = drag.current;
       drag.current = null;
-      if (held?.id === event.pointerId && !held.moved) toggle();
+      if (held?.id !== event.pointerId || held.moved) return;
+      const now = performance.now();
+      if (onDoubleTap && now - lastTap.current < 300) {
+        if (tapTimer.current !== undefined) window.clearTimeout(tapTimer.current);
+        tapTimer.current = undefined;
+        lastTap.current = 0;
+        onDoubleTap();
+        return;
+      }
+      lastTap.current = now;
+      // Wait briefly before applying the single tap so a double tap changes
+      // only the environment and does not flash the light/dark theme twice.
+      tapTimer.current = window.setTimeout(() => {
+        tapTimer.current = undefined;
+        lastTap.current = 0;
+        toggle();
+      }, onDoubleTap ? 300 : 0);
     },
     onPointerCancel: () => { drag.current = null; },
   };

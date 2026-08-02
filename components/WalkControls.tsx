@@ -5,30 +5,6 @@ import { useStore } from '../store';
 import { walkInput } from '../lib/walkInput';
 
 /**
- * The view walk mode is handing back.
- *
- * A fresh OrbitControls starts with its target at the world origin and aims the
- * camera there on its first update. That update can land *before* this
- * component's teardown runs - React flushes passive cleanups on a scheduler
- * callback, and the render loop is on rAF - so reading the camera at teardown
- * gave back a camera already swung round to face the middle of the scene. That
- * was the jump on leaving walk mode.
- *
- * So the frame is copied out on every walk frame instead. Whatever order the
- * two trees tear down and build in, what is stored here is the last frame walk
- * mode actually drew.
- */
-export const resumeOrbitView: {
-  pending: boolean;
-  position: THREE.Vector3;
-  quaternion: THREE.Quaternion;
-} = {
-  pending: false,
-  position: new THREE.Vector3(),
-  quaternion: new THREE.Quaternion(),
-};
-
-/**
  * First person camera for walk mode.
  *
  * The camera stands at the eye level set in the Practice panel and moves in the
@@ -58,10 +34,7 @@ export const WalkControls = () => {
   );
 
   /**
-   * Step into the scene exactly where the orbit camera was standing, looking
-   * exactly where it was looking - including how far up or down. Entering walk
-   * mode is a change of stance, not a cut to another shot, and coming back out
-   * (see `resumeOrbitView`) holds the same frame.
+   * Initialise walking from the camera position and heading.
    */
   useEffect(() => {
     const direction = new THREE.Vector3();
@@ -74,8 +47,6 @@ export const WalkControls = () => {
     walkInput.forward = 0;
     walkInput.strafe = 0;
 
-    // On the way out, the frame stored below is the one to go back to.
-    return () => { resumeOrbitView.pending = true; };
   }, [camera]);
 
   useFrame((_, rawDelta) => {
@@ -124,9 +95,6 @@ export const WalkControls = () => {
 
     camera.position.set(walkInput.position.x, cameraHeight, walkInput.position.z);
 
-    // Keep the way out up to date, every frame. See resumeOrbitView.
-    resumeOrbitView.position.copy(camera.position);
-    resumeOrbitView.quaternion.copy(camera.quaternion);
   });
 
   return null;

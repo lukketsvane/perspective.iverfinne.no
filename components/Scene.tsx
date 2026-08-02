@@ -1,18 +1,17 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { OrbitControls, Grid, ContactShadows } from '@react-three/drei';
+import { Grid, ContactShadows, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore, DEFAULT_CAMERA_HEIGHT } from '../store';
 import { KimBox } from './KimBox';
 import { HorizonLine } from './Reference';
 import { SceneModels } from './SceneModels';
-import { WalkControls, resumeOrbitView } from './WalkControls';
+import { WalkControls } from './WalkControls';
 import { updateFocus, focusPoint } from '../lib/focus';
 import { updateVanishing, clearVanishing } from '../lib/vanishing';
 import { sceneRevision } from '../lib/sceneRevision';
 import { Panorama } from './Panorama';
 import { dragJustEnded } from '../lib/dragGuard';
-import { useGesture } from '@use-gesture/react';
 
 /** Keeps the "put one here" point under the middle of the view. */
 const FocusTracker = () => {
@@ -73,156 +72,6 @@ const VanishingTracker = () => {
   return null;
 };
 
-/** Orbit target on mount: straight ahead, at standing eye level. */
-const INITIAL_TARGET: [number, number, number] = [0, DEFAULT_CAMERA_HEIGHT, 0];
-
-/** Closest the orbit camera may get to the floor, in metres. */
-const GROUND_CLEARANCE = 0.25;
-
-/** Set once the opening shot has been framed, so it is never re-framed. */
-let orbitPlaced = false;
-
-/** Where the scale figure stands - clear of the default cubes, near the camera. */
-
-/**
- * Keeps the camera at a human eye height.
- *
- * With the lock on, the camera and its orbit target sit at exactly the same
- * height, so the line of sight is horizontal: verticals stay vertical and the
- * scene reads as clean 2-point perspective with the horizon dead centre. This
- * is the standing-observer setup Kim Jung Gi draws from almost all the time.
- *
- * Unlock it to climb off eye level and pick up the third (zenith/nadir)
- * vanishing point.
- */
-const EyeLevelRig = () => {
-  const { camera, controls } = useThree();
-  const cameraHeight = useStore((state) => state.cameraHeight);
-  const lockEyeLevel = useStore((state) => state.lockEyeLevel);
-  const cameraPose = useStore((state) => state.cameraPose);
-  const boxes = useStore((state) => state.boxes);
-  const models = useStore((state) => state.models);
-  const selectedId = useStore((state) => state.selectedId);
-  const selectedModelId = useStore((state) => state.selectedModelId);
-
-  /**
-   * Where the orbit pivot goes when the rig appears.
-   *
-   * The very first time, straight ahead at standing eye level - the opening
-   * shot. Every time after that the rig is remounting because walk mode just
-   * handed the camera back, so the pivot goes six metres out along whatever
-   * heading the walk ended on and the frame does not move.
-   *
-   * This used to be a `target` prop on OrbitControls, which looked like it only
-   * applied on mount and did not: drei re-asserts its props, so any later
-   * render snapped the pivot back to the origin and swung the camera round to
-   * face it. That was the jump on leaving walk mode.
-   *
-   * It has to run before the eye-level effect below, which would otherwise see
-   * a camera sitting on top of the stale pivot and shove it three metres back.
-   */
-  useEffect(() => {
-    const orbit = controls as any;
-    if (!orbit?.target) return;
-
-    if (!orbitPlaced) {
-      orbitPlaced = true;
-      orbit.target.set(...INITIAL_TARGET);
-      orbit.update();
-      return;
-    }
-
-    if (!resumeOrbitView.pending) return;
-    resumeOrbitView.pending = false;
-
-    // Put the frame back before working out where to pivot: by now the fresh
-    // controls have already aimed the camera at the origin.
-    camera.position.copy(resumeOrbitView.position);
-    camera.quaternion.copy(resumeOrbitView.quaternion);
-
-    const heading = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    if (heading.lengthSq() < 1e-6) heading.set(0, 0, -1);
-    // Far enough out that orbiting feels like turning your head rather than
-    // spinning on a pin, and near enough to stay inside the scene. Being
-    // exactly along the heading is what makes the controls' own lookAt a no-op.
-    orbit.target.copy(camera.position).addScaledVector(heading.normalize(), 6);
-    orbit.update();
-  }, [camera, controls]);
-
-  /**
-   * A study says where to stand, not just what to look at - one-point only
-   * looks like one-point from square on. The nonce lets the same drill be
-   * re-applied after the view has been moved around.
-   */
-  useEffect(() => {
-    const orbit = controls as any;
-    if (!cameraPose || !orbit?.target) return;
-
-    camera.position.set(...cameraPose.position);
-    orbit.target.set(...cameraPose.target);
-    // A drill may look up at something tall, which puts the camera below its
-    // own target - open the limit before update() gets a chance to clamp it.
-    if (!lockEyeLevel) orbit.maxPolarAngle = Math.PI - 0.05;
-    orbit.update();
-  }, [cameraPose, camera, controls, lockEyeLevel]);
-
-  // Move the camera and the orbit target to the new eye level, keeping the
-  // horizontal distance and bearing the viewer had already framed up.
-  useEffect(() => {
-    const orbit = controls as any;
-    if (!orbit?.target) return;
-
-    // Coming back from a walk, the camera can be standing on the orbit target,
-    // which leaves OrbitControls with nothing to orbit. Step back along the
-    // current heading first.
-    const dx = camera.position.x - orbit.target.x;
-    const dz = camera.position.z - orbit.target.z;
-    if (Math.hypot(dx, dz) < 0.5) {
-      const heading = new THREE.Vector3();
-      camera.getWorldDirection(heading);
-      heading.y = 0;
-      if (heading.lengthSq() < 1e-6) heading.set(0, 0, -1);
-      heading.normalize();
-      camera.position.x = orbit.target.x - heading.x * 3;
-      camera.position.z = orbit.target.z - heading.z * 3;
-    }
-
-    camera.position.y = cameraHeight;
-    if (lockEyeLevel) orbit.target.y = cameraHeight;
-    orbit.update();
-  }, [cameraHeight, lockEyeLevel, camera, controls]);
-
-  // OrbitControls updates at priority -1, so this runs after it each frame.
-  useFrame(() => {
-    const orbit = controls as any;
-    if (!orbit?.target) return;
-
-    if (lockEyeLevel) {
-      if (Math.abs(camera.position.y - cameraHeight) > 1e-5) camera.position.y = cameraHeight;
-      if (Math.abs(orbit.target.y - cameraHeight) > 1e-5) orbit.target.y = cameraHeight;
-      return;
-    }
-
-    /**
-     * Unlocked, the camera has to be free to drop below its target and look up
-     * at something tall - that is the whole third-vanishing-point case. A fixed
-     * polar limit cannot express that and "stay above the ground" at the same
-     * time, so the limit is recomputed from the geometry instead: the angle at
-     * which the orbit would put the camera on the floor.
-     */
-    const radius = camera.position.distanceTo(orbit.target);
-    const cosLimit = THREE.MathUtils.clamp(
-      (GROUND_CLEARANCE - orbit.target.y) / Math.max(radius, 0.001),
-      -1,
-      1
-    );
-    orbit.maxPolarAngle = Math.min(Math.PI - 0.05, Math.acos(cosLimit));
-  });
-
-  return null;
-};
-
-/** How far off the sun is placed. Only its direction matters. */
 const SUN_DISTANCE = 60;
 
 /** Where a bearing and a height above the horizon put the sun. */
@@ -231,6 +80,38 @@ export const sunPosition = (azimuth: number, elevation: number): [number, number
   const e = THREE.MathUtils.degToRad(elevation);
   const flat = Math.cos(e) * SUN_DISTANCE;
   return [Math.sin(a) * flat, Math.sin(e) * SUN_DISTANCE, Math.cos(a) * flat];
+};
+
+/** Approximate a black-body temperature as an sRGB lamp colour. */
+const temperatureColor = (kelvin: number) => {
+  const t = THREE.MathUtils.clamp(kelvin, 1000, 12000) / 100;
+  const red = t <= 66 ? 255 : 329.698727446 * Math.pow(t - 60, -0.1332047592);
+  const green = t <= 66 ? 99.4708025861 * Math.log(t) - 161.1195681661 : 288.1221695283 * Math.pow(t - 60, -0.0755148492);
+  const blue = t >= 66 ? 255 : t <= 19 ? 0 : 138.5177312231 * Math.log(t - 10) - 305.044792731;
+  return new THREE.Color(red / 255, green / 255, blue / 255);
+};
+
+/**
+ * A clear, physically-modelled atmosphere driven by the directional sun.
+ * This is deliberately only air and sunlight: no clouds or image backdrop.
+ */
+const SunEnvironment = () => {
+  const sun = useStore((state) => state.sun);
+  const position = useMemo(() => sunPosition(sun.azimuth, sun.elevation), [sun.azimuth, sun.elevation]);
+  // Warm light scatters through a denser-looking atmosphere; stronger light
+  // produces a cleaner blue sky and a tighter solar halo.
+  const warmth = THREE.MathUtils.clamp((6500 - sun.temperature) / 4700, 0, 1);
+  const energy = THREE.MathUtils.clamp(sun.intensity / 8, 0.05, 1);
+  return (
+    <Sky
+      distance={450}
+      sunPosition={position}
+      turbidity={2 + warmth * 7 + (1 - energy) * 2}
+      rayleigh={0.8 + energy * 2.2}
+      mieCoefficient={0.003 + warmth * 0.012}
+      mieDirectionalG={0.82 + energy * 0.12}
+    />
+  );
 };
 
 /** How far the shadow camera reaches either side of where you are looking. */
@@ -265,6 +146,7 @@ const Sun: React.FC = () => {
   const sun = useStore((state) => state.sun);
   const light = useRef<THREE.DirectionalLight>(null);
   const anchor = useMemo(() => new THREE.Object3D(), []);
+  const color = useMemo(() => temperatureColor(sun.temperature), [sun.temperature]);
 
   const offset = useMemo(
     () => sunPosition(sun.azimuth, sun.elevation),
@@ -318,6 +200,7 @@ const Sun: React.FC = () => {
         ref={light}
         target={anchor}
         position={offset}
+        color={color}
         intensity={sun.intensity}
         castShadow={sun.shadows}
         shadow-mapSize-width={mapSize}
@@ -341,25 +224,19 @@ const Sun: React.FC = () => {
 const SceneContent = () => {
   const { camera } = useThree();
   const boxes = useStore((state) => state.boxes);
-  const addBox = useStore((state) => state.addBox);
   const selectBox = useStore((state) => state.selectBox);
-  const isDragging = useStore((state) => state.isDragging);
   const isViewMode = useStore((state) => state.isViewMode);
 
   const fov = useStore((state) => state.fov);
   const distortion = useStore((state) => state.distortion);
   const perspectiveMode = useStore((state) => state.perspectiveMode);
-  const lockEyeLevel = useStore((state) => state.lockEyeLevel);
   const showGuides = useStore((state) => state.showGuides);
-  const setLens = useStore((state) => state.setLens);
   const theme = useStore((state) => state.theme);
   const backgroundGray = useStore((state) => state.backgroundGray);
-  const viewMode = useStore((state) => state.viewMode);
   const sunShadows = useStore((state) => state.sun.shadows);
+  const sunEnvironment = useStore((state) => state.sunEnvironment);
 
-  const controlsRef = useRef<any>(null);
   const isDark = theme === 'dark';
-  const isWalking = viewMode === 'walk';
   const bgColor = `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})`;
   const horizonColor = isDark ? '#5cc8ff' : '#1f6feb';
 
@@ -383,39 +260,11 @@ const SceneContent = () => {
     }
   }, [fov, camera]);
 
-  /**
-   * Three fingers dragged up and down set the focal length.
-   *
-   * `movement` is measured from where the gesture started, not from the last
-   * event, so applying it to the *current* fov re-applied the whole travel on
-   * every frame and the lens shot to one end of its range the moment you moved.
-   * It is anchored to the fov the gesture began at instead, and at a fifth of
-   * the old rate - three fingers on glass is not a precision instrument.
-   */
-  const lensGesture = useRef<{ from: number; origin: number } | null>(null);
-  useGesture(
-    {
-      onDrag: ({ movement: [, my], touches, last }) => {
-        // Walk mode reserves three fingers for moving the sun. This listener
-        // lives on window, so without the explicit mode check it also changes
-        // the lens while WalkOverlay handles the very same gesture.
-        if (isWalking) { lensGesture.current = null; return; }
-        // A third finger can land part-way through a drag, so the anchor is
-        // taken when the count reaches three rather than when the drag began.
-        if (last || touches !== 3) { lensGesture.current = null; return; }
-        if (!lensGesture.current) lensGesture.current = { from: fov, origin: my };
-        setLens(lensGesture.current.from - (my - lensGesture.current.origin) * 0.04);
-      },
-    },
-    {
-      target: window,
-      eventOptions: { passive: false },
-    }
-  );
 
   return (
     <>
-      <color attach="background" args={[bgColor]} />
+      <color attach="background" args={[sunEnvironment ? '#000000' : bgColor]} />
+      {sunEnvironment && <SunEnvironment />}
       {/* One sun, and nothing else.
 
           No ambient term and no environment map: a face turned away from the
@@ -451,13 +300,8 @@ const SceneContent = () => {
           fadeDistance={60}
           fadeStrength={1.5}
           infiniteGrid
-          onDoubleClick={(e) => {
-              if (isViewMode) return;
-              e.stopPropagation();
-              addBox([e.point.x, e.point.y, e.point.z]);
-          }}
           onClick={(e) => {
-              if (isViewMode || dragJustEnded()) return;
+              if (dragJustEnded()) return;
               e.stopPropagation();
               selectBox(null);
           }}
@@ -467,13 +311,8 @@ const SceneContent = () => {
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, -0.01, 0]}
-        onDoubleClick={(e) => {
-            if (isViewMode) return;
-            e.stopPropagation();
-            addBox([e.point.x, e.point.y, e.point.z]);
-        }}
         onClick={(e) => {
-            if (isViewMode || dragJustEnded()) return;
+            if (dragJustEnded()) return;
             e.stopPropagation();
             selectBox(null);
         }}
@@ -508,29 +347,7 @@ const SceneContent = () => {
         <Panorama spread={fov} gridColor={gridColor} gridStrength={showGuides ? 1 : 0} />
       )}
 
-      {/* Orbit is the drawing board; walk mode drives the camera itself. */}
-      {!isWalking ? (
-        <>
-          <OrbitControls
-            ref={controlsRef}
-            makeDefault
-            enabled={!isDragging} // Disable controls when dragging an object
-            // Locked: the gaze stays level, so verticals stay vertical (2-point).
-            // Unlocked: climb up to pick up the third vanishing point.
-            minPolarAngle={lockEyeLevel ? Math.PI / 2 : 0}
-            // Unlocked, the floor limit is computed per frame in EyeLevelRig.
-            maxPolarAngle={lockEyeLevel ? Math.PI / 2 : Math.PI - 0.05}
-            screenSpacePanning={!lockEyeLevel}
-            enableDamping
-            dampingFactor={0.05}
-            rotateSpeed={0.6}
-            zoomSpeed={0.8}
-          />
-          <EyeLevelRig />
-        </>
-      ) : (
-        <WalkControls />
-      )}
+      <WalkControls />
 
       <FocusTracker />
       <VanishingTracker />
