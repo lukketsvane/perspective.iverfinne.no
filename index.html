@@ -51,6 +51,14 @@
       * { user-select: none; -webkit-user-select: none; }
       /* No grey flash on tap, no magnifier, no rubber band. */
       * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+      /* Controls stay visually weightless over the scene: no raised chrome or
+         filled button states. Shape, border, icon and text carry the UI. */
+      button {
+        background-color: transparent !important;
+        background-image: none !important;
+        box-shadow: none !important;
+      }
+      [class*="shadow"] { box-shadow: none !important; }
       html, body { overscroll-behavior: none; }
 
       /*

@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { BoxData, SceneState, SavedScene, SpawnKind, SunState } from './types';
 import { findStudy } from './lib/studies';
-import { DEFAULT_SENSOR_FOV } from './lib/cameraFeed';
 import { releaseSource, cachedSourceUrls, modelRadius, findFreeSpot } from './lib/loadModel';
 
 // Helper for random range
@@ -72,43 +71,11 @@ const cube = (x: number, z: number, rotY = 0): Omit<BoxData, 'id'> => ({
   rotation: [0, rotY, 0],
 });
 
-/** A 1 m cube stacked at `level` (0 = resting on the ground). */
-const stacked = (x: number, z: number, level: number, rotY = 0): Omit<BoxData, 'id'> => ({
-  position: [x, UNIT / 2 + level * UNIT, z],
-  scale: [UNIT, UNIT, UNIT],
-  rotation: [0, rotY, 0],
-});
-
 /**
- * The default scene: nothing but 1 m cubes.
- *
- * The arrangement is fixed rather than random so it works as a reference:
- *  - most cubes are grid-aligned, so they share one pair of vanishing points
- *  - two cubes are turned off-axis, each with its own pair of vanishing points
- *  - a three-cube stack crosses the 1.9 m horizon, so the visible top faces of
- *    the lower cubes flip to the underside of the top one
- *  - cubes sit at a spread of depths, to read the rate of foreshortening
+ * The default scene is deliberately empty except for its single 1 m reference
+ * cube. More geometry is added by the person composing the scene.
  */
-const generateInitialScene = (): BoxData[] => {
-  const layout: Omit<BoxData, 'id'>[] = [
-    // Grid-aligned cubes, below eye level
-    cube(0, 0),
-    cube(-2, -1),
-    cube(2, -3),
-    cube(-3, 2),
-    cube(4, 1),
-    cube(1, -12), // far cube - the depth check
-    // Stack crossing the horizon at 1.9 m
-    stacked(-1, -6, 0),
-    stacked(-1, -6, 1),
-    stacked(-1, -6, 2),
-    // Off-axis cubes, each with its own pair of vanishing points
-    cube(3, -7, 0.62),
-    cube(-5, -4, -0.38),
-  ];
-
-  return layout.map((box) => ({ id: uuidv4(), ...box }));
-};
+const generateInitialScene = (): BoxData[] => [{ id: uuidv4(), ...cube(0, 0) }];
 
 /** Snap a spawned cube to the centre of a 1 m grid cell, so stacks line up. */
 const snapToCell = (v: number) => Math.floor(v) + 0.5;
@@ -120,7 +87,7 @@ const snapToHalf = (v: number) => Math.round(v * 2) / 2;
 // ---------------------------------------------------------------------------
 // How you have the tool set up is worth keeping between sessions; what you are
 // looking at is not. So the eye level, the guides and the theme come back on
-// reload, while the scene, projection and camera feed return to their defaults
+// reload, while the scene and projection return to their defaults
 // and the app opens directly into the first-person walk view.
 // ---------------------------------------------------------------------------
 
@@ -128,7 +95,7 @@ const SETTINGS_KEY = 'kjg-perspective-settings';
 
 type PersistedSettings = Pick<
   SceneState,
-  'theme' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'matteModels' | 'sensorFov' | 'sun'
+  'theme' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'matteModels' | 'sun'
 >;
 
 const loadSettings = (): Partial<PersistedSettings> => {
@@ -168,7 +135,6 @@ const writeSettings = (state: SceneState) => {
       fov: state.fov,
       snapStep: state.snapStep,
       matteModels: state.matteModels,
-      sensorFov: state.sensorFov,
       sun: state.sun,
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -235,13 +201,10 @@ export const useStore = create<SceneState>((set, get) => ({
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   spawnKind: 'cube',
   viewMode: 'walk',
-  cameraFeed: false, // The camera stays off until it is asked for
   models: [],
   selectedModelId: null,
   matteModels: false,
-  sensorFov: DEFAULT_SENSOR_FOV,
   viewLocked: false,
-  feedNonce: 0,
   undoStack: [],
   cameraPose: null,
   activeStudyId: null,
@@ -363,8 +326,6 @@ export const useStore = create<SceneState>((set, get) => ({
     return next;
   }),
 
-  setCameraFeed: (on) => set({ cameraFeed: on }),
-
   addModel: (model) => set((state) => {
     // Select what was just placed: the next thing anyone does to a new figure
     // is size it or move it, and both need it selected.
@@ -482,11 +443,7 @@ export const useStore = create<SceneState>((set, get) => ({
 
   setSun: (sun) => set((state) => ({ sun: { ...state.sun, ...sun } })),
 
-  setSensorFov: (degrees) => set({ sensorFov: Math.max(35, Math.min(120, degrees)) }),
-
   toggleViewLock: () => set((state) => ({ viewLocked: !state.viewLocked })),
-
-  noteFeedSize: () => set((state) => ({ feedNonce: state.feedNonce + 1 })),
 
   /**
    * Step back one scene.

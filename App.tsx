@@ -2,13 +2,11 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Scene } from './components/Scene';
 import { PracticePanel } from './components/PracticePanel';
 import { WalkOverlay } from './components/WalkOverlay';
-import { CameraFeed } from './components/CameraFeed';
 import { ConeOfVision } from './components/ConeOfVision';
 import { VanishingPoints } from './components/VanishingPoints';
 import { SelectionBar } from './components/SelectionBar';
 import { TouchControls } from './components/TouchControls';
 import { MeshSheet } from './components/MeshSheet';
-import { WalkModelPicker } from './components/WalkModelPicker';
 import { useStore, saveSettings } from './store';
 import { useLayout } from './lib/useLayout';
 import { captureView, captureFileName } from './lib/capture';
@@ -57,8 +55,6 @@ export default function App() {
   const boxes = useStore(s => s.boxes);
   const viewMode = useStore(s => s.viewMode);
   const setViewMode = useStore(s => s.setViewMode);
-  const cameraFeed = useStore(s => s.cameraFeed);
-  const setCameraFeed = useStore(s => s.setCameraFeed);
   const models = useStore(s => s.models);
   const addModel = useStore(s => s.addModel);
   const removeModel = useStore(s => s.removeModel);
@@ -444,8 +440,7 @@ export default function App() {
   const isDark = theme === 'dark';
   const textColor = isDark ? 'text-gray-200' : 'text-gray-900';
   const labelColor = isDark ? 'text-gray-500' : 'text-gray-400';
-  // The feed lives behind the canvas, so the shell must not paint over it.
-  const bgColor = cameraFeed ? 'bg-transparent' : isDark ? 'bg-black' : 'bg-[#f3f3f1]';
+  const bgColor = isDark ? 'bg-black' : 'bg-[#f3f3f1]';
 
 
   // Walk mode takes the whole screen: no rail, no panels, just the scene and
@@ -453,20 +448,16 @@ export default function App() {
   if (viewMode === 'walk') {
     return (
       <div className={`fixed inset-0 w-screen h-screen ${bgColor} font-sans selection:bg-none`} style={{ minHeight: '100dvh' }}>
-        {cameraFeed && <CameraFeed onError={(message) => { setCameraFeed(false); showNotice(message); }} />}
         <Scene />
         <WalkOverlay onModels={openMeshes} />
         {showMeshes && (
-          <>
-            <MeshSheet
-              layout={layout}
-              onClose={() => setShowMeshes(false)}
-              onPlace={placeLibraryMesh}
-              onImport={importModels}
-              busyId={busyMesh}
-            />
-            <WalkModelPicker />
-          </>
+          <MeshSheet
+            layout={layout}
+            onClose={() => setShowMeshes(false)}
+            onPlace={placeLibraryMesh}
+            onImport={importModels}
+            busyId={busyMesh}
+          />
         )}
         <SelectionBar raised={showMeshes} />
       </div>
@@ -475,18 +466,17 @@ export default function App() {
 
   return (
     <div className={`fixed inset-0 w-screen h-screen ${bgColor} font-sans selection:bg-none transition-colors duration-500`} style={{ minHeight: '100dvh' }}>
-      {cameraFeed && <CameraFeed onError={(message) => { setCameraFeed(false); showNotice(message); }} />}
       <Scene />
 
       {/* Where a rectilinear projection still matches an eye */}
       {showCone && perspectiveMode === 'linear' && (
-        <ConeOfVision fov={fov} color={isDark || cameraFeed ? '#8ab4ff' : '#1f6feb'} />
+        <ConeOfVision fov={fov} color={isDark ? '#8ab4ff' : '#1f6feb'} />
       )}
 
 
       {/* Every box has its own pair of vanishing points, and they are the
           reason the tool exists. Drawn for whatever is selected. */}
-      <VanishingPoints color={isDark || cameraFeed ? '#ff6a5e' : '#e0342a'} />
+      <VanishingPoints color={isDark ? '#ff6a5e' : '#e0342a'} />
 
       {/* Raised a row when the figure strip is out, so the two never stack -
           and gone entirely while a panel owns the bottom of a phone, which is
