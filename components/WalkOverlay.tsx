@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
 import { walkInput } from '../lib/walkInput';
 import { Icon, I } from './icons';
+import { Scrub, useGrayThemeControl } from './controls';
 
 const MAX_PITCH = Math.PI / 2 - 0.05;
 const STICK_RADIUS = 64; // px
@@ -75,10 +76,11 @@ export const WalkOverlay: React.FC<{ onModels: () => void }> = ({ onModels }) =>
   const viewLocked = useStore((s) => s.viewLocked);
   const toggleViewLock = useStore((s) => s.toggleViewLock);
   const fov = useStore((s) => s.fov);
+  const setLens = useStore((s) => s.setLens);
   const perspectiveMode = useStore((s) => s.perspectiveMode);
   const sun = useStore((s) => s.sun);
   const setSun = useStore((s) => s.setSun);
-  const toggleTheme = useStore((s) => s.toggleTheme);
+  const grayThemeControl = useGrayThemeControl();
 
   const isDark = theme === 'dark';
   const chrome = isDark
@@ -300,12 +302,28 @@ export const WalkOverlay: React.FC<{ onModels: () => void }> = ({ onModels }) =>
         </div>
       )}
 
-      {/* Bottom bar: height, camera, view lock, and alignment */}
-      <div className="fixed inset-x-0 bottom-0 z-40 safe-bottom px-3 pb-4 flex justify-center pointer-events-none">
-        <div className="flex items-center gap-2 pointer-events-auto">
+      {/* Right-hand rail: kept under the holding thumb on iPhone and clear of
+          the home-indicator edge in either orientation. */}
+      <div className="fixed inset-y-0 right-0 z-40 safe-right safe-y pr-2 flex items-center pointer-events-none">
+        <div className="flex flex-col items-center gap-2 pointer-events-auto">
           <button onClick={cycleHeight} className={`${button} tabular-nums`} aria-label="Eye height">
             {cameraHeight.toFixed(2)} m
           </button>
+
+          <div className="w-24">
+            <Scrub
+              skin={{ dark: isDark, touch: false }}
+              icon={I.cone}
+              label="Field of view"
+              reading={`${Math.round(fov)}°`}
+              value={fov}
+              min={25}
+              max={360}
+              step={1}
+              cycle={[35, 60, 90, 160, 210, 240, 330]}
+              onChange={setLens}
+            />
+          </div>
 
           {/* Hold the frame still to draw from it */}
           <button
@@ -323,7 +341,7 @@ export const WalkOverlay: React.FC<{ onModels: () => void }> = ({ onModels }) =>
             <Icon path={I.figure} className="w-4 h-4" />
           </button>
 
-          <button onClick={toggleTheme} aria-label="Toggle dark mode" className={iconButton}>
+          <button {...grayThemeControl} aria-label="Toggle or drag to adjust background gray" className={`${iconButton} touch-none`}>
             <Icon path={isDark ? I.light : I.dark} className="w-4 h-4" />
           </button>
         </div>

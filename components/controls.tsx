@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Icon } from './icons';
+import { useStore } from '../store';
 
 /**
  * The panel's controls.
@@ -72,6 +73,41 @@ interface DraggableNumber {
 
 /** How far the finger travels to cross the whole range. */
 const SWEEP = 220;
+
+/**
+ * Pointer handling for every light/dark button. A tap still flips between the
+ * endpoints; dragging right/up scrubs the scene background through all 256
+ * neutral values. Keeping this on the existing toggle means it needs no extra
+ * toolbar space, and pointer capture makes the full range available even from
+ * a small icon button.
+ */
+export const useGrayThemeControl = () => {
+  const value = useStore((state) => state.backgroundGray);
+  const setValue = useStore((state) => state.setBackgroundGray);
+  const toggle = useStore((state) => state.toggleTheme);
+  const drag = useRef<{ id: number; x: number; y: number; from: number; moved: boolean } | null>(null);
+
+  return {
+    onPointerDown: (event: React.PointerEvent) => {
+      event.stopPropagation();
+      try { (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); } catch { /* continue uncaptured */ }
+      drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, from: value, moved: false };
+    },
+    onPointerMove: (event: React.PointerEvent) => {
+      const held = drag.current;
+      if (held?.id !== event.pointerId) return;
+      const travel = event.clientX - held.x + (held.y - event.clientY);
+      if (Math.abs(travel) > 3) held.moved = true;
+      if (held.moved) setValue(held.from + travel);
+    },
+    onPointerUp: (event: React.PointerEvent) => {
+      const held = drag.current;
+      drag.current = null;
+      if (held?.id === event.pointerId && !held.moved) toggle();
+    },
+    onPointerCancel: () => { drag.current = null; },
+  };
+};
 
 const useScrub = (
   { value, min, max, step, cycle, wrap, onChange }: DraggableNumber,

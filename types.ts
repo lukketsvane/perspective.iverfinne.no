@@ -126,6 +126,8 @@ export interface SceneState {
   cameraPose: CameraPose | null;
   activeStudyId: string | null;
   theme: ThemeMode;
+  /** Neutral environment/background value, from black (0) to white (255). */
+  backgroundGray: number;
   currentSceneName: string | null;
   sceneHistory: SavedScene[];
   addBox: (position: [number, number, number]) => void;
@@ -165,6 +167,7 @@ export interface SceneState {
   /** Step back one scene. Destructive actions snapshot themselves. */
   undo: () => void;
   toggleTheme: () => void;
+  setBackgroundGray: (value: number) => void;
   toggleViewMode: () => void; // New action
   saveCurrentScene: (name: string, prompt?: string) => void;
   loadScene: (id: string) => void;

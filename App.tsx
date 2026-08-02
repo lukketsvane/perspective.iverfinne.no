@@ -19,6 +19,7 @@ import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 import { BoxData } from './types';
 import { Icon, I } from './components/icons';
+import { useGrayThemeControl } from './components/controls';
 
 // Simple scene name generator
 const generateSceneName = (prompt?: string): string => {
@@ -43,7 +44,8 @@ export default function App() {
   const setBoxes = useStore(s => s.setBoxes);
   const appendBox = useStore(s => s.appendBox);
   const theme = useStore(s => s.theme);
-  const toggleTheme = useStore(s => s.toggleTheme);
+  const backgroundGray = useStore(s => s.backgroundGray);
+  const grayThemeControl = useGrayThemeControl();
   const selectedId = useStore(s => s.selectedId);
   const isViewMode = useStore(s => s.isViewMode);
   const toggleViewMode = useStore(s => s.toggleViewMode);
@@ -440,14 +442,14 @@ export default function App() {
   const isDark = theme === 'dark';
   const textColor = isDark ? 'text-gray-200' : 'text-gray-900';
   const labelColor = isDark ? 'text-gray-500' : 'text-gray-400';
-  const bgColor = isDark ? 'bg-black' : 'bg-[#f3f3f1]';
+  const backgroundStyle = { minHeight: '100dvh', backgroundColor: `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})` };
 
 
   // Walk mode takes the whole screen: no rail, no panels, just the scene and
   // the thumb controls.
   if (viewMode === 'walk') {
     return (
-      <div className={`fixed inset-0 w-screen h-screen ${bgColor} font-sans selection:bg-none`} style={{ minHeight: '100dvh' }}>
+      <div className="fixed inset-0 w-screen h-screen font-sans selection:bg-none" style={backgroundStyle}>
         <Scene />
         <WalkOverlay onModels={openMeshes} />
         {showMeshes && (
@@ -465,7 +467,7 @@ export default function App() {
   }
 
   return (
-    <div className={`fixed inset-0 w-screen h-screen ${bgColor} font-sans selection:bg-none transition-colors duration-500`} style={{ minHeight: '100dvh' }}>
+    <div className="fixed inset-0 w-screen h-screen font-sans selection:bg-none" style={backgroundStyle}>
       <Scene />
 
       {/* Where a rectilinear projection still matches an eye */}
@@ -678,8 +680,9 @@ export default function App() {
 
            {/* Theme Toggle */}
            <button 
-            onClick={toggleTheme}
-            className={`group flex items-center justify-center w-8 h-8 transition-transform active:scale-95 duration-200 cursor-pointer ${isDark ? 'text-white hover:text-yellow-300' : 'text-gray-900 hover:text-orange-500'}`}
+            {...grayThemeControl}
+            aria-label="Toggle or drag to adjust background gray"
+            className={`group flex items-center justify-center w-8 h-8 touch-none transition-transform active:scale-95 duration-200 cursor-ew-resize ${isDark ? 'text-white hover:text-yellow-300' : 'text-gray-900 hover:text-orange-500'}`}
           >
              {isDark ? (
                 <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
