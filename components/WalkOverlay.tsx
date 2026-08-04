@@ -108,7 +108,7 @@ export const WalkOverlay: React.FC<{
     const measure = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      const curvilinear = perspectiveMode === 'curvilinear';
+      const curvilinear = perspectiveMode !== 'linear';
       lookRate.current = lookRadiansPerPixel(curvilinear, fov, width, height);
     };
     measure();
