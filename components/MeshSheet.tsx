@@ -1,10 +1,52 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { MESH_LIBRARY } from '../lib/meshLibrary';
 import { MODEL_ACCEPT } from '../lib/loadModel';
 import type { Layout } from '../lib/useLayout';
 import { Icon, I, POSE_ICON } from './icons';
 import { exportScaledModel } from '../lib/exportModel';
+import { generateMeshPreview, getMeshPreview } from '../lib/meshPreview';
+
+/**
+ * A single library tile that renders a real mesh preview.
+ * Falls back to the pose icon while the preview loads.
+ */
+const MeshTile: React.FC<{
+  mesh: typeof MESH_LIBRARY[number];
+  busyId: string | null;
+  tile: string;
+  onPlace: (id: string) => void;
+}> = ({ mesh, busyId, tile, onPlace }) => {
+  const [preview, setPreview] = useState<string | null>(() => getMeshPreview(mesh.url));
+
+  useEffect(() => {
+    if (preview) return;
+    generateMeshPreview(mesh.url).then((url) => {
+      if (url) setPreview(url);
+    });
+  }, [mesh.url, preview]);
+
+  return (
+    <button
+      onClick={() => onPlace(mesh.id)}
+      disabled={busyId !== null}
+      aria-label={mesh.name}
+      className={`relative shrink-0 w-12 h-12 rounded-2xl snap-start flex items-center justify-center transition-transform active:scale-95 disabled:opacity-40 overflow-hidden ${tile}`}
+    >
+      {preview ? (
+        <img src={preview} alt={mesh.name} className={`w-full h-full object-contain ${busyId === mesh.id ? 'animate-pulse' : ''}`} />
+      ) : (
+        <Icon
+          path={POSE_ICON[mesh.pose]}
+          className={`w-7 h-7 ${busyId === mesh.id ? 'animate-pulse' : ''}`}
+        />
+      )}
+      <span className="absolute bottom-0 right-1 text-[8px] font-bold opacity-40 tabular-nums">
+        {mesh.name}
+      </span>
+    </button>
+  );
+};
 
 /**
  * The figure library: one row, scrolled sideways.
@@ -69,7 +111,7 @@ export const MeshSheet: React.FC<{
         title="Matte white models"
         className={`${side} ${
           matteModels
-            ? isDark ? 'bg-white text-black' : 'bg-gray-900 text-white'
+            ? 'bg-sky-500 text-white'
             : 'opacity-50'
         }`}
       >
@@ -84,21 +126,13 @@ export const MeshSheet: React.FC<{
       */}
       <div className="flex-1 min-w-0 flex gap-1 overflow-x-auto overscroll-contain snap-x scrollbar-none">
         {MESH_LIBRARY.map((mesh) => (
-          <button
+          <MeshTile
             key={mesh.id}
-            onClick={() => onPlace(mesh.id)}
-            disabled={busyId !== null}
-            aria-label={mesh.name}
-            className={`relative shrink-0 w-12 h-12 rounded-2xl snap-start flex items-center justify-center transition-transform active:scale-95 disabled:opacity-40 ${tile}`}
-          >
-            <Icon
-              path={POSE_ICON[mesh.pose]}
-              className={`w-7 h-7 ${busyId === mesh.id ? 'animate-pulse' : ''}`}
-            />
-            <span className="absolute bottom-0 right-1 text-[8px] font-bold opacity-40 tabular-nums">
-              {mesh.name}
-            </span>
-          </button>
+            mesh={mesh}
+            busyId={busyId}
+            tile={tile}
+            onPlace={onPlace}
+          />
         ))}
       </div>
 
