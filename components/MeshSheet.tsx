@@ -1,70 +1,93 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
-import { MESH_LIBRARY } from '../lib/meshLibrary';
-import type { Layout } from '../lib/useLayout';
+import { MESH_LIBRARY, LibraryMesh } from '../lib/meshLibrary';
 import { Icon, I } from './icons';
+import { Sheet } from './Sheet';
+import { tile } from './ui';
 import { generateMeshPreview, getMeshPreview } from '../lib/meshPreview';
 import { focusPoint } from '../lib/focus';
 
 /**
- * A single library tile that renders a real mesh preview.
- * Falls back to the pose icon while the preview loads.
+ * A single library tile, showing the mesh itself.
+ *
+ * Seventy tiles carrying the same cube glyph is seventy tiles you have to try
+ * one at a time, so each shows its own file. The picture is only asked for once
+ * the tile is somewhere near the screen: a grid of seventy that draws all of
+ * itself at once spends its first seconds fetching rows nobody has scrolled to,
+ * and the mesh you tapped waits behind them. The glyph stands in until then.
  */
 const MeshTile: React.FC<{
-  mesh: typeof MESH_LIBRARY[number];
+  mesh: LibraryMesh;
   busyId: string | null;
-  tile: string;
+  dark: boolean;
   onPlace: (id: string) => void;
-}> = ({ mesh, busyId, tile, onPlace }) => {
+}> = ({ mesh, busyId, dark, onPlace }) => {
   const [preview, setPreview] = useState<string | null>(() => getMeshPreview(mesh.url));
+  const ref = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (preview) return;
-    generateMeshPreview(mesh.url).then((url) => {
-      if (url) setPreview(url);
-    });
+    const element = ref.current;
+    if (!element) return;
+
+    let live = true;
+    const draw = () => {
+      generateMeshPreview(mesh.url).then((url) => {
+        if (live && url) setPreview(url);
+      });
+    };
+
+    if (typeof IntersectionObserver === 'undefined') {
+      draw();
+      return () => {
+        live = false;
+      };
+    }
+
+    // A screen of tiles either side, so scrolling meets pictures already drawn.
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        observer.disconnect();
+        draw();
+      },
+      { root: element.closest('[data-tile-scroll]'), rootMargin: '200px' }
+    );
+    observer.observe(element);
+
+    return () => {
+      live = false;
+      observer.disconnect();
+    };
   }, [mesh.url, preview]);
+
+  const loading = busyId === mesh.id;
 
   return (
     <button
+      ref={ref}
       onClick={() => onPlace(mesh.id)}
       disabled={busyId !== null}
       aria-label={mesh.name}
-      className={`relative w-full aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 overflow-hidden ${tile}`}
+      className={`relative w-full aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 overflow-hidden ${tile(dark)}`}
     >
       {preview ? (
-        <img src={preview} alt={mesh.name} className={`w-full h-full object-contain p-2 ${busyId === mesh.id ? 'animate-pulse' : ''}`} />
+        <img src={preview} alt="" className={`w-full h-full object-contain p-2 ${loading ? 'animate-pulse' : ''}`} />
       ) : (
-        <Icon
-          path={I.cube}
-          className={`w-7 h-7 opacity-50 ${busyId === mesh.id ? 'animate-pulse' : ''}`}
-        />
+        <Icon path={I.cube} className={`w-7 h-7 opacity-50 ${loading ? 'animate-pulse' : ''}`} />
       )}
     </button>
   );
 };
 
-/**
- * The figure library: a scrollable grid of all available meshes.
- */
+/** The mesh library: a reference cube first, then every figure and prop on file. */
 export const MeshSheet: React.FC<{
   onClose: () => void;
   onPlace: (id: string) => void;
-  onImport: (files: FileList) => void;
-  onExportScene: () => void;
-  onImportScene: (file: File) => void;
   busyId: string | null;
 }> = ({ onClose, onPlace, busyId }) => {
-  const theme = useStore((s) => s.theme);
+  const dark = useStore((s) => s.theme) === 'dark';
   const addCube = useStore((s) => s.addCube);
-  const isDark = theme === 'dark';
-
-  const shell = isDark
-    ? 'bg-black/60 border-white/20 text-white backdrop-blur-2xl'
-    : 'bg-white/80 border-gray-300 text-black backdrop-blur-2xl';
-  const tile = isDark
-    ? 'bg-white/10 hover:bg-white/15 active:bg-white/20'
-    : 'bg-black/5 hover:bg-black/10 active:bg-black/15';
 
   const handleAddCube = () => {
     addCube([focusPoint.x, 0, focusPoint.z]);
@@ -76,45 +99,24 @@ export const MeshSheet: React.FC<{
     onClose();
   };
 
-  const panel = (
-    <div
-      className={`flex flex-col rounded-[2rem] border shadow-2xl pointer-events-auto overflow-hidden ${shell}`}
-      onPointerDown={(e) => e.stopPropagation()}
-      onPointerMove={(e) => e.stopPropagation()}
-      onPointerUp={(e) => e.stopPropagation()}
-      onPointerCancel={(e) => e.stopPropagation()}
-    >
-      <div className="flex items-center justify-center p-3">
-        <div className="w-12 h-1.5 rounded-full opacity-20 bg-current"></div>
-      </div>
-
-      <div className="grid grid-cols-4 gap-2 max-h-[50vh] overflow-y-auto overscroll-contain scrollbar-none px-4 pb-4">
+  return (
+    <Sheet onClose={onClose}>
+      <div
+        data-tile-scroll
+        className="grid grid-cols-4 gap-2 max-h-[50vh] overflow-y-auto overscroll-contain scrollbar-none px-4 pb-4"
+      >
         <button
           onClick={handleAddCube}
           disabled={busyId !== null}
           aria-label="Add cube"
-          className={`relative w-full aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${tile}`}
+          className={`relative w-full aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${tile(dark)}`}
         >
           <Icon path={I.cube} className="w-8 h-8 opacity-80" />
         </button>
         {MESH_LIBRARY.map((mesh) => (
-          <MeshTile
-            key={mesh.id}
-            mesh={mesh}
-            busyId={busyId}
-            tile={tile}
-            onPlace={handlePlace}
-          />
+          <MeshTile key={mesh.id} mesh={mesh} busyId={busyId} dark={dark} onPlace={handlePlace} />
         ))}
       </div>
-    </div>
-  );
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center pointer-events-auto bg-black/20 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-lg safe-bottom pointer-events-none p-2 transition-transform duration-300 translate-y-0">
-        {panel}
-      </div>
-    </div>
+    </Sheet>
   );
 };

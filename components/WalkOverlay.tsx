@@ -4,8 +4,8 @@ import { walkInput, enableDeviceOrientation } from '../lib/walkInput';
 import { Icon, I } from './icons';
 import { Scrub, useGrayThemeControl } from './controls';
 import { MODEL_ACCEPT } from '../lib/loadModel';
-import { exportScaledModel } from '../lib/exportModel';
-import type { Layout } from '../lib/useLayout';
+import { captureFileName, captureView } from '../lib/capture';
+import { ACTIVE, chrome, iconButton } from './ui';
 import type { PerspectiveMode } from '../types';
 
 const PERSPECTIVE_ORDER: PerspectiveMode[] = ['linear', 'equidistant', 'stereographic', 'cylindrical', 'hyperbolic', '5-point', '720-noneuclidean'];
@@ -85,11 +85,9 @@ const shapeStick = (magnitude: number) => {
  */
 export const WalkOverlay: React.FC<{
   onModels: () => void;
-  onImport?: (files: FileList) => void;
-  onExportScene?: () => void;
-  onImportScene?: (file: File) => void;
-  busyId?: string | null;
-}> = ({ onModels, onImport, onExportScene, onImportScene, busyId }) => {
+  onScenes: () => void;
+  onImport: (files: FileList) => void;
+}> = ({ onModels, onScenes, onImport }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -111,13 +109,13 @@ export const WalkOverlay: React.FC<{
   const cycleMaterial = useStore((s) => s.cycleMaterial);
   const models = useStore((s) => s.models);
   const deduplicateModels = useStore((s) => s.deduplicateModels);
+  const undo = useStore((s) => s.undo);
+  const canUndo = useStore((s) => s.undoStack.length > 0);
+  const resetScene = useStore((s) => s.resetScene);
   const selectedModelId = useStore((s) => s.selectedModelId);
   const selectedId = useStore((s) => s.selectedId);
   const isSelected = selectedModelId !== null || selectedId !== null;
-  const [exporting, setExporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
-  const sceneInputRef = useRef<HTMLInputElement>(null);
-  const selectedModel = models.find((m) => m.id === selectedModelId);
   const hasDuplicates = models.length !== new Set(models.map((m) => m.fileUrl)).size;
 
   const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
@@ -127,9 +125,7 @@ export const WalkOverlay: React.FC<{
   const toggleCone = useStore((s) => s.toggleCone);
 
   const isDark = theme === 'dark';
-  const chrome = isDark
-    ? 'bg-black/60 text-white border-white/20'
-    : 'bg-white/80 text-black border-gray-300';
+  const surface = chrome(isDark);
 
   // --------------------------------------------------------------- gestures
   const lookRate = useRef(0.002);
@@ -339,6 +335,11 @@ export const WalkOverlay: React.FC<{
     };
     const down = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && showTools) { setShowTools(false); return; }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undo();
+        return;
+      }
       const target = e.target as HTMLElement | null;
       if (target?.closest('button, input, textarea, select')) return;
       keys.add(e.key.toLowerCase());
@@ -353,7 +354,7 @@ export const WalkOverlay: React.FC<{
       walkInput.forward = 0;
       walkInput.strafe = 0;
     };
-  }, [showTools]);
+  }, [showTools, undo]);
 
   const showRail = useCallback(() => {
     setRailVisible(true);
@@ -397,19 +398,8 @@ export const WalkOverlay: React.FC<{
     }
   }, [arMode]);
 
-  const exportSelected = async () => {
-    if (!selectedModel?.object || exporting) return;
-    setExporting(true);
-    try {
-      await exportScaledModel(selectedModel);
-    } catch (error) {
-      console.error('Failed to export model:', error);
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const iconButton = `flex items-center justify-center w-11 h-11 rounded-full transition-transform active:scale-95 ${isDark ? 'text-white hover:bg-white/10' : 'text-gray-900 hover:bg-black/5'}`;
+  const button = iconButton(isDark);
+  const dockVisible = railVisible && !isSelected;
 
   return (
     <>
@@ -423,46 +413,75 @@ export const WalkOverlay: React.FC<{
 
       {showTools && (
         <div
-          className="fixed inset-0 z-39"
+          className="fixed inset-0 z-[39]"
           onPointerDown={() => setShowTools(false)}
         />
       )}
 
-      {/* Main floating pill */}
-      <div className={`fixed bottom-safe-panel left-0 right-0 z-40 flex flex-col items-center gap-3 pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${railVisible && !isSelected ? 'opacity-100' : 'opacity-0'}`}>
-        
-        {/* Secondary Tools Menu */}
-        <div className={`pointer-events-auto flex gap-1.5 p-1.5 rounded-full border backdrop-blur-xl shadow-2xl transition-all duration-300 transform origin-bottom ${showTools ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${chrome}`}>
-          <button onClick={toggleArMode} aria-label="AR camera mode" className={`${iconButton} ${arMode ? '!text-green-500' : ''}`}>
+      {/*
+        * The dock.
+        *
+        * It fades out while you are drawing, and again whenever something is
+        * selected - the selection bar takes the same spot. Faded, it must also
+        * stop taking taps: it is wider than the selection bar, so its ends went
+        * on catching thumbs aimed at nothing, from a control nobody could see.
+        */}
+      <div
+        // Working the dock keeps the dock up: the fade is a six second idle
+        // timer, and it used to be reset only by touching the scene.
+        onPointerDown={showRail}
+        className={`fixed bottom-safe-panel left-0 right-0 z-40 flex flex-col items-center gap-3 px-3 pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${dockVisible ? 'opacity-100' : 'opacity-0'}`}
+      >
+
+        {/* Secondary tools. Wrapping, because ten 44 px targets do not fit
+            across a phone in one line and a scroller here would be a trap. */}
+        <div className={`flex flex-wrap justify-center max-w-[22rem] gap-1 p-1.5 rounded-[1.75rem] border backdrop-blur-xl shadow-2xl transition-all duration-300 transform origin-bottom ${showTools && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}>
+          <button onClick={toggleArMode} aria-label="AR camera mode" className={`${button} ${arMode ? '!text-green-500' : ''}`}>
              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" /><circle cx="12" cy="12" r="3" /></svg>
           </button>
-          <button onClick={toggleGuides} aria-label="Horizon and grid" className={`${iconButton} ${showGuides ? '!text-sky-500' : ''}`}>
+          <button onClick={toggleGuides} aria-label="Horizon and grid" className={`${button} ${showGuides ? ACTIVE : ''}`}>
             <Icon path={I.horizon} className="w-5 h-5" />
           </button>
-          <button onClick={toggleCone} aria-label="Cone of vision" className={`${iconButton} ${showCone ? '!text-sky-500' : ''}`}>
+          <button onClick={toggleCone} aria-label="Cone of vision" className={`${button} ${showCone ? ACTIVE : ''}`}>
             <Icon path={I.cone} className="w-5 h-5" />
           </button>
-          <button onClick={toggleViewLock} aria-label="Lock view" className={`${iconButton} ${viewLocked ? '!text-amber-400' : ''}`}>
+          <button onClick={toggleViewLock} aria-label="Lock view" className={`${button} ${viewLocked ? '!text-amber-400' : ''}`}>
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="4" y="10.5" width="16" height="10" rx="2" />
               {viewLocked ? <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /> : <path d="M8 10.5V7a4 4 0 0 1 7.5-2" />}
             </svg>
           </button>
-          <button onClick={cycleMaterial} aria-label="Matte models" className={`${iconButton} ${modelMaterial !== 'original' ? '!text-sky-500' : ''}`}>
+          <button onClick={cycleMaterial} aria-label="Model material" className={`${button} ${modelMaterial !== 'original' ? ACTIVE : ''}`}>
             <Icon path={I.matte} className="w-5 h-5" />
           </button>
-          <button onClick={() => importInputRef.current?.click()} aria-label="Import" className={`${iconButton}`}>
+          <button onClick={() => importInputRef.current?.click()} aria-label="Import mesh" className={button}>
             <Icon path={I.upload} className="w-5 h-5" />
           </button>
-          <button onClick={deduplicateModels} aria-label="Dedup" className={`${iconButton} ${!hasDuplicates ? 'opacity-30' : ''}`}>
+          <button onClick={deduplicateModels} aria-label="Remove duplicate meshes" className={`${button} ${!hasDuplicates ? 'opacity-30' : ''}`}>
             <Icon path={I.dedup} className="w-5 h-5" />
+          </button>
+          <button onClick={undo} aria-label="Undo" className={`${button} ${canUndo ? '' : 'opacity-30'}`}>
+            <Icon path={I.undo} className="w-5 h-5" />
+          </button>
+          <button onClick={resetScene} aria-label="Clear the scene" className={button}>
+            <Icon path={I.reset} className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => captureView(captureFileName(cameraHeight, fov))}
+            aria-label="Save the view as a picture"
+            className={button}
+          >
+            <Icon path={I.camera} className="w-5 h-5" />
           </button>
         </div>
 
         {/* Primary Dock */}
-        <div className={`pointer-events-auto flex items-center p-1.5 gap-1 rounded-full border backdrop-blur-2xl shadow-2xl ${chrome}`}>
-          <button onClick={onModels} aria-label="Add model" className={iconButton}>
+        <div className={`flex items-center p-1.5 gap-1 rounded-full border backdrop-blur-2xl shadow-2xl ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}>
+          <button onClick={onModels} aria-label="Add model" className={button}>
             <Icon path={I.cube} className="w-5 h-5" />
+          </button>
+          <button onClick={onScenes} aria-label="Scenes" className={button}>
+            <Icon path={I.scenes} className="w-5 h-5" />
           </button>
           <Scrub
             skin={{ dark: isDark, touch: true }}
@@ -494,21 +513,21 @@ export const WalkOverlay: React.FC<{
               setPerspectiveMode(PERSPECTIVE_ORDER[(idx + 1) % PERSPECTIVE_ORDER.length]);
             }}
             aria-label="Perspective"
-            className={`${iconButton} ${perspectiveMode !== 'linear' ? '!text-sky-500' : ''}`}
+            className={`${button} ${perspectiveMode !== 'linear' ? ACTIVE : ''}`}
           >
             <Icon path={PERSPECTIVE_ICON[perspectiveMode]} className="w-5 h-5" />
           </button>
           <button
             {...grayThemeControl}
             aria-label="Theme"
-            className={`${iconButton} touch-none ${sunEnvironment ? '!text-sky-500' : ''}`}
+            className={`${button} touch-none ${sunEnvironment ? ACTIVE : ''}`}
           >
             <Icon path={sunEnvironment ? I.sky : isDark ? I.dark : I.light} className="w-5 h-5" />
           </button>
           <button
             onClick={() => setShowTools((open) => !open)}
             aria-label="Tools"
-            className={`${iconButton} ${showTools ? 'bg-black/10 dark:bg-white/10' : ''}`}
+            className={`${button} ${showTools ? 'bg-black/10 dark:bg-white/10' : ''}`}
           >
             <Icon path={I.sliders} className="w-5 h-5" />
           </button>
@@ -522,18 +541,7 @@ export const WalkOverlay: React.FC<{
         accept={MODEL_ACCEPT}
         className="hidden"
         onChange={(e) => {
-          if (e.target.files?.length && onImport) onImport(e.target.files);
-          e.target.value = '';
-        }}
-      />
-      <input
-        ref={sceneInputRef}
-        type="file"
-        accept=".json,application/json"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file && onImportScene) onImportScene(file);
+          if (e.target.files?.length) onImport(e.target.files);
           e.target.value = '';
         }}
       />

@@ -1,41 +1,46 @@
 /**
- * Scene JSON — portable serialisation of all placed models.
+ * Scene JSON — a composition as a file.
  *
- * A scene snapshot encodes each model's source URL and every editable
- * transform so the composition can be saved to disk and reopened later, or
- * shared between devices.
+ * Saved scenes live in this browser. A file is how one leaves it: onto another
+ * device, into a backup, next to the drawing it produced. It carries the boxes,
+ * every placed mesh with its transforms, and the viewpoint the scene was
+ * composed from.
  *
- * Only glTF/GLB assets sourced from a stable URL can be fully round-tripped;
- * `blob:` URLs created from local file uploads are valid for the lifetime of
- * the current page and are included as-is so the user is at least aware of
- * what was placed, even if the geometry cannot be re-fetched on reload.
+ * What a file cannot carry is the geometry of an imported mesh. Those are
+ * recorded as `asset:` references — the bytes stay in the browser they were
+ * imported into — so a scene of imported meshes reopens on that device and
+ * reports the missing pieces anywhere else. Bundled library meshes travel
+ * everywhere, since both ends fetch them from the same path.
  */
 
-import { SceneModel } from '../types';
+import { BoxData, SceneInstance, SceneModel, SceneView } from '../types';
 import { loadModelFromUrl } from './loadModel';
 
-/** The on-disk representation of one placed instance. */
-export interface SceneInstanceRecord {
-  name: string;
-  fileUrl: string;
-  format: 'usdz' | 'gltf';
-  position: [number, number, number];
-  rotationY: number;
-  scale: number;
-  baseScale: number;
-  size: [number, number, number];
-}
-
-export interface SceneJson {
-  version: 1;
+export interface SceneFile {
+  version: 2;
   exportedAt: string;
-  instances: SceneInstanceRecord[];
+  name?: string;
+  boxes: BoxData[];
+  instances: SceneInstance[];
+  view?: SceneView;
 }
 
-/** Serialise the current model list to a plain JSON structure. */
-export const exportSceneJson = (models: SceneModel[]): SceneJson => ({
-  version: 1,
+/** The v1 format: placed meshes only, no boxes and no viewpoint. */
+interface SceneFileV1 {
+  version: 1;
+  instances: SceneInstance[];
+}
+
+export const toSceneFile = (
+  boxes: BoxData[],
+  models: SceneModel[],
+  view?: SceneView,
+  name?: string
+): SceneFile => ({
+  version: 2,
   exportedAt: new Date().toISOString(),
+  name,
+  boxes: boxes.map((box) => ({ ...box })),
   instances: models.map((m) => ({
     name: m.name,
     fileUrl: m.fileUrl,
@@ -46,40 +51,49 @@ export const exportSceneJson = (models: SceneModel[]): SceneJson => ({
     baseScale: m.baseScale,
     size: [...m.size] as [number, number, number],
   })),
+  view,
 });
 
-/** Trigger a browser download for the scene JSON. */
-export const downloadSceneJson = (models: SceneModel[], filename = 'scene.json') => {
-  const json = exportSceneJson(models);
-  const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+/** Turn a display name into a safe, recognisable download name. */
+const fileNameFor = (name: string | undefined) => {
+  const stem = (name ?? 'scene')
+    .trim()
+    .replace(/[^a-z0-9_-]+/gi, '-')
+    .replace(/^-+|-+$/g, '');
+  return `${stem || 'scene'}.perspective.json`;
 };
 
-/** Minimal validation of an imported JSON blob. */
-const isSceneJson = (data: unknown): data is SceneJson =>
+export const downloadSceneFile = (file: SceneFile) => {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileNameFor(file.name);
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+};
+
+const isSceneFile = (data: unknown): data is SceneFile | SceneFileV1 =>
   typeof data === 'object' &&
   data !== null &&
-  (data as SceneJson).version === 1 &&
-  Array.isArray((data as SceneJson).instances);
+  ((data as SceneFile).version === 2 || (data as SceneFileV1).version === 1) &&
+  Array.isArray((data as SceneFile).instances);
 
-export type ImportResult = {
+export interface ImportedScene {
+  boxes: BoxData[];
   models: Omit<SceneModel, 'id'>[];
+  view?: SceneView;
+  /** Anything named in the file that could not be loaded here. */
   skipped: string[];
-};
+}
 
 /**
- * Parse and load models from a scene JSON file.
+ * Read a scene file back.
  *
- * Assets sourced from `blob:` URLs cannot be re-fetched and are skipped with a
- * warning rather than aborting the whole import. Each remaining instance is
- * loaded from its original URL and its saved transforms are applied on top.
+ * Each instance is loaded from the source it names and the saved transforms are
+ * applied over whatever the loader worked out, so a figure comes back at the
+ * size and bearing it was left at.
  */
-export const importSceneJson = async (file: File): Promise<ImportResult> => {
+export const readSceneFile = async (file: File): Promise<ImportedScene> => {
   let data: unknown;
   try {
     data = JSON.parse(await file.text());
@@ -87,8 +101,8 @@ export const importSceneJson = async (file: File): Promise<ImportResult> => {
     throw new Error('The file is not valid JSON.');
   }
 
-  if (!isSceneJson(data)) {
-    throw new Error('The file does not look like a perspective scene (missing version or instances).');
+  if (!isSceneFile(data)) {
+    throw new Error('That does not look like a perspective scene.');
   }
 
   const models: Omit<SceneModel, 'id'>[] = [];
@@ -96,24 +110,33 @@ export const importSceneJson = async (file: File): Promise<ImportResult> => {
 
   for (const record of data.instances) {
     if (record.fileUrl.startsWith('blob:')) {
-      skipped.push(`${record.name} (local blob — not available)`);
+      // Written by a version that referred to imports by blob URL, which mean
+      // nothing in a new page.
+      skipped.push(`${record.name} (imported mesh from an older file)`);
       continue;
     }
     try {
-      const { model } = await loadModelFromUrl(record.fileUrl, record.name, [record.position[0], record.position[2]]);
+      const { model } = await loadModelFromUrl(record.fileUrl, record.name, [
+        record.position[0],
+        record.position[2],
+      ]);
       models.push({
         ...model,
-        // Overwrite the auto-placed position and transforms with the saved ones.
-        position: record.position,
+        position: [...record.position] as [number, number, number],
         rotationY: record.rotationY,
         scale: record.scale,
         baseScale: record.baseScale,
-        size: record.size,
+        size: [...record.size] as [number, number, number],
       });
     } catch (error) {
-      skipped.push(`${record.name} (could not load: ${error instanceof Error ? error.message : error})`);
+      skipped.push(`${record.name} (${error instanceof Error ? error.message : 'could not be loaded'})`);
     }
   }
 
-  return { models, skipped };
+  return {
+    boxes: data.version === 2 ? (data.boxes ?? []) : [],
+    models,
+    view: data.version === 2 ? data.view : undefined,
+    skipped,
+  };
 };

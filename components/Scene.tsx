@@ -226,10 +226,8 @@ const SceneContent = () => {
   const { camera, gl, scene, size } = useThree();
   const boxes = useStore((state) => state.boxes);
   const selectBox = useStore((state) => state.selectBox);
-  const isViewMode = useStore((state) => state.isViewMode);
 
   const fov = useStore((state) => state.fov);
-  const distortion = useStore((state) => state.distortion);
   const perspectiveMode = useStore((state) => state.perspectiveMode);
   const showGuides = useStore((state) => state.showGuides);
   const theme = useStore((state) => state.theme);
@@ -246,7 +244,6 @@ const SceneContent = () => {
     raycaster.camera = camera;
     const direction = new THREE.Vector3();
     const onTap = (event: Event) => {
-      if (isViewMode) return;
       const { clientX, clientY } = (event as CustomEvent<{ clientX: number; clientY: number }>).detail;
       const rect = gl.domElement.getBoundingClientRect();
       const x = ((clientX - rect.left) / rect.width) * 2 - 1;
@@ -278,7 +275,7 @@ const SceneContent = () => {
     };
     window.addEventListener('perspective:scene-tap', onTap);
     return () => window.removeEventListener('perspective:scene-tap', onTap);
-  }, [camera, fov, gl, isViewMode, perspectiveMode, scene, selectBox, size.height, size.width]);
+  }, [camera, fov, gl, perspectiveMode, scene, selectBox, size.height, size.width]);
 
   const isDark = theme === 'dark';
   const bgColor = `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})`;
