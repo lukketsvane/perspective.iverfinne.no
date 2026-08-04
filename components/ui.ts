@@ -9,7 +9,7 @@
 
 /** Panels, bars and sheets: the blurred surface itself. */
 export const chrome = (dark: boolean) =>
-  dark ? 'bg-black/60 text-white border-white/20' : 'bg-white/80 text-black border-gray-300';
+  dark ? 'bg-neutral-950/92 text-white border-white/20' : 'bg-white/92 text-black border-gray-300';
 
 /** A round 44 px control - the smallest target a thumb can be asked to hit. */
 export const iconButton = (dark: boolean) =>
@@ -23,8 +23,8 @@ export const tile = (dark: boolean) =>
 
 /** A readout you can drag: the number *is* the control. */
 export const readout = (dark: boolean) =>
-  `flex items-center justify-center min-w-[5.5rem] px-3 h-11 rounded-full touch-none cursor-ew-resize border backdrop-blur-md transition-colors ${
-    dark ? 'bg-black/50 border-white/20 hover:bg-white/10' : 'bg-white/80 border-gray-300 hover:bg-black/5'
+  `flex items-center justify-center min-w-[5.5rem] px-3 h-11 rounded-full touch-none cursor-ew-resize border transition-colors ${
+    dark ? 'bg-white/10 border-white/20 hover:bg-white/15' : 'bg-black/5 border-gray-300 hover:bg-black/10'
   }`;
 
 /** The one accent colour: a control that is currently doing something. */

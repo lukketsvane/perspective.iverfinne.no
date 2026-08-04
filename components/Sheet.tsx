@@ -28,12 +28,15 @@ export const Sheet: React.FC<{
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center pointer-events-auto bg-black/20 backdrop-blur-sm"
+      // No wash over the scene: the panel is solid enough to separate itself,
+      // and the point of the tool is the view behind it. This layer is here to
+      // catch the tap that dismisses.
+      className="fixed inset-0 z-50 flex items-end justify-center pointer-events-auto"
       onClick={onClose}
     >
       <div className="w-full max-w-lg safe-bottom pointer-events-none p-2">
         <div
-          className={`flex flex-col rounded-[2rem] border backdrop-blur-2xl shadow-2xl pointer-events-auto overflow-hidden ${chrome(dark)}`}
+          className={`flex flex-col rounded-[2rem] border shadow-2xl pointer-events-auto overflow-hidden ${chrome(dark)}`}
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           onPointerMove={(e) => e.stopPropagation()}

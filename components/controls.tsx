@@ -21,7 +21,7 @@ export interface Skin {
 }
 
 const surface = (skin: Skin) =>
-  skin.dark ? 'bg-black/50 border-white/20' : 'bg-white/80 border-gray-300';
+  skin.dark ? 'bg-white/10 border-white/20' : 'bg-black/5 border-gray-300';
 
 interface DraggableNumber {
   skin: Skin;
@@ -165,7 +165,7 @@ export const Scrub: React.FC<DraggableNumber> = (props) => {
   return (
     <div className="relative flex justify-center items-center">
       <button
-        className={`flex items-center justify-center w-11 h-11 rounded-full touch-none cursor-ew-resize border backdrop-blur-md transition-colors ${surface(skin)}`}
+        className={`flex items-center justify-center w-11 h-11 rounded-full touch-none cursor-ew-resize border transition-colors ${surface(skin)}`}
         aria-label={label}
         {...wrapHandlers}
       >
@@ -174,8 +174,8 @@ export const Scrub: React.FC<DraggableNumber> = (props) => {
         </span>
       </button>
       {active && (
-        <div className={`absolute -top-12 px-3 py-1 rounded-full text-xs font-bold tabular-nums backdrop-blur-xl border shadow-xl ${
-          skin.dark ? 'bg-black/80 text-white border-white/20' : 'bg-white/90 text-black border-black/10'
+        <div className={`absolute -top-12 px-3 py-1 rounded-full text-xs font-bold tabular-nums border shadow-xl ${
+          skin.dark ? 'bg-neutral-950/95 text-white border-white/20' : 'bg-white/95 text-black border-black/10'
         }`}>
           {reading}
         </div>
