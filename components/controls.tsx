@@ -24,7 +24,7 @@ const surface = (skin: Skin) =>
   skin.dark ? 'bg-black/40 border-white/15' : 'bg-black/5 border-black/10';
 
 const filled = (skin: Skin) =>
-  skin.dark ? 'bg-white text-black border-white' : 'bg-gray-900 text-white border-gray-900';
+  skin.dark ? 'bg-sky-500 text-white border-sky-400' : 'bg-sky-500 text-white border-sky-500';
 
 const idle = (skin: Skin) =>
   skin.dark ? 'bg-black/40 text-gray-400 border-white/15' : 'bg-black/5 text-gray-500 border-transparent';
