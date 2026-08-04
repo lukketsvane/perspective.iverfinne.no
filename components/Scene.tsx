@@ -116,7 +116,7 @@ const SunEnvironment = () => {
 };
 
 /** How far the shadow camera reaches either side of where you are looking. */
-const SHADOW_REACH = 14;
+const SHADOW_REACH = 10;
 
 /**
  * How far you have to move before the shadow camera follows.
@@ -156,7 +156,7 @@ const Sun: React.FC = () => {
   const mapSize = useMemo(
     () =>
       typeof window !== 'undefined' && Math.min(window.innerWidth, window.innerHeight) < 900
-        ? 2048
+        ? 3072
         : 4096,
     []
   );
@@ -251,7 +251,7 @@ const SceneContent = () => {
       const x = ((clientX - rect.left) / rect.width) * 2 - 1;
       const y = 1 - ((clientY - rect.top) / rect.height) * 2;
 
-      if (perspectiveMode === 'curvilinear') {
+      if (perspectiveMode !== 'linear') {
         const { halfYaw, halfPitch } = fieldOf(fov, size.width, size.height);
         const rx = x * halfYaw;
         const ry = y * halfPitch;
@@ -285,7 +285,7 @@ const SceneContent = () => {
 
   // Curvilinear is a mode, not an amount: at a blend of zero it is still a
   // panorama, just the equirectangular one.
-  const curvilinear = perspectiveMode === 'curvilinear';
+  const curvilinear = perspectiveMode !== 'linear';
 
   /** The construction sheet is ruled in red, on paper and here. */
   const gridColor = useMemo(
@@ -387,7 +387,7 @@ const SceneContent = () => {
       {/* The curvilinear view is a different projection, not a filter over the
           flat one, so it takes the frame over entirely while it is on. */}
       {curvilinear && (
-        <Panorama spread={fov} gridColor={gridColor} gridStrength={showGuides ? 1 : 0} />
+        <Panorama spread={fov} mode={perspectiveMode} gridColor={gridColor} gridStrength={showGuides ? 1 : 0} />
       )}
 
       <WalkControls />
