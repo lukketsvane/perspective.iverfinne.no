@@ -97,7 +97,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
         title={label}
         className={`w-12 h-12 shrink-0 flex items-center justify-center rounded-xl border transition-colors ${
           on
-            ? isDark ? 'bg-white text-black border-white' : 'bg-gray-900 text-white border-gray-900'
+            ? 'bg-sky-500 text-white border-sky-400'
             : isDark ? 'bg-black/40 text-gray-400 border-white/15' : 'bg-black/5 text-gray-500 border-black/10'
         }`}
       >
