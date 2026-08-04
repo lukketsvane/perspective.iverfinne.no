@@ -122,7 +122,65 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
     [isSelected, isViewMode, model.id, model.position, selectModel, updateModel, setIsDragging, controls, camera, gl]
   );
 
+  /**
+   * The move handle above the model always initiates a ground-drag regardless
+   * of whether the model body is already selected. This is the primary way to
+   * move on a phone, where there is no shift key and the model body is hard to
+   * hit precisely.
+   */
+  const handleMoveDown = useCallback(
+    (e: ThreeEvent<PointerEvent>) => {
+      if (isViewMode) return;
+      e.stopPropagation();
+
+      if (!isSelected) {
+        selectModel(model.id);
+        return;
+      }
+
+      setIsDragging(true);
+      if (controls) (controls as any).enabled = false;
+      document.body.style.cursor = 'grabbing';
+
+      const start: [number, number, number] = [...model.position];
+      const pointOnGround = createGroundPicker(camera, gl.domElement);
+      const grabbed =
+        pointOnGround(e.clientX, e.clientY) ?? new THREE.Vector3(start[0], 0, start[2]);
+
+      const onMove = (moveEvent: PointerEvent) => {
+        const now = pointOnGround(moveEvent.clientX, moveEvent.clientY);
+        if (!now) return;
+        const snap = useStore.getState().snapStep;
+        const place = (v: number) => (snap > 0 ? Math.round(v / snap) * snap : v);
+        updateModel(model.id, {
+          position: [place(start[0] + (now.x - grabbed.x)), start[1], place(start[2] + (now.z - grabbed.z))],
+        });
+      };
+
+      const onUp = () => {
+        noteDragEnd();
+        setIsDragging(false);
+        if (controls) (controls as any).enabled = true;
+        document.body.style.cursor = 'auto';
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+      };
+
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    },
+    [isSelected, isViewMode, model.id, model.position, selectModel, updateModel, setIsDragging, controls, camera, gl]
+  );
+
   if (!model.object) return null;
+
+  const isDark = theme === 'dark';
+  const handleColor = isDark ? '#ff5555' : '#ff3b30';
+
+  // The move handle floats above the model's bounding box. Dragging it slides
+  // the model along the floor — no shift key needed, which is essential on
+  // a phone where there is no keyboard.
+  const modelTop = model.size[1]; // height in local units (scale applied at group level)
 
   return (
     <group
@@ -137,13 +195,29 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       <primitive object={model.object} />
 
       {isSelected && !isViewMode && (
-        <mesh position={[0, model.size[1] / 2, 0]} raycast={() => null}>
-          <boxGeometry args={[model.size[0], model.size[1], model.size[2]]} />
-          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-          {/* Geometry wireframes include each face's triangulation. Edges keeps
-              only the twelve outside cage segments. */}
-          <Edges threshold={15} color={outlineColor} />
-        </mesh>
+        <>
+          <mesh position={[0, model.size[1] / 2, 0]} raycast={() => null}>
+            <boxGeometry args={[model.size[0], model.size[1], model.size[2]]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            {/* Geometry wireframes include each face's triangulation. Edges keeps
+                only the twelve outside cage segments. */}
+            <Edges threshold={15} color={outlineColor} />
+          </mesh>
+
+          {/* Move handle — a sphere floating above the model that initiates a
+              ground-drag without needing shift or a second tap. The handle is
+              placed in the group's local space so it follows rotation and scale. */}
+          <mesh
+            position={[0, modelTop + 0.42 / model.scale, 0]}
+            onPointerDown={handleMoveDown}
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+            renderOrder={999}
+          >
+            <sphereGeometry args={[0.16 / model.scale, 20, 14]} />
+            <meshBasicMaterial color={handleColor} depthTest={false} toneMapped={false} />
+          </mesh>
+        </>
       )}
     </group>
   );

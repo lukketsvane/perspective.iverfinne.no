@@ -116,7 +116,7 @@ const SunEnvironment = () => {
 };
 
 /** How far the shadow camera reaches either side of where you are looking. */
-const SHADOW_REACH = 14;
+const SHADOW_REACH = 10;
 
 /**
  * How far you have to move before the shadow camera follows.
@@ -156,7 +156,7 @@ const Sun: React.FC = () => {
   const mapSize = useMemo(
     () =>
       typeof window !== 'undefined' && Math.min(window.innerWidth, window.innerHeight) < 900
-        ? 2048
+        ? 3072
         : 4096,
     []
   );
