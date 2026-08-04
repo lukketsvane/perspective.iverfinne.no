@@ -6,7 +6,7 @@ import { Icon, I } from './icons';
 import { Toggle, Scrub, Cell, type Skin } from './controls';
 
 const SPAWN_ORDER: SpawnKind[] = ['cube', 'slab', 'pillar', 'beam', 'block'];
-const PERSPECTIVE_ORDER = ['linear', 'equidistant', 'stereographic', 'cylindrical', 'hyperbolic'] as const;
+const PERSPECTIVE_ORDER = ['linear', 'equidistant', 'stereographic', 'cylindrical', 'hyperbolic', '5-point', '720-noneuclidean'] as const;
 const SPAWN_ICON: Record<SpawnKind, React.ReactNode> = {
   cube: I.cube,
   slab: I.slab,
@@ -20,6 +20,8 @@ const PERSPECTIVE_ICON: Record<typeof PERSPECTIVE_ORDER[number], React.ReactNode
   stereographic: I.stereographic,
   cylindrical: I.cylindrical,
   hyperbolic: I.hyperbolic,
+  '5-point': I.curved,
+  '720-noneuclidean': I.sevenTwenty,
 };
 const PERSPECTIVE_LABEL: Record<typeof PERSPECTIVE_ORDER[number], string> = {
   linear: 'Straight lines',
@@ -27,6 +29,8 @@ const PERSPECTIVE_LABEL: Record<typeof PERSPECTIVE_ORDER[number], string> = {
   stereographic: 'Stereographic',
   cylindrical: 'Cylindrical',
   hyperbolic: 'Hyperbolic',
+  '5-point': '5-Point',
+  '720-noneuclidean': '720° Space',
 };
 
 /**
@@ -64,8 +68,8 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
   const resetScene = useStore((s) => s.resetScene);
   const sun = useStore((s) => s.sun);
   const setSun = useStore((s) => s.setSun);
-  const matteModels = useStore((s) => s.matteModels);
-  const toggleMatte = useStore((s) => s.toggleMatte);
+  const modelMaterial = useStore((s) => s.modelMaterial);
+  const cycleMaterial = useStore((s) => s.cycleMaterial);
 
   const isDark = theme === 'dark';
   const touch = layout !== 'desktop';
@@ -151,7 +155,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
           {cellToggle(snapStep > 0, () => setSnapStep(snapStep > 0 ? 0 : 0.25), I.snap, 'Snap to the grid')}
           {cellToggle(showGuides, toggleGuides, I.horizon, 'Horizon and grid')}
 
-          {cellToggle(matteModels, toggleMatte, I.matte, 'Matte white models')}
+          {cellToggle(modelMaterial !== 'original', cycleMaterial, I.matte, 'Matte white models')}
 
           <Cell
             skin={skin}
@@ -271,7 +275,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
         <div className={`${rowPad} border-b ${divider} flex items-center gap-1`}>
           <Toggle skin={skin} on={showGuides} onClick={toggleGuides} path={I.horizon} label="Horizon and grid" className="flex-1" />
           <Toggle skin={skin} on={showCone} onClick={toggleCone} path={I.cone} label="Cone of vision" className="flex-1" />
-          <Toggle skin={skin} on={matteModels} onClick={toggleMatte} path={I.matte} label="Matte white models" className="flex-1" />
+          <Toggle skin={skin} on={modelMaterial !== 'original'} onClick={cycleMaterial} path={I.matte} label="Matte white models" className="flex-1" />
         </div>
 
         {/* ---------------------------------------------------------------- the sun */}

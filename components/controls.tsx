@@ -21,13 +21,13 @@ export interface Skin {
 }
 
 const surface = (skin: Skin) =>
-  skin.dark ? 'bg-black/40 border-white/15' : 'bg-black/5 border-black/10';
+  skin.dark ? 'bg-black/50 border-white/20' : 'bg-white/80 border-gray-300';
 
 const filled = (skin: Skin) =>
-  skin.dark ? 'bg-sky-500 text-white border-sky-400' : 'bg-sky-500 text-white border-sky-500';
+  skin.dark ? 'bg-white text-black border-white' : 'bg-black text-white border-black';
 
 const idle = (skin: Skin) =>
-  skin.dark ? 'bg-black/40 text-gray-400 border-white/15' : 'bg-black/5 text-gray-500 border-transparent';
+  skin.dark ? 'bg-black/50 text-gray-400 border-white/20' : 'bg-white/80 text-gray-500 border-gray-300';
 
 /** A square icon control, filled in when it is on. */
 export const Toggle: React.FC<{
@@ -181,29 +181,34 @@ const useScrub = (
 export const Scrub: React.FC<DraggableNumber> = (props) => {
   const handlers = useScrub(props, 'x');
   const { skin, icon, label, reading } = props;
+  const [active, setActive] = React.useState(false);
+
+  const wrapHandlers = {
+    onPointerDown: (e: React.PointerEvent) => { setActive(true); handlers.onPointerDown(e); },
+    onPointerMove: handlers.onPointerMove,
+    onPointerUp: (e: React.PointerEvent) => { setActive(false); handlers.onPointerUp(e); },
+    onPointerCancel: () => { setActive(false); handlers.onPointerCancel(); },
+  };
 
   return (
-    <button
-      // Over a black panel a black fill is invisible, so the affordance is a
-      // hairline instead: it has to read as something you can take hold of.
-      className={`flex-1 min-w-0 flex items-center gap-1.5 ${
-        skin.touch ? 'h-10' : 'h-8'
-      } px-2 rounded-lg touch-none cursor-ew-resize border ${surface(skin)}`}
-      aria-label={label}
-      title={label}
-      {...handlers}
-    >
-      <span className={`shrink-0 ${skin.dark ? 'text-gray-500' : 'text-gray-400'}`}>
-        <Icon path={icon} className="w-4 h-4" />
-      </span>
-      <span
-        className={`flex-1 text-right text-[12px] font-black tabular-nums ${
-          skin.dark ? 'text-white' : 'text-gray-900'
-        }`}
+    <div className="relative flex justify-center items-center">
+      <button
+        className={`flex items-center justify-center w-11 h-11 rounded-full touch-none cursor-ew-resize border backdrop-blur-md transition-colors ${surface(skin)}`}
+        aria-label={label}
+        {...wrapHandlers}
       >
-        {reading}
-      </span>
-    </button>
+        <span className={`${skin.dark ? 'text-white' : 'text-gray-900'} active:scale-95 transition-transform`}>
+          <Icon path={icon} className="w-5 h-5" />
+        </span>
+      </button>
+      {active && (
+        <div className={`absolute -top-12 px-3 py-1 rounded-full text-xs font-bold tabular-nums backdrop-blur-xl border shadow-xl ${
+          skin.dark ? 'bg-black/80 text-white border-white/20' : 'bg-white/90 text-black border-black/10'
+        }`}>
+          {reading}
+        </div>
+      )}
+    </div>
   );
 };
 

@@ -36,7 +36,7 @@ export const HorizonLine: React.FC<{ color: string }> = ({ color }) => {
   });
 
   return (
-    <lineLoop ref={ref} geometry={geometry} renderOrder={998} frustumCulled={false}>
+    <lineLoop raycast={() => null} ref={ref} geometry={geometry} renderOrder={998} frustumCulled={false}>
       <lineBasicMaterial color={color} transparent opacity={0.55} depthTest={false} depthWrite={false} />
     </lineLoop>
   );
@@ -105,7 +105,7 @@ export const ScaleFigure: React.FC<{ position: [number, number, number]; color: 
 
   return (
     <group ref={ref} position={position} scale={scale}>
-      <lineSegments geometry={geometry}>
+      <lineSegments raycast={() => null} geometry={geometry}>
         <lineBasicMaterial color={color} transparent opacity={0.95} />
       </lineSegments>
     </group>

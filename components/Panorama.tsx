@@ -114,22 +114,33 @@ export const Panorama: React.FC<{
           vec2 clip = vUv * 2.0 - 1.0;
           vec3 direction = vec3(0.0, 0.0, -1.0);
 
-          if (projectionMode == 2) {
+          if (projectionMode == 2) { // cylindrical
             float yaw = clip.x * halfYaw;
             float pitch = clip.y * halfPitch;
             direction = vec3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch));
           } else {
             vec2 radial = vec2(clip.x * halfYaw, clip.y * halfPitch);
             float radius = length(radial);
-            float theta = radius;
+            float theta = radius; // 0 or 4 = equidistant / 5-point
 
-            if (projectionMode == 1) {
+            if (projectionMode == 1) { // stereographic
               theta = 2.0 * atan(radius);
-            } else if (projectionMode == 3) {
+            } else if (projectionMode == 3) { // hyperbolic
               theta = 2.0 * atan(radius / 2.0);
+            } else if (projectionMode == 5) { // 720-noneuclidean
+              // Apply a non-Euclidean mapping (e.g. Poincare-like expansion mixed with spherical wrapping)
+              // This creates a manifold where parallel lines diverge/converge based on distance
+              float K = -0.5; // Negative curvature parameter
+              float nonEuclideanR = log(1.0 + radius * sqrt(-K)) / sqrt(-K);
+              theta = nonEuclideanR * 2.0; 
+              
+              // Add a Mobius spiral twist (space-time twisting)
+              float twist = radius * 0.3;
+              float c = cos(twist); float s = sin(twist);
+              radial = vec2(radial.x * c - radial.y * s, radial.x * s + radial.y * c);
             }
 
-            if (theta > PI) {
+            if (theta > PI && projectionMode != 4 && projectionMode != 5) {
               gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
               return;
             }
@@ -148,20 +159,43 @@ export const Panorama: React.FC<{
           if (gridStrength > 0.001) {
             float worldYaw = atan(world.x, -world.z);
             float worldPitch = asin(clamp(world.y, -1.0, 1.0));
+            float worldSide = atan(world.y, world.x); // X-axis looking
 
-            // Meridians fade towards the poles, where they all converge and
-            // would otherwise turn the zenith into a solid disc.
-            float polar = 1.0 - smoothstep(0.82, 0.995, abs(world.y));
-            float meridians = ruled(worldYaw, 1.0) * polar * 0.42;
-            float parallels = ruled(worldPitch, 1.0) * 0.3;
+            // Y-meridians (verticals, meeting at zenith/nadir)
+            float polarY = 1.0 - smoothstep(0.82, 0.995, abs(world.y));
+            float meridiansY = ruled(worldYaw, 1.0) * polarY * 0.42;
 
-            // The eye-level ring is the one that matters most, so it is drawn
-            // as itself rather than as one parallel among many.
+            // X-meridians (depth lines, meeting at left/right vanishing points)
+            float polarX = 1.0 - smoothstep(0.82, 0.995, abs(world.x));
+            float meridiansX = ruled(worldPitch, 1.0) * polarX * 0.42;
+
+            // Z-meridians (front lines, meeting at center vanishing point)
+            float polarZ = 1.0 - smoothstep(0.82, 0.995, abs(world.z));
+            float meridiansZ = ruled(worldSide, 1.0) * polarZ * 0.42;
+
+            // The eye-level ring is the one that matters most
             float horizon =
               (1.0 - smoothstep(0.0, 1.6, abs(worldPitch) / max(fwidth(worldPitch), 1e-5))) * 0.85;
 
-            float ink = max(horizon, max(meridians, parallels)) * gridStrength;
-            gl_FragColor.rgb = mix(gl_FragColor.rgb, gridColor, ink);
+            float ink = max(horizon, max(meridiansY, max(meridiansX, meridiansZ))) * gridStrength;
+            
+            // Color code the lines for clarity
+            vec3 c_vert = vec3(0.0, 0.6, 1.0);  // Blue for vertical (Y)
+            vec3 c_depth = vec3(1.0, 0.2, 0.2); // Red for depth (X)
+            vec3 c_front = vec3(0.2, 0.8, 0.2); // Green for front (Z)
+            
+            vec3 overlayColor = gridColor;
+            if (horizon > max(meridiansY, max(meridiansX, meridiansZ))) {
+              overlayColor = gridColor;
+            } else if (meridiansY > max(meridiansX, meridiansZ)) {
+              overlayColor = mix(gridColor, c_vert, 0.75);
+            } else if (meridiansX > meridiansZ) {
+              overlayColor = mix(gridColor, c_depth, 0.75);
+            } else {
+              overlayColor = mix(gridColor, c_front, 0.75);
+            }
+
+            gl_FragColor.rgb = mix(gl_FragColor.rgb, overlayColor, ink);
           }
         }
       `,
@@ -200,8 +234,14 @@ export const Panorama: React.FC<{
     rig.material.uniforms.halfYaw.value = halfYaw;
     rig.material.uniforms.halfPitch.value = halfPitch;
     rig.material.uniforms.orientation.value.setFromMatrix4(camera.matrixWorld);
-    rig.material.uniforms.projectionMode.value =
-      mode === 'equidistant' ? 0 : mode === 'stereographic' ? 1 : mode === 'cylindrical' ? 2 : 3;
+    let pMode = 0; // equidistant
+    if (mode === 'stereographic') pMode = 1;
+    else if (mode === 'cylindrical') pMode = 2;
+    else if (mode === 'hyperbolic') pMode = 3;
+    else if (mode === '5-point') pMode = 4;
+    else if (mode === '720-noneuclidean') pMode = 5;
+
+    rig.material.uniforms.projectionMode.value = pMode;
     rig.material.uniforms.gridColor.value.copy(gridColor);
     rig.material.uniforms.gridStrength.value = gridStrength;
 

@@ -6,7 +6,6 @@ import { VanishingPoints } from './components/VanishingPoints';
 import { SelectionBar } from './components/SelectionBar';
 import { MeshSheet } from './components/MeshSheet';
 import { useStore, saveSettings } from './store';
-import { useLayout } from './lib/useLayout';
 import { loadModelFile, loadModelFromUrl, findFreeSpot, modelRadius } from './lib/loadModel';
 import { MESH_LIBRARY } from './lib/meshLibrary';
 import { focusPoint } from './lib/focus';
@@ -14,7 +13,6 @@ import { downloadSceneJson, importSceneJson } from './lib/sceneJson';
 
 /** The application is always a first-person workspace. */
 export default function App() {
-  const layout = useLayout();
   const theme = useStore((s) => s.theme);
   const backgroundGray = useStore((s) => s.backgroundGray);
   const fov = useStore((s) => s.fov);
@@ -103,11 +101,9 @@ export default function App() {
         onExportScene={handleExportScene}
         onImportScene={handleImportScene}
         busyId={busyMesh}
-        layout={layout}
       />
       {showMeshes && (
         <MeshSheet
-          layout={layout}
           onClose={() => setShowMeshes(false)}
           onPlace={placeLibraryMesh}
           onImport={importModels}
