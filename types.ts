@@ -171,4 +171,6 @@ export interface SceneState {
   deleteScene: (id: string) => void;
   setCurrentSceneName: (name: string | null) => void;
   loadHistoryFromStorage: () => void;
+  /** Remove every placed model whose fileUrl already appears earlier in the list. */
+  deduplicateModels: () => void;
 }
