@@ -101,15 +101,4 @@ export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'stave_church', name: '70', url: '/meshes/wooden stave church 3d model.glb', pose: 'stand' },
   { id: 'wooden_stool', name: '71', url: '/meshes/wooden stool 3d model.glb', pose: 'stand' },
   { id: 'zombie_char', name: '72', url: '/meshes/zombie character 3d model.glb', pose: 'stand' },
-  // Additional meshes discovered in public/meshes
-  { id: 'human_figure_2', name: '73', url: '/meshes/human figure 3d model 2.glb', pose: 'stand' },
-  { id: 'human_figure', name: '74', url: '/meshes/human figure 3d model.glb', pose: 'stand' },
-  { id: 'nude_female_2', name: '75', url: '/meshes/nude female figure 3d model 2.glb', pose: 'stand' },
-  { id: 'nude_female_3', name: '76', url: '/meshes/nude female figure 3d model 3.glb', pose: 'stand' },
-  { id: 'nude_female_4', name: '77', url: '/meshes/nude female figure 3d model 4.glb', pose: 'stand' },
-  { id: 'nude_female', name: '78', url: '/meshes/nude female figure 3d model.glb', pose: 'stand' },
-  { id: 'nude_figure_2', name: '79', url: '/meshes/nude figure 3d model 2.glb', pose: 'stand' },
-  { id: 'nude_figure', name: '80', url: '/meshes/nude figure 3d model.glb', pose: 'stand' },
-  { id: 'nude_human', name: '81', url: '/meshes/nude human figure 3d model.glb', pose: 'stand' },
-  { id: 'seated_nude', name: '82', url: '/meshes/seated nude female figure 3d model.glb', pose: 'sit' },
 ];

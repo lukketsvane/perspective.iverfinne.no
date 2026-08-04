@@ -236,6 +236,7 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
         <group>
             {/* Central Axis Spine - Visual hint for vertical alignment */}
             <Line
+                raycast={() => null}
                 points={[[data.position[0], 0, data.position[2]], [data.position[0], data.position[1] + data.scale[1]/2 + 2, data.position[2]]]}
                 color={edgeColor}
                 lineWidth={1}
@@ -252,29 +253,6 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
             >
                 <planeGeometry args={[data.scale[0] + 0.4, data.scale[2] + 0.4]} />
                 <meshBasicMaterial color={edgeColor} transparent opacity={0.1} />
-            </mesh>
-
-            {/*
-              * Move handle.
-              *
-              * Dragging a face resizes, so moving needs a target of its own.
-              * It floats above the box rather than sitting on the floor
-              * underneath it: a handle the box itself occludes is a handle the
-              * ray never reaches, however well it draws.
-              */}
-            <mesh
-                position={[
-                  data.position[0],
-                  data.position[1] + data.scale[1] / 2 + 0.42,
-                  data.position[2],
-                ]}
-                onPointerDown={handleMoveDown}
-                onClick={(e) => e.stopPropagation()}
-                onDoubleClick={(e) => e.stopPropagation()}
-                renderOrder={999}
-            >
-                <sphereGeometry args={[0.16, 20, 14]} />
-                <meshBasicMaterial color={edgeColor} depthTest={false} toneMapped={false} />
             </mesh>
         </group>
       )}
@@ -310,9 +288,6 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
             e.stopPropagation(); 
             handlePointerOut(); 
         }}
-        // Using 'none' forces all events to ignore the mesh, which is perfect for View Mode
-        // allowing orbit controls to work even when clicking "on" a box.
-        style={{ pointerEvents: isViewMode ? 'none' : 'auto' } as any}
       >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial
@@ -325,6 +300,7 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
           polygonOffsetFactor={1}
         />
         <Edges
+          raycast={() => null}
           scale={1}
           threshold={15}
           color={edgeColor}

@@ -96,7 +96,7 @@ const SETTINGS_KEY = 'kjg-perspective-settings';
 
 type PersistedSettings = Pick<
   SceneState,
-  'theme' | 'backgroundGray' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showGrid' | 'showHorizon' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'matteModels' | 'sunEnvironment' | 'sun'
+  'theme' | 'backgroundGray' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'modelMaterial' | 'sunEnvironment' | 'sun'
 >;
 
 const loadSettings = (): Partial<PersistedSettings> => {
@@ -108,8 +108,8 @@ const loadSettings = (): Partial<PersistedSettings> => {
     // Copy only current settings. Older records may contain removed camera-mode
     // fields; an allow-list prevents those values from leaking back into state.
     const allowed = [
-      'theme', 'backgroundGray', 'cameraHeight', 'lockEyeLevel', 'showGuides', 'showGrid', 'showHorizon',
-      'showFigure', 'showCone', 'spawnKind', 'fov', 'snapStep', 'matteModels', 'sunEnvironment', 'sun',
+      'theme', 'backgroundGray', 'cameraHeight', 'lockEyeLevel', 'showGuides',
+      'showFigure', 'showCone', 'spawnKind', 'fov', 'snapStep', 'modelMaterial', 'sunEnvironment', 'sun',
     ] as const;
     return Object.fromEntries(
       allowed.filter((key) => Object.prototype.hasOwnProperty.call(parsed, key)).map((key) => [key, parsed[key]])
@@ -146,7 +146,7 @@ const writeSettings = (state: SceneState) => {
       spawnKind: state.spawnKind,
       fov: state.fov,
       snapStep: state.snapStep,
-      matteModels: state.matteModels,
+      modelMaterial: state.modelMaterial,
       sunEnvironment: state.sunEnvironment,
       sun: state.sun,
     };
@@ -216,14 +216,12 @@ export const useStore = create<SceneState>((set, get) => ({
   lockEyeLevel: true, // Level gaze -> true verticals -> 2-point perspective
   showFigure: false,
   showGuides: true,
-  showGrid: true,
-  showHorizon: true,
   showCone: false,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   spawnKind: 'cube',
   models: [],
   selectedModelId: null,
-  matteModels: false,
+  modelMaterial: 'original',
   sunEnvironment: false,
   viewLocked: false,
   undoStack: [],
@@ -406,7 +404,7 @@ export const useStore = create<SceneState>((set, get) => ({
     // Scene clamps the actual lens just short of 180, where a rectilinear
     // projection stops meaning anything - but the curvilinear pass can, and
     // that is the mode you want a 360 field in.
-    fov: Math.max(10, Math.min(360, fov)),
+    fov: Math.max(10, Math.min(720, fov)),
     // The curvature is a blend between two projections now, not a strength:
     // 0 is the cylindrical panorama, 1 the equidistant fisheye.
     distortion: distortion === undefined
@@ -427,7 +425,7 @@ export const useStore = create<SceneState>((set, get) => ({
      * the middle of the frame the way it does out past 250. 60 is the ordinary
      * cone of vision to come back to.
      */
-    fov: mode === 'linear' ? Math.min(state.fov, 75) : (state.fov < 120 ? 210 : state.fov),
+    fov: mode === '720-noneuclidean' ? 720 : (mode === 'linear' ? Math.min(state.fov, 75) : (state.fov < 120 ? 210 : Math.min(state.fov, 360))),
     distortion:
       mode === 'linear'
         ? state.distortion
@@ -437,7 +435,11 @@ export const useStore = create<SceneState>((set, get) => ({
             ? 1
             : mode === 'stereographic'
               ? 2
-              : 3,
+              : mode === 'hyperbolic'
+                ? 3
+                : mode === '5-point'
+                  ? 4
+                  : 5,
   })),
 
   setCameraHeight: (height) => set({ cameraHeight: Math.max(0.2, Math.min(12, height)) }),
@@ -447,8 +449,6 @@ export const useStore = create<SceneState>((set, get) => ({
   toggleFigure: () => set((state) => ({ showFigure: !state.showFigure })),
 
   toggleGuides: () => set((state) => ({ showGuides: !state.showGuides })),
-  toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),
-  toggleHorizon: () => set((state) => ({ showHorizon: !state.showHorizon })),
 
   toggleCone: () => set((state) => ({ showCone: !state.showCone })),
 
@@ -492,7 +492,10 @@ export const useStore = create<SceneState>((set, get) => ({
     return {};
   }),
 
-  toggleMatte: () => set((state) => ({ matteModels: !state.matteModels })),
+  cycleMaterial: () => set((state) => ({ 
+    modelMaterial: state.modelMaterial === 'original' ? 'matte' : 
+                   state.modelMaterial === 'matte' ? 'transparent-outline' : 'original' 
+  })),
 
   toggleSunEnvironment: () => set((state) => ({ sunEnvironment: !state.sunEnvironment })),
 

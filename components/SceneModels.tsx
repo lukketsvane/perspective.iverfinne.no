@@ -20,6 +20,14 @@ const MATTE = new THREE.MeshStandardMaterial({
   metalness: 0,
 });
 
+const TRANSPARENT_MATTE = new THREE.MeshStandardMaterial({
+  color: 0xf2f2f0,
+  roughness: 0.92,
+  metalness: 0,
+  transparent: true,
+  opacity: 0.25,
+});
+
 /**
  * An uploaded model standing in the scene.
  *
@@ -35,9 +43,10 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
   const isViewMode = useStore((state) => state.isViewMode);
   const theme = useStore((state) => state.theme);
 
-  const matteModels = useStore((state) => state.matteModels);
+  const modelMaterial = useStore((state) => state.modelMaterial);
   const { camera, gl, controls } = useThree();
   const isSelected = selectedModelId === model.id;
+  const outlineColor = theme === 'dark' ? '#ff5555' : '#ff3b30';
 
   /**
    * Swap materials in place, keeping each mesh's own on the side so the switch
@@ -55,15 +64,29 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       mesh.castShadow = true;
       mesh.receiveShadow = true;
 
-      if (matteModels) {
-        if (!mesh.userData.originalMaterial) mesh.userData.originalMaterial = mesh.material;
+      if (!mesh.userData.originalMaterial) {
+        mesh.userData.originalMaterial = mesh.material;
+      }
+
+      if (modelMaterial === 'matte') {
         mesh.material = MATTE;
-      } else if (mesh.userData.originalMaterial) {
+      } else if (modelMaterial === 'transparent-outline') {
+        mesh.material = TRANSPARENT_MATTE;
+        if (!mesh.userData.edgesLine) {
+           const edges = new THREE.EdgesGeometry(mesh.geometry, 15);
+           const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.5 }));
+           mesh.add(line);
+           mesh.userData.edgesLine = line;
+        }
+      } else {
         mesh.material = mesh.userData.originalMaterial as THREE.Material;
       }
+
+      if (mesh.userData.edgesLine) {
+         mesh.userData.edgesLine.visible = modelMaterial === 'transparent-outline';
+      }
     });
-  }, [matteModels, model.object]);
-  const outlineColor = theme === 'dark' ? '#ff5555' : '#ff3b30';
+  }, [modelMaterial, model.object]);
 
   const handlePointerDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
@@ -201,21 +224,7 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
             <meshBasicMaterial transparent opacity={0} depthWrite={false} />
             {/* Geometry wireframes include each face's triangulation. Edges keeps
                 only the twelve outside cage segments. */}
-            <Edges threshold={15} color={outlineColor} />
-          </mesh>
-
-          {/* Move handle — a sphere floating above the model that initiates a
-              ground-drag without needing shift or a second tap. The handle is
-              placed in the group's local space so it follows rotation and scale. */}
-          <mesh
-            position={[0, modelTop + 0.42 / model.scale, 0]}
-            onPointerDown={handleMoveDown}
-            onClick={(e) => e.stopPropagation()}
-            onDoubleClick={(e) => e.stopPropagation()}
-            renderOrder={999}
-          >
-            <sphereGeometry args={[0.16 / model.scale, 20, 14]} />
-            <meshBasicMaterial color={handleColor} depthTest={false} toneMapped={false} />
+            <Edges raycast={() => null} threshold={15} color={outlineColor} />
           </mesh>
         </>
       )}

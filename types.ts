@@ -18,7 +18,7 @@ export type ThemeMode = 'light' | 'dark';
  * - 'cylindrical': panorama with straight verticals.
  * - 'hyperbolic': Poincaré-like disc projection.
  */
-export type PerspectiveMode = 'linear' | 'equidistant' | 'stereographic' | 'cylindrical' | 'hyperbolic';
+export type PerspectiveMode = 'linear' | 'equidistant' | 'stereographic' | 'cylindrical' | 'hyperbolic' | '5-point' | '720-noneuclidean';
 
 /**
  * The primitive spawned when adding geometry. 'cube' (1x1x1 m) is the default;
@@ -99,10 +99,6 @@ export interface SceneState {
   showFigure: boolean;
   /** Horizon / eye-level line and ground grid. */
   showGuides: boolean;
-  /** Show only the ground-plane grid (independent of showGuides for granular control). */
-  showGrid: boolean;
-  /** Show only the horizon line (independent of showGuides for granular control). */
-  showHorizon: boolean;
   /** The 60 degree cone of vision, drawn over the view. */
   showCone: boolean;
   /** Metres that edits snap to while dragging. 0 is free. */
@@ -110,8 +106,8 @@ export interface SceneState {
   spawnKind: SpawnKind;
   models: SceneModel[];
   selectedModelId: string | null;
-  /** Replace model materials with a plain white matte, for reading form. */
-  matteModels: boolean;
+  /** Replace model materials for reading form. */
+  modelMaterial: 'original' | 'matte' | 'transparent-outline';
   /** Use the directional sun to generate a full-frame sky gradient. */
   sunEnvironment: boolean;
   /**
@@ -148,8 +144,6 @@ export interface SceneState {
   toggleEyeLevelLock: () => void;
   toggleFigure: () => void;
   toggleGuides: () => void;
-  toggleGrid: () => void;
-  toggleHorizon: () => void;
   toggleCone: () => void;
   setSnapStep: (step: number) => void;
   /** Turn the selection (box or model) about its own vertical axis. */
@@ -165,7 +159,7 @@ export interface SceneState {
   scaleModel: (id: string, scale: number) => void;
   /** Copy whatever is selected, placed clear of the original. */
   duplicateSelection: () => void;
-  toggleMatte: () => void;
+  cycleMaterial: () => void;
   toggleSunEnvironment: () => void;
   /** Move the sun, or change how hard it burns. */
   setSun: (sun: Partial<SunState>) => void;

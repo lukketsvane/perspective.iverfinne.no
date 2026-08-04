@@ -23,15 +23,10 @@ import * as THREE from 'three';
  * a cube into a tall sliver.
  */
 export const fieldOf = (degrees: number, width: number, height: number) => {
-  const angularRadius = THREE.MathUtils.degToRad(Math.min(360, Math.max(20, degrees))) / 2;
+  const angularRadius = (Math.min(360, Math.max(20, degrees)) * Math.PI / 180) / 2;
   const safeWidth = Math.max(width, 1);
   const safeHeight = Math.max(height, 1);
   const longestEdge = Math.max(safeWidth, safeHeight);
-
-  // One angular scale for both dimensions. The previous vertical clamp to 90°
-  // broke this invariant on portrait screens once the requested horizontal
-  // field grew past ~100°, producing the severe vertical stretching reported
-  // on phones.
   const halfYaw = angularRadius * (safeWidth / longestEdge);
   const halfPitch = angularRadius * (safeHeight / longestEdge);
   return { halfYaw, halfPitch };

@@ -8,13 +8,15 @@ import { exportScaledModel } from '../lib/exportModel';
 import type { Layout } from '../lib/useLayout';
 import type { PerspectiveMode } from '../types';
 
-const PERSPECTIVE_ORDER: PerspectiveMode[] = ['linear', 'equidistant', 'stereographic', 'cylindrical', 'hyperbolic'];
+const PERSPECTIVE_ORDER: PerspectiveMode[] = ['linear', 'equidistant', 'stereographic', 'cylindrical', 'hyperbolic', '5-point', '720-noneuclidean'];
 const PERSPECTIVE_ICON: Record<PerspectiveMode, React.ReactNode> = {
   linear: I.straight,
   equidistant: I.curved,
   stereographic: I.stereographic,
   cylindrical: I.cylindrical,
   hyperbolic: I.hyperbolic,
+  '5-point': I.curved,
+  '720-noneuclidean': I.sevenTwenty,
 };
 
 const MAX_PITCH = Math.PI / 2 - 0.05;
@@ -87,8 +89,7 @@ export const WalkOverlay: React.FC<{
   onExportScene?: () => void;
   onImportScene?: (file: File) => void;
   busyId?: string | null;
-  layout: Layout;
-}> = ({ onModels, onImport, onExportScene, onImportScene, busyId, layout }) => {
+}> = ({ onModels, onImport, onExportScene, onImportScene, busyId }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -106,11 +107,13 @@ export const WalkOverlay: React.FC<{
   const [railVisible, setRailVisible] = useState(true);
   const [arMode, setArMode] = useState(false);
   const railTimer = useRef<number | undefined>(undefined);
-  const matteModels = useStore((s) => s.matteModels);
-  const toggleMatte = useStore((s) => s.toggleMatte);
+  const modelMaterial = useStore((s) => s.modelMaterial);
+  const cycleMaterial = useStore((s) => s.cycleMaterial);
   const models = useStore((s) => s.models);
   const deduplicateModels = useStore((s) => s.deduplicateModels);
   const selectedModelId = useStore((s) => s.selectedModelId);
+  const selectedId = useStore((s) => s.selectedId);
+  const isSelected = selectedModelId !== null || selectedId !== null;
   const [exporting, setExporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
   const sceneInputRef = useRef<HTMLInputElement>(null);
@@ -120,23 +123,15 @@ export const WalkOverlay: React.FC<{
   const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
   const showGuides = useStore((s) => s.showGuides);
   const toggleGuides = useStore((s) => s.toggleGuides);
-  const showGrid = useStore((s) => s.showGrid);
-  const toggleGrid = useStore((s) => s.toggleGrid);
-  const showHorizon = useStore((s) => s.showHorizon);
-  const toggleHorizon = useStore((s) => s.toggleHorizon);
   const showCone = useStore((s) => s.showCone);
   const toggleCone = useStore((s) => s.toggleCone);
 
   const isDark = theme === 'dark';
   const chrome = isDark
-    ? 'bg-black/60 text-white border-white/25'
-    : 'bg-white/75 text-gray-900 border-gray-300';
+    ? 'bg-black/60 text-white border-white/20'
+    : 'bg-white/80 text-black border-gray-300';
 
   // --------------------------------------------------------------- gestures
-  /**
-   * Turn per pixel, kept in a ref so a drag in progress reads the current
-   * figure without the pointer handlers being rebuilt underneath it.
-   */
   const lookRate = useRef(0.002);
   useEffect(() => {
     const measure = () => {
@@ -161,10 +156,6 @@ export const WalkOverlay: React.FC<{
   const sunPan = useRef<{ x: number; y: number; azimuth: number; elevation: number } | null>(null);
   const pinch = useRef<{ startDist: number; startAngle: number; startScale: number; startRotY: number; centreX: number; centreY: number; startPos: [number, number, number] } | null>(null);
 
-  // One rule whether or not the sensor is driving: the near corner walks, the
-  // rest of the glass looks. Handing the whole screen to the stick, as this
-  // used to when the sensor was on, left no way to turn round without turning
-  // round - which on a tablet on a desk is no way at all.
   const isStickZone = (x: number, y: number) =>
     x < window.innerWidth * 0.45 && y > window.innerHeight * 0.45;
 
@@ -177,7 +168,6 @@ export const WalkOverlay: React.FC<{
       dy = (dy / distance) * STICK_RADIUS;
     }
 
-    // Direction from the thumb, speed from the curve above.
     const push = shapeStick(Math.min(1, distance / STICK_RADIUS));
     if (push === 0) {
       walkInput.strafe = 0;
@@ -196,17 +186,12 @@ export const WalkOverlay: React.FC<{
     if (pointers.current.size > 1) {
       tapStarts.current.forEach((tap) => { tap.cancelled = true; });
     }
-    // Lock freezes the camera, not the scene editor. Keep tracking a possible
-    // selection tap, but do not start a walk/look gesture.
     if (viewLocked) return;
     try {
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-    } catch {
-      /* not capturable */
-    }
+    } catch { }
 
     if (pointers.current.size === 2 && selectedModelId) {
-      // Two-finger pinch: rotate and translate the selected model
       const pts = [...pointers.current.values()];
       const dx = pts[1].x - pts[0].x;
       const dy = pts[1].y - pts[0].y;
@@ -225,7 +210,6 @@ export const WalkOverlay: React.FC<{
       walkInput.forward = 0;
       walkInput.strafe = 0;
     } else if (pointers.current.size === 3) {
-      // Three fingers grab the light
       const points = [...pointers.current.values()];
       sunPan.current = {
         x: points.reduce((sum, point) => sum + point.x, 0) / 3,
@@ -253,21 +237,17 @@ export const WalkOverlay: React.FC<{
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     }
 
-    // Two-finger pinch: rotate + translate model
     if (pinch.current && pointers.current.size === 2 && selectedModelId) {
       const pts = [...pointers.current.values()];
       const dx = pts[1].x - pts[0].x;
       const dy = pts[1].y - pts[0].y;
-      const dist = Math.hypot(dx, dy);
       const angle = Math.atan2(dy, dx);
       const cx = (pts[0].x + pts[1].x) / 2;
       const cy = (pts[0].y + pts[1].y) / 2;
 
-      // Rotation from angle change
       const deltaAngle = angle - pinch.current.startAngle;
       const newRotY = pinch.current.startRotY - deltaAngle;
 
-      // Translation from centre movement (screen px → world metres, rough)
       const moveFactor = 0.01;
       const moveX = (cx - pinch.current.centreX) * moveFactor;
       const moveZ = (cy - pinch.current.centreY) * moveFactor;
@@ -306,9 +286,6 @@ export const WalkOverlay: React.FC<{
 
       const rate = lookRate.current;
 
-      // With the sensor driving, the drag is an offset on top of it rather than
-      // the heading itself; the sensor keeps reporting where the device points
-      // either way.
       if (walkInput.useDeviceOrientation) {
         walkInput.lookYaw -= dx * rate;
         walkInput.lookPitch = Math.max(
@@ -354,7 +331,6 @@ export const WalkOverlay: React.FC<{
     endPointer(e);
   };
 
-  // --------------------------------------------------------------- keyboard
   useEffect(() => {
     const keys = new Set<string>();
     const apply = () => {
@@ -379,13 +355,10 @@ export const WalkOverlay: React.FC<{
     };
   }, [showTools]);
 
-  // ---------------------------------------------------------------- actions
-
-  // Auto-hide the rail after inactivity
   const showRail = useCallback(() => {
     setRailVisible(true);
     if (railTimer.current) clearTimeout(railTimer.current);
-    railTimer.current = setTimeout(() => setRailVisible(false), 12000) as unknown as number;
+    railTimer.current = setTimeout(() => setRailVisible(false), 6000) as unknown as number;
   }, []);
 
   useEffect(() => {
@@ -393,14 +366,10 @@ export const WalkOverlay: React.FC<{
     return () => { if (railTimer.current) clearTimeout(railTimer.current); };
   }, [showRail]);
 
-  // AR mode: enable device orientation and use phone as real camera.
-  // Does NOT reset position — you stay where you are, as if you had just
-  // lifted the phone to look through it at the scene around you.
   const toggleArMode = useCallback(async () => {
     if (arMode) {
       setArMode(false);
     } else {
-      // Try WebXR immersive-ar first (Apple Vision, Chrome on Android, etc.)
       if (navigator.xr) {
         try {
           const supported = await navigator.xr.isSessionSupported('immersive-ar');
@@ -409,7 +378,6 @@ export const WalkOverlay: React.FC<{
               requiredFeatures: ['local-floor'],
               optionalFeatures: ['hit-test', 'dom-overlay'],
             });
-            // Store session so Scene can use it via gl.xr
             (window as any).__xrSession = session;
             setArMode(true);
             session.addEventListener('end', () => {
@@ -418,13 +386,10 @@ export const WalkOverlay: React.FC<{
             });
             return;
           }
-        } catch { /* fall through to device orientation */ }
+        } catch { }
       }
-
-      // Fallback: device orientation (iOS Safari, older devices)
       const granted = await enableDeviceOrientation();
       if (granted) {
-        // Re-zero heading against the sensor without moving position
         walkInput.lookYaw = 0;
         walkInput.lookPitch = 0;
         setArMode(true);
@@ -444,11 +409,10 @@ export const WalkOverlay: React.FC<{
     }
   };
 
-  const iconButton = `flex items-center justify-center w-10 h-10 transition-transform active:scale-95 ${isDark ? 'text-white' : 'text-gray-900'}`;
+  const iconButton = `flex items-center justify-center w-11 h-11 rounded-full transition-transform active:scale-95 ${isDark ? 'text-white hover:bg-white/10' : 'text-gray-900 hover:bg-black/5'}`;
 
   return (
     <>
-      {/* One layer for both thumbs; pointer ids keep them apart. */}
       <div
         className="fixed inset-0 z-30 touch-none"
         onPointerDown={onPointerDown}
@@ -457,7 +421,6 @@ export const WalkOverlay: React.FC<{
         onPointerCancel={cancelPointer}
       />
 
-      {/* Tap outside the toolbar to close expanded tools */}
       {showTools && (
         <div
           className="fixed inset-0 z-39"
@@ -465,197 +428,93 @@ export const WalkOverlay: React.FC<{
         />
       )}
 
-      {/* Top-right — perspective controls */}
-      <div className={`fixed top-0 right-0 z-40 safe-right safe-y p-2 pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${railVisible ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="flex flex-col gap-1.5 pointer-events-auto items-end">
-          <div className={`flex flex-col gap-1 p-1.5 rounded-2xl border backdrop-blur-xl ${isDark ? 'bg-black/60 border-white/20' : 'bg-white/80 border-gray-300'}`}>
-            {/* Perspective mode + FOV */}
-            <div className="flex gap-1 items-center">
-              <button
-                onClick={() => {
-                  const idx = PERSPECTIVE_ORDER.indexOf(perspectiveMode);
-                  setPerspectiveMode(PERSPECTIVE_ORDER[(idx + 1) % PERSPECTIVE_ORDER.length]);
-                }}
-                aria-label={`Perspective: ${perspectiveMode}`}
-                className={`${iconButton} ${perspectiveMode !== 'linear' ? '!text-sky-500' : ''}`}
-              >
-                <Icon path={PERSPECTIVE_ICON[perspectiveMode]} className="w-4 h-4" />
-              </button>
-              <div className="w-28">
-                <Scrub
-                  skin={{ dark: isDark, touch: true }}
-                  icon={I.cone}
-                  label="Field of view"
-                  reading={`${Math.round(fov)}°`}
-                  value={fov}
-                  min={25}
-                  max={360}
-                  step={1}
-                  cycle={[35, 60, 90, 160, 210, 240, 330]}
-                  onChange={setLens}
-                />
-              </div>
-            </div>
-
-            {/* Eye height */}
-            <div className="flex gap-1 items-center">
-              <button
-                onClick={toggleArMode}
-                aria-label="AR camera mode"
-                className={`${iconButton} ${arMode ? '!text-green-500' : ''}`}
-              >
-                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              </button>
-              <div className="w-28">
-                <Scrub
-                  skin={{ dark: isDark, touch: true }}
-                  icon={I.cone}
-                  label="Camera height"
-                  reading={`${cameraHeight.toFixed(2)} m`}
-                  value={cameraHeight}
-                  min={0.2}
-                  max={12}
-                  step={0.05}
-                  cycle={EYE_LEVEL_PRESETS.map((p) => p.height)}
-                  onChange={setCameraHeight}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Right-center — vertical column of guide/overlay toggles */}
-      <div className={`fixed top-1/2 right-0 -translate-y-1/2 z-40 safe-right p-2 pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${railVisible ? 'opacity-100' : 'opacity-0'}`}>
-        <div className={`flex flex-col gap-1 p-1.5 rounded-2xl border backdrop-blur-xl pointer-events-auto ${isDark ? 'bg-black/60 border-white/20' : 'bg-white/80 border-gray-300'}`}>
-          <button
-            onClick={toggleGuides}
-            aria-label="All guides"
-            aria-pressed={showGuides}
-            className={`${iconButton} ${showGuides ? '!text-sky-500' : ''}`}
-          >
-            <Icon path={I.horizon} className="w-4 h-4" />
+      {/* Main floating pill */}
+      <div className={`fixed bottom-safe-panel left-0 right-0 z-40 flex flex-col items-center gap-3 pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${railVisible && !isSelected ? 'opacity-100' : 'opacity-0'}`}>
+        
+        {/* Secondary Tools Menu */}
+        <div className={`pointer-events-auto flex gap-1.5 p-1.5 rounded-full border backdrop-blur-xl shadow-2xl transition-all duration-300 transform origin-bottom ${showTools ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${chrome}`}>
+          <button onClick={toggleArMode} aria-label="AR camera mode" className={`${iconButton} ${arMode ? '!text-green-500' : ''}`}>
+             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" /><circle cx="12" cy="12" r="3" /></svg>
           </button>
-          <button
-            onClick={toggleGrid}
-            aria-label="Grid"
-            aria-pressed={showGrid}
-            className={`${iconButton} ${showGrid ? '!text-sky-500' : ''}`}
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18" />
-            </svg>
+          <button onClick={toggleGuides} aria-label="Horizon and grid" className={`${iconButton} ${showGuides ? '!text-sky-500' : ''}`}>
+            <Icon path={I.horizon} className="w-5 h-5" />
           </button>
-          <button
-            onClick={toggleHorizon}
-            aria-label="Horizon line"
-            aria-pressed={showHorizon}
-            className={`${iconButton} ${showHorizon ? '!text-sky-500' : ''}`}
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="2" y1="12" x2="22" y2="12" />
-            </svg>
+          <button onClick={toggleCone} aria-label="Cone of vision" className={`${iconButton} ${showCone ? '!text-sky-500' : ''}`}>
+            <Icon path={I.cone} className="w-5 h-5" />
           </button>
-          <button
-            onClick={toggleCone}
-            aria-label="Cone of vision"
-            aria-pressed={showCone}
-            className={`${iconButton} ${showCone ? '!text-sky-500' : ''}`}
-          >
-            <Icon path={I.cone} className="w-4 h-4" />
-          </button>
-          <button
-            onClick={toggleViewLock}
-            aria-label="Lock view"
-            className={`${iconButton} ${viewLocked ? '!text-amber-400' : ''}`}
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+          <button onClick={toggleViewLock} aria-label="Lock view" className={`${iconButton} ${viewLocked ? '!text-amber-400' : ''}`}>
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="4" y="10.5" width="16" height="10" rx="2" />
               {viewLocked ? <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /> : <path d="M8 10.5V7a4 4 0 0 1 7.5-2" />}
             </svg>
           </button>
-          <button onClick={onModels} aria-label="Models" className={iconButton}>
-            <Icon path={I.cube} className="w-4 h-4" />
+          <button onClick={cycleMaterial} aria-label="Matte models" className={`${iconButton} ${modelMaterial !== 'original' ? '!text-sky-500' : ''}`}>
+            <Icon path={I.matte} className="w-5 h-5" />
           </button>
+          <button onClick={() => importInputRef.current?.click()} aria-label="Import" className={`${iconButton}`}>
+            <Icon path={I.upload} className="w-5 h-5" />
+          </button>
+          <button onClick={deduplicateModels} aria-label="Dedup" className={`${iconButton} ${!hasDuplicates ? 'opacity-30' : ''}`}>
+            <Icon path={I.dedup} className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Primary Dock */}
+        <div className={`pointer-events-auto flex items-center p-1.5 gap-1 rounded-full border backdrop-blur-2xl shadow-2xl ${chrome}`}>
+          <button onClick={onModels} aria-label="Add model" className={iconButton}>
+            <Icon path={I.cube} className="w-5 h-5" />
+          </button>
+          <Scrub
+            skin={{ dark: isDark, touch: true }}
+            icon={I.cone}
+            label="Field of view"
+            reading={`${Math.round(fov)}°`}
+            value={fov}
+            min={25}
+            max={360}
+            step={1}
+            cycle={[35, 60, 90, 160, 210, 240, 330]}
+            onChange={setLens}
+          />
+          <Scrub
+            skin={{ dark: isDark, touch: true }}
+            icon={I.horizon}
+            label="Camera height"
+            reading={`${cameraHeight.toFixed(2)}m`}
+            value={cameraHeight}
+            min={0.2}
+            max={12}
+            step={0.05}
+            cycle={EYE_LEVEL_PRESETS.map((p) => p.height)}
+            onChange={setCameraHeight}
+          />
           <button
-            onClick={() => setShowTools((open) => !open)}
-            aria-label="Extra tools"
-            aria-expanded={showTools}
-            className={`${iconButton} ${showTools ? '!text-sky-500' : ''}`}
+            onClick={() => {
+              const idx = PERSPECTIVE_ORDER.indexOf(perspectiveMode);
+              setPerspectiveMode(PERSPECTIVE_ORDER[(idx + 1) % PERSPECTIVE_ORDER.length]);
+            }}
+            aria-label="Perspective"
+            className={`${iconButton} ${perspectiveMode !== 'linear' ? '!text-sky-500' : ''}`}
           >
-            <Icon path={I.sliders} className="w-4 h-4" />
+            <Icon path={PERSPECTIVE_ICON[perspectiveMode]} className="w-5 h-5" />
           </button>
           <button
             {...grayThemeControl}
-            aria-label="Toggle theme"
-            aria-pressed={sunEnvironment}
+            aria-label="Theme"
             className={`${iconButton} touch-none ${sunEnvironment ? '!text-sky-500' : ''}`}
           >
-            <Icon path={sunEnvironment ? I.sky : isDark ? I.light : I.dark} className="w-4 h-4" />
+            <Icon path={sunEnvironment ? I.sky : isDark ? I.dark : I.light} className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setShowTools((open) => !open)}
+            aria-label="Tools"
+            className={`${iconButton} ${showTools ? 'bg-black/10 dark:bg-white/10' : ''}`}
+          >
+            <Icon path={I.sliders} className="w-5 h-5" />
           </button>
         </div>
       </div>
 
-      {/* Secondary / overflow tools popup */}
-      {showTools && (
-        <div className={`fixed top-1/2 right-14 -translate-y-1/2 z-40 safe-right p-2 pointer-events-auto`}>
-          <div className={`flex flex-col gap-1 p-1.5 rounded-2xl border backdrop-blur-xl ${isDark ? 'bg-black/60 border-white/20' : 'bg-white/80 border-gray-300'}`}>
-            <button
-              onClick={toggleMatte}
-              aria-label="Matte white models"
-              aria-pressed={matteModels}
-              className={`${iconButton} ${matteModels ? '!text-sky-500' : ''}`}
-            >
-              <Icon path={I.matte} className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => importInputRef.current?.click()}
-              disabled={busyId !== null}
-              aria-label="Import models"
-              className={`${iconButton} disabled:opacity-30`}
-            >
-              <Icon path={I.upload} className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onExportScene}
-              disabled={models.length === 0 || busyId !== null}
-              aria-label="Export scene"
-              className={`${iconButton} disabled:opacity-30`}
-            >
-              <Icon path={I.sceneExport} className="w-4 h-4" />
-            </button>
-            <button
-              onClick={exportSelected}
-              disabled={!selectedModel?.object || exporting || busyId !== null}
-              aria-label="Export selected"
-              className={`${iconButton} disabled:opacity-30`}
-            >
-              <Icon path={I.save} className={`w-4 h-4 ${exporting ? 'animate-pulse' : ''}`} />
-            </button>
-            <button
-              onClick={() => sceneInputRef.current?.click()}
-              disabled={busyId !== null}
-              aria-label="Import scene"
-              className={`${iconButton} disabled:opacity-30`}
-            >
-              <Icon path={I.sceneImport} className="w-4 h-4" />
-            </button>
-            <button
-              onClick={deduplicateModels}
-              disabled={!hasDuplicates || busyId !== null}
-              aria-label="Remove duplicates"
-              className={`${iconButton} disabled:opacity-30`}
-            >
-              <Icon path={I.dedup} className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Hidden file inputs */}
       <input
         ref={importInputRef}
         type="file"
@@ -678,7 +537,6 @@ export const WalkOverlay: React.FC<{
           e.target.value = '';
         }}
       />
-
     </>
   );
 };
