@@ -25,6 +25,8 @@ exercise.
 - **Resize a box** — drag one of its faces
 - **Move and turn a mesh** — two fingers on a selected mesh: pinch-twist to
   turn it, slide to move it
+- **Turn** — the arrows in the selection bar: a tap steps 15°, a drag turns
+  continuously
 - **The sun** — three fingers anywhere: across for its bearing, up and down for
   its height
 - **Undo** — ⌘Z / Ctrl-Z, or the arrow in the tools row
@@ -41,8 +43,21 @@ Along the bottom, fading out while you draw and back on the first touch:
   5-point, and a 720° non-euclidean view
 - **Sun / moon** — tap for light and dark, drag through all 256 greys,
   double-tap for the procedural sky
-- **Sliders** — everything else: AR, guides, the 60° cone, view lock, model
-  material, mesh import, de-duplicate, undo, clear, and save the view as a PNG
+- **Sliders** — everything else: AR, guides, snap, the 60° cone, view lock,
+  model material, mesh import, de-duplicate, undo, clear, and save the view as
+  a PNG
+
+### Guides
+
+The guides control steps down through four levels rather than switching on and
+off: the curvilinear construction circles, the ground grid, the eye-level line,
+nothing. The useful state is usually one less than what you have.
+
+### Snap
+
+Dragging lands on free, 5 cm, 25 cm or 1 m, and **the ground grid is ruled at
+whatever is chosen** — so what you snap to is what you can see to line things
+up against. Eye level sets to the centimetre.
 
 Selecting something replaces the dock with what you can do to it: turn, size,
 duplicate, export the mesh at the size you settled on, delete. Readings are in

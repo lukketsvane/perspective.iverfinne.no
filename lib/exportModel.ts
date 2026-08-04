@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import type { SceneModel } from '../types';
+import { authoredMaterial, cloneModel } from './modelMaterials';
 
 /** Turn a display name into a safe, recognisable download name. */
 const exportFileName = (name: string) => {
@@ -22,20 +23,12 @@ const exportFileName = (name: string) => {
 export const exportScaledModel = async (model: SceneModel): Promise<void> => {
   if (!model.object) throw new Error('This model has no exportable preview.');
 
-  const root = model.object.clone(true);
+  // Matte mode and the edge cage are viewing aids: cloneModel hands back the
+  // asset as its file authored it, which is what should leave.
+  const root = cloneModel(model.object);
   root.name = model.name;
   root.scale.multiplyScalar(model.scale);
   root.updateMatrixWorld(true);
-
-  // Matte mode is a viewing aid. Export the model's own materials rather than
-  // baking that temporary white material into the corrected asset.
-  root.traverse((child) => {
-    const mesh = child as THREE.Mesh;
-    if (mesh.isMesh && mesh.userData.originalMaterial) {
-      mesh.material = mesh.userData.originalMaterial as THREE.Material | THREE.Material[];
-      delete mesh.userData.originalMaterial;
-    }
-  });
 
   const output = await new GLTFExporter().parseAsync(root, {
     binary: true,

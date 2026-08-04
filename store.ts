@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import { BoxData, SavedScene, SceneModel, SceneState, SceneView, SunState } from './types';
+import { BoxData, GuideLevel, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState } from './types';
 import { releaseSource, cachedSourceUrls, modelRadius, findFreeSpot, loadModelFromUrl } from './lib/loadModel';
+import { cloneModel } from './lib/modelMaterials';
 import { eraseScene, pruneAssets, readScenes, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
 import { walkInput } from './lib/walkInput';
@@ -69,7 +70,7 @@ const SETTING_KEYS = [
   'theme',
   'backgroundGray',
   'cameraHeight',
-  'showGuides',
+  'guides',
   'showCone',
   'fov',
   'snapStep',
@@ -120,10 +121,20 @@ export const saveSettings = (state: SceneState) => {
 };
 
 const loadedSettings = loadSettings();
+const legacy = (() => {
+  try {
+    return JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') as { showGuides?: boolean };
+  } catch {
+    return {};
+  }
+})();
+
 const remembered = {
   ...loadedSettings,
   // Migrate settings written before the continuous background control existed.
   backgroundGray: loadedSettings.backgroundGray ?? (loadedSettings.theme === 'dark' ? 0 : 243),
+  // ...and before the guides were four levels rather than on and off.
+  guides: loadedSettings.guides ?? ((legacy.showGuides ?? true) ? 3 : 0),
 };
 
 /** How many steps back you can take. */
@@ -157,9 +168,10 @@ export const currentView = (state: SceneState): SceneView => ({
   theme: state.theme,
   sun: { ...state.sun },
   sunEnvironment: state.sunEnvironment,
-  showGuides: state.showGuides,
+  guides: state.guides,
   showCone: state.showCone,
   modelMaterial: state.modelMaterial,
+  snapStep: state.snapStep,
   camera: {
     x: walkInput.position.x,
     z: walkInput.position.z,
@@ -194,9 +206,10 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
     theme: view.theme,
     sun: { ...DEFAULT_SUN, ...view.sun },
     sunEnvironment: view.sunEnvironment,
-    showGuides: view.showGuides,
+    guides: view.guides ?? ((view.showGuides ?? true) ? 3 : 0),
     showCone: view.showCone,
     modelMaterial: view.modelMaterial,
+    snapStep: view.snapStep ?? 0.25,
   };
 };
 
@@ -209,7 +222,7 @@ export const useStore = create<SceneState>((set, get) => ({
   fov: 210, // A broad field that makes the default curvilinear projection useful
   perspectiveMode: 'equidistant',
   cameraHeight: DEFAULT_CAMERA_HEIGHT,
-  showGuides: true,
+  guides: 3,
   showCone: false,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   models: [],
@@ -353,7 +366,13 @@ export const useStore = create<SceneState>((set, get) => ({
 
   setCameraHeight: (height) => set({ cameraHeight: Math.max(0.2, Math.min(12, height)) }),
 
-  toggleGuides: () => set((state) => ({ showGuides: !state.showGuides })),
+  cycleGuides: () => set((state) => ({ guides: (((state.guides + 3) % 4) as GuideLevel) })),
+
+  cycleSnap: () =>
+    set((state) => {
+      const index = SNAP_STEPS.indexOf(state.snapStep as (typeof SNAP_STEPS)[number]);
+      return { snapStep: SNAP_STEPS[(index + 1) % SNAP_STEPS.length] };
+    }),
 
   toggleCone: () => set((state) => ({ showCone: !state.showCone })),
 
@@ -382,7 +401,7 @@ export const useStore = create<SceneState>((set, get) => ({
         const copy = {
           ...original,
           id: uuidv4(),
-          object: original.object.clone(true),
+          object: cloneModel(original.object),
           position: [x, original.position[1], z] as [number, number, number],
         };
         return { undoStack, models: [...state.models, copy], selectedModelId: copy.id };

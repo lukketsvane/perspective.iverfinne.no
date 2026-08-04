@@ -6,7 +6,7 @@ import { Scrub, useGrayThemeControl } from './controls';
 import { MODEL_ACCEPT } from '../lib/loadModel';
 import { captureFileName, captureView } from '../lib/capture';
 import { ACTIVE, chrome, iconButton } from './ui';
-import type { PerspectiveMode } from '../types';
+import { SNAP_STEPS, type GuideLevel, type PerspectiveMode } from '../types';
 
 const PERSPECTIVE_ORDER: PerspectiveMode[] = ['linear', 'equidistant', 'stereographic', 'cylindrical', 'hyperbolic', '5-point', '720-noneuclidean'];
 const PERSPECTIVE_ICON: Record<PerspectiveMode, React.ReactNode> = {
@@ -18,6 +18,16 @@ const PERSPECTIVE_ICON: Record<PerspectiveMode, React.ReactNode> = {
   '5-point': I.curved,
   '720-noneuclidean': I.sevenTwenty,
 };
+
+const GUIDE_ICON: Record<GuideLevel, React.ReactNode> = {
+  0: I.guides0,
+  1: I.guides1,
+  2: I.guides2,
+  3: I.guides3,
+};
+
+/** In the order of SNAP_STEPS: free, 5 cm, 25 cm, 1 m. */
+const SNAP_ICON: React.ReactNode[] = [I.snapFree, I.snapFine, I.snapMedium, I.snapCoarse];
 
 const MAX_PITCH = Math.PI / 2 - 0.05;
 const STICK_RADIUS = 64; // px
@@ -119,8 +129,10 @@ export const WalkOverlay: React.FC<{
   const hasDuplicates = models.length !== new Set(models.map((m) => m.fileUrl)).size;
 
   const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
-  const showGuides = useStore((s) => s.showGuides);
-  const toggleGuides = useStore((s) => s.toggleGuides);
+  const guides = useStore((s) => s.guides);
+  const cycleGuides = useStore((s) => s.cycleGuides);
+  const snapStep = useStore((s) => s.snapStep);
+  const cycleSnap = useStore((s) => s.cycleSnap);
   const showCone = useStore((s) => s.showCone);
   const toggleCone = useStore((s) => s.toggleCone);
 
@@ -439,8 +451,19 @@ export const WalkOverlay: React.FC<{
           <button onClick={toggleArMode} aria-label="AR camera mode" className={`${button} ${arMode ? '!text-green-500' : ''}`}>
              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" /><circle cx="12" cy="12" r="3" /></svg>
           </button>
-          <button onClick={toggleGuides} aria-label="Horizon and grid" className={`${button} ${showGuides ? ACTIVE : ''}`}>
-            <Icon path={I.horizon} className="w-5 h-5" />
+          <button
+            onClick={cycleGuides}
+            aria-label={`Construction guides, level ${guides} of 3`}
+            className={`${button} ${guides ? ACTIVE : ''}`}
+          >
+            <Icon path={GUIDE_ICON[guides]} className="w-5 h-5" />
+          </button>
+          <button
+            onClick={cycleSnap}
+            aria-label={snapStep ? `Snap to ${snapStep} m` : 'Snap off'}
+            className={`${button} ${snapStep ? ACTIVE : ''}`}
+          >
+            <Icon path={SNAP_ICON[SNAP_STEPS.indexOf(snapStep as (typeof SNAP_STEPS)[number])] ?? I.snapFree} className="w-5 h-5" />
           </button>
           <button onClick={toggleCone} aria-label="Cone of vision" className={`${button} ${showCone ? ACTIVE : ''}`}>
             <Icon path={I.cone} className="w-5 h-5" />
@@ -503,7 +526,7 @@ export const WalkOverlay: React.FC<{
             value={cameraHeight}
             min={0.2}
             max={12}
-            step={0.05}
+            step={0.01}
             cycle={EYE_LEVEL_PRESETS.map((p) => p.height)}
             onChange={setCameraHeight}
           />

@@ -4,7 +4,11 @@ import { Icon, I } from './icons';
 import { chrome, iconButton, readout } from './ui';
 import { exportScaledModel } from '../lib/exportModel';
 
-const STEP = Math.PI / 12; // 15 degrees
+/** A tap turns by this much: 15 degrees, so 24 taps is a full circle. */
+const STEP = Math.PI / 12;
+
+/** Radians per pixel of drag on a turn button: a phone's width is about 200°. */
+const TURN_RATE = 0.009;
 
 /** Everything sizes to the centimetre. Below that is not a drawing decision. */
 const CM = 0.01;
@@ -35,6 +39,46 @@ const AXES = [
  * never has to be written down: 1.75 is a person, 0.79 is the chair.
  */
 const metres = (value: number) => value.toFixed(2);
+
+/**
+ * A control that is a tap and a drag at once.
+ *
+ * The turn buttons stepped 15 degrees and nothing else, so anything that wanted
+ * to sit at an angle to the grid had to be tapped towards it and then lived
+ * with. Dragging either button now turns continuously, at about a degree per
+ * pixel; a tap - no movement - still steps.
+ */
+const useTurn = (onTurn: (radians: number) => void, step: number) => {
+  const held = useRef<{ id: number; x: number; moved: boolean } | null>(null);
+
+  return {
+    onPointerDown: (e: React.PointerEvent) => {
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      } catch {
+        /* not capturable; the element still sees the moves */
+      }
+      held.current = { id: e.pointerId, x: e.clientX, moved: false };
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      const grip = held.current;
+      if (grip?.id !== e.pointerId) return;
+      const travel = e.clientX - grip.x;
+      if (!grip.moved && Math.abs(travel) < 3) return;
+      grip.moved = true;
+      grip.x = e.clientX;
+      onTurn(travel * TURN_RATE);
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      const grip = held.current;
+      held.current = null;
+      if (grip?.id === e.pointerId && !grip.moved) onTurn(step);
+    },
+    onPointerCancel: () => {
+      held.current = null;
+    },
+  };
+};
 
 /**
  * A reading you drag.
@@ -122,6 +166,8 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   const activeDim = box ? box.scale[activeAxis] : 0;
   const modelScrub = useScrub(height, setHeight);
   const boxScrub = useScrub(activeDim, (v) => setBoxDim(activeAxis, v));
+  const turnLeft = useTurn(rotateSelection, -STEP);
+  const turnRight = useTurn(rotateSelection, STEP);
 
   if (!box && !model) return null;
 
@@ -157,10 +203,10 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
       <div
         className={`flex items-center pointer-events-auto p-1.5 gap-1 rounded-full border shadow-2xl ${chrome(isDark)}`}
       >
-        <button onClick={() => rotateSelection(-STEP)} className={button} aria-label="Turn left">
+        <button {...turnLeft} className={`${button} touch-none`} aria-label="Turn left">
           <Icon path={I.turnLeft} className="w-5 h-5" />
         </button>
-        <button onClick={() => rotateSelection(STEP)} className={button} aria-label="Turn right">
+        <button {...turnRight} className={`${button} touch-none`} aria-label="Turn right">
           <Icon path={I.turnRight} className="w-5 h-5" />
         </button>
 
