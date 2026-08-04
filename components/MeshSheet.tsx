@@ -81,8 +81,8 @@ export const MeshSheet: React.FC<{
         </button>
       </div>
 
-      {/* Grid of mesh thumbnails */}
-      <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5 max-h-[50vh] overflow-y-auto overscroll-contain scrollbar-none p-0.5">
+      {/* Grid of mesh thumbnails – 3/5 of viewport height, larger tiles */}
+      <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-[36vh] overflow-y-auto overscroll-contain scrollbar-none p-0.5">
         {MESH_LIBRARY.map((mesh) => (
           <MeshTile
             key={mesh.id}
@@ -98,14 +98,14 @@ export const MeshSheet: React.FC<{
 
   if (layout === 'tablet') {
     return (
-      <div className="fixed z-[70] pointer-events-none inset-3 top-auto max-h-[60vh]">
+      <div className="fixed z-[70] pointer-events-none inset-3 top-auto max-h-[42vh]">
         {panel}
       </div>
     );
   }
 
   if (layout === 'phone') {
-    return <div className="fixed left-2 right-2 bottom-safe-panel z-[70] pointer-events-none max-h-[60vh]">{panel}</div>;
+    return <div className="fixed left-2 right-2 bottom-safe-panel z-[70] pointer-events-none max-h-[42vh]">{panel}</div>;
   }
 
   return (
