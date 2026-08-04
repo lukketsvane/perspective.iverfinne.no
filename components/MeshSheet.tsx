@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { MESH_LIBRARY } from '../lib/meshLibrary';
 import type { Layout } from '../lib/useLayout';
-import { Icon, I, POSE_ICON } from './icons';
+import { Icon, POSE_ICON } from './icons';
 import { generateMeshPreview, getMeshPreview } from '../lib/meshPreview';
 
 /**
@@ -68,18 +68,14 @@ export const MeshSheet: React.FC<{
 
   const panel = (
     <div
-      className={`flex flex-col gap-2 p-3 rounded-3xl border backdrop-blur-xl shadow-lg pointer-events-auto ${shell}`}
+      className={`flex flex-col gap-1 p-2 rounded-3xl border backdrop-blur-xl shadow-lg pointer-events-auto ${shell}`}
       onPointerDown={(e) => e.stopPropagation()}
       onPointerMove={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
       onPointerCancel={(e) => e.stopPropagation()}
     >
-      {/* Header with close */}
-      <div className="flex items-center justify-end px-1">
-        <button onClick={onClose} className="flex items-center justify-center w-8 h-8 rounded-full opacity-50 hover:opacity-100 transition-opacity" aria-label="Close">
-          <Icon path={I.close} className="w-5 h-5" />
-        </button>
-      </div>
+      {/* Minimal drag handle – tap to dismiss */}
+      <button onClick={onClose} className="mx-auto w-10 h-1 rounded-full bg-current opacity-20" aria-label="Close" />
 
       {/* Grid of mesh thumbnails – 3/5 of viewport height, larger tiles */}
       <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-[36vh] overflow-y-auto overscroll-contain scrollbar-none p-0.5">
