@@ -28,6 +28,7 @@ export const MeshSheet: React.FC<{
   const matteModels = useStore((s) => s.matteModels);
   const toggleMatte = useStore((s) => s.toggleMatte);
   const models = useStore((s) => s.models);
+  const deduplicateModels = useStore((s) => s.deduplicateModels);
   const selectedModelId = useStore((s) => s.selectedModelId);
   const isDark = theme === 'dark';
   const inputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +49,7 @@ export const MeshSheet: React.FC<{
   };
 
   const onCamera = isDark;
+  const hasDuplicates = models.length !== new Set(models.map((m) => m.fileUrl)).size;
   const shell = onCamera
     ? 'bg-black/80 border-white/12 text-white'
     : 'bg-white/90 border-gray-200 text-gray-900';
@@ -109,6 +111,17 @@ export const MeshSheet: React.FC<{
         className={`${side} opacity-50 disabled:opacity-20`}
       >
         <Icon path={I.save} className={`w-5 h-5 ${exporting ? 'animate-pulse' : ''}`} />
+      </button>
+
+      {/* Remove duplicate mesh instances - only active when duplicates exist. */}
+      <button
+        onClick={deduplicateModels}
+        disabled={!hasDuplicates || busyId !== null}
+        aria-label="Remove duplicate meshes"
+        title="Remove duplicate meshes"
+        className={`${side} opacity-50 disabled:opacity-20`}
+      >
+        <Icon path={I.dedup} className="w-5 h-5" />
       </button>
 
       <button
