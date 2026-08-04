@@ -244,36 +244,6 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
           />
         </div>
 
-        {/* ------------------------------------------------------- the projection */}
-        <div className={`${rowPad} border-b ${divider} space-y-2`}>
-          <div className="flex items-center gap-1.5">
-            {PERSPECTIVE_ORDER.map((mode) => (
-              <Toggle
-                key={mode}
-                skin={skin}
-                on={perspectiveMode === mode}
-                onClick={() => setPerspectiveMode(mode)}
-                path={PERSPECTIVE_ICON[mode]}
-                label={PERSPECTIVE_LABEL[mode]}
-                className="shrink-0"
-              />
-            ))}
-            <Scrub
-            skin={skin}
-              icon={I.cone}
-              label="Field of view"
-              reading={`${Math.round(fov)}°`}
-              value={fov}
-              min={25}
-              max={360}
-              step={1}
-              cycle={[35, 60, 90, 160, 240, 330]}
-              onChange={(v) => setLens(v)}
-            />
-          </div>
-
-        </div>
-
         {/* --------------------------------------------- what a tap drops, and snap */}
         <div className={`${rowPad} border-b ${divider} flex items-center gap-1`}>
           {SPAWN_ORDER.map((kind) => (
