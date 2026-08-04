@@ -83,13 +83,12 @@ const shapeStick = (magnitude: number) => {
  */
 export const WalkOverlay: React.FC<{
   onModels: () => void;
-  onAddCube: () => void;
   onImport?: (files: FileList) => void;
   onExportScene?: () => void;
   onImportScene?: (file: File) => void;
   busyId?: string | null;
   layout: Layout;
-}> = ({ onModels, onAddCube, onImport, onExportScene, onImportScene, busyId, layout }) => {
+}> = ({ onModels, onImport, onExportScene, onImportScene, busyId, layout }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -442,7 +441,7 @@ export const WalkOverlay: React.FC<{
     }
   };
 
-  const iconButton = `flex items-center justify-center w-10 h-10 rounded-full border backdrop-blur-md transition-transform active:scale-95 ${chrome}`;
+  const iconButton = `flex items-center justify-center w-10 h-10 transition-transform active:scale-95 ${isDark ? 'text-white' : 'text-gray-900'}`;
 
   return (
     <>
@@ -493,7 +492,7 @@ export const WalkOverlay: React.FC<{
           <button
             onClick={toggleArMode}
             aria-label="AR camera mode"
-            className={`${iconButton} ${arMode ? '!bg-green-500 !text-white !border-green-400' : ''}`}
+            className={`${iconButton} ${arMode ? '!text-green-500' : ''}`}
           >
             <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
@@ -523,7 +522,7 @@ export const WalkOverlay: React.FC<{
               setPerspectiveMode(PERSPECTIVE_ORDER[(idx + 1) % PERSPECTIVE_ORDER.length]);
             }}
             aria-label={`Perspective: ${perspectiveMode}`}
-            className={`${iconButton} ${perspectiveMode !== 'linear' ? '!bg-sky-500 !text-white !border-sky-400' : ''}`}
+            className={`${iconButton} ${perspectiveMode !== 'linear' ? '!text-sky-500' : ''}`}
           >
             <Icon path={PERSPECTIVE_ICON[perspectiveMode]} className="w-4 h-4" />
           </button>
@@ -547,7 +546,7 @@ export const WalkOverlay: React.FC<{
           <button
             onClick={toggleViewLock}
             aria-label="Lock view"
-            className={`${iconButton} ${viewLocked ? '!bg-amber-400 !text-black !border-amber-300' : ''}`}
+            className={`${iconButton} ${viewLocked ? '!text-amber-400' : ''}`}
           >
             <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="4" y="10.5" width="16" height="10" rx="2" />
@@ -556,10 +555,6 @@ export const WalkOverlay: React.FC<{
           </button>
 
           <button onClick={onModels} aria-label="Add or edit models" className={iconButton}>
-            <Icon path={I.figure} className="w-4 h-4" />
-          </button>
-
-          <button onClick={onAddCube} aria-label="Add cube" className={iconButton}>
             <Icon path={I.cube} className="w-4 h-4" />
           </button>
 
@@ -570,7 +565,7 @@ export const WalkOverlay: React.FC<{
                 onClick={toggleMatte}
                 aria-label="Matte white models"
                 aria-pressed={matteModels}
-                className={`${iconButton} ${matteModels ? '!bg-sky-500 !text-white' : ''}`}
+                className={`${iconButton} ${matteModels ? '!text-sky-500' : ''}`}
               >
                 <Icon path={I.matte} className="w-4 h-4" />
               </button>
@@ -627,7 +622,7 @@ export const WalkOverlay: React.FC<{
             onClick={() => setShowTools((open) => !open)}
             aria-label="Extra tools"
             aria-expanded={showTools}
-            className={`${iconButton} ${showTools ? '!bg-sky-500 !text-white' : ''}`}
+            className={`${iconButton} ${showTools ? '!text-sky-500' : ''}`}
           >
             <Icon path={I.sliders} className="w-4 h-4" />
           </button>
@@ -636,7 +631,7 @@ export const WalkOverlay: React.FC<{
             {...grayThemeControl}
             aria-label="Toggle theme; double tap for sun environment"
             aria-pressed={sunEnvironment}
-            className={`${iconButton} touch-none ${sunEnvironment ? '!bg-sky-500 !text-white' : ''}`}
+            className={`${iconButton} touch-none ${sunEnvironment ? '!text-sky-500' : ''}`}
           >
             <Icon path={sunEnvironment ? I.sky : isDark ? I.light : I.dark} className="w-4 h-4" />
           </button>

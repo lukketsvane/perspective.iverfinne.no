@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { MESH_LIBRARY } from '../lib/meshLibrary';
 import type { Layout } from '../lib/useLayout';
-import { Icon, POSE_ICON } from './icons';
+import { Icon, I } from './icons';
 import { generateMeshPreview, getMeshPreview } from '../lib/meshPreview';
+import { focusPoint } from '../lib/focus';
 
 /**
  * A single library tile that renders a real mesh preview.
@@ -35,7 +36,7 @@ const MeshTile: React.FC<{
         <img src={preview} alt={mesh.name} className={`w-full h-full object-contain ${busyId === mesh.id ? 'animate-pulse' : ''}`} />
       ) : (
         <Icon
-          path={POSE_ICON[mesh.pose]}
+          path={I.cube}
           className={`w-8 h-8 ${busyId === mesh.id ? 'animate-pulse' : ''}`}
         />
       )}
@@ -59,12 +60,17 @@ export const MeshSheet: React.FC<{
   busyId: string | null;
 }> = ({ layout, onClose, onPlace, busyId }) => {
   const theme = useStore((s) => s.theme);
+  const addCube = useStore((s) => s.addCube);
   const isDark = theme === 'dark';
 
   const shell = isDark
     ? 'bg-black/80 border-white/12 text-white'
     : 'bg-white/90 border-gray-200 text-gray-900';
   const tile = isDark ? 'bg-black/40 active:bg-black/70' : 'bg-black/5 active:bg-black/15';
+
+  const handleAddCube = () => {
+    addCube([focusPoint.x, 0, focusPoint.z]);
+  };
 
   const panel = (
     <div
@@ -79,6 +85,18 @@ export const MeshSheet: React.FC<{
 
       {/* Grid of mesh thumbnails – 3/5 of viewport height, larger tiles */}
       <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-[36vh] overflow-y-auto overscroll-contain scrollbar-none p-0.5">
+        {/* Cube as the first default model */}
+        <button
+          onClick={handleAddCube}
+          disabled={busyId !== null}
+          aria-label="Add cube"
+          className={`relative w-full aspect-square rounded-2xl flex items-center justify-center transition-transform active:scale-95 disabled:opacity-40 overflow-hidden ${tile}`}
+        >
+          <Icon path={I.cube} className="w-8 h-8" />
+          <span className="absolute bottom-0.5 right-1 text-[9px] font-bold opacity-40 tabular-nums">
+            cube
+          </span>
+        </button>
         {MESH_LIBRARY.map((mesh) => (
           <MeshTile
             key={mesh.id}
