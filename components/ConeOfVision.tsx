@@ -52,18 +52,6 @@ export const ConeOfVision: React.FC<{ fov: number; color: string }> = ({ fov, co
         strokeDasharray="6 6"
         opacity={0.5}
       />
-      <text
-        x={size.width / 2}
-        // At the default 60° the circle is inscribed in the frame height, so
-        // the label would sit just off the top edge. Keep it inside.
-        y={Math.max(14, size.height / 2 - radius - 8)}
-        textAnchor="middle"
-        fill={color}
-        opacity={0.6}
-        style={{ font: 'bold 9px ui-sans-serif, system-ui', letterSpacing: '0.2em' }}
-      >
-        60° CONE
-      </text>
     </svg>
   );
 };

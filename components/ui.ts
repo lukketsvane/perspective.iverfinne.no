@@ -27,13 +27,5 @@ export const readout = (dark: boolean) =>
     dark ? 'bg-black/50 border-white/20 hover:bg-white/10' : 'bg-white/80 border-gray-300 hover:bg-black/5'
   }`;
 
-/** A text field on the glass. */
-export const field = (dark: boolean) =>
-  `h-11 px-4 rounded-full border text-sm outline-none min-w-0 ${
-    dark
-      ? 'bg-black/50 border-white/20 text-white placeholder:text-white/40 focus:border-white/40'
-      : 'bg-white/80 border-gray-300 text-black placeholder:text-black/30 focus:border-black/40'
-  }`;
-
 /** The one accent colour: a control that is currently doing something. */
 export const ACTIVE = '!text-sky-500';

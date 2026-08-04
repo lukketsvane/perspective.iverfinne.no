@@ -22,7 +22,19 @@ const SCRUB_RATE = 1.006;
 const clampTo = (metres: number, min: number, max: number) =>
   Math.min(max, Math.max(min, Math.round(metres / CM) * CM));
 
-const AXIS_LABELS: ['W', 'H', 'D'] = ['W', 'H', 'D'];
+const AXES = [
+  { icon: I.axisWidth, label: 'Width' },
+  { icon: I.axisHeight, label: 'Height' },
+  { icon: I.axisDepth, label: 'Depth' },
+] as const;
+
+/**
+ * Metres, to the centimetre.
+ *
+ * The scene is metric throughout and the grid is ruled in metres, so the unit
+ * never has to be written down: 1.75 is a person, 0.79 is the chair.
+ */
+const metres = (value: number) => value.toFixed(2);
 
 /**
  * A reading you drag.
@@ -160,28 +172,28 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
             aria-label="Height"
           >
             <span className="text-[13px] font-bold tabular-nums tracking-wide opacity-80">
-              {Math.round(height * 100)} cm
+              {metres(height)}
             </span>
           </button>
         ) : (
           <div className="flex items-center">
             <button
               onClick={() => setActiveAxis(((activeAxis + 1) % 3) as 0 | 1 | 2)}
-              className={`w-8 h-11 flex items-center justify-center text-[10px] font-black opacity-60 rounded-full transition-colors ${
+              className={`w-9 h-11 flex items-center justify-center opacity-60 rounded-full transition-colors ${
                 isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'
               }`}
-              aria-label="Axis"
+              aria-label={AXES[activeAxis].label}
             >
-              {AXIS_LABELS[activeAxis]}
+              <Icon path={AXES[activeAxis].icon} className="w-[18px] h-[18px]" />
             </button>
             <button
               {...boxScrub}
               onDoubleClick={() => setBoxDim(activeAxis, 1)}
               className={readout(isDark)}
-              aria-label={AXIS_LABELS[activeAxis]}
+              aria-label={AXES[activeAxis].label}
             >
               <span className="text-[13px] font-bold tabular-nums tracking-wide opacity-80">
-                {Math.round(activeDim * 100)} cm
+                {metres(activeDim)}
               </span>
             </button>
           </div>

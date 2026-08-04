@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Scene } from './components/Scene';
 import { WalkOverlay } from './components/WalkOverlay';
 import { ConeOfVision } from './components/ConeOfVision';
@@ -6,10 +6,12 @@ import { VanishingPoints } from './components/VanishingPoints';
 import { SelectionBar } from './components/SelectionBar';
 import { MeshSheet } from './components/MeshSheet';
 import { SceneSheet } from './components/SceneSheet';
-import { useStore, saveSettings } from './store';
+import { useStore, saveSettings, currentView } from './store';
 import { loadModelFile, loadModelFromUrl, findFreeSpot, modelRadius } from './lib/loadModel';
-import { MESH_LIBRARY } from './lib/meshLibrary';
+import { MESH_LIBRARY, randomMesh } from './lib/meshLibrary';
 import { focusPoint } from './lib/focus';
+import { walkInput } from './lib/walkInput';
+import { fieldOf } from './lib/projection';
 import { holdPreviews, resumePreviews } from './lib/meshPreview';
 import { downloadSceneFile, readSceneFile, toSceneFile } from './lib/sceneJson';
 import type { SceneModel } from './types';
@@ -31,6 +33,65 @@ export default function App() {
     loadSceneHistory();
   }, [loadSceneHistory]);
   useEffect(() => useStore.subscribe((state) => saveSettings(state)), []);
+
+  /**
+   * What is standing there when the tool opens.
+   *
+   * One of the four, picked at random, on the origin. An empty grid is a
+   * harder thing to start drawing than a chair whose real size you know, and a
+   * different one each time is a different exercise. Guarded because a strict
+   * mode double-mount would otherwise stand up two of them.
+   */
+  const opened = useRef(false);
+  useEffect(() => {
+    if (opened.current) return;
+    opened.current = true;
+    const entry = randomMesh();
+    loadModelFromUrl(entry.url, entry.name, [0, 0])
+      .then(({ model }) => {
+        // Anything the viewer did in the meantime wins: a scene opened from the
+        // library, or a mesh placed by hand, is not something to land on top of.
+        const { models, boxes } = useStore.getState();
+        if (models.length || boxes.length) return;
+        addModel({ ...model, position: [0, 0, 0] });
+        useStore.setState({ selectedModelId: null });
+        frame(model.size);
+      })
+      .catch((error) => console.error('Could not open with a model:', error));
+  }, [addModel]);
+
+  /** How much of the frame's height the opening object should fill. */
+  const OPENING_SIZE = 0.3;
+
+  /**
+   * Stand where the whole of it can be seen, and look at its middle.
+   *
+   * The four are not one size - a stacking chair is knee high, the car is six
+   * metres long - so a distance in metres frames one of them and loses the
+   * other. What matters is the angle it subtends against the angle the frame
+   * covers, and in this tool that second figure moves too: a 210 degree
+   * curvilinear field puts nine times as much world on the glass as a 60 degree
+   * lens does. Distance is worked back from the two of them, then held inside
+   * the range a person could actually stand at.
+   */
+  const frame = (size: [number, number, number]) => {
+    const { cameraHeight, fov, perspectiveMode } = useStore.getState();
+    const vertical =
+      perspectiveMode === 'linear'
+        ? (fov * Math.PI) / 180
+        : fieldOf(fov, window.innerWidth, window.innerHeight).halfPitch * 2;
+
+    const longest = Math.max(size[0], size[1], size[2]);
+    const wanted = Math.min(Math.PI * 0.8, vertical * OPENING_SIZE);
+    const distance = Math.min(14, Math.max(1.2, longest / 2 / Math.tan(wanted / 2)));
+
+    walkInput.position.set(0, 0, distance);
+    walkInput.yaw = 0;
+    walkInput.pitch = Math.atan2(size[1] / 2 - cameraHeight, distance);
+    walkInput.lookYaw = 0;
+    walkInput.lookPitch = 0;
+    walkInput.seeded = true;
+  };
 
   /** Stand a new mesh clear of everything already placed, near the gaze point. */
   const place = (model: Omit<SceneModel, 'id'>) => {
@@ -81,7 +142,7 @@ export default function App() {
 
   const exportScene = () => {
     const state = useStore.getState();
-    downloadSceneFile(toSceneFile(state.boxes, state.models, undefined, state.currentSceneName ?? undefined));
+    downloadSceneFile(toSceneFile(state.boxes, state.models, currentView(state)));
   };
 
   const importScene = async (file: File) => {
@@ -95,7 +156,6 @@ export default function App() {
       setSheet(null);
     } catch (error) {
       console.error('Scene import failed:', error);
-      alert(`Could not read that scene: ${error instanceof Error ? error.message : 'unknown error'}`);
     } finally {
       setBusy(null);
     }

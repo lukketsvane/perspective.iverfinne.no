@@ -120,6 +120,7 @@ export interface SceneView {
 /** A composition kept in the browser, thumbnail and all. */
 export interface SavedScene {
   id: string;
+  /** Never drawn - it names the exported file and the accessible control. */
   name: string;
   createdAt: number;
   updatedAt: number;
@@ -163,9 +164,8 @@ export interface SceneState {
   theme: ThemeMode;
   /** Neutral environment/background value, from black (0) to white (255). */
   backgroundGray: number;
-  /** The saved scene currently open, so saving again overwrites it. */
+  /** The saved scene last opened or written, so the library can mark it. */
   currentSceneId: string | null;
-  currentSceneName: string | null;
   sceneHistory: SavedScene[];
   /** Place the toolbar's canonical one-metre reference cube. */
   addCube: (position: [number, number, number]) => void;
@@ -200,7 +200,7 @@ export interface SceneState {
   toggleTheme: () => void;
   setBackgroundGray: (value: number) => void;
   /** Write the whole composition to the browser, thumbnail and viewpoint included. */
-  saveCurrentScene: (name: string) => Promise<void>;
+  saveCurrentScene: () => Promise<void>;
   /** Restore a saved composition, re-fetching every mesh it names. */
   loadScene: (id: string) => Promise<string[]>;
   deleteScene: (id: string) => Promise<void>;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useStore } from '../store';
 import { chrome } from './ui';
 
@@ -15,6 +15,16 @@ export const Sheet: React.FC<{
   children: React.ReactNode;
 }> = ({ onClose, children }) => {
   const dark = useStore((s) => s.theme) === 'dark';
+
+  // On a desktop the way out of a panel is escape; there is no back gesture and
+  // no visible close control to put a word on.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   return (
     <div

@@ -32,6 +32,15 @@ export const walkInput = {
   deviceQuaternion: new THREE.Quaternion(),
   /** Where the walker is standing. Y comes from the eye-level setting. */
   position: new THREE.Vector3(0, 0, 6),
+  /**
+   * True once somebody has decided where the walker stands.
+   *
+   * Two things want to: the camera the canvas was created with, and the opening
+   * scene, which cannot say where to stand until it knows how big the object it
+   * is framing turns out to be. The scene arrives second and used to be undone
+   * by a re-seed from the camera. Now the first to decide owns it.
+   */
+  seeded: false,
   /** Metres per second. A comfortable indoor walking pace. */
   speed: 1.4,
 };

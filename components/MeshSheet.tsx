@@ -103,7 +103,7 @@ export const MeshSheet: React.FC<{
     <Sheet onClose={onClose}>
       <div
         data-tile-scroll
-        className="grid grid-cols-4 gap-2 max-h-[50vh] overflow-y-auto overscroll-contain scrollbar-none px-4 pb-4"
+        className="grid grid-cols-3 gap-2 max-h-[50vh] overflow-y-auto overscroll-contain scrollbar-none px-4 pb-4"
       >
         <button
           onClick={handleAddCube}

@@ -1,7 +1,7 @@
 {
   "name": "Perspective",
   "short_name": "Perspective",
-  "description": "A perspective practice reference: 1 m cubes at human eye level, walkable at 1:1 and viewable in AR.",
+  "description": "A perspective reference: real objects at human eye level, walkable at 1:1 and viewable in AR.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "any",
