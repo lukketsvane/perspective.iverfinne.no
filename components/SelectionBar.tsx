@@ -126,7 +126,7 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   if (!box && !model) return null;
 
   const isDark = theme === 'dark';
-  const button = `${iconButton(isDark)} border border-transparent backdrop-blur-md`;
+  const button = `${iconButton(isDark)} border border-transparent`;
 
   const remove = () => {
     if (model) removeModel(model.id);
@@ -155,7 +155,7 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
       }`}
     >
       <div
-        className={`flex items-center pointer-events-auto p-1.5 gap-1 rounded-full border backdrop-blur-2xl shadow-2xl ${chrome(isDark)}`}
+        className={`flex items-center pointer-events-auto p-1.5 gap-1 rounded-full border shadow-2xl ${chrome(isDark)}`}
       >
         <button onClick={() => rotateSelection(-STEP)} className={button} aria-label="Turn left">
           <Icon path={I.turnLeft} className="w-5 h-5" />

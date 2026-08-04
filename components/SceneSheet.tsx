@@ -58,7 +58,7 @@ const SceneCard: React.FC<{
         className="absolute top-1.5 right-1.5"
       >
         <span
-          className={`w-8 h-8 flex items-center justify-center rounded-full backdrop-blur-md transition-colors ${
+          className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
             armed ? 'bg-red-500 text-white' : 'bg-black/40 text-white/90'
           }`}
         >

@@ -435,7 +435,7 @@ export const WalkOverlay: React.FC<{
 
         {/* Secondary tools. Wrapping, because ten 44 px targets do not fit
             across a phone in one line and a scroller here would be a trap. */}
-        <div className={`flex flex-wrap justify-center max-w-[22rem] gap-1 p-1.5 rounded-[1.75rem] border backdrop-blur-xl shadow-2xl transition-all duration-300 transform origin-bottom ${showTools && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}>
+        <div className={`flex flex-wrap justify-center max-w-[22rem] gap-1 p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showTools && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}>
           <button onClick={toggleArMode} aria-label="AR camera mode" className={`${button} ${arMode ? '!text-green-500' : ''}`}>
              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" /><circle cx="12" cy="12" r="3" /></svg>
           </button>
@@ -476,7 +476,7 @@ export const WalkOverlay: React.FC<{
         </div>
 
         {/* Primary Dock */}
-        <div className={`flex items-center p-1.5 gap-1 rounded-full border backdrop-blur-2xl shadow-2xl ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}>
+        <div className={`flex items-center p-1.5 gap-1 rounded-full border shadow-2xl ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}>
           <button onClick={onModels} aria-label="Add model" className={button}>
             <Icon path={I.cube} className="w-5 h-5" />
           </button>
