@@ -20,8 +20,10 @@ export const MeshSheet: React.FC<{
   onClose: () => void;
   onPlace: (id: string) => void;
   onImport: (files: FileList) => void;
+  onExportScene: () => void;
+  onImportScene: (file: File) => void;
   busyId: string | null;
-}> = ({ layout, onClose, onPlace, onImport, busyId }) => {
+}> = ({ layout, onClose, onPlace, onImport, onExportScene, onImportScene, busyId }) => {
   const theme = useStore((s) => s.theme);
   const matteModels = useStore((s) => s.matteModels);
   const toggleMatte = useStore((s) => s.toggleMatte);
@@ -29,6 +31,7 @@ export const MeshSheet: React.FC<{
   const selectedModelId = useStore((s) => s.selectedModelId);
   const isDark = theme === 'dark';
   const inputRef = useRef<HTMLInputElement>(null);
+  const sceneInputRef = useRef<HTMLInputElement>(null);
   const [exporting, setExporting] = useState(false);
   const selectedModel = models.find((model) => model.id === selectedModelId);
 
@@ -122,6 +125,27 @@ export const MeshSheet: React.FC<{
         <Icon path={I.close} className="w-5 h-5" />
       </button>
 
+      {/* Scene JSON export/import */}
+      <button
+        onClick={onExportScene}
+        disabled={models.length === 0 || busyId !== null}
+        aria-label="Export scene as JSON"
+        title="Export scene as JSON"
+        className={`${side} opacity-50 disabled:opacity-20`}
+      >
+        <Icon path={I.sceneExport} className="w-5 h-5" />
+      </button>
+
+      <button
+        onClick={() => sceneInputRef.current?.click()}
+        disabled={busyId !== null}
+        aria-label="Import scene from JSON"
+        title="Import scene from JSON"
+        className={`${side} opacity-50 disabled:opacity-25`}
+      >
+        <Icon path={I.sceneImport} className="w-5 h-5" />
+      </button>
+
       <input
         ref={inputRef}
         type="file"
@@ -130,6 +154,18 @@ export const MeshSheet: React.FC<{
         className="hidden"
         onChange={(e) => {
           if (e.target.files?.length) onImport(e.target.files);
+          e.target.value = '';
+        }}
+      />
+
+      <input
+        ref={sceneInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onImportScene(file);
           e.target.value = '';
         }}
       />
