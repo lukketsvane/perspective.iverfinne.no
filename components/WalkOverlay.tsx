@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
-import { walkInput, enableDeviceOrientation, recentre } from '../lib/walkInput';
+import { walkInput, enableDeviceOrientation } from '../lib/walkInput';
 import { Icon, I } from './icons';
 import { Scrub, useGrayThemeControl } from './controls';
-import { PracticePanel } from './PracticePanel';
 import { MODEL_ACCEPT } from '../lib/loadModel';
 import { exportScaledModel } from '../lib/exportModel';
 import type { Layout } from '../lib/useLayout';
@@ -392,14 +391,40 @@ export const WalkOverlay: React.FC<{
     return () => { if (railTimer.current) clearTimeout(railTimer.current); };
   }, [showRail]);
 
-  // AR mode: enable device orientation and use phone as real camera
+  // AR mode: enable device orientation and use phone as real camera.
+  // Does NOT reset position — you stay where you are, as if you had just
+  // lifted the phone to look through it at the scene around you.
   const toggleArMode = useCallback(async () => {
     if (arMode) {
       setArMode(false);
     } else {
+      // Try WebXR immersive-ar first (Apple Vision, Chrome on Android, etc.)
+      if (navigator.xr) {
+        try {
+          const supported = await navigator.xr.isSessionSupported('immersive-ar');
+          if (supported) {
+            const session = await navigator.xr.requestSession('immersive-ar', {
+              requiredFeatures: ['local-floor'],
+              optionalFeatures: ['hit-test', 'dom-overlay'],
+            });
+            // Store session so Scene can use it via gl.xr
+            (window as any).__xrSession = session;
+            setArMode(true);
+            session.addEventListener('end', () => {
+              (window as any).__xrSession = null;
+              setArMode(false);
+            });
+            return;
+          }
+        } catch { /* fall through to device orientation */ }
+      }
+
+      // Fallback: device orientation (iOS Safari, older devices)
       const granted = await enableDeviceOrientation();
       if (granted) {
-        recentre();
+        // Re-zero heading against the sensor without moving position
+        walkInput.lookYaw = 0;
+        walkInput.lookPitch = 0;
         setArMode(true);
       }
     }
@@ -642,7 +667,6 @@ export const WalkOverlay: React.FC<{
           onPointerUp={(event) => event.stopPropagation()}
           onPointerCancel={(event) => event.stopPropagation()}
         >
-          <PracticePanel layout={layout === 'phone' ? 'tablet' : layout} onClose={() => setShowTools(false)} />
         </div>
       )}
 
