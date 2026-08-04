@@ -382,7 +382,7 @@ export const WalkOverlay: React.FC<{
   const showRail = useCallback(() => {
     setRailVisible(true);
     if (railTimer.current) clearTimeout(railTimer.current);
-    railTimer.current = setTimeout(() => setRailVisible(false), 4000) as unknown as number;
+    railTimer.current = setTimeout(() => setRailVisible(false), 6000) as unknown as number;
   }, []);
 
   useEffect(() => {
@@ -486,7 +486,7 @@ export const WalkOverlay: React.FC<{
       )}
 
       {/* Right-hand rail – 3×3 grid on mobile, no overlap */}
-      <div className={`fixed bottom-0 right-0 z-40 safe-right safe-y p-2 pointer-events-none transition-opacity duration-300 ${railVisible ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`fixed bottom-0 right-0 z-40 safe-right safe-y p-2 pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${railVisible ? 'opacity-100' : 'opacity-0'}`}>
         <div className="grid grid-cols-3 gap-1.5 pointer-events-auto">
           {/* Row 1 */}
           <button
