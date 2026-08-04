@@ -120,13 +120,13 @@ const renderPreview = async (url: string): Promise<string> => {
   const gltf = await new GLTFLoader().loadAsync(url);
   const model = gltf.scene;
 
-  // Sit the model in the middle of the frame and back the camera off far
-  // enough to hold its longest dimension.
+  // Sit the model in the middle of the frame, and back off by its bounding
+  // sphere rather than its longest edge: a six metre car seen three-quarters on
+  // is a low, wide silhouette, and framing it by its length leaves it a smudge
+  // in a tile that a chair fills.
   const box = new THREE.Box3().setFromObject(model);
-  const centre = box.getCenter(new THREE.Vector3());
-  const size = box.getSize(new THREE.Vector3());
-  const longest = Math.max(size.x, size.y, size.z);
-  model.position.sub(centre);
+  const sphere = box.getBoundingSphere(new THREE.Sphere());
+  model.position.sub(sphere.center);
 
   const scene = new THREE.Scene();
   scene.add(model);
@@ -141,9 +141,11 @@ const renderPreview = async (url: string): Promise<string> => {
   fill.position.set(-2, 1, -1);
   scene.add(fill);
 
-  const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
-  const distance = longest / (2 * Math.tan((35 * Math.PI) / 360));
-  camera.position.set(0, longest * 0.15, distance * 1.6);
+  const FIELD = 35;
+  const camera = new THREE.PerspectiveCamera(FIELD, 1, 0.01, 1000);
+  // A little over the exact fit, so nothing grazes the edge of the tile.
+  const distance = (sphere.radius / Math.sin((FIELD * Math.PI) / 360)) * 1.08;
+  camera.position.set(distance * 0.42, distance * 0.34, distance * 0.84);
   camera.lookAt(0, 0, 0);
 
   const gl = sharedRenderer();

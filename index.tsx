@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { useStore } from './store';
+import { walkInput } from './lib/walkInput';
 import './index.css';
 
 const rootElement = document.getElementById('root');
@@ -14,7 +15,9 @@ if (!rootElement) {
 // from the console, and not from a browser driving the page. Stripped from the
 // production bundle.
 if (import.meta.env.DEV) {
-  (window as unknown as { __store: typeof useStore }).__store = useStore;
+  const debug = window as unknown as { __store: typeof useStore; __walk: typeof walkInput };
+  debug.__store = useStore;
+  debug.__walk = walkInput;
 }
 
 const root = ReactDOM.createRoot(rootElement);

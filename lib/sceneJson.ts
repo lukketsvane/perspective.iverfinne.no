@@ -54,13 +54,13 @@ export const toSceneFile = (
   view,
 });
 
-/** Turn a display name into a safe, recognisable download name. */
+/** Named by the day it left, since scenes carry no name of their own. */
 const fileNameFor = (name: string | undefined) => {
-  const stem = (name ?? 'scene')
+  const stem = (name ?? `perspective-${new Date().toISOString().slice(0, 10)}`)
     .trim()
     .replace(/[^a-z0-9_-]+/gi, '-')
     .replace(/^-+|-+$/g, '');
-  return `${stem || 'scene'}.perspective.json`;
+  return `${stem || 'scene'}.json`;
 };
 
 export const downloadSceneFile = (file: SceneFile) => {

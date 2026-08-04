@@ -34,9 +34,10 @@ export const WalkControls = () => {
   );
 
   /**
-   * Initialise walking from the camera position and heading.
+   * Stand where the camera was created, unless something already chose a spot.
    */
   useEffect(() => {
+    if (walkInput.seeded) return;
     const direction = new THREE.Vector3();
     camera.getWorldDirection(direction);
     walkInput.position.set(camera.position.x, 0, camera.position.z);
@@ -46,7 +47,7 @@ export const WalkControls = () => {
     walkInput.lookPitch = 0;
     walkInput.forward = 0;
     walkInput.strafe = 0;
-
+    walkInput.seeded = true;
   }, [camera]);
 
   useFrame((_, rawDelta) => {

@@ -499,7 +499,7 @@ export const WalkOverlay: React.FC<{
             skin={{ dark: isDark, touch: true }}
             icon={I.horizon}
             label="Camera height"
-            reading={`${cameraHeight.toFixed(2)}m`}
+            reading={cameraHeight.toFixed(2)}
             value={cameraHeight}
             min={0.2}
             max={12}

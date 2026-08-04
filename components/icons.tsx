@@ -35,6 +35,15 @@ export const I = {
   /** A one-metre reference cube: the unit everything else is read against. */
   cube: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" /></>),
 
+  /**
+   * Which way a box is being sized: a box with one of its three dimensions
+   * called out. W, H and D were letters on a screen that has no other writing
+   * on it - and they are the wrong letters in most languages anyway.
+   */
+  axisWidth: (<><path d="M5 8.5h14v9H5z" strokeOpacity="0.35" /><path d="M4 21h16" /><path d="M6.4 19.2 4 21l2.4 1.8M17.6 19.2 20 21l-2.4 1.8" /></>),
+  axisHeight: (<><path d="M7.5 5h9v14h-9z" strokeOpacity="0.35" /><path d="M3 4v16" /><path d="M1.2 6.4 3 4l1.8 2.4M1.2 17.6 3 20l1.8-2.4" /></>),
+  axisDepth: (<><path d="M8 8h11v11H8z" strokeOpacity="0.35" /><path d="M5.5 16.5 16.5 5.5" /><path d="M5.5 12.6v3.9h3.9M16.5 9.4V5.5h-3.9" /></>),
+
   /** Horizon line and cone of vision. */
   horizon: (<><line x1="2" y1="12" x2="22" y2="12" /><path d="M4 19l7-5M20 19l-7-5" strokeOpacity="0.45" /></>),
   cone: (<><path d="M12 3L4 20h16z" /><path d="M6.5 14h11" strokeOpacity="0.45" /></>),

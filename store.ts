@@ -50,19 +50,6 @@ export const EYE_LEVEL_PRESETS: { label: string; note: string; height: number }[
   { label: '2.5', note: 'Raised - the wide establishing view', height: 2.5 },
 ];
 
-/** A 1 m cube resting on the ground. */
-const cube = (x: number, z: number): Omit<BoxData, 'id'> => ({
-  position: [x, UNIT / 2, z],
-  scale: [UNIT, UNIT, UNIT],
-  rotation: [0, 0, 0],
-});
-
-/**
- * The default scene is deliberately empty except for its single 1 m reference
- * cube. More geometry is added by the person composing the scene.
- */
-const generateInitialScene = (): BoxData[] => [{ id: uuidv4(), ...cube(0, 0) }];
-
 /** Snap a spawned cube to the centre of a 1 m grid cell, so stacks line up. */
 const snapToCell = (v: number) => Math.floor(v) + 0.5;
 
@@ -162,7 +149,7 @@ const snapshot = (state: Pick<SceneState, 'boxes' | 'models' | 'undoStack'>) =>
   [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH);
 
 /** Everything about how the scene is being looked at, ready to be written down. */
-const currentView = (state: SceneState): SceneView => ({
+export const currentView = (state: SceneState): SceneView => ({
   cameraHeight: state.cameraHeight,
   fov: state.fov,
   perspectiveMode: state.perspectiveMode,
@@ -197,6 +184,7 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
   walkInput.lookPitch = 0;
   walkInput.forward = 0;
   walkInput.strafe = 0;
+  walkInput.seeded = true;
 
   return {
     cameraHeight: view.cameraHeight,
@@ -213,7 +201,9 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
 };
 
 export const useStore = create<SceneState>((set, get) => ({
-  boxes: generateInitialScene(),
+  // Empty ground. One of the library objects is stood on it as the app opens -
+  // which is asynchronous, so it cannot happen here.
+  boxes: [],
   selectedId: null,
   isDragging: false,
   fov: 210, // A broad field that makes the default curvilinear projection useful
@@ -231,7 +221,6 @@ export const useStore = create<SceneState>((set, get) => ({
   theme: 'light',
   backgroundGray: 243,
   currentSceneId: null,
-  currentSceneName: null,
   sceneHistory: [],
 
   // Anything remembered from last time overrides the defaults above. Only the
@@ -274,22 +263,21 @@ export const useStore = create<SceneState>((set, get) => ({
     })),
 
   /**
-   * Back to the opening cube - the whole scene, figures included.
+   * Empty ground.
    *
-   * Leaving models behind meant "reset" put you in a clean set of boxes with
-   * yesterday's figures still standing in them. Undoable, like every other
+   * Leaving models behind meant "clear" put you on a clean grid with
+   * yesterday's furniture still standing on it. Undoable, like every other
    * destructive action.
    */
   resetScene: () =>
     set((state) => {
       const next = {
         undoStack: snapshot(state),
-        boxes: generateInitialScene(),
+        boxes: [],
         models: [],
         selectedId: null,
         selectedModelId: null,
         currentSceneId: null,
-        currentSceneName: null,
       };
       releaseUnreferenced(next);
       return next;
@@ -492,22 +480,20 @@ export const useStore = create<SceneState>((set, get) => ({
   /**
    * Write the composition down.
    *
-   * Saving under a name already in use overwrites that scene rather than
-   * leaving two of them: the everyday shape of this is "save, keep working,
-   * save again".
+   * Every save is a new one. Naming and overwriting both want words on screen
+   * and a decision before the thing is safe; a roll of views wants neither -
+   * the thumbnail says which is which, and nothing is ever lost by saving.
    */
-  saveCurrentScene: async (name) => {
+  saveCurrentScene: async () => {
     const state = get();
-    const trimmed = name.trim() || 'Untitled';
-    const existing =
-      state.sceneHistory.find((s) => s.id === state.currentSceneId && s.name === trimmed) ??
-      state.sceneHistory.find((s) => s.name.toLowerCase() === trimmed.toLowerCase());
+    const saved = Date.now();
 
     const scene: SavedScene = {
-      id: existing?.id ?? uuidv4(),
-      name: trimmed,
-      createdAt: existing?.createdAt ?? Date.now(),
-      updatedAt: Date.now(),
+      id: uuidv4(),
+      // Never drawn: it names the exported file and the accessible control.
+      name: new Date(saved).toISOString().slice(0, 16).replace('T', ' '),
+      createdAt: saved,
+      updatedAt: saved,
       boxes: state.boxes.map((box) => ({ ...box })),
       models: state.models.map((model) => ({
         name: model.name,
@@ -520,14 +506,13 @@ export const useStore = create<SceneState>((set, get) => ({
         size: [...model.size] as [number, number, number],
       })),
       view: currentView(state),
-      thumbnail: captureThumbnail() ?? existing?.thumbnail,
+      thumbnail: captureThumbnail(),
     };
 
     await writeScene(scene);
     set((current) => ({
-      sceneHistory: [scene, ...current.sceneHistory.filter((s) => s.id !== scene.id)],
+      sceneHistory: [scene, ...current.sceneHistory],
       currentSceneId: scene.id,
-      currentSceneName: scene.name,
     }));
   },
 
@@ -575,7 +560,6 @@ export const useStore = create<SceneState>((set, get) => ({
         selectedId: null,
         selectedModelId: null,
         currentSceneId: scene.id,
-        currentSceneName: scene.name,
         ...restoreView(scene.view),
       };
       releaseUnreferenced(next);
@@ -590,7 +574,6 @@ export const useStore = create<SceneState>((set, get) => ({
     set((state) => ({
       sceneHistory: state.sceneHistory.filter((s) => s.id !== id),
       currentSceneId: state.currentSceneId === id ? null : state.currentSceneId,
-      currentSceneName: state.currentSceneId === id ? null : state.currentSceneName,
     }));
     // An imported file is only worth keeping while something still stands on
     // it: a saved scene, the scene on screen, or a step back through the undo

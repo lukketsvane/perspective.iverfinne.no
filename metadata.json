@@ -1,6 +1,6 @@
 {
   "name": "KJG Perspective Ether",
-  "description": "A perspective practice reference in the Kim Jung Gi tradition: 1 m cubes on a metric grid, seen from a human eye level with the horizon always in view.",
+  "description": "A perspective reference in the Kim Jung Gi tradition: real objects on a metric grid, seen from a human eye level with the horizon always in view.",
   "requestFramePermissions": [
     "camera"
   ]
