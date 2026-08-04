@@ -43,7 +43,7 @@ export const DEFAULT_SUN: SunState = {
   // and with no fill light there is nothing to lift them back out.
   azimuth: 55,
   elevation: 48,
-  intensity: 8,
+  intensity: 3.5,
   temperature: 5600,
   shadows: true,
 };

@@ -174,7 +174,7 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
             skin={skin}
             icon={I.light}
             label="Sun colour temperature"
-            reading={`${Math.round(sun.temperature)}K`}
+            reading={`${(sun.temperature / 1000).toFixed(1)}k`}
             value={sun.temperature}
             min={1800}
             max={12000}
