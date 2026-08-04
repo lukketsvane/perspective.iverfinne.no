@@ -48,6 +48,24 @@ export const I = {
   horizon: (<><line x1="2" y1="12" x2="22" y2="12" /><path d="M4 19l7-5M20 19l-7-5" strokeOpacity="0.45" /></>),
   cone: (<><path d="M12 3L4 20h16z" /><path d="M6.5 14h11" strokeOpacity="0.45" /></>),
 
+  /**
+   * How much construction is drawn, as the drawing itself: bare frame, then the
+   * eye-level line, then the ground running to it, then the curved sheet a
+   * fisheye is ruled on.
+   */
+  guides0: (<><path d="M3 12h3M10.5 12h3M18 12h3" strokeOpacity="0.4" /></>),
+  guides1: (<><line x1="2" y1="12" x2="22" y2="12" /></>),
+  guides2: (<><line x1="2" y1="12" x2="22" y2="12" /><path d="M4 21l6.5-9M20 21l-6.5-9M2.5 16.5h19" strokeOpacity="0.5" /></>),
+  guides3: (<><line x1="2" y1="12" x2="22" y2="12" /><path d="M4 21l6.5-9M20 21l-6.5-9M2.5 16.5h19" strokeOpacity="0.5" /><path d="M3.2 7.5c4-2.4 13.6-2.4 17.6 0M6.5 3.4c2-.8 9-.8 11 0" strokeOpacity="0.75" /></>),
+
+  /**
+   * What dragging lands on: free, then three rulers of increasing coarseness.
+   */
+  snapFree: (<><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none" /><path d="M12 3.5v2.6M12 17.9v2.6M3.5 12h2.6M17.9 12h2.6" strokeOpacity="0.4" /></>),
+  snapFine: (<><path d="M4 8h16M4 12h16M4 16h16M8 4v16M12 4v16M16 4v16" strokeOpacity="0.55" /><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none" /></>),
+  snapMedium: (<><path d="M4 9.5h16M4 14.5h16M9.5 4v16M14.5 4v16" strokeOpacity="0.6" /><circle cx="9.5" cy="14.5" r="1.9" fill="currentColor" stroke="none" /></>),
+  snapCoarse: (<><rect x="6.5" y="6.5" width="11" height="11" rx="1" strokeOpacity="0.7" /><circle cx="6.5" cy="17.5" r="2.1" fill="currentColor" stroke="none" /></>),
+
   /** Plain white in place of the file's own materials. */
   matte: (<path d="M12 3s6 6.4 6 10a6 6 0 0 1-12 0c0-3.6 6-10 6-10z" />),
 

@@ -5,6 +5,7 @@ import { useStore } from '../store';
 import { noteDragEnd } from '../lib/dragGuard';
 import { createGroundPicker } from '../lib/groundDrag';
 import { SceneModel } from '../types';
+import { authoredMaterial, edgeOverlay } from '../lib/modelMaterials';
 import { Edges } from '@react-three/drei';
 
 /**
@@ -54,36 +55,23 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
   useEffect(() => {
     const object = model.object;
     if (!object) return;
+    const outlined = modelMaterial === 'transparent-outline';
+
     object.traverse((child) => {
       const mesh = child as THREE.Mesh;
-      if (!mesh.isMesh) return;
+      if (!mesh.isMesh || mesh.userData.edgeOverlay) return;
 
       // A figure standing in the sun has to throw a shadow like everything
       // else, or it reads as a sticker on the floor.
       mesh.castShadow = true;
       mesh.receiveShadow = true;
 
-      if (!mesh.userData.originalMaterial) {
-        mesh.userData.originalMaterial = mesh.material;
-      }
-
-      if (modelMaterial === 'matte') {
-        mesh.material = MATTE;
-      } else if (modelMaterial === 'transparent-outline') {
-        mesh.material = TRANSPARENT_MATTE;
-        if (!mesh.userData.edgesLine) {
-           const edges = new THREE.EdgesGeometry(mesh.geometry, 15);
-           const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.5 }));
-           mesh.add(line);
-           mesh.userData.edgesLine = line;
-        }
-      } else {
-        mesh.material = mesh.userData.originalMaterial as THREE.Material;
-      }
-
-      if (mesh.userData.edgesLine) {
-         mesh.userData.edgesLine.visible = modelMaterial === 'transparent-outline';
-      }
+      // Read the authored materials before swapping, so the first swap is what
+      // records them rather than what loses them.
+      const own = authoredMaterial(mesh);
+      mesh.material = modelMaterial === 'matte' ? MATTE : outlined ? TRANSPARENT_MATTE : own;
+      if (outlined) edgeOverlay(mesh).visible = true;
+      else mesh.children.forEach((c) => { if (c.userData.edgeOverlay) c.visible = false; });
     });
   }, [modelMaterial, model.object]);
 

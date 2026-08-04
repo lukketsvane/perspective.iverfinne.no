@@ -35,7 +35,7 @@ const VanishingTracker = () => {
   const selectedId = useStore((state) => state.selectedId);
   const selectedModelId = useStore((state) => state.selectedModelId);
   const perspectiveMode = useStore((state) => state.perspectiveMode);
-  const showGuides = useStore((state) => state.showGuides);
+  const guides = useStore((state) => state.guides);
 
   const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
   const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
@@ -43,7 +43,7 @@ const VanishingTracker = () => {
   useFrame(() => {
     // Curvilinear bends every one of these lines somewhere else, so the flat
     // construction would be a lie there.
-    if (!showGuides || perspectiveMode !== 'linear' || (!box && !model)) {
+    if (!guides || perspectiveMode !== 'linear' || (!box && !model)) {
       clearVanishing();
       return;
     }
@@ -229,7 +229,8 @@ const SceneContent = () => {
 
   const fov = useStore((state) => state.fov);
   const perspectiveMode = useStore((state) => state.perspectiveMode);
-  const showGuides = useStore((state) => state.showGuides);
+  const guides = useStore((state) => state.guides);
+  const snapStep = useStore((state) => state.snapStep);
   const theme = useStore((state) => state.theme);
   const backgroundGray = useStore((state) => state.backgroundGray);
   const sunShadows = useStore((state) => state.sun.shadows);
@@ -285,6 +286,9 @@ const SceneContent = () => {
   // panorama, just the equirectangular one.
   const curvilinear = perspectiveMode !== 'linear';
 
+  /** One metre, or whatever finer step is being snapped to. */
+  const cellSize = Math.max(0.25, snapStep || 1);
+
   /** The construction sheet is ruled in red, on paper and here. */
   const gridColor = useMemo(
     () => new THREE.Color(isDark ? '#ff6a5e' : '#e0342a'),
@@ -325,17 +329,25 @@ const SceneContent = () => {
       <SceneModels />
 
       {/* Eye level / horizon line - every horizontal VP in the scene sits on it */}
-      {showGuides && <HorizonLine color={horizonColor} />}
+      {guides >= 1 && <HorizonLine color={horizonColor} />}
 
-      {/* Ground plane in metres: 1 m cells, 5 m sections */}
-      {showGuides && (
+      {/*
+        * The ground, ruled at whatever dragging snaps to.
+        *
+        * A grid in metres and a snap in centimetres are two different rulers,
+        * and lining an object up against a line it cannot land on is the sort
+        * of small lie that costs half an hour. Below a quarter metre the cells
+        * would be closer together than the screen can draw them, so that is
+        * where the drawn grid stops following.
+        */}
+      {guides >= 2 && (
         <Grid
           position={[0, 0.01, 0]}
           args={[100, 100]}
-          cellSize={1}
+          cellSize={cellSize}
           cellThickness={0.5}
           cellColor={isDark ? "#444444" : "#999999"}
-          sectionSize={5}
+          sectionSize={cellSize * 4}
           sectionThickness={1.0}
           sectionColor={isDark ? "#666666" : "#333333"}
           fadeDistance={60}
@@ -362,10 +374,12 @@ const SceneContent = () => {
         <meshBasicMaterial visible={false} />
       </mesh>
 
-      {/* The floor catches the sun's shadows and nothing else. */}
+      {/* The floor catches the sun's shadows and nothing else. It is far wider
+          than it needs to be for the shadows themselves: a 200 m plane has an
+          edge, and a 210 degree lens can see it. */}
       {sunShadows && (
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} raycast={() => null}>
-          <planeGeometry args={[200, 200]} />
+          <planeGeometry args={[2000, 2000]} />
           <shadowMaterial transparent opacity={isDark ? 0.55 : 0.42} />
         </mesh>
       )}
@@ -385,7 +399,7 @@ const SceneContent = () => {
       {/* The curvilinear view is a different projection, not a filter over the
           flat one, so it takes the frame over entirely while it is on. */}
       {curvilinear && (
-        <Panorama spread={fov} mode={perspectiveMode} gridColor={gridColor} gridStrength={showGuides ? 1 : 0} />
+        <Panorama spread={fov} mode={perspectiveMode} gridColor={gridColor} gridStrength={guides >= 3 ? 1 : 0} />
       )}
 
       <WalkControls />

@@ -33,6 +33,24 @@ export type PerspectiveMode =
 export type ModelMaterial = 'original' | 'matte' | 'transparent-outline';
 
 /**
+ * How much construction is drawn over the world.
+ *
+ * 0 nothing, 1 the eye-level line, 2 the ground grid with it, 3 the curvilinear
+ * great circles as well - the sheet a curved perspective is ruled on before
+ * anything is drawn. It steps down from everything rather than toggling to
+ * nothing, because the useful state is usually "slightly less than this".
+ */
+export type GuideLevel = 0 | 1 | 2 | 3;
+
+/**
+ * Metres that dragging snaps to. 0 is free.
+ *
+ * The ground grid is ruled at whatever is chosen here, so what you snap to is
+ * what you can see to line things up against.
+ */
+export const SNAP_STEPS = [0, 0.05, 0.25, 1] as const;
+
+/**
  * A model dropped into the scene from a file.
  *
  * `object` is the loaded three.js object, or null when the file cannot be read
@@ -110,9 +128,12 @@ export interface SceneView {
   theme: ThemeMode;
   sun: SunState;
   sunEnvironment: boolean;
-  showGuides: boolean;
+  guides: GuideLevel;
+  /** Written by a version that had one guides switch instead of four levels. */
+  showGuides?: boolean;
   showCone: boolean;
   modelMaterial: ModelMaterial;
+  snapStep: number;
   /** Where the walker stands, and which way it faces. */
   camera: { x: number; z: number; yaw: number; pitch: number };
 }
@@ -139,8 +160,8 @@ export interface SceneState {
   perspectiveMode: PerspectiveMode;
   /** Camera height above the ground plane, in metres. This is the horizon line. */
   cameraHeight: number;
-  /** Horizon / eye-level line and ground grid. */
-  showGuides: boolean;
+  /** How much construction is drawn: horizon, grid, curvilinear circles. */
+  guides: GuideLevel;
   /** The 60 degree cone of vision, drawn over the view. */
   showCone: boolean;
   /** Metres that edits snap to while dragging. 0 is free. */
@@ -178,8 +199,11 @@ export interface SceneState {
   setLens: (fov: number) => void;
   setPerspectiveMode: (mode: PerspectiveMode) => void;
   setCameraHeight: (height: number) => void;
-  toggleGuides: () => void;
+  /** Step down through the construction: everything, less, less, none, round. */
+  cycleGuides: () => void;
   toggleCone: () => void;
+  /** Step through free, 5 cm, 25 cm, 1 m. */
+  cycleSnap: () => void;
   /** Turn the selection (box or model) about its own vertical axis. */
   rotateSelection: (radians: number) => void;
   addModel: (model: Omit<SceneModel, 'id'>) => void;
