@@ -118,6 +118,10 @@ export const WalkOverlay: React.FC<{
   const hasDuplicates = models.length !== new Set(models.map((m) => m.fileUrl)).size;
 
   const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
+  const showGuides = useStore((s) => s.showGuides);
+  const toggleGuides = useStore((s) => s.toggleGuides);
+  const showCone = useStore((s) => s.showCone);
+  const toggleCone = useStore((s) => s.toggleCone);
 
   const isDark = theme === 'dark';
   const chrome = isDark
@@ -152,7 +156,6 @@ export const WalkOverlay: React.FC<{
   const tapStarts = useRef(new Map<number, { x: number; y: number; at: number; cancelled: boolean }>());
   const sunPan = useRef<{ x: number; y: number; azimuth: number; elevation: number } | null>(null);
   const pinch = useRef<{ startDist: number; startAngle: number; startScale: number; startRotY: number; centreX: number; centreY: number; startPos: [number, number, number] } | null>(null);
-  const [stickView, setStickView] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
 
   // One rule whether or not the sensor is driving: the near corner walks, the
   // rest of the glass looks. Handing the whole screen to the stick, as this
@@ -169,7 +172,6 @@ export const WalkOverlay: React.FC<{
       dx = (dx / distance) * STICK_RADIUS;
       dy = (dy / distance) * STICK_RADIUS;
     }
-    setStickView({ x: originX, y: originY, dx, dy });
 
     // Direction from the thumb, speed from the curve above.
     const push = shapeStick(Math.min(1, distance / STICK_RADIUS));
@@ -216,7 +218,6 @@ export const WalkOverlay: React.FC<{
       };
       stick.current = null;
       look.current = null;
-      setStickView(null);
       walkInput.forward = 0;
       walkInput.strafe = 0;
     } else if (pointers.current.size === 3) {
@@ -231,13 +232,12 @@ export const WalkOverlay: React.FC<{
       pinch.current = null;
       stick.current = null;
       look.current = null;
-      setStickView(null);
       walkInput.forward = 0;
       walkInput.strafe = 0;
-    } else if (pointers.current.size < 2 && !stick.current && isStickZone(e.clientX, e.clientY)) {
+    } else if (!stick.current && isStickZone(e.clientX, e.clientY)) {
       stick.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
       applyStick(e.clientX, e.clientY, e.clientX, e.clientY);
-    } else if (pointers.current.size < 2 && !look.current) {
+    } else if (!look.current) {
       look.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
     }
   };
@@ -338,7 +338,6 @@ export const WalkOverlay: React.FC<{
     }
     if (stick.current?.id === e.pointerId) {
       stick.current = null;
-      setStickView(null);
       walkInput.forward = 0;
       walkInput.strafe = 0;
     }
@@ -454,29 +453,6 @@ export const WalkOverlay: React.FC<{
         onPointerCancel={cancelPointer}
       />
 
-      {/* The stick, drawn where the thumb actually landed */}
-      {stickView && (
-        <div
-          className={`fixed z-40 rounded-full border pointer-events-none ${chrome}`}
-          style={{
-            width: STICK_RADIUS * 2,
-            height: STICK_RADIUS * 2,
-            left: stickView.x - STICK_RADIUS,
-            top: stickView.y - STICK_RADIUS,
-            opacity: 0.75,
-          }}
-        >
-          <div
-            className="absolute w-11 h-11 rounded-full border-2 border-current"
-            style={{
-              left: '50%',
-              top: '50%',
-              transform: `translate(-50%, -50%) translate(${stickView.dx}px, ${stickView.dy}px)`,
-            }}
-          />
-        </div>
-      )}
-
       {/* Tap outside the toolbar to close expanded tools */}
       {showTools && (
         <div
@@ -485,82 +461,105 @@ export const WalkOverlay: React.FC<{
         />
       )}
 
-      {/* Right-hand rail – 3×3 grid on mobile, no overlap */}
+      {/* Right-hand rail — stacked 2-column card on iPhone */}
       <div className={`fixed bottom-0 right-0 z-40 safe-right safe-y p-2 pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${railVisible ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="grid grid-cols-3 gap-1.5 pointer-events-auto">
-          {/* Row 1 */}
-          <button
-            onClick={toggleArMode}
-            aria-label="AR camera mode"
-            className={`${iconButton} ${arMode ? '!text-green-500' : ''}`}
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          </button>
+        <div className="flex flex-col gap-1.5 pointer-events-auto items-end">
 
-          <div className="col-span-2">
-            <Scrub
-              skin={{ dark: isDark, touch: true }}
-              icon={I.cone}
-              label="Camera height"
-              reading={`${cameraHeight.toFixed(2)} m`}
-              value={cameraHeight}
-              min={0.2}
-              max={12}
-              step={0.05}
-              cycle={EYE_LEVEL_PRESETS.map((p) => p.height)}
-              onChange={setCameraHeight}
-            />
+          {/* ── Perspective controls card ─────────────────────────── */}
+          <div className={`flex flex-col gap-1 p-1.5 rounded-2xl border backdrop-blur-xl ${isDark ? 'bg-black/60 border-white/20' : 'bg-white/80 border-gray-300'}`}>
+            {/* Perspective mode + FOV */}
+            <div className="flex gap-1 items-center">
+              <button
+                onClick={() => {
+                  const idx = PERSPECTIVE_ORDER.indexOf(perspectiveMode);
+                  setPerspectiveMode(PERSPECTIVE_ORDER[(idx + 1) % PERSPECTIVE_ORDER.length]);
+                }}
+                aria-label={`Perspective: ${perspectiveMode}`}
+                className={`${iconButton} ${perspectiveMode !== 'linear' ? '!text-sky-500' : ''}`}
+              >
+                <Icon path={PERSPECTIVE_ICON[perspectiveMode]} className="w-4 h-4" />
+              </button>
+              <div className="w-28">
+                <Scrub
+                  skin={{ dark: isDark, touch: true }}
+                  icon={I.cone}
+                  label="Field of view"
+                  reading={`${Math.round(fov)}°`}
+                  value={fov}
+                  min={25}
+                  max={360}
+                  step={1}
+                  cycle={[35, 60, 90, 160, 210, 240, 330]}
+                  onChange={setLens}
+                />
+              </div>
+            </div>
+
+            {/* Eye height */}
+            <div className="flex gap-1 items-center">
+              <button
+                onClick={toggleArMode}
+                aria-label="AR camera mode"
+                className={`${iconButton} ${arMode ? '!text-green-500' : ''}`}
+              >
+                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+              <div className="w-28">
+                <Scrub
+                  skin={{ dark: isDark, touch: true }}
+                  icon={I.cone}
+                  label="Camera height"
+                  reading={`${cameraHeight.toFixed(2)} m`}
+                  value={cameraHeight}
+                  min={0.2}
+                  max={12}
+                  step={0.05}
+                  cycle={EYE_LEVEL_PRESETS.map((p) => p.height)}
+                  onChange={setCameraHeight}
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Row 2 */}
-          <button
-            onClick={() => {
-              const idx = PERSPECTIVE_ORDER.indexOf(perspectiveMode);
-              setPerspectiveMode(PERSPECTIVE_ORDER[(idx + 1) % PERSPECTIVE_ORDER.length]);
-            }}
-            aria-label={`Perspective: ${perspectiveMode}`}
-            className={`${iconButton} ${perspectiveMode !== 'linear' ? '!text-sky-500' : ''}`}
-          >
-            <Icon path={PERSPECTIVE_ICON[perspectiveMode]} className="w-4 h-4" />
-          </button>
-
-          <div className="col-span-2">
-            <Scrub
-              skin={{ dark: isDark, touch: true }}
-              icon={I.cone}
-              label="Field of view"
-              reading={`${Math.round(fov)}°`}
-              value={fov}
-              min={25}
-              max={360}
-              step={1}
-              cycle={[35, 60, 90, 160, 210, 240, 330]}
-              onChange={setLens}
-            />
+          {/* ── Guide / overlay toggles ───────────────────────────── */}
+          <div className={`flex gap-1 p-1.5 rounded-2xl border backdrop-blur-xl ${isDark ? 'bg-black/60 border-white/20' : 'bg-white/80 border-gray-300'}`}>
+            <button
+              onClick={toggleGuides}
+              aria-label="Horizon and grid"
+              aria-pressed={showGuides}
+              className={`${iconButton} ${showGuides ? '!text-sky-500' : ''}`}
+            >
+              <Icon path={I.horizon} className="w-4 h-4" />
+            </button>
+            <button
+              onClick={toggleCone}
+              aria-label="Cone of vision"
+              aria-pressed={showCone}
+              className={`${iconButton} ${showCone ? '!text-sky-500' : ''}`}
+            >
+              <Icon path={I.cone} className="w-4 h-4" />
+            </button>
+            <button
+              onClick={toggleViewLock}
+              aria-label="Lock view"
+              className={`${iconButton} ${viewLocked ? '!text-amber-400' : ''}`}
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="4" y="10.5" width="16" height="10" rx="2" />
+                {viewLocked ? <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /> : <path d="M8 10.5V7a4 4 0 0 1 7.5-2" />}
+              </svg>
+            </button>
+            <button onClick={onModels} aria-label="Add or edit models" className={iconButton}>
+              <Icon path={I.cube} className="w-4 h-4" />
+            </button>
           </div>
 
-          {/* Row 3 */}
-          <button
-            onClick={toggleViewLock}
-            aria-label="Lock view"
-            className={`${iconButton} ${viewLocked ? '!text-amber-400' : ''}`}
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="4" y="10.5" width="16" height="10" rx="2" />
-              {viewLocked ? <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /> : <path d="M8 10.5V7a4 4 0 0 1 7.5-2" />}
-            </svg>
-          </button>
-
-          <button onClick={onModels} aria-label="Add or edit models" className={iconButton}>
-            <Icon path={I.cube} className="w-4 h-4" />
-          </button>
-
-          {/* Row 4 (shown when expanded) */}
+          {/* ── Secondary / overflow tools ───────────────────────── */}
           {showTools && (
-            <>
+            <div className={`flex flex-wrap gap-1 p-1.5 rounded-2xl border backdrop-blur-xl max-w-[12rem] justify-end ${isDark ? 'bg-black/60 border-white/20' : 'bg-white/80 border-gray-300'}`}>
               <button
                 onClick={toggleMatte}
                 aria-label="Matte white models"
@@ -614,27 +613,30 @@ export const WalkOverlay: React.FC<{
               >
                 <Icon path={I.dedup} className="w-4 h-4" />
               </button>
-            </>
+            </div>
           )}
 
-          {/* Bottom row: more toggle + theme */}
-          <button
-            onClick={() => setShowTools((open) => !open)}
-            aria-label="Extra tools"
-            aria-expanded={showTools}
-            className={`${iconButton} ${showTools ? '!text-sky-500' : ''}`}
-          >
-            <Icon path={I.sliders} className="w-4 h-4" />
-          </button>
+          {/* ── Bottom row: more + theme ──────────────────────────── */}
+          <div className="flex gap-1">
+            <button
+              onClick={() => setShowTools((open) => !open)}
+              aria-label="Extra tools"
+              aria-expanded={showTools}
+              className={`${iconButton} ${showTools ? '!text-sky-500' : ''}`}
+            >
+              <Icon path={I.sliders} className="w-4 h-4" />
+            </button>
 
-          <button
-            {...grayThemeControl}
-            aria-label="Toggle theme; double tap for sun environment"
-            aria-pressed={sunEnvironment}
-            className={`${iconButton} touch-none ${sunEnvironment ? '!text-sky-500' : ''}`}
-          >
-            <Icon path={sunEnvironment ? I.sky : isDark ? I.light : I.dark} className="w-4 h-4" />
-          </button>
+            <button
+              {...grayThemeControl}
+              aria-label="Toggle theme; double tap for sun environment"
+              aria-pressed={sunEnvironment}
+              className={`${iconButton} touch-none ${sunEnvironment ? '!text-sky-500' : ''}`}
+            >
+              <Icon path={sunEnvironment ? I.sky : isDark ? I.light : I.dark} className="w-4 h-4" />
+            </button>
+          </div>
+
         </div>
       </div>
 
