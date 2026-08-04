@@ -5,6 +5,16 @@ import { Icon, I } from './icons';
 import { Scrub, useGrayThemeControl } from './controls';
 import { PracticePanel } from './PracticePanel';
 import type { Layout } from '../lib/useLayout';
+import type { PerspectiveMode } from '../types';
+
+const PERSPECTIVE_ORDER: PerspectiveMode[] = ['linear', 'equidistant', 'stereographic', 'cylindrical', 'hyperbolic'];
+const PERSPECTIVE_ICON: Record<PerspectiveMode, React.ReactNode> = {
+  linear: I.straight,
+  equidistant: I.curved,
+  stereographic: I.stereographic,
+  cylindrical: I.cylindrical,
+  hyperbolic: I.hyperbolic,
+};
 
 const MAX_PITCH = Math.PI / 2 - 0.05;
 const STICK_RADIUS = 64; // px
@@ -74,8 +84,9 @@ export const WalkOverlay: React.FC<{
   onModels: () => void;
   onAddCube: () => void;
   onUpload?: (files: FileList) => void;
+  onFisheyeGrid?: () => void;
   layout: Layout;
-}> = ({ onModels, onAddCube, layout }) => {
+}> = ({ onModels, onAddCube, onFisheyeGrid, layout }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -90,6 +101,8 @@ export const WalkOverlay: React.FC<{
   const toggleSunEnvironment = useStore((s) => s.toggleSunEnvironment);
   const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
   const [showTools, setShowTools] = useState(false);
+
+  const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
 
   const isDark = theme === 'dark';
   const chrome = isDark
@@ -359,6 +372,18 @@ export const WalkOverlay: React.FC<{
             />
           </div>
 
+          {/* Perspective mode cycle button */}
+          <button
+            onClick={() => {
+              const idx = PERSPECTIVE_ORDER.indexOf(perspectiveMode);
+              setPerspectiveMode(PERSPECTIVE_ORDER[(idx + 1) % PERSPECTIVE_ORDER.length]);
+            }}
+            aria-label={`Perspective: ${perspectiveMode}`}
+            className={`${iconButton} ${perspectiveMode !== 'linear' ? '!bg-sky-500 !text-white !border-sky-400' : ''}`}
+          >
+            <Icon path={PERSPECTIVE_ICON[perspectiveMode]} className="w-4 h-4" />
+          </button>
+
           {/* Hold the frame still to draw from it */}
           <button
             onClick={toggleViewLock}
@@ -378,6 +403,18 @@ export const WalkOverlay: React.FC<{
           <button onClick={onAddCube} aria-label="Add cube" className={iconButton}>
             <Icon path={I.cube} className="w-4 h-4" />
           </button>
+
+          {onFisheyeGrid && (
+            <button onClick={onFisheyeGrid} aria-label="Fisheye construction grid" className={iconButton}>
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="12" r="5" />
+                <circle cx="12" cy="12" r="1.5" />
+                <line x1="12" y1="3" x2="12" y2="21" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+              </svg>
+            </button>
+          )}
 
           <button
             onClick={() => setShowTools((open) => !open)}
