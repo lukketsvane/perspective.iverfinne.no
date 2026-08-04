@@ -330,6 +330,10 @@ export const WalkOverlay: React.FC<{
         detail: { clientX: e.clientX, clientY: e.clientY },
       }));
     }
+    if (pinch.current) {
+      if (pointers.current.size < 2) pinch.current = null;
+      return;
+    }
     if (sunPan.current) {
       if (pointers.current.size < 3) sunPan.current = null;
       return;
@@ -413,7 +417,6 @@ export const WalkOverlay: React.FC<{
     }
   };
 
-  const button = `px-3 py-2 rounded-full border backdrop-blur-md text-[10px] font-black tracking-widest transition-transform active:scale-95 ${chrome}`;
   const iconButton = `flex items-center justify-center w-10 h-10 rounded-full border backdrop-blur-md transition-transform active:scale-95 ${chrome}`;
 
   return (
@@ -450,9 +453,21 @@ export const WalkOverlay: React.FC<{
         </div>
       )}
 
-      {/* Right-hand rail */}
-      <div className="fixed inset-y-0 right-0 z-40 safe-right safe-y pr-2 flex items-center pointer-events-none">
+      {/* Right-hand rail – auto-hides after inactivity */}
+      <div className={`fixed inset-y-0 right-0 z-40 safe-right safe-y pr-2 flex items-center pointer-events-none transition-opacity duration-300 ${railVisible ? 'opacity-100' : 'opacity-0'}`}>
         <div className="flex flex-col items-center gap-2 pointer-events-auto">
+          {/* AR mode: use phone as real camera */}
+          <button
+            onClick={toggleArMode}
+            aria-label="AR camera mode"
+            className={`${iconButton} ${arMode ? '!bg-green-500 !text-white !border-green-400' : ''}`}
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+
           {/* Camera height slider */}
           <div className="w-24">
             <Scrub
@@ -516,61 +531,6 @@ export const WalkOverlay: React.FC<{
             <Icon path={I.cube} className="w-4 h-4" />
           </button>
 
-          {/* Model management buttons (moved from MeshSheet toolbar) */}
-          <button
-            onClick={toggleMatte}
-            aria-label="Matte white models"
-            aria-pressed={matteModels}
-            className={`${iconButton} ${matteModels ? '!bg-sky-500 !text-white' : ''}`}
-          >
-            <Icon path={I.matte} className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={exportSelected}
-            disabled={!selectedModel?.object || exporting || busyId !== null}
-            aria-label="Export selected model"
-            className={`${iconButton} disabled:opacity-30`}
-          >
-            <Icon path={I.save} className={`w-4 h-4 ${exporting ? 'animate-pulse' : ''}`} />
-          </button>
-
-          <button
-            onClick={deduplicateModels}
-            disabled={!hasDuplicates || busyId !== null}
-            aria-label="Remove duplicate meshes"
-            className={`${iconButton} disabled:opacity-30`}
-          >
-            <Icon path={I.dedup} className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => importInputRef.current?.click()}
-            disabled={busyId !== null}
-            aria-label="Import models"
-            className={`${iconButton} disabled:opacity-30`}
-          >
-            <Icon path={I.upload} className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={onExportScene}
-            disabled={models.length === 0 || busyId !== null}
-            aria-label="Export scene as JSON"
-            className={`${iconButton} disabled:opacity-30`}
-          >
-            <Icon path={I.sceneExport} className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => sceneInputRef.current?.click()}
-            disabled={busyId !== null}
-            aria-label="Import scene from JSON"
-            className={`${iconButton} disabled:opacity-30`}
-          >
-            <Icon path={I.sceneImport} className="w-4 h-4" />
-          </button>
-
           <button
             onClick={() => setShowTools((open) => !open)}
             aria-label="Extra tools"
@@ -579,6 +539,65 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.sliders} className="w-4 h-4" />
           </button>
+
+          {/* Secondary buttons - only visible when tools expanded */}
+          {showTools && (
+            <>
+              <button
+                onClick={toggleMatte}
+                aria-label="Matte white models"
+                aria-pressed={matteModels}
+                className={`${iconButton} ${matteModels ? '!bg-sky-500 !text-white' : ''}`}
+              >
+                <Icon path={I.matte} className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={exportSelected}
+                disabled={!selectedModel?.object || exporting || busyId !== null}
+                aria-label="Export selected model"
+                className={`${iconButton} disabled:opacity-30`}
+              >
+                <Icon path={I.save} className={`w-4 h-4 ${exporting ? 'animate-pulse' : ''}`} />
+              </button>
+
+              <button
+                onClick={deduplicateModels}
+                disabled={!hasDuplicates || busyId !== null}
+                aria-label="Remove duplicate meshes"
+                className={`${iconButton} disabled:opacity-30`}
+              >
+                <Icon path={I.dedup} className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => importInputRef.current?.click()}
+                disabled={busyId !== null}
+                aria-label="Import models"
+                className={`${iconButton} disabled:opacity-30`}
+              >
+                <Icon path={I.upload} className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={onExportScene}
+                disabled={models.length === 0 || busyId !== null}
+                aria-label="Export scene as JSON"
+                className={`${iconButton} disabled:opacity-30`}
+              >
+                <Icon path={I.sceneExport} className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => sceneInputRef.current?.click()}
+                disabled={busyId !== null}
+                aria-label="Import scene from JSON"
+                className={`${iconButton} disabled:opacity-30`}
+              >
+                <Icon path={I.sceneImport} className="w-4 h-4" />
+              </button>
+            </>
+          )}
 
           <button
             {...grayThemeControl}
