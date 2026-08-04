@@ -56,6 +56,9 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
     const object = model.object;
     if (!object) return;
     const outlined = modelMaterial === 'transparent-outline';
+    // The cage is built off this frame, so by the time it lands the mode may
+    // have moved on. This says whether it still belongs on screen.
+    let current = true;
 
     object.traverse((child) => {
       const mesh = child as THREE.Mesh;
@@ -70,9 +73,21 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       // records them rather than what loses them.
       const own = authoredMaterial(mesh);
       mesh.material = modelMaterial === 'matte' ? MATTE : outlined ? TRANSPARENT_MATTE : own;
-      if (outlined) edgeOverlay(mesh).visible = true;
-      else mesh.children.forEach((c) => { if (c.userData.edgeOverlay) c.visible = false; });
+
+      if (outlined) {
+        edgeOverlay(mesh).then((line) => {
+          if (line) line.visible = current;
+        });
+      } else {
+        mesh.children.forEach((c) => {
+          if (c.userData.edgeOverlay) c.visible = false;
+        });
+      }
     });
+
+    return () => {
+      current = false;
+    };
   }, [modelMaterial, model.object]);
 
   /**
