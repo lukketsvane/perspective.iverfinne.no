@@ -99,6 +99,10 @@ export interface SceneState {
   showFigure: boolean;
   /** Horizon / eye-level line and ground grid. */
   showGuides: boolean;
+  /** Show only the ground-plane grid (independent of showGuides for granular control). */
+  showGrid: boolean;
+  /** Show only the horizon line (independent of showGuides for granular control). */
+  showHorizon: boolean;
   /** The 60 degree cone of vision, drawn over the view. */
   showCone: boolean;
   /** Metres that edits snap to while dragging. 0 is free. */
@@ -144,6 +148,8 @@ export interface SceneState {
   toggleEyeLevelLock: () => void;
   toggleFigure: () => void;
   toggleGuides: () => void;
+  toggleGrid: () => void;
+  toggleHorizon: () => void;
   toggleCone: () => void;
   setSnapStep: (step: number) => void;
   /** Turn the selection (box or model) about its own vertical axis. */

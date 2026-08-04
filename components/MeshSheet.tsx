@@ -35,14 +35,8 @@ const MeshTile: React.FC<{
       {preview ? (
         <img src={preview} alt={mesh.name} className={`w-full h-full object-contain p-1 ${busyId === mesh.id ? 'animate-pulse' : ''}`} />
       ) : (
-        <Icon
-          path={I.cube}
-          className={`w-7 h-7 ${busyId === mesh.id ? 'animate-pulse' : ''}`}
-        />
+        <div className={`w-full h-full ${busyId === mesh.id ? 'animate-pulse' : ''}`} />
       )}
-      <span className="absolute bottom-1 left-0 right-0 text-center text-[9px] font-semibold opacity-40 uppercase tracking-wide">
-        {mesh.name}
-      </span>
     </button>
   );
 };
@@ -83,8 +77,7 @@ export const MeshSheet: React.FC<{
       onPointerCancel={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <span className="text-xs font-semibold uppercase tracking-widest opacity-40">Figures</span>
+      <div className="flex items-center justify-end px-4 pt-3 pb-2">
         <button
           onClick={onClose}
           className="w-7 h-7 rounded-full flex items-center justify-center opacity-40 hover:opacity-70 active:scale-90 transition-all"
@@ -103,10 +96,9 @@ export const MeshSheet: React.FC<{
           onClick={handleAddCube}
           disabled={busyId !== null}
           aria-label="Add cube"
-          className={`relative w-full aspect-square rounded-2xl flex flex-col items-center justify-center gap-1 transition-all active:scale-95 disabled:opacity-40 ${tile}`}
+          className={`relative w-full aspect-square rounded-2xl flex flex-col items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${tile}`}
         >
           <Icon path={I.cube} className="w-7 h-7" />
-          <span className="text-[9px] font-semibold opacity-50 uppercase tracking-wide">Cube</span>
         </button>
         {MESH_LIBRARY.map((mesh) => (
           <MeshTile
@@ -123,19 +115,35 @@ export const MeshSheet: React.FC<{
 
   if (layout === 'tablet') {
     return (
-      <div className="fixed z-[70] pointer-events-none inset-3 top-auto max-h-[48vh]">
-        {panel}
+      <div className="fixed inset-0 z-[70]" onPointerDown={onClose}>
+        <div className="absolute inset-3 top-auto max-h-[48vh] pointer-events-none">
+          <div onPointerDown={(e) => e.stopPropagation()} className="pointer-events-auto">
+            {panel}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (layout === 'phone') {
-    return <div className="fixed left-3 right-3 bottom-safe-panel z-[70] pointer-events-none">{panel}</div>;
+    return (
+      <div className="fixed inset-0 z-[70]" onPointerDown={onClose}>
+        <div className="absolute left-3 right-3 bottom-safe-panel pointer-events-none">
+          <div onPointerDown={(e) => e.stopPropagation()} className="pointer-events-auto">
+            {panel}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-6 z-[70] px-12 flex justify-center pointer-events-none">
-      <div className="w-full max-w-4xl">{panel}</div>
+    <div className="fixed inset-0 z-[70]" onPointerDown={onClose}>
+      <div className="absolute inset-x-0 bottom-6 px-12 flex justify-center pointer-events-none">
+        <div className="w-full max-w-4xl pointer-events-auto" onPointerDown={(e) => e.stopPropagation()}>
+          {panel}
+        </div>
+      </div>
     </div>
   );
 };
