@@ -1,10 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { MESH_LIBRARY } from '../lib/meshLibrary';
-import { MODEL_ACCEPT } from '../lib/loadModel';
 import type { Layout } from '../lib/useLayout';
 import { Icon, I, POSE_ICON } from './icons';
-import { exportScaledModel } from '../lib/exportModel';
 import { generateMeshPreview, getMeshPreview } from '../lib/meshPreview';
 
 /**
@@ -31,17 +29,17 @@ const MeshTile: React.FC<{
       onClick={() => onPlace(mesh.id)}
       disabled={busyId !== null}
       aria-label={mesh.name}
-      className={`relative shrink-0 w-12 h-12 rounded-2xl snap-start flex items-center justify-center transition-transform active:scale-95 disabled:opacity-40 overflow-hidden ${tile}`}
+      className={`relative w-full aspect-square rounded-2xl flex items-center justify-center transition-transform active:scale-95 disabled:opacity-40 overflow-hidden ${tile}`}
     >
       {preview ? (
         <img src={preview} alt={mesh.name} className={`w-full h-full object-contain ${busyId === mesh.id ? 'animate-pulse' : ''}`} />
       ) : (
         <Icon
           path={POSE_ICON[mesh.pose]}
-          className={`w-7 h-7 ${busyId === mesh.id ? 'animate-pulse' : ''}`}
+          className={`w-8 h-8 ${busyId === mesh.id ? 'animate-pulse' : ''}`}
         />
       )}
-      <span className="absolute bottom-0 right-1 text-[8px] font-bold opacity-40 tabular-nums">
+      <span className="absolute bottom-0.5 right-1 text-[9px] font-bold opacity-40 tabular-nums">
         {mesh.name}
       </span>
     </button>
@@ -49,13 +47,7 @@ const MeshTile: React.FC<{
 };
 
 /**
- * The figure library: one row, scrolled sideways.
- *
- * A grid of twenty-one tiles was a card the depth of a hand covering the scene
- * you are placing into. A single row is one tile tall - a strip you flick
- * through, the way you would a roll of film - and the scene stays where it is.
- * Each tile draws its pose rather than naming it; the number is only there to
- * tell two of the same apart.
+ * The figure library: a scrollable grid of all available meshes.
  */
 export const MeshSheet: React.FC<{
   layout: Layout;
@@ -65,66 +57,32 @@ export const MeshSheet: React.FC<{
   onExportScene: () => void;
   onImportScene: (file: File) => void;
   busyId: string | null;
-}> = ({ layout, onClose, onPlace, onImport, onExportScene, onImportScene, busyId }) => {
+}> = ({ layout, onClose, onPlace, busyId }) => {
   const theme = useStore((s) => s.theme);
-  const matteModels = useStore((s) => s.matteModels);
-  const toggleMatte = useStore((s) => s.toggleMatte);
-  const models = useStore((s) => s.models);
-  const deduplicateModels = useStore((s) => s.deduplicateModels);
-  const selectedModelId = useStore((s) => s.selectedModelId);
   const isDark = theme === 'dark';
-  const inputRef = useRef<HTMLInputElement>(null);
-  const sceneInputRef = useRef<HTMLInputElement>(null);
-  const [exporting, setExporting] = useState(false);
-  const selectedModel = models.find((model) => model.id === selectedModelId);
 
-  const exportSelected = async () => {
-    if (!selectedModel?.object || exporting) return;
-    setExporting(true);
-    try {
-      await exportScaledModel(selectedModel);
-    } catch (error) {
-      console.error('Failed to export model:', error);
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const onCamera = isDark;
-  const hasDuplicates = models.length !== new Set(models.map((m) => m.fileUrl)).size;
-  const shell = onCamera
+  const shell = isDark
     ? 'bg-black/80 border-white/12 text-white'
     : 'bg-white/90 border-gray-200 text-gray-900';
   const tile = isDark ? 'bg-black/40 active:bg-black/70' : 'bg-black/5 active:bg-black/15';
 
-  const side = `flex items-center justify-center w-11 h-11 shrink-0 rounded-full transition-colors`;
-
-  const strip = (
+  const panel = (
     <div
-      className={`flex items-center gap-1 px-1.5 py-1.5 rounded-3xl border backdrop-blur-xl shadow-lg pointer-events-auto ${shell}`}
+      className={`flex flex-col gap-2 p-3 rounded-3xl border backdrop-blur-xl shadow-lg pointer-events-auto ${shell}`}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerMove={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onPointerCancel={(e) => e.stopPropagation()}
     >
-      {/* Plain white instead of the file's own skin and fabric */}
-      <button
-        onClick={toggleMatte}
-        aria-label="Matte white models"
-        aria-pressed={matteModels}
-        title="Matte white models"
-        className={`${side} ${
-          matteModels
-            ? 'bg-sky-500 text-white'
-            : 'opacity-50'
-        }`}
-      >
-        <Icon path={I.matte} className="w-5 h-5" />
-      </button>
+      {/* Header with close */}
+      <div className="flex items-center justify-end px-1">
+        <button onClick={onClose} className="flex items-center justify-center w-8 h-8 rounded-full opacity-50 hover:opacity-100 transition-opacity" aria-label="Close">
+          <Icon path={I.close} className="w-5 h-5" />
+        </button>
+      </div>
 
-      {/*
-        The figures. `overscroll-contain` keeps a flick here from dragging the
-        page behind it, and the scrollbar is left off - on a phone there is
-        never one to see, and on a desktop it would eat a row of pixels the
-        strip does not have.
-      */}
-      <div className="flex-1 min-w-0 flex gap-1 overflow-x-auto overscroll-contain snap-x scrollbar-none">
+      {/* Grid of mesh thumbnails */}
+      <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-1.5 max-h-[50vh] overflow-y-auto overscroll-contain scrollbar-none p-0.5">
         {MESH_LIBRARY.map((mesh) => (
           <MeshTile
             key={mesh.id}
@@ -135,107 +93,24 @@ export const MeshSheet: React.FC<{
           />
         ))}
       </div>
-
-      {/* Save the selected figure at its corrected size, then add your own files. */}
-      <button
-        onClick={exportSelected}
-        disabled={!selectedModel?.object || exporting || busyId !== null}
-        aria-label="Export selected model at current scale"
-        title={selectedModel ? 'Export selected model at current scale' : 'Select a model to export'}
-        className={`${side} opacity-50 disabled:opacity-20`}
-      >
-        <Icon path={I.save} className={`w-5 h-5 ${exporting ? 'animate-pulse' : ''}`} />
-      </button>
-
-      {/* Remove duplicate mesh instances - only active when duplicates exist. */}
-      <button
-        onClick={deduplicateModels}
-        disabled={!hasDuplicates || busyId !== null}
-        aria-label="Remove duplicate meshes"
-        title="Remove duplicate meshes"
-        className={`${side} opacity-50 disabled:opacity-20`}
-      >
-        <Icon path={I.dedup} className="w-5 h-5" />
-      </button>
-
-      <button
-        onClick={() => inputRef.current?.click()}
-        disabled={busyId !== null}
-        aria-label="Import models"
-        title="Import models"
-        className={`${side} opacity-50 disabled:opacity-25`}
-      >
-        <Icon path={I.upload} className="w-5 h-5" />
-      </button>
-
-      <button onClick={onClose} className={`${side} opacity-50`} aria-label="Close">
-        <Icon path={I.close} className="w-5 h-5" />
-      </button>
-
-      {/* Scene JSON export/import */}
-      <button
-        onClick={onExportScene}
-        disabled={models.length === 0 || busyId !== null}
-        aria-label="Export scene as JSON"
-        title="Export scene as JSON"
-        className={`${side} opacity-50 disabled:opacity-20`}
-      >
-        <Icon path={I.sceneExport} className="w-5 h-5" />
-      </button>
-
-      <button
-        onClick={() => sceneInputRef.current?.click()}
-        disabled={busyId !== null}
-        aria-label="Import scene from JSON"
-        title="Import scene from JSON"
-        className={`${side} opacity-50 disabled:opacity-25`}
-      >
-        <Icon path={I.sceneImport} className="w-5 h-5" />
-      </button>
-
-      <input
-        ref={inputRef}
-        type="file"
-        multiple
-        accept={MODEL_ACCEPT}
-        className="hidden"
-        onChange={(e) => {
-          if (e.target.files?.length) onImport(e.target.files);
-          e.target.value = '';
-        }}
-      />
-
-      <input
-        ref={sceneInputRef}
-        type="file"
-        accept=".json,application/json"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) onImportScene(file);
-          e.target.value = '';
-        }}
-      />
     </div>
   );
 
-  // Beside the rail on touch screens and along the bottom on desktop. Nowhere
-  // does it cover the controls used to place into the scene.
   if (layout === 'tablet') {
     return (
-      <div className="fixed z-[70] pointer-events-none landscape:right-24 landscape:left-3 landscape:bottom-3 portrait:left-3 portrait:right-24 portrait:bottom-3">
-        {strip}
+      <div className="fixed z-[70] pointer-events-none inset-3 top-auto max-h-[60vh]">
+        {panel}
       </div>
     );
   }
 
   if (layout === 'phone') {
-    return <div className="fixed left-2 right-safe-rail bottom-safe-panel z-[70] pointer-events-none">{strip}</div>;
+    return <div className="fixed left-2 right-2 bottom-safe-panel z-[70] pointer-events-none max-h-[60vh]">{panel}</div>;
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-6 z-[70] px-24 flex justify-center pointer-events-none">
-      <div className="w-full max-w-3xl">{strip}</div>
+    <div className="fixed inset-x-0 bottom-6 z-[70] px-12 flex justify-center pointer-events-none">
+      <div className="w-full max-w-4xl">{panel}</div>
     </div>
   );
 };

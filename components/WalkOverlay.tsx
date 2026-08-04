@@ -4,6 +4,8 @@ import { walkInput } from '../lib/walkInput';
 import { Icon, I } from './icons';
 import { Scrub, useGrayThemeControl } from './controls';
 import { PracticePanel } from './PracticePanel';
+import { MODEL_ACCEPT } from '../lib/loadModel';
+import { exportScaledModel } from '../lib/exportModel';
 import type { Layout } from '../lib/useLayout';
 import type { PerspectiveMode } from '../types';
 
@@ -83,10 +85,12 @@ const shapeStick = (magnitude: number) => {
 export const WalkOverlay: React.FC<{
   onModels: () => void;
   onAddCube: () => void;
-  onUpload?: (files: FileList) => void;
-  onFisheyeGrid?: () => void;
+  onImport?: (files: FileList) => void;
+  onExportScene?: () => void;
+  onImportScene?: (file: File) => void;
+  busyId?: string | null;
   layout: Layout;
-}> = ({ onModels, onAddCube, onFisheyeGrid, layout }) => {
+}> = ({ onModels, onAddCube, onImport, onExportScene, onImportScene, busyId, layout }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -101,6 +105,16 @@ export const WalkOverlay: React.FC<{
   const toggleSunEnvironment = useStore((s) => s.toggleSunEnvironment);
   const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
   const [showTools, setShowTools] = useState(false);
+  const matteModels = useStore((s) => s.matteModels);
+  const toggleMatte = useStore((s) => s.toggleMatte);
+  const models = useStore((s) => s.models);
+  const deduplicateModels = useStore((s) => s.deduplicateModels);
+  const selectedModelId = useStore((s) => s.selectedModelId);
+  const [exporting, setExporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const sceneInputRef = useRef<HTMLInputElement>(null);
+  const selectedModel = models.find((m) => m.id === selectedModelId);
+  const hasDuplicates = models.length !== new Set(models.map((m) => m.fileUrl)).size;
 
   const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
 
@@ -306,10 +320,17 @@ export const WalkOverlay: React.FC<{
   }, [showTools]);
 
   // ---------------------------------------------------------------- actions
-  const cycleHeight = () => {
-    const index = EYE_LEVEL_PRESETS.findIndex((p) => Math.abs(p.height - cameraHeight) < 0.001);
-    const next = EYE_LEVEL_PRESETS[(index + 1) % EYE_LEVEL_PRESETS.length];
-    setCameraHeight(next.height);
+
+  const exportSelected = async () => {
+    if (!selectedModel?.object || exporting) return;
+    setExporting(true);
+    try {
+      await exportScaledModel(selectedModel);
+    } catch (error) {
+      console.error('Failed to export model:', error);
+    } finally {
+      setExporting(false);
+    }
   };
 
   const button = `px-3 py-2 rounded-full border backdrop-blur-md text-[10px] font-black tracking-widest transition-transform active:scale-95 ${chrome}`;
@@ -349,13 +370,24 @@ export const WalkOverlay: React.FC<{
         </div>
       )}
 
-      {/* Right-hand rail: kept under the holding thumb on iPhone and clear of
-          the home-indicator edge in either orientation. */}
+      {/* Right-hand rail */}
       <div className="fixed inset-y-0 right-0 z-40 safe-right safe-y pr-2 flex items-center pointer-events-none">
         <div className="flex flex-col items-center gap-2 pointer-events-auto">
-          <button onClick={cycleHeight} className={`${button} tabular-nums`} aria-label="Eye height">
-            {cameraHeight.toFixed(2)} m
-          </button>
+          {/* Camera height slider */}
+          <div className="w-24">
+            <Scrub
+              skin={{ dark: isDark, touch: false }}
+              icon={I.cone}
+              label="Camera height"
+              reading={`${cameraHeight.toFixed(2)} m`}
+              value={cameraHeight}
+              min={0.2}
+              max={12}
+              step={0.05}
+              cycle={EYE_LEVEL_PRESETS.map((p) => p.height)}
+              onChange={setCameraHeight}
+            />
+          </div>
 
           <div className="w-24">
             <Scrub
@@ -404,17 +436,60 @@ export const WalkOverlay: React.FC<{
             <Icon path={I.cube} className="w-4 h-4" />
           </button>
 
-          {onFisheyeGrid && (
-            <button onClick={onFisheyeGrid} aria-label="Fisheye construction grid" className={iconButton}>
-              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <circle cx="12" cy="12" r="9" />
-                <circle cx="12" cy="12" r="5" />
-                <circle cx="12" cy="12" r="1.5" />
-                <line x1="12" y1="3" x2="12" y2="21" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-              </svg>
-            </button>
-          )}
+          {/* Model management buttons (moved from MeshSheet toolbar) */}
+          <button
+            onClick={toggleMatte}
+            aria-label="Matte white models"
+            aria-pressed={matteModels}
+            className={`${iconButton} ${matteModels ? '!bg-sky-500 !text-white' : ''}`}
+          >
+            <Icon path={I.matte} className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={exportSelected}
+            disabled={!selectedModel?.object || exporting || busyId !== null}
+            aria-label="Export selected model"
+            className={`${iconButton} disabled:opacity-30`}
+          >
+            <Icon path={I.save} className={`w-4 h-4 ${exporting ? 'animate-pulse' : ''}`} />
+          </button>
+
+          <button
+            onClick={deduplicateModels}
+            disabled={!hasDuplicates || busyId !== null}
+            aria-label="Remove duplicate meshes"
+            className={`${iconButton} disabled:opacity-30`}
+          >
+            <Icon path={I.dedup} className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => importInputRef.current?.click()}
+            disabled={busyId !== null}
+            aria-label="Import models"
+            className={`${iconButton} disabled:opacity-30`}
+          >
+            <Icon path={I.upload} className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={onExportScene}
+            disabled={models.length === 0 || busyId !== null}
+            aria-label="Export scene as JSON"
+            className={`${iconButton} disabled:opacity-30`}
+          >
+            <Icon path={I.sceneExport} className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => sceneInputRef.current?.click()}
+            disabled={busyId !== null}
+            aria-label="Import scene from JSON"
+            className={`${iconButton} disabled:opacity-30`}
+          >
+            <Icon path={I.sceneImport} className="w-4 h-4" />
+          </button>
 
           <button
             onClick={() => setShowTools((open) => !open)}
@@ -435,6 +510,30 @@ export const WalkOverlay: React.FC<{
           </button>
         </div>
       </div>
+
+      {/* Hidden file inputs */}
+      <input
+        ref={importInputRef}
+        type="file"
+        multiple
+        accept={MODEL_ACCEPT}
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.length && onImport) onImport(e.target.files);
+          e.target.value = '';
+        }}
+      />
+      <input
+        ref={sceneInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file && onImportScene) onImportScene(file);
+          e.target.value = '';
+        }}
+      />
 
       {showTools && (
         <div

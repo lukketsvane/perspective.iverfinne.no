@@ -10,7 +10,6 @@ import { useLayout } from './lib/useLayout';
 import { loadModelFile, loadModelFromUrl, findFreeSpot, modelRadius } from './lib/loadModel';
 import { MESH_LIBRARY } from './lib/meshLibrary';
 import { focusPoint } from './lib/focus';
-import { FisheyeGrid } from './components/FisheyeGrid';
 import { downloadSceneJson, importSceneJson } from './lib/sceneJson';
 
 /** The application is always a first-person workspace. */
@@ -25,7 +24,6 @@ export default function App() {
   const addModel = useStore((s) => s.addModel);
   const loadHistoryFromStorage = useStore((s) => s.loadHistoryFromStorage);
   const [showMeshes, setShowMeshes] = useState(false);
-  const [showFisheyeGrid, setShowFisheyeGrid] = useState(false);
   const [busyMesh, setBusyMesh] = useState<string | null>(null);
 
   useEffect(() => loadHistoryFromStorage(), [loadHistoryFromStorage]);
@@ -102,7 +100,15 @@ export default function App() {
         <ConeOfVision fov={fov} color={isDark ? '#8ab4ff' : '#1f6feb'} />
       )}
       <VanishingPoints color={isDark ? '#ff6a5e' : '#e0342a'} />
-      <WalkOverlay onModels={() => setShowMeshes(true)} onAddCube={handleAddAtFocus} onUpload={importModels} onFisheyeGrid={() => setShowFisheyeGrid(true)} layout={layout} />
+      <WalkOverlay
+        onModels={() => setShowMeshes(true)}
+        onAddCube={handleAddAtFocus}
+        onImport={importModels}
+        onExportScene={handleExportScene}
+        onImportScene={handleImportScene}
+        busyId={busyMesh}
+        layout={layout}
+      />
       {showMeshes && (
         <MeshSheet
           layout={layout}
@@ -115,7 +121,6 @@ export default function App() {
         />
       )}
       <SelectionBar raised={showMeshes} />
-      {showFisheyeGrid && <FisheyeGrid onClose={() => setShowFisheyeGrid(false)} />}
     </div>
   );
 }
