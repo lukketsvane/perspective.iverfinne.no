@@ -18,8 +18,8 @@ switch under **Extra Tools** — the sliders button in the walk controls.
 | Geometry | 1 × 1 × 1 m cubes | The cube is the unit you measure a drawing with. Slabs, pillars, beams and blocks are one tap away, but you have to ask. |
 | Eye level | 1.90 m above the ground | A tall standing observer. Presets for 1.2 m (seated), 1.6 m (average standing), 1.9 m and 2.5 m (raised), plus a free slider up to 6 m. |
 | Gaze | Locked level | Camera and orbit target sit at the same height, so the line of sight is horizontal: verticals stay vertical and the scene reads as clean 2-point perspective with the horizon on your eye level. Unlock it to climb off eye level and pick up the third vanishing point. |
-| Projection | Straight lines | Rectilinear perspective, the thing you actually rule on paper. The 5-point curvilinear projection is a mode you switch into. |
-| Lens | 60° | The cone of vision. Past roughly 90° the edges stretch, which is where curvilinear starts to earn its keep. |
+| Projection | Equidistant | The default is the curvilinear five-point view. Straight lines, stereographic fisheye, cylindrical panorama and hyperbolic disc are one switch away. |
+| Lens | 210° | A broad curvilinear field that shows the ceiling and floor turning into the frame. Switch to straight lines to come back to a conventional cone of vision. |
 | Guides | Horizon line and 1 m ground grid | The horizon is drawn at the camera's own height, so every horizontal vanishing point in the scene sits on it. The 60° cone of vision is there too, one tap away. |
 | Edits | Snap to 0.25 m | A box ends up 1.75 m tall rather than 1.73 — the difference between a reference you can measure against and one you cannot. Switch to free sizing in the panel. |
 

@@ -210,8 +210,8 @@ export const useStore = create<SceneState>((set, get) => ({
   isDragging: false,
   isViewMode: false,
   fov: 210, // A broad field that makes the default curvilinear projection useful
-  distortion: 0, // Start with the equirectangular curvilinear projection
-  perspectiveMode: 'curvilinear',
+  distortion: 1, // Start with the equidistant curvilinear projection
+  perspectiveMode: 'equidistant',
   cameraHeight: DEFAULT_CAMERA_HEIGHT,
   lockEyeLevel: true, // Level gaze -> true verticals -> 2-point perspective
   showFigure: false,
@@ -406,7 +406,7 @@ export const useStore = create<SceneState>((set, get) => ({
     // that is the mode you want a 360 field in.
     fov: Math.max(10, Math.min(360, fov)),
     // The curvature is a blend between two projections now, not a strength:
-    // 0 is the equirectangular panorama, 1 the equidistant fisheye.
+    // 0 is the cylindrical panorama, 1 the equidistant fisheye.
     distortion: distortion === undefined
       ? state.distortion
       : Math.max(0, Math.min(1, distortion)),
@@ -425,7 +425,17 @@ export const useStore = create<SceneState>((set, get) => ({
      * the middle of the frame the way it does out past 250. 60 is the ordinary
      * cone of vision to come back to.
      */
-    fov: mode === 'curvilinear' ? (state.fov < 120 ? 210 : state.fov) : Math.min(state.fov, 75),
+    fov: mode === 'linear' ? Math.min(state.fov, 75) : (state.fov < 120 ? 210 : state.fov),
+    distortion:
+      mode === 'linear'
+        ? state.distortion
+        : mode === 'cylindrical'
+          ? 0
+          : mode === 'equidistant'
+            ? 1
+            : mode === 'stereographic'
+              ? 2
+              : 3,
   })),
 
   setCameraHeight: (height) => set({ cameraHeight: Math.max(0.2, Math.min(12, height)) }),

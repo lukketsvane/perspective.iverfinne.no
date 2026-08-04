@@ -12,10 +12,13 @@ export type ThemeMode = 'light' | 'dark';
 
 /**
  * How the scene is projected.
- * - 'linear': straight-line rectilinear perspective (1/2/3-point). The default.
- * - 'curvilinear': Kim Jung Gi style 5-point curvilinear projection (opt-in).
+ * - 'linear': straight-line rectilinear perspective (1/2/3-point).
+ * - 'equidistant': Kim Jung Gi style 5-point curvilinear projection. The default.
+ * - 'stereographic': fisheye view with stronger edge expansion.
+ * - 'cylindrical': panorama with straight verticals.
+ * - 'hyperbolic': Poincaré-like disc projection.
  */
-export type PerspectiveMode = 'linear' | 'curvilinear';
+export type PerspectiveMode = 'linear' | 'equidistant' | 'stereographic' | 'cylindrical' | 'hyperbolic';
 
 /**
  * The primitive spawned when adding geometry. 'cube' (1x1x1 m) is the default;

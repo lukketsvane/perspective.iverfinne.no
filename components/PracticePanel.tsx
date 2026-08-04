@@ -6,12 +6,27 @@ import { Icon, I } from './icons';
 import { Toggle, Scrub, Cell, type Skin } from './controls';
 
 const SPAWN_ORDER: SpawnKind[] = ['cube', 'slab', 'pillar', 'beam', 'block'];
+const PERSPECTIVE_ORDER = ['linear', 'equidistant', 'stereographic', 'cylindrical', 'hyperbolic'] as const;
 const SPAWN_ICON: Record<SpawnKind, React.ReactNode> = {
   cube: I.cube,
   slab: I.slab,
   pillar: I.pillar,
   beam: I.beam,
   block: I.block,
+};
+const PERSPECTIVE_ICON: Record<typeof PERSPECTIVE_ORDER[number], React.ReactNode> = {
+  linear: I.straight,
+  equidistant: I.curved,
+  stereographic: I.stereographic,
+  cylindrical: I.cylindrical,
+  hyperbolic: I.hyperbolic,
+};
+const PERSPECTIVE_LABEL: Record<typeof PERSPECTIVE_ORDER[number], string> = {
+  linear: 'Straight lines',
+  equidistant: 'Equidistant',
+  stereographic: 'Stereographic',
+  cylindrical: 'Cylindrical',
+  hyperbolic: 'Hyperbolic',
 };
 
 /**
@@ -92,6 +107,8 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
 
     const nextSpawn = () =>
       setSpawnKind(SPAWN_ORDER[(SPAWN_ORDER.indexOf(spawnKind) + 1) % SPAWN_ORDER.length]);
+    const nextPerspective = () =>
+      setPerspectiveMode(PERSPECTIVE_ORDER[(PERSPECTIVE_ORDER.indexOf(perspectiveMode) + 1) % PERSPECTIVE_ORDER.length]);
 
     return (
       <div className="relative flex flex-col items-end gap-1.5 pointer-events-auto">
@@ -111,10 +128,10 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
           {cellToggle(lockEyeLevel, toggleEyeLevelLock, lockEyeLevel ? I.levelLocked : I.levelFree, 'Level gaze')}
 
           {cellToggle(
-            perspectiveMode === 'curvilinear',
-            () => setPerspectiveMode(perspectiveMode === 'linear' ? 'curvilinear' : 'linear'),
-            perspectiveMode === 'linear' ? I.straight : I.curved,
-            perspectiveMode === 'linear' ? 'Straight lines' : 'Curvilinear'
+            perspectiveMode !== 'linear',
+            nextPerspective,
+            PERSPECTIVE_ICON[perspectiveMode],
+            PERSPECTIVE_LABEL[perspectiveMode]
           )}
           <Cell
             skin={skin}
@@ -230,22 +247,17 @@ export const PracticePanel: React.FC<{ layout: Layout; onClose: () => void }> = 
         {/* ------------------------------------------------------- the projection */}
         <div className={`${rowPad} border-b ${divider} space-y-2`}>
           <div className="flex items-center gap-1.5">
-            <Toggle
-            skin={skin}
-              on={perspectiveMode === 'linear'}
-              onClick={() => setPerspectiveMode('linear')}
-              path={I.straight}
-              label="Straight lines"
-              className="shrink-0"
-            />
-            <Toggle
-            skin={skin}
-              on={perspectiveMode === 'curvilinear'}
-              onClick={() => setPerspectiveMode('curvilinear')}
-              path={I.curved}
-              label="Curvilinear"
-              className="shrink-0"
-            />
+            {PERSPECTIVE_ORDER.map((mode) => (
+              <Toggle
+                key={mode}
+                skin={skin}
+                on={perspectiveMode === mode}
+                onClick={() => setPerspectiveMode(mode)}
+                path={PERSPECTIVE_ICON[mode]}
+                label={PERSPECTIVE_LABEL[mode]}
+                className="shrink-0"
+              />
+            ))}
             <Scrub
             skin={skin}
               icon={I.cone}
