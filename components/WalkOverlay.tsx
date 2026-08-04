@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
-import { walkInput } from '../lib/walkInput';
+import { walkInput, enableDeviceOrientation, recentre } from '../lib/walkInput';
 import { Icon, I } from './icons';
 import { Scrub, useGrayThemeControl } from './controls';
 import { PracticePanel } from './PracticePanel';
@@ -105,6 +105,9 @@ export const WalkOverlay: React.FC<{
   const toggleSunEnvironment = useStore((s) => s.toggleSunEnvironment);
   const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
   const [showTools, setShowTools] = useState(false);
+  const [railVisible, setRailVisible] = useState(true);
+  const [arMode, setArMode] = useState(false);
+  const railTimer = useRef<number | undefined>(undefined);
   const matteModels = useStore((s) => s.matteModels);
   const toggleMatte = useStore((s) => s.toggleMatte);
   const models = useStore((s) => s.models);
@@ -150,6 +153,7 @@ export const WalkOverlay: React.FC<{
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const tapStarts = useRef(new Map<number, { x: number; y: number; at: number; cancelled: boolean }>());
   const sunPan = useRef<{ x: number; y: number; azimuth: number; elevation: number } | null>(null);
+  const pinch = useRef<{ startDist: number; startAngle: number; startScale: number; startRotY: number; centreX: number; centreY: number; startPos: [number, number, number] } | null>(null);
   const [stickView, setStickView] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
 
   // One rule whether or not the sensor is driving: the near corner walks, the
@@ -182,6 +186,7 @@ export const WalkOverlay: React.FC<{
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
+    showRail();
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     tapStarts.current.set(e.pointerId, { x: e.clientX, y: e.clientY, at: performance.now(), cancelled: false });
     if (pointers.current.size > 1) {
@@ -190,17 +195,34 @@ export const WalkOverlay: React.FC<{
     // Lock freezes the camera, not the scene editor. Keep tracking a possible
     // selection tap, but do not start a walk/look gesture.
     if (viewLocked) return;
-    // Capture keeps a thumb that slides off the layer still driving it, but it
-    // throws for a pointer the browser no longer considers active - and an
-    // exception here would take the whole gesture down with it.
     try {
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     } catch {
-      /* not capturable; the window-level handlers still see the moves */
+      /* not capturable */
     }
-    if (pointers.current.size === 3) {
-      // Three fingers grab the light rather than the camera. Horizontal motion
-      // circles the scene; vertical motion raises and lowers the sun.
+
+    if (pointers.current.size === 2 && selectedModelId) {
+      // Two-finger pinch: rotate and translate the selected model
+      const pts = [...pointers.current.values()];
+      const dx = pts[1].x - pts[0].x;
+      const dy = pts[1].y - pts[0].y;
+      const model = models.find((m) => m.id === selectedModelId);
+      pinch.current = {
+        startDist: Math.hypot(dx, dy),
+        startAngle: Math.atan2(dy, dx),
+        startScale: model?.scale ?? 1,
+        startRotY: model?.rotationY ?? 0,
+        centreX: (pts[0].x + pts[1].x) / 2,
+        centreY: (pts[0].y + pts[1].y) / 2,
+        startPos: model?.position ? [...model.position] : [0, 0, 0],
+      };
+      stick.current = null;
+      look.current = null;
+      setStickView(null);
+      walkInput.forward = 0;
+      walkInput.strafe = 0;
+    } else if (pointers.current.size === 3) {
+      // Three fingers grab the light
       const points = [...pointers.current.values()];
       sunPan.current = {
         x: points.reduce((sum, point) => sum + point.x, 0) / 3,
@@ -208,15 +230,16 @@ export const WalkOverlay: React.FC<{
         azimuth: sun.azimuth,
         elevation: sun.elevation,
       };
+      pinch.current = null;
       stick.current = null;
       look.current = null;
       setStickView(null);
       walkInput.forward = 0;
       walkInput.strafe = 0;
-    } else if (pointers.current.size < 3 && !stick.current && isStickZone(e.clientX, e.clientY)) {
+    } else if (pointers.current.size < 2 && !stick.current && isStickZone(e.clientX, e.clientY)) {
       stick.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
       applyStick(e.clientX, e.clientY, e.clientX, e.clientY);
-    } else if (!look.current) {
+    } else if (pointers.current.size < 2 && !look.current) {
       look.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
     }
   };
@@ -227,6 +250,38 @@ export const WalkOverlay: React.FC<{
     if (pointers.current.has(e.pointerId)) {
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     }
+
+    // Two-finger pinch: rotate + translate model
+    if (pinch.current && pointers.current.size === 2 && selectedModelId) {
+      const pts = [...pointers.current.values()];
+      const dx = pts[1].x - pts[0].x;
+      const dy = pts[1].y - pts[0].y;
+      const dist = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx);
+      const cx = (pts[0].x + pts[1].x) / 2;
+      const cy = (pts[0].y + pts[1].y) / 2;
+
+      // Rotation from angle change
+      const deltaAngle = angle - pinch.current.startAngle;
+      const newRotY = pinch.current.startRotY - deltaAngle;
+
+      // Translation from centre movement (screen px → world metres, rough)
+      const moveFactor = 0.01;
+      const moveX = (cx - pinch.current.centreX) * moveFactor;
+      const moveZ = (cy - pinch.current.centreY) * moveFactor;
+
+      const updateModel = useStore.getState().updateModel;
+      updateModel(selectedModelId, {
+        rotationY: newRotY,
+        position: [
+          pinch.current.startPos[0] + moveX,
+          pinch.current.startPos[1],
+          pinch.current.startPos[2] + moveZ,
+        ],
+      });
+      return;
+    }
+
     if (sunPan.current && pointers.current.size >= 3) {
       const points = [...pointers.current.values()].slice(0, 3);
       const x = points.reduce((sum, point) => sum + point.x, 0) / 3;
@@ -275,6 +330,10 @@ export const WalkOverlay: React.FC<{
         detail: { clientX: e.clientX, clientY: e.clientY },
       }));
     }
+    if (pinch.current) {
+      if (pointers.current.size < 2) pinch.current = null;
+      return;
+    }
     if (sunPan.current) {
       if (pointers.current.size < 3) sunPan.current = null;
       return;
@@ -321,6 +380,31 @@ export const WalkOverlay: React.FC<{
 
   // ---------------------------------------------------------------- actions
 
+  // Auto-hide the rail after inactivity
+  const showRail = useCallback(() => {
+    setRailVisible(true);
+    if (railTimer.current) clearTimeout(railTimer.current);
+    railTimer.current = setTimeout(() => setRailVisible(false), 4000) as unknown as number;
+  }, []);
+
+  useEffect(() => {
+    showRail();
+    return () => { if (railTimer.current) clearTimeout(railTimer.current); };
+  }, [showRail]);
+
+  // AR mode: enable device orientation and use phone as real camera
+  const toggleArMode = useCallback(async () => {
+    if (arMode) {
+      setArMode(false);
+    } else {
+      const granted = await enableDeviceOrientation();
+      if (granted) {
+        recentre();
+        setArMode(true);
+      }
+    }
+  }, [arMode]);
+
   const exportSelected = async () => {
     if (!selectedModel?.object || exporting) return;
     setExporting(true);
@@ -333,7 +417,6 @@ export const WalkOverlay: React.FC<{
     }
   };
 
-  const button = `px-3 py-2 rounded-full border backdrop-blur-md text-[10px] font-black tracking-widest transition-transform active:scale-95 ${chrome}`;
   const iconButton = `flex items-center justify-center w-10 h-10 rounded-full border backdrop-blur-md transition-transform active:scale-95 ${chrome}`;
 
   return (
@@ -370,9 +453,21 @@ export const WalkOverlay: React.FC<{
         </div>
       )}
 
-      {/* Right-hand rail */}
-      <div className="fixed inset-y-0 right-0 z-40 safe-right safe-y pr-2 flex items-center pointer-events-none">
+      {/* Right-hand rail – auto-hides after inactivity */}
+      <div className={`fixed inset-y-0 right-0 z-40 safe-right safe-y pr-2 flex items-center pointer-events-none transition-opacity duration-300 ${railVisible ? 'opacity-100' : 'opacity-0'}`}>
         <div className="flex flex-col items-center gap-2 pointer-events-auto">
+          {/* AR mode: use phone as real camera */}
+          <button
+            onClick={toggleArMode}
+            aria-label="AR camera mode"
+            className={`${iconButton} ${arMode ? '!bg-green-500 !text-white !border-green-400' : ''}`}
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+
           {/* Camera height slider */}
           <div className="w-24">
             <Scrub
@@ -436,61 +531,6 @@ export const WalkOverlay: React.FC<{
             <Icon path={I.cube} className="w-4 h-4" />
           </button>
 
-          {/* Model management buttons (moved from MeshSheet toolbar) */}
-          <button
-            onClick={toggleMatte}
-            aria-label="Matte white models"
-            aria-pressed={matteModels}
-            className={`${iconButton} ${matteModels ? '!bg-sky-500 !text-white' : ''}`}
-          >
-            <Icon path={I.matte} className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={exportSelected}
-            disabled={!selectedModel?.object || exporting || busyId !== null}
-            aria-label="Export selected model"
-            className={`${iconButton} disabled:opacity-30`}
-          >
-            <Icon path={I.save} className={`w-4 h-4 ${exporting ? 'animate-pulse' : ''}`} />
-          </button>
-
-          <button
-            onClick={deduplicateModels}
-            disabled={!hasDuplicates || busyId !== null}
-            aria-label="Remove duplicate meshes"
-            className={`${iconButton} disabled:opacity-30`}
-          >
-            <Icon path={I.dedup} className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => importInputRef.current?.click()}
-            disabled={busyId !== null}
-            aria-label="Import models"
-            className={`${iconButton} disabled:opacity-30`}
-          >
-            <Icon path={I.upload} className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={onExportScene}
-            disabled={models.length === 0 || busyId !== null}
-            aria-label="Export scene as JSON"
-            className={`${iconButton} disabled:opacity-30`}
-          >
-            <Icon path={I.sceneExport} className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => sceneInputRef.current?.click()}
-            disabled={busyId !== null}
-            aria-label="Import scene from JSON"
-            className={`${iconButton} disabled:opacity-30`}
-          >
-            <Icon path={I.sceneImport} className="w-4 h-4" />
-          </button>
-
           <button
             onClick={() => setShowTools((open) => !open)}
             aria-label="Extra tools"
@@ -499,6 +539,65 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.sliders} className="w-4 h-4" />
           </button>
+
+          {/* Secondary buttons - only visible when tools expanded */}
+          {showTools && (
+            <>
+              <button
+                onClick={toggleMatte}
+                aria-label="Matte white models"
+                aria-pressed={matteModels}
+                className={`${iconButton} ${matteModels ? '!bg-sky-500 !text-white' : ''}`}
+              >
+                <Icon path={I.matte} className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={exportSelected}
+                disabled={!selectedModel?.object || exporting || busyId !== null}
+                aria-label="Export selected model"
+                className={`${iconButton} disabled:opacity-30`}
+              >
+                <Icon path={I.save} className={`w-4 h-4 ${exporting ? 'animate-pulse' : ''}`} />
+              </button>
+
+              <button
+                onClick={deduplicateModels}
+                disabled={!hasDuplicates || busyId !== null}
+                aria-label="Remove duplicate meshes"
+                className={`${iconButton} disabled:opacity-30`}
+              >
+                <Icon path={I.dedup} className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => importInputRef.current?.click()}
+                disabled={busyId !== null}
+                aria-label="Import models"
+                className={`${iconButton} disabled:opacity-30`}
+              >
+                <Icon path={I.upload} className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={onExportScene}
+                disabled={models.length === 0 || busyId !== null}
+                aria-label="Export scene as JSON"
+                className={`${iconButton} disabled:opacity-30`}
+              >
+                <Icon path={I.sceneExport} className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => sceneInputRef.current?.click()}
+                disabled={busyId !== null}
+                aria-label="Import scene from JSON"
+                className={`${iconButton} disabled:opacity-30`}
+              >
+                <Icon path={I.sceneImport} className="w-4 h-4" />
+              </button>
+            </>
+          )}
 
           <button
             {...grayThemeControl}
