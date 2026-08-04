@@ -579,4 +579,31 @@ export const useStore = create<SceneState>((set, get) => ({
   }),
 
   loadHistoryFromStorage: () => set({ sceneHistory: loadScenesFromStorage() }),
+
+  /**
+   * Remove extra copies of the same mesh.
+   *
+   * Every placement shares the same source by URL, so two "artisan" figures are
+   * two entries with the same fileUrl. This keeps the first occurrence of each
+   * URL and discards the rest, then releases any GPU resources that were only
+   * held by the removed instances.
+   */
+  deduplicateModels: () => set((state) => {
+    const seen = new Set<string>();
+    const unique = state.models.filter((m) => {
+      if (seen.has(m.fileUrl)) return false;
+      seen.add(m.fileUrl);
+      return true;
+    });
+    if (unique.length === state.models.length) return {};
+    const next = {
+      undoStack: [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
+      models: unique,
+      selectedModelId: state.selectedModelId && unique.some((m) => m.id === state.selectedModelId)
+        ? state.selectedModelId
+        : null,
+    };
+    releaseUnreferenced(next);
+    return next;
+  }),
 }));
