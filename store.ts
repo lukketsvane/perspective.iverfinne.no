@@ -96,7 +96,7 @@ const SETTINGS_KEY = 'kjg-perspective-settings';
 
 type PersistedSettings = Pick<
   SceneState,
-  'theme' | 'backgroundGray' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'matteModels' | 'sunEnvironment' | 'sun'
+  'theme' | 'backgroundGray' | 'cameraHeight' | 'lockEyeLevel' | 'showGuides' | 'showGrid' | 'showHorizon' | 'showFigure' | 'showCone' | 'spawnKind' | 'fov' | 'snapStep' | 'matteModels' | 'sunEnvironment' | 'sun'
 >;
 
 const loadSettings = (): Partial<PersistedSettings> => {
@@ -108,7 +108,7 @@ const loadSettings = (): Partial<PersistedSettings> => {
     // Copy only current settings. Older records may contain removed camera-mode
     // fields; an allow-list prevents those values from leaking back into state.
     const allowed = [
-      'theme', 'backgroundGray', 'cameraHeight', 'lockEyeLevel', 'showGuides',
+      'theme', 'backgroundGray', 'cameraHeight', 'lockEyeLevel', 'showGuides', 'showGrid', 'showHorizon',
       'showFigure', 'showCone', 'spawnKind', 'fov', 'snapStep', 'matteModels', 'sunEnvironment', 'sun',
     ] as const;
     return Object.fromEntries(
@@ -216,6 +216,8 @@ export const useStore = create<SceneState>((set, get) => ({
   lockEyeLevel: true, // Level gaze -> true verticals -> 2-point perspective
   showFigure: false,
   showGuides: true,
+  showGrid: true,
+  showHorizon: true,
   showCone: false,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   spawnKind: 'cube',
@@ -445,6 +447,8 @@ export const useStore = create<SceneState>((set, get) => ({
   toggleFigure: () => set((state) => ({ showFigure: !state.showFigure })),
 
   toggleGuides: () => set((state) => ({ showGuides: !state.showGuides })),
+  toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),
+  toggleHorizon: () => set((state) => ({ showHorizon: !state.showHorizon })),
 
   toggleCone: () => set((state) => ({ showCone: !state.showCone })),
 

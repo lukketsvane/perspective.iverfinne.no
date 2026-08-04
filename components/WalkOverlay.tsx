@@ -120,6 +120,10 @@ export const WalkOverlay: React.FC<{
   const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
   const showGuides = useStore((s) => s.showGuides);
   const toggleGuides = useStore((s) => s.toggleGuides);
+  const showGrid = useStore((s) => s.showGrid);
+  const toggleGrid = useStore((s) => s.toggleGrid);
+  const showHorizon = useStore((s) => s.showHorizon);
+  const toggleHorizon = useStore((s) => s.toggleHorizon);
   const showCone = useStore((s) => s.showCone);
   const toggleCone = useStore((s) => s.toggleCone);
 
@@ -381,7 +385,7 @@ export const WalkOverlay: React.FC<{
   const showRail = useCallback(() => {
     setRailVisible(true);
     if (railTimer.current) clearTimeout(railTimer.current);
-    railTimer.current = setTimeout(() => setRailVisible(false), 6000) as unknown as number;
+    railTimer.current = setTimeout(() => setRailVisible(false), 12000) as unknown as number;
   }, []);
 
   useEffect(() => {
@@ -461,11 +465,9 @@ export const WalkOverlay: React.FC<{
         />
       )}
 
-      {/* Right-hand rail — stacked 2-column card on iPhone */}
-      <div className={`fixed bottom-0 right-0 z-40 safe-right safe-y p-2 pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${railVisible ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Top-right — perspective controls */}
+      <div className={`fixed top-0 right-0 z-40 safe-right safe-y p-2 pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${railVisible ? 'opacity-100' : 'opacity-0'}`}>
         <div className="flex flex-col gap-1.5 pointer-events-auto items-end">
-
-          {/* ── Perspective controls card ─────────────────────────── */}
           <div className={`flex flex-col gap-1 p-1.5 rounded-2xl border backdrop-blur-xl ${isDark ? 'bg-black/60 border-white/20' : 'bg-white/80 border-gray-300'}`}>
             {/* Perspective mode + FOV */}
             <div className="flex gap-1 items-center">
@@ -523,122 +525,135 @@ export const WalkOverlay: React.FC<{
               </div>
             </div>
           </div>
-
-          {/* ── Guide / overlay toggles ───────────────────────────── */}
-          <div className={`flex gap-1 p-1.5 rounded-2xl border backdrop-blur-xl ${isDark ? 'bg-black/60 border-white/20' : 'bg-white/80 border-gray-300'}`}>
-            <button
-              onClick={toggleGuides}
-              aria-label="Horizon and grid"
-              aria-pressed={showGuides}
-              className={`${iconButton} ${showGuides ? '!text-sky-500' : ''}`}
-            >
-              <Icon path={I.horizon} className="w-4 h-4" />
-            </button>
-            <button
-              onClick={toggleCone}
-              aria-label="Cone of vision"
-              aria-pressed={showCone}
-              className={`${iconButton} ${showCone ? '!text-sky-500' : ''}`}
-            >
-              <Icon path={I.cone} className="w-4 h-4" />
-            </button>
-            <button
-              onClick={toggleViewLock}
-              aria-label="Lock view"
-              className={`${iconButton} ${viewLocked ? '!text-amber-400' : ''}`}
-            >
-              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="4" y="10.5" width="16" height="10" rx="2" />
-                {viewLocked ? <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /> : <path d="M8 10.5V7a4 4 0 0 1 7.5-2" />}
-              </svg>
-            </button>
-            <button onClick={onModels} aria-label="Add or edit models" className={iconButton}>
-              <Icon path={I.cube} className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* ── Secondary / overflow tools ───────────────────────── */}
-          {showTools && (
-            <div className={`flex flex-wrap gap-1 p-1.5 rounded-2xl border backdrop-blur-xl max-w-[12rem] justify-end ${isDark ? 'bg-black/60 border-white/20' : 'bg-white/80 border-gray-300'}`}>
-              <button
-                onClick={toggleMatte}
-                aria-label="Matte white models"
-                aria-pressed={matteModels}
-                className={`${iconButton} ${matteModels ? '!text-sky-500' : ''}`}
-              >
-                <Icon path={I.matte} className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={() => importInputRef.current?.click()}
-                disabled={busyId !== null}
-                aria-label="Import models"
-                className={`${iconButton} disabled:opacity-30`}
-              >
-                <Icon path={I.upload} className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={onExportScene}
-                disabled={models.length === 0 || busyId !== null}
-                aria-label="Export scene as JSON"
-                className={`${iconButton} disabled:opacity-30`}
-              >
-                <Icon path={I.sceneExport} className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={exportSelected}
-                disabled={!selectedModel?.object || exporting || busyId !== null}
-                aria-label="Export selected model"
-                className={`${iconButton} disabled:opacity-30`}
-              >
-                <Icon path={I.save} className={`w-4 h-4 ${exporting ? 'animate-pulse' : ''}`} />
-              </button>
-
-              <button
-                onClick={() => sceneInputRef.current?.click()}
-                disabled={busyId !== null}
-                aria-label="Import scene from JSON"
-                className={`${iconButton} disabled:opacity-30`}
-              >
-                <Icon path={I.sceneImport} className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={deduplicateModels}
-                disabled={!hasDuplicates || busyId !== null}
-                aria-label="Remove duplicate meshes"
-                className={`${iconButton} disabled:opacity-30`}
-              >
-                <Icon path={I.dedup} className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {/* ── Bottom row: more + theme ──────────────────────────── */}
-          <div className="flex gap-1">
-            <button
-              onClick={() => setShowTools((open) => !open)}
-              aria-label="Extra tools"
-              aria-expanded={showTools}
-              className={`${iconButton} ${showTools ? '!text-sky-500' : ''}`}
-            >
-              <Icon path={I.sliders} className="w-4 h-4" />
-            </button>
-
-            <button
-              {...grayThemeControl}
-              aria-label="Toggle theme; double tap for sun environment"
-              aria-pressed={sunEnvironment}
-              className={`${iconButton} touch-none ${sunEnvironment ? '!text-sky-500' : ''}`}
-            >
-              <Icon path={sunEnvironment ? I.sky : isDark ? I.light : I.dark} className="w-4 h-4" />
-            </button>
-          </div>
-
         </div>
       </div>
+
+      {/* Right-center — vertical column of guide/overlay toggles */}
+      <div className={`fixed top-1/2 right-0 -translate-y-1/2 z-40 safe-right p-2 pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${railVisible ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`flex flex-col gap-1 p-1.5 rounded-2xl border backdrop-blur-xl pointer-events-auto ${isDark ? 'bg-black/60 border-white/20' : 'bg-white/80 border-gray-300'}`}>
+          <button
+            onClick={toggleGuides}
+            aria-label="All guides"
+            aria-pressed={showGuides}
+            className={`${iconButton} ${showGuides ? '!text-sky-500' : ''}`}
+          >
+            <Icon path={I.horizon} className="w-4 h-4" />
+          </button>
+          <button
+            onClick={toggleGrid}
+            aria-label="Grid"
+            aria-pressed={showGrid}
+            className={`${iconButton} ${showGrid ? '!text-sky-500' : ''}`}
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18" />
+            </svg>
+          </button>
+          <button
+            onClick={toggleHorizon}
+            aria-label="Horizon line"
+            aria-pressed={showHorizon}
+            className={`${iconButton} ${showHorizon ? '!text-sky-500' : ''}`}
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="2" y1="12" x2="22" y2="12" />
+            </svg>
+          </button>
+          <button
+            onClick={toggleCone}
+            aria-label="Cone of vision"
+            aria-pressed={showCone}
+            className={`${iconButton} ${showCone ? '!text-sky-500' : ''}`}
+          >
+            <Icon path={I.cone} className="w-4 h-4" />
+          </button>
+          <button
+            onClick={toggleViewLock}
+            aria-label="Lock view"
+            className={`${iconButton} ${viewLocked ? '!text-amber-400' : ''}`}
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="4" y="10.5" width="16" height="10" rx="2" />
+              {viewLocked ? <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /> : <path d="M8 10.5V7a4 4 0 0 1 7.5-2" />}
+            </svg>
+          </button>
+          <button onClick={onModels} aria-label="Models" className={iconButton}>
+            <Icon path={I.cube} className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setShowTools((open) => !open)}
+            aria-label="Extra tools"
+            aria-expanded={showTools}
+            className={`${iconButton} ${showTools ? '!text-sky-500' : ''}`}
+          >
+            <Icon path={I.sliders} className="w-4 h-4" />
+          </button>
+          <button
+            {...grayThemeControl}
+            aria-label="Toggle theme"
+            aria-pressed={sunEnvironment}
+            className={`${iconButton} touch-none ${sunEnvironment ? '!text-sky-500' : ''}`}
+          >
+            <Icon path={sunEnvironment ? I.sky : isDark ? I.light : I.dark} className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Secondary / overflow tools popup */}
+      {showTools && (
+        <div className={`fixed top-1/2 right-14 -translate-y-1/2 z-40 safe-right p-2 pointer-events-auto`}>
+          <div className={`flex flex-col gap-1 p-1.5 rounded-2xl border backdrop-blur-xl ${isDark ? 'bg-black/60 border-white/20' : 'bg-white/80 border-gray-300'}`}>
+            <button
+              onClick={toggleMatte}
+              aria-label="Matte white models"
+              aria-pressed={matteModels}
+              className={`${iconButton} ${matteModels ? '!text-sky-500' : ''}`}
+            >
+              <Icon path={I.matte} className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => importInputRef.current?.click()}
+              disabled={busyId !== null}
+              aria-label="Import models"
+              className={`${iconButton} disabled:opacity-30`}
+            >
+              <Icon path={I.upload} className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onExportScene}
+              disabled={models.length === 0 || busyId !== null}
+              aria-label="Export scene"
+              className={`${iconButton} disabled:opacity-30`}
+            >
+              <Icon path={I.sceneExport} className="w-4 h-4" />
+            </button>
+            <button
+              onClick={exportSelected}
+              disabled={!selectedModel?.object || exporting || busyId !== null}
+              aria-label="Export selected"
+              className={`${iconButton} disabled:opacity-30`}
+            >
+              <Icon path={I.save} className={`w-4 h-4 ${exporting ? 'animate-pulse' : ''}`} />
+            </button>
+            <button
+              onClick={() => sceneInputRef.current?.click()}
+              disabled={busyId !== null}
+              aria-label="Import scene"
+              className={`${iconButton} disabled:opacity-30`}
+            >
+              <Icon path={I.sceneImport} className="w-4 h-4" />
+            </button>
+            <button
+              onClick={deduplicateModels}
+              disabled={!hasDuplicates || busyId !== null}
+              aria-label="Remove duplicates"
+              className={`${iconButton} disabled:opacity-30`}
+            >
+              <Icon path={I.dedup} className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Hidden file inputs */}
       <input

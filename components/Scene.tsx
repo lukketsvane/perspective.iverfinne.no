@@ -232,6 +232,8 @@ const SceneContent = () => {
   const distortion = useStore((state) => state.distortion);
   const perspectiveMode = useStore((state) => state.perspectiveMode);
   const showGuides = useStore((state) => state.showGuides);
+  const showGrid = useStore((state) => state.showGrid);
+  const showHorizon = useStore((state) => state.showHorizon);
   const theme = useStore((state) => state.theme);
   const backgroundGray = useStore((state) => state.backgroundGray);
   const sunShadows = useStore((state) => state.sun.shadows);
@@ -327,10 +329,10 @@ const SceneContent = () => {
       <SceneModels />
 
       {/* Eye level / horizon line - every horizontal VP in the scene sits on it */}
-      {showGuides && <HorizonLine color={horizonColor} />}
+      {(showGuides || showHorizon) && <HorizonLine color={horizonColor} />}
 
       {/* Ground plane in metres: 1 m cells, 5 m sections */}
-      {showGuides && (
+      {(showGuides || showGrid) && (
         <Grid
           position={[0, 0.01, 0]}
           args={[100, 100]}
@@ -387,7 +389,7 @@ const SceneContent = () => {
       {/* The curvilinear view is a different projection, not a filter over the
           flat one, so it takes the frame over entirely while it is on. */}
       {curvilinear && (
-        <Panorama spread={fov} mode={perspectiveMode} gridColor={gridColor} gridStrength={showGuides ? 1 : 0} />
+        <Panorama spread={fov} mode={perspectiveMode} gridColor={gridColor} gridStrength={(showGuides || showGrid) ? 1 : 0} />
       )}
 
       <WalkControls />
