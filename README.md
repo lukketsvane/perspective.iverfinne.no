@@ -1,174 +1,38 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Perspective
 
-# Perspective reference
+First-person perspective reference tool. Cubes at eye level on a ground grid.
 
-A reference guide for practising perspective, set up the way Kim Jung Gi teaches
-it in his lectures: real-world metres, boxes, and a camera that stands where a
-person stands.
+## Controls
 
-## The defaults
+- **Look** — drag right side of screen (or mouse drag on desktop)
+- **Walk** — left thumb stick appears on touch; WASD on desktop
+- **Lens** — 3-finger vertical drag changes field of view
+- **Select** — tap a box or model
+- **Resize** — drag a face of a selected box
+- **Move** — drag the handle above a selected object
+- **Turn** — arrow buttons in selection bar (15° steps)
+- **Duplicate** — copy button in selection bar
 
-Open it and you get cubes, nothing else. Everything past that is a deliberate
-switch under **Extra Tools** — the sliders button in the walk controls.
+## Toolbar (right edge)
 
-| | Default | Why |
-| --- | --- | --- |
-| Geometry | 1 × 1 × 1 m cubes | The cube is the unit you measure a drawing with. Slabs, pillars, beams and blocks are one tap away, but you have to ask. |
-| Eye level | 1.90 m above the ground | A tall standing observer. Presets for 1.2 m (seated), 1.6 m (average standing), 1.9 m and 2.5 m (raised), plus a free slider up to 6 m. |
-| Gaze | Locked level | Camera and orbit target sit at the same height, so the line of sight is horizontal: verticals stay vertical and the scene reads as clean 2-point perspective with the horizon on your eye level. Unlock it to climb off eye level and pick up the third vanishing point. |
-| Projection | Equidistant | The default is the curvilinear five-point view. Straight lines, stereographic fisheye, cylindrical panorama and hyperbolic disc are one switch away. |
-| Lens | 210° | A broad curvilinear field that shows the ceiling and floor turning into the frame. Switch to straight lines to come back to a conventional cone of vision. |
-| Guides | Horizon line and 1 m ground grid | The horizon is drawn at the camera's own height, so every horizontal vanishing point in the scene sits on it. The 60° cone of vision is there too, one tap away. |
-| Edits | Snap to 0.25 m | A box ends up 1.75 m tall rather than 1.73 — the difference between a reference you can measure against and one you cannot. Switch to free sizing in the panel. |
+- **Eye height** — tap to cycle 1.2 / 1.6 / 1.9 / 2.5 m
+- **Projection** — linear, equidistant, stereographic, cylindrical, hyperbolic
+- **Lock** — freezes the view so you can draw from it
+- **Models** — opens the library grid; cube is first, then figures and imported meshes
+- **Sliders** — extra tools (matte, snap, guides, shadows, primitives)
+- **Theme** — tap for light/dark; double-tap for sky environment
 
-How you have the tool set up — eye level, guides, theme, lens, snap — is remembered
-between sessions. What is in the scene is not: reload and you are back to the
-opening cube in the first-person workspace.
+## Models
 
-The opening arrangement is fixed rather than random, so it works as a reference:
-most cubes are grid-aligned and share one pair of vanishing points, two are
-turned off-axis with their own pairs, a three-cube stack crosses the horizon so
-you can watch a top face flip to an underside, and one cube sits far back as a
-foreshortening check.
+Open the library (cube icon), pick a model or import GLB/glTF files. Drag to reposition, scale with the slider in the selection bar.
 
-## On a phone
+## Install
 
-Add it to the Home Screen and it runs full screen with its own icon. Walk with
-the left thumb and look with the right; the compact controls remain inside the
-safe-area edges.
+Add to Home Screen on iOS for full-screen PWA.
 
-There is no AR. Safari has no WebXR, and the AR Quick Look route - export a
-USDZ, hand it to Apple's viewer - was tried and taken back out: it leaves the
-app, and what comes back is not the tool.
+## Dev
 
-## The first-person workflow
-
-The application opens directly in first person at whatever eye height is set,
-so the reference is a room you are standing in rather than a model on a screen.
-Walk with the thumbstick or WASD and drag to look; the horizon stays pinned to
-your eyes as you move. The
-stick appears wherever your left thumb lands and the right side of the screen
-looks, so both work at once; with the camera on, the virtual lens is matched to
-the real one so the cubes stay planted as you turn.
-
-### Matching the room
-
-With the camera on, the virtual lens has to match the real one or the cubes
-slide against the floor every time you turn. Three things do that, under the
-sun icon:
-
-- **Height** — where the phone actually is off the floor, to the centimetre.
-  This is what sets the virtual floor onto the real one.
-- **Lens** — the angle the camera covers. No browser reports focal length, so
-  it starts at 63° (a phone main camera) and is adjustable by hand until a real
-  edge and the grid agree. The crop matters as much as the angle: the video is
-  painted object-cover, so a 640 × 480 stream in a portrait window is showing
-  less than half its width, and the match accounts for that.
-- **Recentre** — drops the study's origin under your feet and re-zeros the
-  compass, which is the whole of the alignment that can be done without
-  positional tracking.
-
-The **lock** freezes the framed view: the phone can be turned, put down or drawn
-from and the scene holds still.
-
-Precision has a ceiling here, and it is worth being plain about it. The phone
-reports orientation, not position, so turning is tracked and *walking is not* —
-step sideways and the scene does not shift with parallax. That is a limit of
-what a browser can see, not a setting.
-
-The walk controls contain the things you need while standing in the scene:
-
-- **Height** — tap to cycle 1.2 / 1.6 / 1.9 / 2.5 m, or set it exactly under the
-  Align control.
-- **Add Cube** — places the selected primitive on the ground where the centre
-  of the view is aimed.
-- **Models** — opens the figure and model library without changing camera mode.
-- **Extra Tools** — opens a compact panel for primitive type, snap, projection,
-  guides, cone, eye-level lock, matte models, sun bearing/elevation/intensity,
-  shadows and reset. `Escape` closes this panel.
-- **Theme** — tap the sun/moon button to switch the neutral theme. Double-tap
-  it to replace the neutral background with a clear, physically modelled sky
-  driven by the directional sun's bearing, elevation, intensity and colour
-  temperature. Double-tap again to return to black, white or the chosen gray.
-
-The link carries the study — boxes and library figures, with their positions,
-turns and sizes — so a scene composed on a laptop opens on the phone: *Send
-link* in More, then open it there. Nothing is uploaded; it rides in the URL
-fragment. Imported files are the exception, since they only exist in the browser
-that loaded them.
-
-## Meshes
-
-The centre button opens the library: nine figures to drop into the scene, and a
-tile for your own files. Import as many at once as you like — **GLB/glTF** or
-USDZ — and nothing lands on top of anything else; each one takes the nearest
-free spot to where you are looking.
-
-The library files are all normalised to exactly 1.70 m tall whatever the pose,
-which is meaningless for anything that is not standing up — a figure kneeling
-face-down is about a metre tall, and at face value it arrives as a giant. So
-each one carries the height its pose really has (1.15 m squatting, 1.00 m folded
-forward, 1.25 m seated, 1.30 m kneeling upright, 1.70 m standing) and is scaled
-to it on the way in.
-
-**Matte**, at the top of the library, replaces model materials with plain white.
-Photographed skin and fabric is a lot of information to draw past; switched off,
-a figure reads as form and value only, which is what it is doing in a scene full
-of white boxes.
-
-Models arrive at the size the file says, which is often not the size you want,
-so a selected model gets a scale slider in the selection bar with its height in
-metres above it. Double-click the slider to go back to 1:1. Drag a model to
-slide it along the floor, and turn it with the arrows.
-
-Nothing is uploaded anywhere — files are read in the browser. three.js only
-reads the ASCII flavour of USDZ, so a binary *crate* USDZ will not draw; use
-GLB.
-
-## Handling
-
-- **Walk / look** — use WASD or the left thumb to move and drag elsewhere to look.
-- **Add a cube** — press **Add Cube**. It lands at the focus point, grid-aligned,
-  so it shares the scene's vanishing points.
-- **Resize** — tap a box to select it, then drag a face to push or pull it. Its
-  size in metres counts up under your thumb in the selection bar, snapped to
-  0.25 m.
-- **Move** — select a box and drag the handle floating above it. Figures are
-  dragged directly. Both snap to the same 0.25 m.
-- **Turn** — use the arrows in the selection bar in 15° steps.
-  A box off the grid gets its own pair of vanishing points, which is half of
-  what makes a box study worth drawing.
-- **Copy** — use the duplicate button. A crowd is one figure
-  placed once and copied.
-- **Undo** — available through the shared editing controls, twenty-five steps
-  deep across boxes and figures alike.
-- **Save the view** — writes the frame to a PNG so you can draw from it on paper
-  or a second screen. The 3D guides are in the image; the on-screen chrome is not.
-- **Lens** — 3-finger vertical drag changes the field of view. Curvature is only
-  ever a deliberate mode switch, never a side effect.
-- **Reset to cubes** — bottom of the Practice panel. It clears the figures too;
-  a drill load does the same, since a figure placed for one study ends up inside
-  the next one's walls.
-
-**Save** keeps the current scene in the list under the clock icon, and loads it
-back later. Image and text prompts (the sparkle and pen icons) build denser
-scenes with Gemini; they are opt-in and append to what is already there.
-
-Nine figures placed together would be about 650 MB of texture memory at the size
-the files ship, which is more than a phone will give a browser, so textures are
-redrawn to 1024 on a phone and 2048 on a desktop before they are uploaded.
-
-## Run locally
-
-**Prerequisites:** Node.js
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-   (only needed for the image and text prompt features)
-3. Run the app:
-   `npm run dev`
-
-View the app in AI Studio: https://ai.studio/apps/drive/1bMglJLnxs7e9Sk7vwzxeWNT7TQFtmiJF
+```
+npm install
+npm run dev
+```

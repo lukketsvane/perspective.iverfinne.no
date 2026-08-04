@@ -52,12 +52,15 @@ const renderPreview = async (url: string): Promise<string> => {
   const scene = new THREE.Scene();
   scene.add(model);
 
-  // Lighting
-  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+  // Lighting – bright enough to read the model's own materials clearly
+  const ambient = new THREE.AmbientLight(0xffffff, 1.4);
   scene.add(ambient);
-  const directional = new THREE.DirectionalLight(0xffffff, 1.2);
+  const directional = new THREE.DirectionalLight(0xffffff, 2.0);
   directional.position.set(2, 3, 2);
   scene.add(directional);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.8);
+  fill.position.set(-2, 1, -1);
+  scene.add(fill);
 
   // Camera
   const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
@@ -74,6 +77,8 @@ const renderPreview = async (url: string): Promise<string> => {
   renderer.setSize(SIZE, SIZE);
   renderer.setPixelRatio(1);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
   renderer.render(scene, camera);
 
   const dataUrl = renderer.domElement.toDataURL('image/png');

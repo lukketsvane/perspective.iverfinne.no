@@ -20,7 +20,6 @@ export default function App() {
   const fov = useStore((s) => s.fov);
   const perspectiveMode = useStore((s) => s.perspectiveMode);
   const showCone = useStore((s) => s.showCone);
-  const addCube = useStore((s) => s.addCube);
   const addModel = useStore((s) => s.addModel);
   const loadHistoryFromStorage = useStore((s) => s.loadHistoryFromStorage);
   const [showMeshes, setShowMeshes] = useState(false);
@@ -28,8 +27,6 @@ export default function App() {
 
   useEffect(() => loadHistoryFromStorage(), [loadHistoryFromStorage]);
   useEffect(() => useStore.subscribe((state) => saveSettings(state)), []);
-
-  const handleAddAtFocus = () => addCube([focusPoint.x, 0, focusPoint.z]);
 
   const freeSpot = (footprint: number): [number, number] =>
     findFreeSpot(
@@ -102,7 +99,6 @@ export default function App() {
       <VanishingPoints color={isDark ? '#ff6a5e' : '#e0342a'} />
       <WalkOverlay
         onModels={() => setShowMeshes(true)}
-        onAddCube={handleAddAtFocus}
         onImport={importModels}
         onExportScene={handleExportScene}
         onImportScene={handleImportScene}
