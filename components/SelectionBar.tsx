@@ -12,8 +12,14 @@ const CM = 0.01;
 const MIN_HEIGHT = 0.05;
 const MAX_HEIGHT = 200;
 
+const MIN_BOX_DIM = 0.1;
+const MAX_BOX_DIM = 200;
+
 const quantise = (metres: number) =>
   Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.round(metres / CM) * CM));
+
+const quantiseBox = (metres: number) =>
+  Math.min(MAX_BOX_DIM, Math.max(MIN_BOX_DIM, Math.round(metres / CM) * CM));
 
 /**
  * What you can do to the thing you just tapped: turn it, size it, delete it.
@@ -25,6 +31,9 @@ const quantise = (metres: number) =>
  * whole centimetres either way. The buttons on each side step one centimetre
  * exactly, which is what a slider could never do. Double-tap to go back to the
  * height it was placed at.
+ *
+ * For boxes, three scrub controls (W × H × D) replace the plain readout so the
+ * dimensions are directly editable without having to drag a 3-D face.
  */
 export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false }) => {
   const theme = useStore((s) => s.theme);
@@ -36,11 +45,14 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   const rotateSelection = useStore((s) => s.rotateSelection);
   const duplicateSelection = useStore((s) => s.duplicateSelection);
   const scaleModel = useStore((s) => s.scaleModel);
+  const updateBox = useStore((s) => s.updateBox);
   const removeBox = useStore((s) => s.removeBox);
   const removeModel = useStore((s) => s.removeModel);
   const selectBox = useStore((s) => s.selectBox);
 
   const scrub = useRef<{ id: number; x: number; height: number } | null>(null);
+  // Per-axis box scrubbers: axis 0=W, 1=H, 2=D
+  const boxScrub = useRef<{ id: number; x: number; value: number; axis: 0 | 1 | 2 } | null>(null);
 
   const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
   const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
@@ -54,6 +66,21 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
       scaleModel(model.id, quantise(metres) / model.size[1]);
     },
     [model, scaleModel]
+  );
+
+  /** Set one axis of a box's scale, keeping the bottom face on the ground. */
+  const setBoxDim = useCallback(
+    (axis: 0 | 1 | 2, metres: number) => {
+      if (!box) return;
+      const snapped = quantiseBox(metres);
+      const newScale: [number, number, number] = [...box.scale] as [number, number, number];
+      newScale[axis] = snapped;
+      // Height axis: keep the bottom face on the ground by lifting the centre.
+      const newPos: [number, number, number] = [...box.position] as [number, number, number];
+      if (axis === 1) newPos[1] = snapped / 2;
+      updateBox(box.id, { scale: newScale, position: newPos });
+    },
+    [box, updateBox]
   );
 
   if (!box && !model) return null;
@@ -92,6 +119,61 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
     if (scrub.current?.id === e.pointerId) scrub.current = null;
   };
 
+  const onBoxScrubDown = (e: React.PointerEvent, axis: 0 | 1 | 2) => {
+    if (!box) return;
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* not capturable */ }
+    boxScrub.current = { id: e.pointerId, x: e.clientX, value: box.scale[axis], axis };
+  };
+
+  const onBoxScrubMove = (e: React.PointerEvent) => {
+    if (!boxScrub.current || boxScrub.current.id !== e.pointerId) return;
+    const { value, axis } = boxScrub.current;
+    setBoxDim(axis, value * Math.pow(1.006, e.clientX - boxScrub.current.x));
+  };
+
+  const onBoxScrubUp = (e: React.PointerEvent) => {
+    if (boxScrub.current?.id === e.pointerId) boxScrub.current = null;
+  };
+
+  /** A single scrub readout for one box axis. */
+  const BoxDimScrub = ({ axis, label }: { axis: 0 | 1 | 2; label: string }) => {
+    if (!box) return null;
+    const dim = box.scale[axis];
+    return (
+      <div className={`flex items-center rounded-full border backdrop-blur-md ${chrome}`}>
+        <button
+          onClick={() => setBoxDim(axis, dim - CM)}
+          className={`flex items-center justify-center ${size} rounded-full active:scale-95`}
+          aria-label={`${label} smaller`}
+        >
+          <Icon path={I.minus} className="w-4 h-4" />
+        </button>
+        <div
+          onPointerDown={(e) => onBoxScrubDown(e, axis)}
+          onPointerMove={onBoxScrubMove}
+          onPointerUp={onBoxScrubUp}
+          onPointerCancel={onBoxScrubUp}
+          onDoubleClick={() => setBoxDim(axis, 1)}
+          className={`px-1 ${readout} text-center text-[13px] font-black tabular-nums cursor-ew-resize touch-none select-none`}
+          role="slider"
+          aria-label={label}
+          aria-valuenow={Math.round(dim * 100)}
+          aria-valuemin={Math.round(MIN_BOX_DIM * 100)}
+          aria-valuemax={Math.round(MAX_BOX_DIM * 100)}
+        >
+          {dim.toFixed(2)} m
+        </div>
+        <button
+          onClick={() => setBoxDim(axis, dim + CM)}
+          className={`flex items-center justify-center ${size} rounded-full active:scale-95`}
+          aria-label={`${label} larger`}
+        >
+          <Icon path={I.plus} className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  };
+
   return (
     // Clear of whichever control surface this layout has. On a tablet that
     // means the top edge: the rail owns the right, and a panel can be docked
@@ -104,7 +186,7 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
         ? 'top-4 pl-4 pr-24 safe-top'
         : `${raised ? 'bottom-28' : 'bottom-6'} px-4`
     }`}>
-      <div className={`flex items-center pointer-events-auto ${layout === 'phone' ? 'gap-1' : 'gap-1.5'}`}>
+      <div className={`flex items-center pointer-events-auto flex-wrap justify-end ${layout === 'phone' ? 'gap-1' : 'gap-1.5'}`}>
         <button onClick={() => rotateSelection(-STEP)} className={iconButton} aria-label="Turn left">
           <Icon path={I.turnLeft} className="w-4 h-4" />
         </button>
@@ -147,11 +229,11 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
             </button>
           </div>
         ) : (
-          <div className={`px-3 ${layout === 'desktop' ? 'h-10' : layout === 'phone' ? 'h-11' : 'h-12'} flex items-center rounded-full border backdrop-blur-md ${chrome}`}>
-            <span className="text-[13px] font-black tabular-nums">
-              {box!.scale.map((v) => v.toFixed(2)).join(' × ')}
-            </span>
-          </div>
+          <>
+            <BoxDimScrub axis={0} label="Width" />
+            <BoxDimScrub axis={1} label="Height" />
+            <BoxDimScrub axis={2} label="Depth" />
+          </>
         )}
 
         <button onClick={duplicateSelection} className={iconButton} aria-label="Duplicate">
