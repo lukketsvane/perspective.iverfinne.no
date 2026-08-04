@@ -10,6 +10,7 @@ import { useLayout } from './lib/useLayout';
 import { loadModelFile, loadModelFromUrl, findFreeSpot, modelRadius } from './lib/loadModel';
 import { MESH_LIBRARY } from './lib/meshLibrary';
 import { focusPoint } from './lib/focus';
+import { downloadSceneJson, importSceneJson } from './lib/sceneJson';
 
 /** The application is always a first-person workspace. */
 export default function App() {
@@ -65,6 +66,29 @@ export default function App() {
     }
   };
 
+  const handleExportScene = () => {
+    const models = useStore.getState().models;
+    downloadSceneJson(models);
+  };
+
+  const handleImportScene = async (file: File) => {
+    setBusyMesh('import');
+    try {
+      const { models, skipped } = await importSceneJson(file);
+      for (const model of models) {
+        addModel(model);
+      }
+      if (skipped.length > 0) {
+        console.warn('Some assets were skipped during scene import:\n' + skipped.join('\n'));
+      }
+    } catch (error) {
+      console.error('Scene import failed:', error instanceof Error ? error.message : error);
+      alert(`Could not import scene: ${error instanceof Error ? error.message : 'unknown error'}`);
+    } finally {
+      setBusyMesh(null);
+    }
+  };
+
   const isDark = theme === 'dark';
   return (
     <div
@@ -76,13 +100,15 @@ export default function App() {
         <ConeOfVision fov={fov} color={isDark ? '#8ab4ff' : '#1f6feb'} />
       )}
       <VanishingPoints color={isDark ? '#ff6a5e' : '#e0342a'} />
-      <WalkOverlay onModels={() => setShowMeshes(true)} onAddCube={handleAddAtFocus} layout={layout} />
+      <WalkOverlay onModels={() => setShowMeshes(true)} onAddCube={handleAddAtFocus} onUpload={importModels} layout={layout} />
       {showMeshes && (
         <MeshSheet
           layout={layout}
           onClose={() => setShowMeshes(false)}
           onPlace={placeLibraryMesh}
           onImport={importModels}
+          onExportScene={handleExportScene}
+          onImportScene={handleImportScene}
           busyId={busyMesh}
         />
       )}

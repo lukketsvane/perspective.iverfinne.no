@@ -91,6 +91,10 @@ export const I = {
   save: (<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>),
   trash: (<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />),
   upload: (<><path d="M12 16V4" /><polyline points="8 8 12 4 16 8" /><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" /></>),
+  /** Scene JSON export: a box with an outward arrow and curly-brace hint. */
+  sceneExport: (<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M8 12h8M14 9l3 3-3 3" /></>),
+  /** Scene JSON import: a box with an inward arrow. */
+  sceneImport: (<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M16 12H8M10 9l-3 3 3 3" /></>),
 };
 
 /**
