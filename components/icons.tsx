@@ -34,6 +34,9 @@ export const I = {
    */
   straight: (<><line x1="2" y1="10" x2="22" y2="10" strokeOpacity="0.45" /><path d="M2 21L12 10M22 21L12 10" /><circle cx="12" cy="10" r="1.3" fill="currentColor" stroke="none" /></>),
   curved: (<><path d="M2 12c4-1.6 16-1.6 20 0" strokeOpacity="0.45" /><path d="M2 21C5 15 8 12 12 10.7M22 21c-3-6-6-9-10-10.3" /><circle cx="12" cy="10.5" r="1.3" fill="currentColor" stroke="none" /></>),
+  stereographic: (<><circle cx="12" cy="12" r="8.2" /><path d="M12 3.8v16.4M3.8 12h16.4" strokeOpacity="0.45" /><path d="M6 18c1.8-4.4 4.1-6.8 6-6.8s4.2 2.4 6 6.8" /></>),
+  cylindrical: (<><path d="M5 4h14v16H5z" /><path d="M5 8c2.2-1.3 4.5-2 7-2s4.8.7 7 2M5 16c2.2-1.3 4.5-2 7-2s4.8.7 7 2" strokeOpacity="0.45" /><line x1="12" y1="4" x2="12" y2="20" /></>),
+  hyperbolic: (<><circle cx="12" cy="12" r="8.2" /><path d="M12 3.8c-3.4 3.2-5.2 6-5.2 8.2s1.8 5 5.2 8.2M12 3.8c3.4 3.2 5.2 6 5.2 8.2s-1.8 5-5.2 8.2" strokeOpacity="0.45" /><path d="M4.8 12h14.4" /></>),
 
   /** The five primitives, drawn at their own proportions. */
   cube: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" /></>),

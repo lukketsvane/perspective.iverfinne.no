@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { fieldOf } from '../lib/projection';
 import { sceneRevision } from '../lib/sceneRevision';
+import type { PerspectiveMode } from '../types';
 
 /**
  * The curvilinear view: five-point, rendered rather than warped.
@@ -25,10 +26,11 @@ import { sceneRevision } from '../lib/sceneRevision';
  */
 export const Panorama: React.FC<{
   spread: number;
+  mode: Exclude<PerspectiveMode, 'linear'>;
   /** The construction grid's colour, and 0 strength to leave it off. */
   gridColor: THREE.Color;
   gridStrength: number;
-}> = ({ spread, gridColor, gridStrength }) => {
+}> = ({ spread, mode, gridColor, gridStrength }) => {
   const { gl, scene, camera, size, viewport } = useThree();
 
   /**
@@ -67,6 +69,7 @@ export const Panorama: React.FC<{
         halfYaw: { value: 1 },
         halfPitch: { value: 1 },
         orientation: { value: new THREE.Matrix3() },
+        projectionMode: { value: 0 },
         gridColor: { value: new THREE.Color() },
         gridStrength: { value: 0 },
       },
@@ -82,11 +85,13 @@ export const Panorama: React.FC<{
         uniform float halfYaw;
         uniform float halfPitch;
         uniform mat3 orientation;
+        uniform int projectionMode;
         uniform vec3 gridColor;
         uniform float gridStrength;
         varying vec2 vUv;
 
         const float PI = 3.14159265359;
+        const float HALF_PI = 1.57079632679;
         /** Fifteen degrees, the spacing Kim Jung Gi rules his sphere at. */
         const float SPACING = PI / 12.0;
 
@@ -107,23 +112,31 @@ export const Panorama: React.FC<{
 
         void main() {
           vec2 clip = vUv * 2.0 - 1.0;
-
-          // Equidistant: distance from centre is angle from centre, the same
-          // in every direction.
-          vec2 radial = vec2(clip.x * halfYaw, clip.y * halfPitch);
-          float radius = length(radial);
-
-          // An equidistant sphere ends at the antipode. At a full 360-degree
-          // diameter the frame's corners lie beyond that circle; sampling them
-          // would wrap the world back around and duplicate the scene.
-          if (radius > PI) {
-            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-            return;
-          }
-
           vec3 direction = vec3(0.0, 0.0, -1.0);
-          if (radius > 1e-5) {
-            direction = vec3(radial * (sin(radius) / radius), -cos(radius));
+
+          if (projectionMode == 2) {
+            float yaw = clip.x * halfYaw;
+            float pitch = clip.y * halfPitch;
+            direction = vec3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch));
+          } else {
+            vec2 radial = vec2(clip.x * halfYaw, clip.y * halfPitch);
+            float radius = length(radial);
+            float theta = radius;
+
+            if (projectionMode == 1) {
+              theta = 2.0 * atan(radius);
+            } else if (projectionMode == 3) {
+              theta = 2.0 * atan(radius / 2.0);
+            }
+
+            if (theta > PI) {
+              gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+              return;
+            }
+
+            if (radius > 1e-5) {
+              direction = vec3(radial * (sin(theta) / radius), -cos(theta));
+            }
           }
 
           vec3 world = orientation * normalize(direction);
@@ -187,6 +200,8 @@ export const Panorama: React.FC<{
     rig.material.uniforms.halfYaw.value = halfYaw;
     rig.material.uniforms.halfPitch.value = halfPitch;
     rig.material.uniforms.orientation.value.setFromMatrix4(camera.matrixWorld);
+    rig.material.uniforms.projectionMode.value =
+      mode === 'equidistant' ? 0 : mode === 'stereographic' ? 1 : mode === 'cylindrical' ? 2 : 3;
     rig.material.uniforms.gridColor.value.copy(gridColor);
     rig.material.uniforms.gridStrength.value = gridStrength;
 
