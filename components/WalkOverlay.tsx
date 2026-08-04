@@ -478,10 +478,18 @@ export const WalkOverlay: React.FC<{
         </div>
       )}
 
-      {/* Right-hand rail – auto-hides after inactivity */}
-      <div className={`fixed inset-y-0 right-0 z-40 safe-right safe-y pr-2 flex items-center pointer-events-none transition-opacity duration-300 ${railVisible ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="flex flex-col items-center gap-2 pointer-events-auto">
-          {/* AR mode: use phone as real camera */}
+      {/* Tap outside the toolbar to close expanded tools */}
+      {showTools && (
+        <div
+          className="fixed inset-0 z-39"
+          onPointerDown={() => setShowTools(false)}
+        />
+      )}
+
+      {/* Right-hand rail – 3×3 grid on mobile, no overlap */}
+      <div className={`fixed bottom-0 right-0 z-40 safe-right safe-y p-2 pointer-events-none transition-opacity duration-300 ${railVisible ? 'opacity-100' : 'opacity-0'}`}>
+        <div className="grid grid-cols-3 gap-1.5 pointer-events-auto">
+          {/* Row 1 */}
           <button
             onClick={toggleArMode}
             aria-label="AR camera mode"
@@ -493,10 +501,9 @@ export const WalkOverlay: React.FC<{
             </svg>
           </button>
 
-          {/* Camera height slider */}
-          <div className="w-24">
+          <div className="col-span-2">
             <Scrub
-              skin={{ dark: isDark, touch: false }}
+              skin={{ dark: isDark, touch: true }}
               icon={I.cone}
               label="Camera height"
               reading={`${cameraHeight.toFixed(2)} m`}
@@ -509,9 +516,21 @@ export const WalkOverlay: React.FC<{
             />
           </div>
 
-          <div className="w-24">
+          {/* Row 2 */}
+          <button
+            onClick={() => {
+              const idx = PERSPECTIVE_ORDER.indexOf(perspectiveMode);
+              setPerspectiveMode(PERSPECTIVE_ORDER[(idx + 1) % PERSPECTIVE_ORDER.length]);
+            }}
+            aria-label={`Perspective: ${perspectiveMode}`}
+            className={`${iconButton} ${perspectiveMode !== 'linear' ? '!bg-sky-500 !text-white !border-sky-400' : ''}`}
+          >
+            <Icon path={PERSPECTIVE_ICON[perspectiveMode]} className="w-4 h-4" />
+          </button>
+
+          <div className="col-span-2">
             <Scrub
-              skin={{ dark: isDark, touch: false }}
+              skin={{ dark: isDark, touch: true }}
               icon={I.cone}
               label="Field of view"
               reading={`${Math.round(fov)}°`}
@@ -524,19 +543,7 @@ export const WalkOverlay: React.FC<{
             />
           </div>
 
-          {/* Perspective mode cycle button */}
-          <button
-            onClick={() => {
-              const idx = PERSPECTIVE_ORDER.indexOf(perspectiveMode);
-              setPerspectiveMode(PERSPECTIVE_ORDER[(idx + 1) % PERSPECTIVE_ORDER.length]);
-            }}
-            aria-label={`Perspective: ${perspectiveMode}`}
-            className={`${iconButton} ${perspectiveMode !== 'linear' ? '!bg-sky-500 !text-white !border-sky-400' : ''}`}
-          >
-            <Icon path={PERSPECTIVE_ICON[perspectiveMode]} className="w-4 h-4" />
-          </button>
-
-          {/* Hold the frame still to draw from it */}
+          {/* Row 3 */}
           <button
             onClick={toggleViewLock}
             aria-label="Lock view"
@@ -556,16 +563,7 @@ export const WalkOverlay: React.FC<{
             <Icon path={I.cube} className="w-4 h-4" />
           </button>
 
-          <button
-            onClick={() => setShowTools((open) => !open)}
-            aria-label="Extra tools"
-            aria-expanded={showTools}
-            className={`${iconButton} ${showTools ? '!bg-sky-500 !text-white' : ''}`}
-          >
-            <Icon path={I.sliders} className="w-4 h-4" />
-          </button>
-
-          {/* Secondary buttons - only visible when tools expanded */}
+          {/* Row 4 (shown when expanded) */}
           {showTools && (
             <>
               <button
@@ -575,24 +573,6 @@ export const WalkOverlay: React.FC<{
                 className={`${iconButton} ${matteModels ? '!bg-sky-500 !text-white' : ''}`}
               >
                 <Icon path={I.matte} className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={exportSelected}
-                disabled={!selectedModel?.object || exporting || busyId !== null}
-                aria-label="Export selected model"
-                className={`${iconButton} disabled:opacity-30`}
-              >
-                <Icon path={I.save} className={`w-4 h-4 ${exporting ? 'animate-pulse' : ''}`} />
-              </button>
-
-              <button
-                onClick={deduplicateModels}
-                disabled={!hasDuplicates || busyId !== null}
-                aria-label="Remove duplicate meshes"
-                className={`${iconButton} disabled:opacity-30`}
-              >
-                <Icon path={I.dedup} className="w-4 h-4" />
               </button>
 
               <button
@@ -614,6 +594,15 @@ export const WalkOverlay: React.FC<{
               </button>
 
               <button
+                onClick={exportSelected}
+                disabled={!selectedModel?.object || exporting || busyId !== null}
+                aria-label="Export selected model"
+                className={`${iconButton} disabled:opacity-30`}
+              >
+                <Icon path={I.save} className={`w-4 h-4 ${exporting ? 'animate-pulse' : ''}`} />
+              </button>
+
+              <button
                 onClick={() => sceneInputRef.current?.click()}
                 disabled={busyId !== null}
                 aria-label="Import scene from JSON"
@@ -621,8 +610,27 @@ export const WalkOverlay: React.FC<{
               >
                 <Icon path={I.sceneImport} className="w-4 h-4" />
               </button>
+
+              <button
+                onClick={deduplicateModels}
+                disabled={!hasDuplicates || busyId !== null}
+                aria-label="Remove duplicate meshes"
+                className={`${iconButton} disabled:opacity-30`}
+              >
+                <Icon path={I.dedup} className="w-4 h-4" />
+              </button>
             </>
           )}
+
+          {/* Bottom row: more toggle + theme */}
+          <button
+            onClick={() => setShowTools((open) => !open)}
+            aria-label="Extra tools"
+            aria-expanded={showTools}
+            className={`${iconButton} ${showTools ? '!bg-sky-500 !text-white' : ''}`}
+          >
+            <Icon path={I.sliders} className="w-4 h-4" />
+          </button>
 
           <button
             {...grayThemeControl}
@@ -658,17 +666,6 @@ export const WalkOverlay: React.FC<{
           e.target.value = '';
         }}
       />
-
-      {showTools && (
-        <div
-          className="fixed z-50 top-safe-panel bottom-safe-panel right-safe-rail w-[min(20rem,calc(100vw-5.5rem))] pointer-events-auto flex items-center"
-          onPointerDown={(event) => event.stopPropagation()}
-          onPointerMove={(event) => event.stopPropagation()}
-          onPointerUp={(event) => event.stopPropagation()}
-          onPointerCancel={(event) => event.stopPropagation()}
-        >
-        </div>
-      )}
 
     </>
   );
