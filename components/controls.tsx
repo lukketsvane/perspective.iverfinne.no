@@ -23,34 +23,6 @@ export interface Skin {
 const surface = (skin: Skin) =>
   skin.dark ? 'bg-black/50 border-white/20' : 'bg-white/80 border-gray-300';
 
-const filled = (skin: Skin) =>
-  skin.dark ? 'bg-white text-black border-white' : 'bg-black text-white border-black';
-
-const idle = (skin: Skin) =>
-  skin.dark ? 'bg-black/50 text-gray-400 border-white/20' : 'bg-white/80 text-gray-500 border-gray-300';
-
-/** A square icon control, filled in when it is on. */
-export const Toggle: React.FC<{
-  skin: Skin;
-  on: boolean;
-  onClick: () => void;
-  path: React.ReactNode;
-  label: string;
-  className?: string;
-}> = ({ skin, on, onClick, path, label, className = '' }) => (
-  <button
-    onClick={onClick}
-    aria-label={label}
-    aria-pressed={on}
-    title={label}
-    className={`flex items-center justify-center ${
-      skin.touch ? 'w-10 h-10' : 'w-8 h-8'
-    } rounded-lg border transition-colors ${on ? filled(skin) : idle(skin)} ${className}`}
-  >
-    <Icon path={path} className={skin.touch ? 'w-5 h-5' : 'w-[18px] h-[18px]'} />
-  </button>
-);
-
 interface DraggableNumber {
   skin: Skin;
   icon: React.ReactNode;
@@ -209,31 +181,5 @@ export const Scrub: React.FC<DraggableNumber> = (props) => {
         </div>
       )}
     </div>
-  );
-};
-
-/**
- * A square that reads a number and takes a drag.
- *
- * The grid version of Scrub: icon over value, sized like every other cell so a
- * column of them lines up. Drag in any direction - right and up raise it -
- * because in a grid there is no obvious axis.
- */
-export const Cell: React.FC<DraggableNumber> = (props) => {
-  const handlers = useScrub(props, 'both');
-  const { skin, icon, label, reading } = props;
-
-  return (
-    <button
-      className={`w-12 h-12 shrink-0 flex flex-col items-center justify-center gap-0.5 rounded-xl border touch-none ${
-        skin.dark ? 'bg-black/40 border-white/15 text-white' : 'bg-black/5 border-black/10 text-gray-900'
-      }`}
-      aria-label={label}
-      title={label}
-      {...handlers}
-    >
-      <Icon path={icon} className="w-4 h-4 opacity-50" />
-      <span className="text-[10px] font-black tabular-nums leading-none">{reading}</span>
-    </button>
   );
 };

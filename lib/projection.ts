@@ -1,5 +1,3 @@
-import * as THREE from 'three';
-
 /**
  * How wide the curvilinear field is.
  *

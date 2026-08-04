@@ -2,8 +2,11 @@ import * as THREE from 'three';
 import { USDZLoader } from 'three/examples/jsm/loaders/USDZLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { SceneModel } from '../types';
+import { getAsset, isAssetRef, putAsset } from './assets';
 
 export const MODEL_ACCEPT = '.glb,.gltf,.usdz,model/gltf-binary,model/vnd.usdz+zip';
+
+const isUsdzName = (name: string) => /\.usdz$/i.test(name);
 
 export interface LoadResult {
   model: Omit<SceneModel, 'id'>;
@@ -110,7 +113,14 @@ const buildModel = (
  * library meshes are static single-mesh exports with no skinning, so a plain
  * clone is faithful.
  */
-const sources = new Map<string, Promise<{ object: THREE.Object3D | null; warning?: string }>>();
+interface ParsedSource {
+  object: THREE.Object3D | null;
+  warning?: string;
+  /** Taken from the file, not the reference: an `asset:` key has no extension. */
+  isUsdz: boolean;
+}
+
+const sources = new Map<string, Promise<ParsedSource>>();
 
 /** URLs with a parsed source in memory. */
 export const cachedSourceUrls = (): string[] => Array.from(sources.keys());
@@ -200,40 +210,40 @@ const shrinkTextures = (root: THREE.Object3D) => {
   });
 };
 
-const parseBuffer = async (
-  buffer: ArrayBuffer,
-  isUsdz: boolean
-): Promise<{ object: THREE.Object3D | null; warning?: string }> => {
+const parseBuffer = async (buffer: ArrayBuffer, isUsdz: boolean): Promise<ParsedSource> => {
   try {
     if (isUsdz) {
       const group = new USDZLoader().parse(buffer);
       // A binary crate archive parses to an empty group.
-      if (group.children.length > 0) return { object: group };
-      return { object: null, warning: 'binary USDZ — use glTF/GLB' };
+      if (group.children.length > 0) return { object: group, isUsdz };
+      return { object: null, warning: 'binary USDZ — use glTF/GLB', isUsdz };
     }
     const gltf = await new GLTFLoader().parseAsync(buffer, '');
     shrinkTextures(gltf.scene);
-    return { object: gltf.scene };
+    return { object: gltf.scene, isUsdz };
   } catch (error) {
     console.error('Failed to load model:', error);
-    return { object: null, warning: 'could not be read' };
+    return { object: null, warning: 'could not be read', isUsdz };
   }
 };
 
 /** A fresh instance sharing the cached original's buffers. */
 const instanceOf = (source: THREE.Object3D | null) => (source ? source.clone(true) : null);
 
-/** Load a dropped file. */
+/**
+ * Load a dropped file.
+ *
+ * The bytes are kept in the browser's own store first, so what the scene holds
+ * is a stable `asset:` reference rather than a `blob:` URL that dies with the
+ * page. That is what lets a scene made of imported meshes be saved at all.
+ */
 export const loadModelFile = async (file: File, dropAt: [number, number]): Promise<LoadResult> => {
   const buffer = await readFile(file);
-  const isUsdz = /\.usdz$/i.test(file.name);
-  const fileUrl = URL.createObjectURL(
-    new Blob([buffer], { type: isUsdz ? 'model/vnd.usdz+zip' : file.type })
-  );
+  const isUsdz = isUsdzName(file.name);
+  const fileUrl = await putAsset(buffer, file.name);
 
-  const pending = parseBuffer(buffer, isUsdz);
-  sources.set(fileUrl, pending);
-  const { object, warning } = await pending;
+  if (!sources.has(fileUrl)) sources.set(fileUrl, parseBuffer(buffer, isUsdz));
+  const { object, warning } = await sources.get(fileUrl)!;
 
   return {
     model: buildModel(instanceOf(object), file.name.replace(/\.[^.]+$/, ''), fileUrl, isUsdz, dropAt),
@@ -241,8 +251,20 @@ export const loadModelFile = async (file: File, dropAt: [number, number]): Promi
   };
 };
 
+/** Read a source back, whether it is a bundled mesh or an earlier import. */
+const fetchSource = async (url: string): Promise<ParsedSource> => {
+  if (isAssetRef(url)) {
+    const asset = await getAsset(url);
+    if (!asset) throw new Error('the imported file is no longer in this browser');
+    return parseBuffer(asset.bytes, isUsdzName(asset.name));
+  }
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+  return parseBuffer(await response.arrayBuffer(), isUsdzName(url));
+};
+
 /**
- * Load one of the built-in meshes, fetched on demand.
+ * Load a mesh by reference: a built-in library path, or an imported file.
  *
  * `targetHeight` is the real height of the pose. The library files are all
  * normalised to the same box height whatever they are doing, so this is what
@@ -254,19 +276,19 @@ export const loadModelFromUrl = async (
   dropAt: [number, number],
   targetHeight?: number
 ): Promise<LoadResult> => {
-  if (!sources.has(url)) {
-    sources.set(
-      url,
-      (async () => {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Failed to fetch ${url}`);
-        return parseBuffer(await response.arrayBuffer(), /\.usdz$/i.test(url));
-      })()
-    );
-  }
-  const { object, warning } = await sources.get(url)!;
+  if (!sources.has(url)) sources.set(url, fetchSource(url));
 
-  const model = buildModel(instanceOf(object), name, url, /\.usdz$/i.test(url), dropAt);
+  let loaded: ParsedSource;
+  try {
+    loaded = await sources.get(url)!;
+  } catch (error) {
+    // A rejected promise left in the cache would fail every later attempt.
+    sources.delete(url);
+    throw error;
+  }
+  const { object, warning, isUsdz } = loaded;
+
+  const model = buildModel(instanceOf(object), name, url, isUsdz, dropAt);
   if (targetHeight && model.size[1] > 0.001) {
     model.scale = targetHeight / model.size[1];
     // Resetting the slider should come back to the pose's real height, not to

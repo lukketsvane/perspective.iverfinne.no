@@ -5,7 +5,6 @@ import * as THREE from 'three';
 import { BoxData } from '../types';
 import { useStore } from '../store';
 import { noteDragEnd } from '../lib/dragGuard';
-import { createGroundPicker } from '../lib/groundDrag';
 
 interface KimBoxProps {
   data: BoxData;
@@ -18,9 +17,8 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
   const selectedId = useStore((state) => state.selectedId);
   const setIsDraggingGlobal = useStore((state) => state.setIsDragging);
   const theme = useStore((state) => state.theme);
-  const isViewMode = useStore((state) => state.isViewMode);
-  
-  const { camera, controls, gl } = useThree();
+
+  const { camera } = useThree();
   
   const isSelected = selectedId === data.id;
   const isDark = theme === 'dark';
@@ -29,19 +27,7 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
   const boxColor = isDark ? (isSelected ? "#101010" : "#000000") : (isSelected ? "#ffefef" : "#ffffff");
   const edgeColor = isDark ? (isSelected ? "#ff5555" : "#ffffff") : (isSelected ? "#ff3b30" : "#0a0a0a");
 
-  // Cursor style management
-  const handlePointerOver = () => {
-    if (isViewMode) return;
-    if (isSelected) document.body.style.cursor = 'crosshair';
-    else document.body.style.cursor = 'pointer';
-  };
-
-  const handlePointerOut = () => {
-     document.body.style.cursor = 'auto';
-  };
-
   const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
-    if (isViewMode) return;
     e.stopPropagation();
 
     // If not selected, just select and return. 
@@ -55,7 +41,6 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
 
     // --- START DRAG ---
     setIsDraggingGlobal(true);
-    if (controls) (controls as any).enabled = false;
     document.body.style.cursor = 'grabbing';
 
     const startX = e.clientX;
@@ -167,7 +152,6 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
         // --- END DRAG ---
         noteDragEnd();
         setIsDraggingGlobal(false);
-        if (controls) (controls as any).enabled = true;
         document.body.style.cursor = 'auto';
 
         // Commit final state to store
@@ -187,52 +171,12 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
     window.addEventListener('pointermove', handleWindowMove);
     window.addEventListener('pointerup', handleWindowUp);
 
-  }, [isSelected, controls, data, selectBox, updateBox, setIsDraggingGlobal, isViewMode, camera]);
-
-  /** Slide the box across the floor, keeping its height and its size. */
-  const handleMoveDown = useCallback((e: ThreeEvent<PointerEvent>) => {
-    if (isViewMode) return;
-    e.stopPropagation();
-
-    setIsDraggingGlobal(true);
-    if (controls) (controls as any).enabled = false;
-    document.body.style.cursor = 'grabbing';
-
-    const start: [number, number, number] = [...data.position];
-    const onGround = createGroundPicker(camera, gl.domElement);
-    // The handle floats above the box, so the ray through it can be too flat to
-    // meet the floor within reach. That is fine for an anchor - fall back to
-    // where the box already stands and drag relative to that.
-    const grabbed =
-      onGround(e.clientX, e.clientY) ?? new THREE.Vector3(start[0], 0, start[2]);
-
-    const onMove = (moveEvent: PointerEvent) => {
-      const now = onGround(moveEvent.clientX, moveEvent.clientY);
-      if (!now) return;
-      const snap = useStore.getState().snapStep;
-      const place = (v: number) => (snap > 0 ? Math.round(v / snap) * snap : v);
-      updateBox(data.id, {
-        position: [place(start[0] + (now.x - grabbed.x)), start[1], place(start[2] + (now.z - grabbed.z))],
-      });
-    };
-
-    const onUp = () => {
-      noteDragEnd();
-      setIsDraggingGlobal(false);
-      if (controls) (controls as any).enabled = true;
-      document.body.style.cursor = 'auto';
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-  }, [isViewMode, controls, data.id, data.position, setIsDraggingGlobal, updateBox, camera, gl]);
+  }, [isSelected, data, selectBox, updateBox, setIsDraggingGlobal, camera]);
 
   return (
     <group userData={{ selectableType: 'box', selectableId: data.id }}>
-      {/* Helper Lines (Only when selected AND not in View Mode) */}
-      {isSelected && !isViewMode && (
+      {/* Helper lines, drawn only around the selection. */}
+      {isSelected && (
         <group>
             {/* Central Axis Spine - Visual hint for vertical alignment */}
             <Line
@@ -266,27 +210,20 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
         // ground, which is half of what a perspective study is about.
         castShadow
         receiveShadow
-        // If in view mode, we essentially disable pointer events so clicks pass through to controls
         onPointerDown={handlePointerDown}
-        // The ground plane below deselects on click and spawns on double click.
-        // Swallow both here so hitting a box never falls through to the floor.
-        onClick={(e) => {
-            if (isViewMode) return;
+        // The ground plane below deselects on click. Swallow both events here
+        // so hitting a box never falls through to the floor.
+        onClick={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
+        onPointerOver={(e) => {
             e.stopPropagation();
+            // Selected, a face is a handle you push and pull; unselected, the
+            // box is something to click.
+            document.body.style.cursor = isSelected ? 'crosshair' : 'pointer';
         }}
-        onDoubleClick={(e) => {
-            if (isViewMode) return;
+        onPointerOut={(e) => {
             e.stopPropagation();
-        }}
-        onPointerOver={(e) => { 
-            if (isViewMode) return;
-            e.stopPropagation(); 
-            handlePointerOver(); 
-        }}
-        onPointerOut={(e) => { 
-            if (isViewMode) return;
-            e.stopPropagation(); 
-            handlePointerOut(); 
+            document.body.style.cursor = 'auto';
         }}
       >
         <boxGeometry args={[1, 1, 1]} />
@@ -306,8 +243,8 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
           color={edgeColor}
         />
         
-        {/* Interaction Hints - Dots on faces */}
-        {isSelected && !isViewMode && (
+        {/* Interaction hints: the three faces you can push and pull. */}
+        {isSelected && (
            <group>
                {/* Top Face Dot */}
                <mesh position={[0, 0.5, 0]}>

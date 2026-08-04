@@ -36,17 +36,6 @@ export const walkInput = {
   speed: 1.4,
 };
 
-/** Drop the walker at a spot, facing a heading, when entering walk mode. */
-export const resetWalk = (x: number, z: number, yaw: number) => {
-  walkInput.position.set(x, 0, z);
-  walkInput.yaw = yaw;
-  walkInput.pitch = 0;
-  walkInput.lookYaw = 0;
-  walkInput.lookPitch = 0;
-  walkInput.forward = 0;
-  walkInput.strafe = 0;
-};
-
 // ---------------------------------------------------------------------------
 // Device orientation
 // ---------------------------------------------------------------------------
