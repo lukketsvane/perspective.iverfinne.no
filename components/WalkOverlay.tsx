@@ -4,6 +4,7 @@ import { walkInput } from '../lib/walkInput';
 import { Icon, I } from './icons';
 import { Scrub, useGrayThemeControl } from './controls';
 import { PracticePanel } from './PracticePanel';
+import { MODEL_ACCEPT } from '../lib/loadModel';
 import type { Layout } from '../lib/useLayout';
 
 const MAX_PITCH = Math.PI / 2 - 0.05;
@@ -73,8 +74,9 @@ const shapeStick = (magnitude: number) => {
 export const WalkOverlay: React.FC<{
   onModels: () => void;
   onAddCube: () => void;
+  onUpload: (files: FileList) => void;
   layout: Layout;
-}> = ({ onModels, onAddCube, layout }) => {
+}> = ({ onModels, onAddCube, onUpload, layout }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -89,6 +91,7 @@ export const WalkOverlay: React.FC<{
   const toggleSunEnvironment = useStore((s) => s.toggleSunEnvironment);
   const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
   const [showTools, setShowTools] = useState(false);
+  const uploadRef = useRef<HTMLInputElement>(null);
 
   const isDark = theme === 'dark';
   const chrome = isDark
@@ -374,6 +377,10 @@ export const WalkOverlay: React.FC<{
             <Icon path={I.figure} className="w-4 h-4" />
           </button>
 
+          <button onClick={() => uploadRef.current?.click()} aria-label="Upload model" className={iconButton}>
+            <Icon path={I.upload} className="w-4 h-4" />
+          </button>
+
           <button onClick={onAddCube} aria-label="Add cube" className={iconButton}>
             <Icon path={I.cube} className="w-4 h-4" />
           </button>
@@ -409,6 +416,18 @@ export const WalkOverlay: React.FC<{
           <PracticePanel layout={layout === 'phone' ? 'tablet' : layout} onClose={() => setShowTools(false)} />
         </div>
       )}
+
+      <input
+        ref={uploadRef}
+        type="file"
+        multiple
+        accept={MODEL_ACCEPT}
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.length) onUpload(e.target.files);
+          e.target.value = '';
+        }}
+      />
 
     </>
   );

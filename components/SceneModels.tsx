@@ -75,7 +75,7 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
         return;
       }
 
-      // --- SLIDE ALONG THE GROUND ---
+      // --- SLIDE ALONG THE GROUND (or lift vertically with Shift) ---
       setIsDragging(true);
       if (controls) (controls as any).enabled = false;
       document.body.style.cursor = 'grabbing';
@@ -84,16 +84,27 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       const pointOnGround = createGroundPicker(camera, gl.domElement);
       const grabbed =
         pointOnGround(e.clientX, e.clientY) ?? new THREE.Vector3(start[0], 0, start[2]);
+      const startClientY = e.clientY;
 
       const onMove = (moveEvent: PointerEvent) => {
-        const now = pointOnGround(moveEvent.clientX, moveEvent.clientY);
-        if (!now) return;
-        // Same snap as the boxes, so a figure can be lined up on the grid.
         const snap = useStore.getState().snapStep;
         const place = (v: number) => (snap > 0 ? Math.round(v / snap) * snap : v);
-        updateModel(model.id, {
-          position: [place(start[0] + (now.x - grabbed.x)), 0, place(start[2] + (now.z - grabbed.z))],
-        });
+
+        if (moveEvent.shiftKey) {
+          // Shift held: drag vertically. Each pixel of upward drag raises the
+          // model by a fraction of a metre; the scale is intentionally loose so
+          // a quick swipe covers the full useful range.
+          const dy = startClientY - moveEvent.clientY;
+          const newY = Math.max(0, place(start[1] + dy * 0.02));
+          updateModel(model.id, { position: [start[0], newY, start[2]] });
+        } else {
+          const now = pointOnGround(moveEvent.clientX, moveEvent.clientY);
+          if (!now) return;
+          // Same snap as the boxes, so a figure can be lined up on the grid.
+          updateModel(model.id, {
+            position: [place(start[0] + (now.x - grabbed.x)), start[1], place(start[2] + (now.z - grabbed.z))],
+          });
+        }
       };
 
       const onUp = () => {
