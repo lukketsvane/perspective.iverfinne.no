@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
-import { walkInput } from '../lib/walkInput';
+import { walkInput, enableDeviceOrientation, recentre } from '../lib/walkInput';
 import { Icon, I } from './icons';
 import { Scrub, useGrayThemeControl } from './controls';
 import { PracticePanel } from './PracticePanel';
@@ -105,6 +105,9 @@ export const WalkOverlay: React.FC<{
   const toggleSunEnvironment = useStore((s) => s.toggleSunEnvironment);
   const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
   const [showTools, setShowTools] = useState(false);
+  const [railVisible, setRailVisible] = useState(true);
+  const [arMode, setArMode] = useState(false);
+  const railTimer = useRef<number | undefined>(undefined);
   const matteModels = useStore((s) => s.matteModels);
   const toggleMatte = useStore((s) => s.toggleMatte);
   const models = useStore((s) => s.models);
@@ -150,6 +153,7 @@ export const WalkOverlay: React.FC<{
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const tapStarts = useRef(new Map<number, { x: number; y: number; at: number; cancelled: boolean }>());
   const sunPan = useRef<{ x: number; y: number; azimuth: number; elevation: number } | null>(null);
+  const pinch = useRef<{ startDist: number; startAngle: number; startScale: number; startRotY: number; centreX: number; centreY: number; startPos: [number, number, number] } | null>(null);
   const [stickView, setStickView] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
 
   // One rule whether or not the sensor is driving: the near corner walks, the
@@ -182,6 +186,7 @@ export const WalkOverlay: React.FC<{
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
+    showRail();
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     tapStarts.current.set(e.pointerId, { x: e.clientX, y: e.clientY, at: performance.now(), cancelled: false });
     if (pointers.current.size > 1) {
@@ -190,17 +195,34 @@ export const WalkOverlay: React.FC<{
     // Lock freezes the camera, not the scene editor. Keep tracking a possible
     // selection tap, but do not start a walk/look gesture.
     if (viewLocked) return;
-    // Capture keeps a thumb that slides off the layer still driving it, but it
-    // throws for a pointer the browser no longer considers active - and an
-    // exception here would take the whole gesture down with it.
     try {
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     } catch {
-      /* not capturable; the window-level handlers still see the moves */
+      /* not capturable */
     }
-    if (pointers.current.size === 3) {
-      // Three fingers grab the light rather than the camera. Horizontal motion
-      // circles the scene; vertical motion raises and lowers the sun.
+
+    if (pointers.current.size === 2 && selectedModelId) {
+      // Two-finger pinch: rotate and translate the selected model
+      const pts = [...pointers.current.values()];
+      const dx = pts[1].x - pts[0].x;
+      const dy = pts[1].y - pts[0].y;
+      const model = models.find((m) => m.id === selectedModelId);
+      pinch.current = {
+        startDist: Math.hypot(dx, dy),
+        startAngle: Math.atan2(dy, dx),
+        startScale: model?.scale ?? 1,
+        startRotY: model?.rotationY ?? 0,
+        centreX: (pts[0].x + pts[1].x) / 2,
+        centreY: (pts[0].y + pts[1].y) / 2,
+        startPos: model?.position ? [...model.position] : [0, 0, 0],
+      };
+      stick.current = null;
+      look.current = null;
+      setStickView(null);
+      walkInput.forward = 0;
+      walkInput.strafe = 0;
+    } else if (pointers.current.size === 3) {
+      // Three fingers grab the light
       const points = [...pointers.current.values()];
       sunPan.current = {
         x: points.reduce((sum, point) => sum + point.x, 0) / 3,
@@ -208,15 +230,16 @@ export const WalkOverlay: React.FC<{
         azimuth: sun.azimuth,
         elevation: sun.elevation,
       };
+      pinch.current = null;
       stick.current = null;
       look.current = null;
       setStickView(null);
       walkInput.forward = 0;
       walkInput.strafe = 0;
-    } else if (pointers.current.size < 3 && !stick.current && isStickZone(e.clientX, e.clientY)) {
+    } else if (pointers.current.size < 2 && !stick.current && isStickZone(e.clientX, e.clientY)) {
       stick.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
       applyStick(e.clientX, e.clientY, e.clientX, e.clientY);
-    } else if (!look.current) {
+    } else if (pointers.current.size < 2 && !look.current) {
       look.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
     }
   };
@@ -227,6 +250,38 @@ export const WalkOverlay: React.FC<{
     if (pointers.current.has(e.pointerId)) {
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     }
+
+    // Two-finger pinch: rotate + translate model
+    if (pinch.current && pointers.current.size === 2 && selectedModelId) {
+      const pts = [...pointers.current.values()];
+      const dx = pts[1].x - pts[0].x;
+      const dy = pts[1].y - pts[0].y;
+      const dist = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx);
+      const cx = (pts[0].x + pts[1].x) / 2;
+      const cy = (pts[0].y + pts[1].y) / 2;
+
+      // Rotation from angle change
+      const deltaAngle = angle - pinch.current.startAngle;
+      const newRotY = pinch.current.startRotY - deltaAngle;
+
+      // Translation from centre movement (screen px → world metres, rough)
+      const moveFactor = 0.01;
+      const moveX = (cx - pinch.current.centreX) * moveFactor;
+      const moveZ = (cy - pinch.current.centreY) * moveFactor;
+
+      const updateModel = useStore.getState().updateModel;
+      updateModel(selectedModelId, {
+        rotationY: newRotY,
+        position: [
+          pinch.current.startPos[0] + moveX,
+          pinch.current.startPos[1],
+          pinch.current.startPos[2] + moveZ,
+        ],
+      });
+      return;
+    }
+
     if (sunPan.current && pointers.current.size >= 3) {
       const points = [...pointers.current.values()].slice(0, 3);
       const x = points.reduce((sum, point) => sum + point.x, 0) / 3;
@@ -320,6 +375,31 @@ export const WalkOverlay: React.FC<{
   }, [showTools]);
 
   // ---------------------------------------------------------------- actions
+
+  // Auto-hide the rail after inactivity
+  const showRail = useCallback(() => {
+    setRailVisible(true);
+    if (railTimer.current) clearTimeout(railTimer.current);
+    railTimer.current = setTimeout(() => setRailVisible(false), 4000) as unknown as number;
+  }, []);
+
+  useEffect(() => {
+    showRail();
+    return () => { if (railTimer.current) clearTimeout(railTimer.current); };
+  }, [showRail]);
+
+  // AR mode: enable device orientation and use phone as real camera
+  const toggleArMode = useCallback(async () => {
+    if (arMode) {
+      setArMode(false);
+    } else {
+      const granted = await enableDeviceOrientation();
+      if (granted) {
+        recentre();
+        setArMode(true);
+      }
+    }
+  }, [arMode]);
 
   const exportSelected = async () => {
     if (!selectedModel?.object || exporting) return;
