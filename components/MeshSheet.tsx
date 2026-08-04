@@ -84,7 +84,7 @@ export const MeshSheet: React.FC<{
       <button onClick={onClose} className="mx-auto w-10 h-1 rounded-full bg-current opacity-20" aria-label="Close" />
 
       {/* Grid of mesh thumbnails – 3/5 of viewport height, larger tiles */}
-      <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-[36vh] overflow-y-auto overscroll-contain scrollbar-none p-0.5">
+      <div className="grid grid-cols-3 gap-2 max-h-[36vh] overflow-y-auto overscroll-contain scrollbar-none p-0.5">
         {/* Cube as the first default model */}
         <button
           onClick={handleAddCube}
