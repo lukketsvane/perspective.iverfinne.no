@@ -3,6 +3,7 @@ import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { ContactShadows, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore, DEFAULT_CAMERA_HEIGHT } from '../store';
+import { ARSession } from './ARSession';
 import { GroundGrid } from './GroundGrid';
 import { KimBox } from './KimBox';
 import { HorizonLine } from './Reference';
@@ -251,6 +252,7 @@ const SceneContent = () => {
   const theme = useStore((state) => state.theme);
   const backgroundGray = useStore((state) => state.backgroundGray);
   const sunShadows = useStore((state) => state.sun.shadows);
+  const inAR = useStore((state) => state.arRequested);
   const sunEnvironment = useStore((state) => state.sunEnvironment);
 
   // The full-screen walk layer owns touch gestures, so browser pointer events
@@ -325,7 +327,8 @@ const SceneContent = () => {
 
   return (
     <>
-      <color attach="background" args={[sunEnvironment ? '#000000' : bgColor]} />
+      {/* Left off in AR: the camera feed is the background there. */}
+      {!inAR && <color attach="background" args={[sunEnvironment ? '#000000' : bgColor]} />}
       {sunEnvironment && <SunEnvironment />}
       {/* One sun, and nothing else.
 
@@ -405,11 +408,12 @@ const SceneContent = () => {
 
       {/* The curvilinear view is a different projection, not a filter over the
           flat one, so it takes the frame over entirely while it is on. */}
-      {curvilinear && (
+      {curvilinear && !inAR && (
         <Panorama spread={fov} mode={perspectiveMode} gridColor={gridColor} gridStrength={guides >= 3 ? 1 : 0} />
       )}
 
       <WalkControls />
+      <ARSession />
 
       <FocusTracker />
       <VanishingTracker />
@@ -447,7 +451,10 @@ export const Scene = () => {
       gl={{
         antialias: true,
         toneMapping: THREE.ACESFilmicToneMapping,
-        alpha: false,
+        // Transparent, so an AR session can show the room through it. The
+        // scene's own background colour is drawn as a scene background, so
+        // nothing changes outside a session.
+        alpha: true,
         preserveDrawingBuffer: true,
       }}
       // Percentage-closer soft shadows: the edge of a cube's shadow should

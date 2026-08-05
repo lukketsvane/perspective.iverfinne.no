@@ -7,7 +7,6 @@ import { SelectionBar } from './components/SelectionBar';
 import { MeshSheet } from './components/MeshSheet';
 import { SceneSheet } from './components/SceneSheet';
 import { LightSheet } from './components/LightSheet';
-import { ProjectionSheet } from './components/ProjectionSheet';
 import { useStore, saveSettings, currentView } from './store';
 import { loadModelFile, loadModelFromUrl, findFreeSpot, modelRadius } from './lib/loadModel';
 import { MESH_LIBRARY, randomMesh } from './lib/meshLibrary';
@@ -28,7 +27,7 @@ export default function App() {
   const addModel = useStore((s) => s.addModel);
   const applyScene = useStore((s) => s.applyScene);
   const loadSceneHistory = useStore((s) => s.loadSceneHistory);
-  const [sheet, setSheet] = useState<'meshes' | 'scenes' | 'lights' | 'projections' | null>(null);
+  const [sheet, setSheet] = useState<'meshes' | 'scenes' | 'lights' | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,21 +62,26 @@ export default function App() {
   }, [addModel]);
 
   /** How much of the frame's height the opening object should fill. */
-  const OPENING_SIZE = 0.3;
+  const OPENING_SIZE = 0.45;
 
   /**
    * Stand where the whole of it can be seen, and look at its middle.
    *
-   * The four are not one size - a stacking chair is knee high, the car is six
-   * metres long - so a distance in metres frames one of them and loses the
-   * other. What matters is the angle it subtends against the angle the frame
-   * covers, and in this tool that second figure moves too: a 210 degree
-   * curvilinear field puts nine times as much world on the glass as a 60 degree
-   * lens does. Distance is worked back from the two of them, then held inside
-   * the range a person could actually stand at.
+   * Three things decide this and the first version only used one. The angle it
+   * subtends against the angle the frame covers - a 180 degree sheet puts nine
+   * times as much world on the glass as a 60 degree lens. Its own size, since a
+   * stacking chair is knee high and the car is six metres long. And, the one
+   * that was missing: how far the eye is *above* it. A chair 0.7 m away from a
+   * 1.9 m eye is not 0.7 m away, it is 1.7 m away and mostly below you, which
+   * is why it kept coming out small however close the walker was put.
+   *
+   * So the distance wanted is a slant distance, and it is solved for both
+   * legs: stand back by about half the object's length, then drop the eye
+   * until the object fills the frame - which for anything low means kneeling to
+   * it, and for a car means staying at standing height.
    */
   const frame = (size: [number, number, number]) => {
-    const { cameraHeight, fov, perspectiveMode } = useStore.getState();
+    const { cameraHeight, fov, perspectiveMode, setCameraHeight } = useStore.getState();
     const vertical =
       perspectiveMode === 'linear'
         ? (fov * Math.PI) / 180
@@ -85,11 +89,21 @@ export default function App() {
 
     const longest = Math.max(size[0], size[1], size[2]);
     const wanted = Math.min(Math.PI * 0.8, vertical * OPENING_SIZE);
-    const distance = Math.min(14, Math.max(1.2, longest / 2 / Math.tan(wanted / 2)));
+    /** How far the eye has to be from the object's middle, along the view. */
+    const slant = longest / 2 / Math.tan(wanted / 2);
 
+    // Back off by about half its length, and never closer than arm's reach.
+    const distance = Math.min(14, Math.max(0.9, longest * 0.55));
+    const middle = size[1] / 2;
+    // Whatever is left of the slant after the ground distance is height. If
+    // there is nothing left, the eye comes down to the object's own middle.
+    const rise = Math.sqrt(Math.max(slant * slant - distance * distance, 0));
+    const eye = Math.min(cameraHeight, Math.max(0.8, middle + rise));
+
+    setCameraHeight(eye);
     walkInput.position.set(0, 0, distance);
     walkInput.yaw = 0;
-    walkInput.pitch = Math.atan2(size[1] / 2 - cameraHeight, distance);
+    walkInput.pitch = Math.atan2(middle - eye, distance);
     walkInput.lookYaw = 0;
     walkInput.lookPitch = 0;
     walkInput.seeded = true;
@@ -178,7 +192,6 @@ export default function App() {
         onModels={() => setSheet('meshes')}
         onScenes={() => setSheet('scenes')}
         onLights={() => setSheet('lights')}
-        onProjections={() => setSheet('projections')}
         onImport={importModels}
         covered={sheet !== null}
       />
@@ -186,7 +199,6 @@ export default function App() {
         <MeshSheet onClose={() => setSheet(null)} onPlace={placeLibraryMesh} busyId={busy} />
       )}
       {sheet === 'lights' && <LightSheet onClose={() => setSheet(null)} />}
-      {sheet === 'projections' && <ProjectionSheet onClose={() => setSheet(null)} />}
       {sheet === 'scenes' && (
         <SceneSheet
           onClose={() => setSheet(null)}

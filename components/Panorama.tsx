@@ -27,16 +27,8 @@ import type { PerspectiveMode } from '../types';
 /** What each projection is, to the shader. Equidistant is zero. */
 const PROJECTION_MODES: Partial<Record<PerspectiveMode, number>> = {
   equidistant: 0,
-  stereographic: 1,
   cylindrical: 2,
-  hyperbolic: 3,
   '5-point': 4,
-  '720-noneuclidean': 5,
-  mercator: 6,
-  'little-planet': 7,
-  'mirror-ball': 8,
-  inversion: 9,
-  vortex: 10,
 };
 
 export const Panorama: React.FC<{
@@ -133,88 +125,25 @@ export const Panorama: React.FC<{
             float yaw = clip.x * halfYaw;
             float pitch = clip.y * halfPitch;
             direction = vec3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch));
-          } else if (projectionMode == 6) {
-            /*
-             * Mercator.
-             *
-             * The map projection, used as a lens. Verticals stay vertical and
-             * every angle is preserved locally, and the price is that the
-             * zenith and the nadir are infinitely far up and down - so walking
-             * under something makes it climb the frame forever without ever
-             * arriving overhead.
-             */
-            float yaw = clip.x * halfYaw;
-            float y = clip.y * halfPitch * 1.4;
-            float pitch = 2.0 * atan(exp(y)) - PI * 0.5;
-            direction = vec3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch));
           } else {
             vec2 radial = vec2(clip.x * halfYaw, clip.y * halfPitch);
             float radius = length(radial);
             float theta = radius; // 0 or 4 = equidistant / 5-point
 
-            if (projectionMode == 1) { // stereographic
-              theta = 2.0 * atan(radius);
-            } else if (projectionMode == 3) { // hyperbolic
-              theta = 2.0 * atan(radius / 2.0);
-            } else if (projectionMode == 7) {
+            if (projectionMode == 4) {
               /*
-               * Little planet.
+               * Five point.
                *
-               * Stereographic, but taken from the nadir: the ground curls into
-               * a ball under your feet and the whole rest of the world - all
-               * 360 degrees of it - stands around the rim. The floor you are
-               * standing on becomes an object you are looking at.
+               * The same equidistant mapping, opened out to the whole
+               * hemisphere and beyond: nothing is clipped away at 180, so the
+               * zenith and the nadir are both on the page along with the four
+               * points around the horizon. This is the sheet a curvilinear
+               * study is ruled on before a line of it is drawn.
                */
-              theta = 2.0 * atan(radius * 0.55);
-            } else if (projectionMode == 8) {
-              /*
-               * Mirror ball.
-               *
-               * Orthographic: the hemisphere as a solid disc, the way a chrome
-               * sphere shows a room. Angle runs as the *sine* of the distance
-               * from the centre, so everything crowds and flattens against the
-               * rim, and the last few degrees before the edge hold half the
-               * world.
-               */
-              theta = asin(clamp(radius / max(halfPitch, 1e-4) * 0.999, -1.0, 1.0));
-            } else if (projectionMode == 9) {
-              /*
-               * Inversion. The world turned inside out.
-               *
-               * r goes to 1/r, so what is behind you sits in the middle of the
-               * frame and what is in front is smeared round the outside. Every
-               * straight line becomes a circle through the centre, which is
-               * exactly what inversive geometry says should happen, and it is
-               * genuinely hard to hold in your head while it moves.
-               */
-              float r = max(radius, 1e-3);
-              theta = PI - 2.0 * atan(r * 0.7);
-            } else if (projectionMode == 10) {
-              /*
-               * Vortex.
-               *
-               * Equidistant, with the picture rotated by an amount that grows
-               * with distance from the centre. Straight lines become spirals;
-               * the further out, the more twist, so the world winds itself up
-               * around whatever you are looking at.
-               */
-              float twist = radius * 1.6;
-              float c = cos(twist); float sn = sin(twist);
-              radial = vec2(radial.x * c - radial.y * sn, radial.x * sn + radial.y * c);
-            } else if (projectionMode == 5) { // 720-noneuclidean
-              // Apply a non-Euclidean mapping (e.g. Poincare-like expansion mixed with spherical wrapping)
-              // This creates a manifold where parallel lines diverge/converge based on distance
-              float K = -0.5; // Negative curvature parameter
-              float nonEuclideanR = log(1.0 + radius * sqrt(-K)) / sqrt(-K);
-              theta = nonEuclideanR * 2.0; 
-              
-              // Add a Mobius spiral twist (space-time twisting)
-              float twist = radius * 0.3;
-              float c = cos(twist); float s = sin(twist);
-              radial = vec2(radial.x * c - radial.y * s, radial.x * s + radial.y * c);
+              theta = radius;
             }
 
-            if (theta > PI && projectionMode != 4 && projectionMode != 5 && projectionMode != 9) {
+            if (theta > PI && projectionMode != 4) {
               gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
               return;
             }
@@ -222,12 +151,6 @@ export const Panorama: React.FC<{
             if (radius > 1e-5) {
               direction = vec3(radial * (sin(theta) / radius), -cos(theta));
             }
-          }
-
-          if (projectionMode == 7) {
-            // Tip the whole mapping over, so the centre of the frame is the
-            // ground under the viewer rather than whatever is straight ahead.
-            direction = vec3(direction.x, -direction.z, direction.y);
           }
 
           vec3 world = orientation * normalize(direction);
@@ -257,6 +180,35 @@ export const Panorama: React.FC<{
             float horizon =
               (1.0 - smoothstep(0.0, 1.6, abs(worldPitch) / max(fwidth(worldPitch), 1e-5))) * 0.85;
 
+            /*
+             * The five points.
+             *
+             * A curvilinear study is ruled towards them the way a flat one is
+             * ruled towards two: the four around you - ahead, behind, left,
+             * right - and the two above and below, of which the visible one is
+             * the fifth. They are fixed to the world, not to the frame, so they
+             * slide as you turn and stay where the room says they are, which is
+             * the whole lesson.
+             *
+             * Each is drawn as a ring at a fixed angular radius, so it is the
+             * same size on the page wherever the projection puts it.
+             */
+            float vp = 0.0;
+            for (int axis = 0; axis < 6; axis++) {
+              vec3 towards = vec3(0.0);
+              if (axis == 0) towards = vec3(0.0, 0.0, -1.0);
+              else if (axis == 1) towards = vec3(0.0, 0.0, 1.0);
+              else if (axis == 2) towards = vec3(-1.0, 0.0, 0.0);
+              else if (axis == 3) towards = vec3(1.0, 0.0, 0.0);
+              else if (axis == 4) towards = vec3(0.0, 1.0, 0.0);
+              else towards = vec3(0.0, -1.0, 0.0);
+
+              float away = acos(clamp(dot(world, towards), -1.0, 1.0));
+              // A ring, and a dot at the point itself.
+              vp = max(vp, 1.0 - smoothstep(0.0, 1.6, abs(away - 0.052) / max(fwidth(away), 1e-5)));
+              vp = max(vp, 1.0 - smoothstep(0.0, 1.0, away / max(fwidth(away) * 2.2, 1e-5)));
+            }
+
             float ink = max(horizon, max(meridiansY, max(meridiansX, meridiansZ))) * gridStrength;
             
             // Color code the lines for clarity
@@ -276,6 +228,8 @@ export const Panorama: React.FC<{
             }
 
             gl_FragColor.rgb = mix(gl_FragColor.rgb, overlayColor, ink);
+            // The points sit over everything, in the construction red.
+            gl_FragColor.rgb = mix(gl_FragColor.rgb, gridColor, vp * gridStrength * 0.9);
           }
         }
       `,

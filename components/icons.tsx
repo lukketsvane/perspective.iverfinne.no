@@ -27,21 +27,13 @@ export const I = {
    */
   straight: (<><line x1="2" y1="10" x2="22" y2="10" strokeOpacity="0.45" /><path d="M2 21L12 10M22 21L12 10" /><circle cx="12" cy="10" r="1.3" fill="currentColor" stroke="none" /></>),
   curved: (<><path d="M2 12c4-1.6 16-1.6 20 0" strokeOpacity="0.45" /><path d="M2 21C5 15 8 12 12 10.7M22 21c-3-6-6-9-10-10.3" /><circle cx="12" cy="10.5" r="1.3" fill="currentColor" stroke="none" /></>),
-  stereographic: (<><circle cx="12" cy="12" r="8.2" /><path d="M12 3.8v16.4M3.8 12h16.4" strokeOpacity="0.45" /><path d="M6 18c1.8-4.4 4.1-6.8 6-6.8s4.2 2.4 6 6.8" /></>),
   cylindrical: (<><path d="M5 4h14v16H5z" /><path d="M5 8c2.2-1.3 4.5-2 7-2s4.8.7 7 2M5 16c2.2-1.3 4.5-2 7-2s4.8.7 7 2" strokeOpacity="0.45" /><line x1="12" y1="4" x2="12" y2="20" /></>),
-  hyperbolic: (<><circle cx="12" cy="12" r="8.2" /><path d="M12 3.8c-3.4 3.2-5.2 6-5.2 8.2s1.8 5 5.2 8.2M12 3.8c3.4 3.2 5.2 6 5.2 8.2s-1.8 5-5.2 8.2" strokeOpacity="0.45" /><path d="M4.8 12h14.4" /></>),
-  sevenTwenty: (<><circle cx="12" cy="12" r="8.2" /><circle cx="12" cy="12" r="4.1" strokeOpacity="0.45" /><path d="M4.8 12h14.4" /><path d="M12 3.8v16.4" /></>),
 
-  /** The map projection as a lens: straight verticals, poles run off the frame. */
-  mercator: (<><path d="M4 3.5h16v17H4z" /><path d="M4 12h16" /><path d="M4 7.4h16M4 16.6h16" strokeOpacity="0.4" /><path d="M9 3.5v17M15 3.5v17" strokeOpacity="0.55" /></>),
-  /** A world curled into a ball under the viewer's feet. */
-  littlePlanet: (<><circle cx="12" cy="15.5" r="5.4" /><path d="M6.8 14c3.2-1.4 7.2-1.4 10.4 0" strokeOpacity="0.5" /><path d="M9.4 11.2V7.6M14.6 11.4V9M12 10.4V5.2" strokeOpacity="0.8" /></>),
-  /** The hemisphere as a chrome sphere shows it: everything crowding the rim. */
-  mirrorBall: (<><circle cx="12" cy="12" r="8.4" /><circle cx="12" cy="12" r="4.6" strokeOpacity="0.35" /><circle cx="12" cy="12" r="7.2" strokeOpacity="0.55" /><circle cx="9.4" cy="9.2" r="1.5" fill="currentColor" stroke="none" /></>),
-  /** The world turned inside out: what is behind you sits in the middle. */
-  inversion: (<><circle cx="12" cy="12" r="8.4" strokeOpacity="0.45" /><path d="M12 3.6a8.4 8.4 0 0 1 0 16.8" /><path d="M12 8.4a3.6 3.6 0 0 0 0 7.2" /><path d="M3.6 12h4.8M15.6 12h4.8" strokeOpacity="0.55" /></>),
-  /** Straight lines wound into spirals. */
-  vortex: (<><path d="M12 12c0-1.6 1.6-2.6 3-2 1.8.8 2.2 3.2 1 4.8-1.5 2-4.6 2.3-6.6.5-2.4-2.2-2.5-6.1 0-8.6 2.9-2.9 7.9-2.9 10.8.4" /></>),
+  /**
+   * Five point: the four around the horizon and the one you are looking at,
+   * with the sphere they sit on.
+   */
+  fivePoint: (<><circle cx="12" cy="12" r="8.6" /><path d="M3.4 12h17.2M12 3.4v17.2" strokeOpacity="0.4" /><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="3.4" cy="12" r="1.2" fill="currentColor" stroke="none" /><circle cx="20.6" cy="12" r="1.2" fill="currentColor" stroke="none" /><circle cx="12" cy="3.4" r="1.2" fill="currentColor" stroke="none" /><circle cx="12" cy="20.6" r="1.2" fill="currentColor" stroke="none" /></>),
 
   /** A one-metre reference cube: the unit everything else is read against. */
   cube: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" /></>),
