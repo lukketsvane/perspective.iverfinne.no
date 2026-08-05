@@ -125,10 +125,23 @@ const fingerprint = async (bytes: ArrayBuffer): Promise<string> => {
 /** Keep an imported file, and return the reference the scene records. */
 export const putAsset = async (bytes: ArrayBuffer, name: string): Promise<string> => {
   const ref = ASSET_SCHEME + (await fingerprint(bytes));
+  await putAssetAs(ref, bytes, name);
+  return ref;
+};
+
+/**
+ * Keep a file under a reference somebody else chose.
+ *
+ * This is how a scene bundle puts its meshes back. They cannot be re-hashed on
+ * the way in: the hash depends on what the browser will hash with, and an
+ * origin without SubtleCrypto - which is any phone opening this over plain
+ * http on the local network - falls back to a different one. Re-hashing would
+ * file the mesh under a name the scene is not looking for.
+ */
+export const putAssetAs = async (ref: string, bytes: ArrayBuffer, name: string): Promise<void> => {
   const record: StoredAsset = { name, bytes, addedAt: Date.now() };
   memoryAssets.set(ref, record);
   await transact(ASSETS, 'readwrite', (store) => store.put(record, ref));
-  return ref;
 };
 
 export const getAsset = async (ref: string): Promise<StoredAsset | null> => {
