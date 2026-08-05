@@ -48,7 +48,7 @@ export default function App() {
     if (opened.current) return;
     opened.current = true;
     const entry = randomMesh();
-    loadModelFromUrl(entry.url, entry.name, [0, 0])
+    loadModelFromUrl(entry.url, entry.name, [0, 0], entry.height)
       .then(({ model }) => {
         // Anything the viewer did in the meantime wins: a scene opened from the
         // library, or a mesh placed by hand, is not something to land on top of.
@@ -56,7 +56,9 @@ export default function App() {
         if (models.length || boxes.length) return;
         addModel({ ...model, position: [0, 0, 0] });
         useStore.setState({ selectedModelId: null });
-        frame(model.size);
+        // A scanned figure arrives normalised and is scaled on the way in, so
+        // what it will stand at is its authored size times that scale.
+        frame(model.size.map((metres) => metres * model.scale) as [number, number, number]);
       })
       .catch((error) => console.error('Could not open with a model:', error));
   }, [addModel]);
@@ -64,21 +66,23 @@ export default function App() {
   /** How much of the frame's height the opening object should fill. */
   const OPENING_SIZE = 0.45;
 
+  /** Above this, it is something you look at standing up. */
+  const EYE_TO_EYE = 1.2;
+
   /**
    * Stand where the whole of it can be seen, and look at its middle.
    *
-   * Three things decide this and the first version only used one. The angle it
-   * subtends against the angle the frame covers - a 180 degree sheet puts nine
-   * times as much world on the glass as a 60 degree lens. Its own size, since a
-   * stacking chair is knee high and the car is six metres long. And, the one
-   * that was missing: how far the eye is *above* it. A chair 0.7 m away from a
-   * 1.9 m eye is not 0.7 m away, it is 1.7 m away and mostly below you, which
-   * is why it kept coming out small however close the walker was put.
+   * Three things decide this. The angle it subtends against the angle the frame
+   * covers - a 180 degree sheet puts nine times as much world on the glass as a
+   * 60 degree lens. Its own size, since a stacking chair is knee high and the
+   * car is six metres long. And how far the eye is *above* it: a chair 0.7 m
+   * away from a 1.9 m eye is not 0.7 m away, it is 1.7 m away and mostly below
+   * you, which is why it used to open small however close the walker was put.
    *
-   * So the distance wanted is a slant distance, and it is solved for both
-   * legs: stand back by about half the object's length, then drop the eye
-   * until the object fills the frame - which for anything low means kneeling to
-   * it, and for a car means staying at standing height.
+   * Which leaves the question of whether to kneel. Anything taller than about a
+   * metre is something you look at from your own height - a person, a car - and
+   * dropping to its waist would be a strange way to meet it. Anything lower has
+   * to be knelt to, or it is a thing on the floor seen from above.
    */
   const frame = (size: [number, number, number]) => {
     const { cameraHeight, fov, perspectiveMode, setCameraHeight } = useStore.getState();
@@ -92,13 +96,13 @@ export default function App() {
     /** How far the eye has to be from the object's middle, along the view. */
     const slant = longest / 2 / Math.tan(wanted / 2);
 
-    // Back off by about half its length, and never closer than arm's reach.
-    const distance = Math.min(14, Math.max(0.9, longest * 0.55));
+    // About the object's own length back, and never inside arm's reach.
+    const distance = Math.min(14, Math.max(0.9, longest * 0.9));
     const middle = size[1] / 2;
-    // Whatever is left of the slant after the ground distance is height. If
-    // there is nothing left, the eye comes down to the object's own middle.
+    // Whatever is left of the slant after the ground distance is height.
     const rise = Math.sqrt(Math.max(slant * slant - distance * distance, 0));
-    const eye = Math.min(cameraHeight, Math.max(0.8, middle + rise));
+    const eye =
+      size[1] >= EYE_TO_EYE ? cameraHeight : Math.min(cameraHeight, Math.max(0.8, middle + rise));
 
     setCameraHeight(eye);
     walkInput.position.set(0, 0, distance);
@@ -143,7 +147,7 @@ export default function App() {
     const entry = MESH_LIBRARY.find((mesh) => mesh.id === id);
     if (!entry) return;
     return whileLoading(id, async () => {
-      const { model } = await loadModelFromUrl(entry.url, entry.name, [focusPoint.x, focusPoint.z]);
+      const { model } = await loadModelFromUrl(entry.url, entry.name, [focusPoint.x, focusPoint.z], entry.height);
       if (model.previewSupported) place(model);
     });
   };
