@@ -16,7 +16,7 @@ import { walkInput } from '../lib/walkInput';
  * permitted, and from drag-to-look otherwise (which is also what desktop gets).
  */
 export const WalkControls = () => {
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
   const cameraHeight = useStore((state) => state.cameraHeight);
   const viewLocked = useStore((state) => state.viewLocked);
 
@@ -51,6 +51,10 @@ export const WalkControls = () => {
   }, [camera]);
 
   useFrame((_, rawDelta) => {
+    // In a session the device's own tracked pose is the camera, to a
+    // centimetre. Anything written here would fight it.
+    if (gl.xr?.isPresenting) return;
+
     // Locked, the framed view holds still - the phone can be moved, put down or
     // drawn from without the scene following it.
     if (viewLocked) return;

@@ -11,34 +11,18 @@ export interface BoxData {
 export type ThemeMode = 'light' | 'dark';
 
 /**
- * How the scene is projected.
- * - 'linear': straight-line rectilinear perspective (1/2/3-point).
- * - 'equidistant': Kim Jung Gi style 5-point curvilinear projection. The default.
- * - 'stereographic': fisheye view with stronger edge expansion.
- * - 'cylindrical': panorama with straight verticals.
- * - 'hyperbolic': Poincaré-like disc projection.
- * - 'mercator': the map projection as a lens; verticals straight, poles at
- *   infinity.
- * - '5-point': the full hemisphere, ceiling and floor points included.
- * - 'little-planet': stereographic from the nadir; the ground curls into a ball.
- * - 'mirror-ball': orthographic; the hemisphere as a chrome sphere would show it.
- * - 'inversion': r goes to 1/r, so what is behind you fills the middle.
- * - 'vortex': equidistant, wound up by distance from the centre.
- * - '720-noneuclidean': the whole sphere twice over.
+ * How the scene is projected. Four systems, all of them ones you can draw in.
+ *
+ * - 'linear': straight-line rectilinear perspective - one, two and three point.
+ * - 'cylindrical': four-point. Verticals stay straight and vertical; horizontals
+ *   bow. The panoramic system, and the one to rule a long wall with.
+ * - 'equidistant': five-point, and the default. Angle from the centre of the
+ *   frame is distance from the centre, evenly, in every direction - which is
+ *   what makes a ruled sphere of it and what Kim Jung Gi draws on.
+ * - '5-point': the same projection taken to the full hemisphere, so the zenith
+ *   and nadir points are both in frame with the four around them.
  */
-export type PerspectiveMode =
-  | 'linear'
-  | 'equidistant'
-  | 'stereographic'
-  | 'cylindrical'
-  | 'mercator'
-  | 'hyperbolic'
-  | '5-point'
-  | 'little-planet'
-  | 'mirror-ball'
-  | 'inversion'
-  | 'vortex'
-  | '720-noneuclidean';
+export type PerspectiveMode = 'linear' | 'cylindrical' | 'equidistant' | '5-point';
 
 /** How placed models are surfaced: as the file authored them, or in white. */
 export type ModelMaterial = 'original' | 'matte';
@@ -208,6 +192,14 @@ export interface SceneState {
   fill: FillState;
   /** Freeze the walk camera so a framed view stops moving. */
   viewLocked: boolean;
+  /**
+   * True while the scene should be standing in the real room.
+   *
+   * Set by the button, cleared by the session ending - including when the
+   * device turns out not to do AR at all, so the control never sits lit over a
+   * mode that is not running.
+   */
+  arRequested: boolean;
   /** Scenes to step back through. Newest last. */
   undoStack: { boxes: BoxData[]; models: SceneModel[] }[];
   theme: ThemeMode;
@@ -249,6 +241,7 @@ export interface SceneState {
   /** The same, for the fill. */
   setFill: (fill: Partial<FillState>) => void;
   toggleViewLock: () => void;
+  setAr: (on: boolean) => void;
   /** Step back one scene. Destructive actions snapshot themselves. */
   undo: () => void;
   toggleTheme: () => void;

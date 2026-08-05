@@ -1,13 +1,25 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
 import { walkInput, enableDeviceOrientation } from '../lib/walkInput';
+import { arSupported } from '../lib/xr';
 import { Icon, I } from './icons';
 import { Scrub, useGrayThemeControl } from './controls';
 import { MODEL_ACCEPT } from '../lib/loadModel';
 import { captureFileName, captureView } from '../lib/capture';
 import { ACTIVE, chrome, iconButton } from './ui';
-import { PROJECTIONS } from './ProjectionSheet';
-import { SNAP_STEPS, type GuideLevel } from '../types';
+import { SNAP_STEPS, type GuideLevel, type PerspectiveMode } from '../types';
+
+/**
+ * The four systems, in the order a study moves through them: flat, then bowed
+ * horizontals, then the ruled sphere, then the whole hemisphere of it.
+ */
+const PROJECTION_ORDER: PerspectiveMode[] = ['linear', 'cylindrical', 'equidistant', '5-point'];
+const PROJECTION_ICON: Record<PerspectiveMode, React.ReactNode> = {
+  linear: I.straight,
+  cylindrical: I.cylindrical,
+  equidistant: I.curved,
+  '5-point': I.fivePoint,
+};
 
 const GUIDE_ICON: Record<GuideLevel, React.ReactNode> = {
   0: I.guides0,
@@ -87,11 +99,10 @@ export const WalkOverlay: React.FC<{
   onModels: () => void;
   onScenes: () => void;
   onLights: () => void;
-  onProjections: () => void;
   onImport: (files: FileList) => void;
   /** True while a sheet is up: the dock belongs under it, not beside it. */
   covered?: boolean;
-}> = ({ onModels, onScenes, onLights, onProjections, onImport, covered = false }) => {
+}> = ({ onModels, onScenes, onLights, onImport, covered = false }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -107,7 +118,7 @@ export const WalkOverlay: React.FC<{
   const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
   const [showTools, setShowTools] = useState(false);
   const [railVisible, setRailVisible] = useState(true);
-  const [arMode, setArMode] = useState(false);
+  const [arSensor, setArSensor] = useState(false);
   const railTimer = useRef<number | undefined>(undefined);
   const modelMaterial = useStore((s) => s.modelMaterial);
   const cycleMaterial = useStore((s) => s.cycleMaterial);
@@ -119,6 +130,9 @@ export const WalkOverlay: React.FC<{
   const selectedModelId = useStore((s) => s.selectedModelId);
   const selectedId = useStore((s) => s.selectedId);
   const isSelected = selectedModelId !== null || selectedId !== null;
+  const setAr = useStore((s) => s.setAr);
+  const arActive = useStore((s) => s.arRequested);
+  const arMode = arActive || arSensor;
   const importInputRef = useRef<HTMLInputElement>(null);
   const hasDuplicates = models.length !== new Set(models.map((m) => m.fileUrl)).size;
 
@@ -373,36 +387,32 @@ export const WalkOverlay: React.FC<{
     return () => { if (railTimer.current) clearTimeout(railTimer.current); };
   }, [showRail]);
 
+  /**
+   * Into the room, or back out of it.
+   *
+   * A real session is asked for first - that is the one that tracks where the
+   * phone is and stands the scene on the actual floor. On a device with no
+   * WebXR at all there is still the orientation sensor, which turns the view
+   * with the phone but cannot know where it is: half the thing, and clearly
+   * marked as such by the scene staying where it was.
+   */
   const toggleArMode = useCallback(async () => {
     if (arMode) {
-      setArMode(false);
-    } else {
-      if (navigator.xr) {
-        try {
-          const supported = await navigator.xr.isSessionSupported('immersive-ar');
-          if (supported) {
-            const session = await navigator.xr.requestSession('immersive-ar', {
-              requiredFeatures: ['local-floor'],
-              optionalFeatures: ['hit-test', 'dom-overlay'],
-            });
-            (window as any).__xrSession = session;
-            setArMode(true);
-            session.addEventListener('end', () => {
-              (window as any).__xrSession = null;
-              setArMode(false);
-            });
-            return;
-          }
-        } catch { }
-      }
-      const granted = await enableDeviceOrientation();
-      if (granted) {
-        walkInput.lookYaw = 0;
-        walkInput.lookPitch = 0;
-        setArMode(true);
-      }
+      setAr(false);
+      setArSensor(false);
+      return;
     }
-  }, [arMode]);
+    if (await arSupported()) {
+      setAr(true);
+      return;
+    }
+    const granted = await enableDeviceOrientation();
+    if (granted) {
+      walkInput.lookYaw = 0;
+      walkInput.lookPitch = 0;
+      setArSensor(true);
+    }
+  }, [arMode, setAr]);
 
   const button = iconButton(isDark);
   const dockVisible = railVisible && !isSelected && !covered;
@@ -512,7 +522,9 @@ export const WalkOverlay: React.FC<{
             min={25}
             max={360}
             step={1}
-            cycle={[35, 60, 90, 160, 210, 240, 330]}
+            // The fields worth landing on exactly: a long lens, the 60 degree
+            // cone, a wide flat frame, the hemisphere, and the full sphere.
+            cycle={[35, 60, 90, 120, 180, 270, 360]}
             onChange={setLens}
           />
           <Scrub
@@ -528,14 +540,14 @@ export const WalkOverlay: React.FC<{
             onChange={setCameraHeight}
           />
           <button
-            onClick={onProjections}
+            onClick={() => {
+              const at = PROJECTION_ORDER.indexOf(perspectiveMode);
+              setPerspectiveMode(PROJECTION_ORDER[(at + 1) % PROJECTION_ORDER.length]);
+            }}
             aria-label="Projection"
             className={`${button} ${perspectiveMode !== 'linear' ? ACTIVE : ''}`}
           >
-            <Icon
-              path={PROJECTIONS.find((p) => p.mode === perspectiveMode)?.icon ?? I.curved}
-              className="w-5 h-5"
-            />
+            <Icon path={PROJECTION_ICON[perspectiveMode]} className="w-5 h-5" />
           </button>
           <button
             {...grayThemeControl}

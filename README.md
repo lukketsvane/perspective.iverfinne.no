@@ -11,9 +11,13 @@ of metres, and it is meant to be legible without reading.
 
 One of four Norwegian objects — the Ekstrem chair, the Balans Variabel, Il
 Tempo Gigante, the Tripp Trapp — is standing on the grid when the tool opens,
-picked at random and framed for its size. They are the whole mesh library, they
-are true to life as authored, and a different one each time is a different
-exercise.
+picked at random and framed for its size, on a 180° five-point sheet.
+
+Framing solves for two legs, not one: how far back to stand, and how high the
+eye has to be. A chair 0.7 m away from a 1.9 m eye is not 0.7 m away — it is
+1.7 m away and mostly below you, which is why it used to open small however
+close the walker was put. So the tool kneels to a chair and stands up for a
+car.
 
 ## Moving about
 
@@ -39,7 +43,7 @@ Along the bottom, fading out while you draw and back on the first touch:
 - **Frames** — the scene library (below)
 - **Cone** — field of view; drag for any value, tap to step through presets
 - **Horizon** — eye level, from 0.2 m to 12 m
-- **Projection** — opens the wall of projections (below)
+- **Projection** — steps through the four systems (below)
 - **Sun / moon** — tap for light and dark, drag through all 256 greys,
   double-tap for the procedural sky
 - **Sliders** — everything else: AR, guides, snap, the 60° cone, view lock,
@@ -48,13 +52,25 @@ Along the bottom, fading out while you draw and back on the first touch:
 
 ### Projections
 
-Twelve, picked from a grid rather than stepped through: straight lines,
-curvilinear, five-point, fisheye, panorama, Mercator, hyperbolic, mirror ball,
-little planet, inside out, vortex, and 720°. The last five are there to be hard
-to hold in your head — the mirror ball crowds a whole hemisphere against its
-rim, inside out puts what is behind you in the middle of the frame and bends
-every straight line into a circle through the centre, and the vortex winds the
-world up around whatever you are looking at.
+Four systems, all of them ones you can draw in, cycled with one button:
+
+- **Linear** — straight-line perspective: one, two and three point.
+- **Cylindrical** — four-point. Verticals stay straight and vertical while
+  horizontals bow. The system for ruling a long wall.
+- **Equidistant** — five-point, and the default. Angle from the centre of the
+  frame is distance from the centre, evenly, in every direction. That even
+  mapping is what makes it a ruled sphere, and it is the sheet Kim Jung Gi
+  draws on.
+- **Five point** — the same projection taken past the hemisphere, so the zenith
+  and nadir points are both on the page with the four around them.
+
+The tool opens at **180°**, which is the number that matters for a curvilinear
+study: the four horizon points land exactly on the edge of the frame and the
+fifth is dead centre — the five-point sheet itself, not an approximation of it.
+
+With the construction guides on, **all five vanishing points are marked** on the
+sphere. They are fixed to the room, not to the frame, so they slide as you turn
+and stay where the geometry says they are.
 
 ### Lights
 

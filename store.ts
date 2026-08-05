@@ -34,6 +34,16 @@ export const UNIT = 1;
 export const DEFAULT_CAMERA_HEIGHT = 1.9;
 
 /**
+ * The whole hemisphere, and the field the tool opens on.
+ *
+ * At 180 the four horizon points land exactly on the edge of the frame and the
+ * fifth is at its centre - which is the five-point sheet itself, not an
+ * approximation of it. Wider than that and the sheet shrinks into a bubble
+ * with dead paper around it; narrower and the points walk off the page.
+ */
+export const DEFAULT_FOV = 180;
+
+/**
  * The sun, as it stands when the tool opens.
  *
  * Mid-morning and off to one side: high enough that the ground reads, low
@@ -249,7 +259,7 @@ export const useStore = create<SceneState>((set, get) => ({
   boxes: [],
   selectedId: null,
   isDragging: false,
-  fov: 210, // A broad field that makes the default curvilinear projection useful
+  fov: DEFAULT_FOV,
   perspectiveMode: 'equidistant',
   cameraHeight: DEFAULT_CAMERA_HEIGHT,
   guides: 3,
@@ -260,6 +270,7 @@ export const useStore = create<SceneState>((set, get) => ({
   modelMaterial: 'original',
   sunEnvironment: false,
   viewLocked: false,
+  arRequested: false,
   undoStack: [],
   theme: 'light',
   backgroundGray: 243,
@@ -375,24 +386,17 @@ export const useStore = create<SceneState>((set, get) => ({
     set((state) => ({
       perspectiveMode: mode,
       /*
-       * The lens number is a focal length in one mode and the width of a
-       * panorama in the other, so carrying one value across gives a curvilinear
-       * view as narrow as a portrait lens or a flat one turned inside out.
+       * The lens number is a focal length in one system and the width of the
+       * sheet in the other, so carrying one value across would give a
+       * curvilinear view as narrow as a portrait lens, or a flat one turned
+       * inside out.
        *
-       * 210 degrees is the useful default here: wide enough that the walls run
-       * off to both sides and the ceiling and floor curve in, which is the thing
-       * the projection is for, without the whole room shrinking into a bubble in
-       * the middle of the frame the way it does out past 250. 60 is the ordinary
-       * cone of vision to come back to.
+       * A hundred and eighty is the number that matters for a curvilinear
+       * study: it is the whole hemisphere, the four points around the horizon
+       * sit exactly on the edge of the frame, and the fifth is dead centre.
+       * Sixty is the ordinary cone of vision to come back to on the flat side.
        */
-      fov:
-        mode === '720-noneuclidean'
-          ? 720
-          : mode === 'linear'
-            ? Math.min(state.fov, 75)
-            : state.fov < 120
-              ? 210
-              : Math.min(state.fov, 360),
+      fov: mode === 'linear' ? Math.min(state.fov, 75) : state.fov < 100 ? DEFAULT_FOV : Math.min(state.fov, 360),
     })),
 
   setCameraHeight: (height) => set({ cameraHeight: Math.max(0.2, Math.min(12, height)) }),
@@ -463,6 +467,15 @@ export const useStore = create<SceneState>((set, get) => ({
   setFill: (fill) => set((state) => ({ fill: { ...state.fill, ...fill } })),
 
   toggleViewLock: () => set((state) => ({ viewLocked: !state.viewLocked })),
+
+  /**
+   * Going into the room, and coming back.
+   *
+   * The projection goes flat on the way in: the frame is a photograph of the
+   * room now, taken through the phone's own rectilinear lens, and bending it
+   * would be drawing a perspective over a perspective.
+   */
+  setAr: (on) => set((state) => ({ arRequested: on, perspectiveMode: on ? 'linear' : state.perspectiveMode })),
 
   /**
    * Step back one scene.
