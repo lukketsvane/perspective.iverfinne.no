@@ -6,18 +6,8 @@ import { Scrub, useGrayThemeControl } from './controls';
 import { MODEL_ACCEPT } from '../lib/loadModel';
 import { captureFileName, captureView } from '../lib/capture';
 import { ACTIVE, chrome, iconButton } from './ui';
-import { SNAP_STEPS, type GuideLevel, type PerspectiveMode } from '../types';
-
-const PERSPECTIVE_ORDER: PerspectiveMode[] = ['linear', 'equidistant', 'stereographic', 'cylindrical', 'hyperbolic', '5-point', '720-noneuclidean'];
-const PERSPECTIVE_ICON: Record<PerspectiveMode, React.ReactNode> = {
-  linear: I.straight,
-  equidistant: I.curved,
-  stereographic: I.stereographic,
-  cylindrical: I.cylindrical,
-  hyperbolic: I.hyperbolic,
-  '5-point': I.curved,
-  '720-noneuclidean': I.sevenTwenty,
-};
+import { PROJECTIONS } from './ProjectionSheet';
+import { SNAP_STEPS, type GuideLevel } from '../types';
 
 const GUIDE_ICON: Record<GuideLevel, React.ReactNode> = {
   0: I.guides0,
@@ -96,8 +86,12 @@ const shapeStick = (magnitude: number) => {
 export const WalkOverlay: React.FC<{
   onModels: () => void;
   onScenes: () => void;
+  onLights: () => void;
+  onProjections: () => void;
   onImport: (files: FileList) => void;
-}> = ({ onModels, onScenes, onImport }) => {
+  /** True while a sheet is up: the dock belongs under it, not beside it. */
+  covered?: boolean;
+}> = ({ onModels, onScenes, onLights, onProjections, onImport, covered = false }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -411,7 +405,7 @@ export const WalkOverlay: React.FC<{
   }, [arMode]);
 
   const button = iconButton(isDark);
-  const dockVisible = railVisible && !isSelected;
+  const dockVisible = railVisible && !isSelected && !covered;
 
   return (
     <>
@@ -477,6 +471,9 @@ export const WalkOverlay: React.FC<{
           <button onClick={cycleMaterial} aria-label="Model material" className={`${button} ${modelMaterial !== 'original' ? ACTIVE : ''}`}>
             <Icon path={I.matte} className="w-5 h-5" />
           </button>
+          <button onClick={() => { setShowTools(false); onLights(); }} aria-label="Lights" className={button}>
+            <Icon path={I.strength} className="w-5 h-5" />
+          </button>
           <button onClick={() => importInputRef.current?.click()} aria-label="Import mesh" className={button}>
             <Icon path={I.upload} className="w-5 h-5" />
           </button>
@@ -531,14 +528,14 @@ export const WalkOverlay: React.FC<{
             onChange={setCameraHeight}
           />
           <button
-            onClick={() => {
-              const idx = PERSPECTIVE_ORDER.indexOf(perspectiveMode);
-              setPerspectiveMode(PERSPECTIVE_ORDER[(idx + 1) % PERSPECTIVE_ORDER.length]);
-            }}
-            aria-label="Perspective"
+            onClick={onProjections}
+            aria-label="Projection"
             className={`${button} ${perspectiveMode !== 'linear' ? ACTIVE : ''}`}
           >
-            <Icon path={PERSPECTIVE_ICON[perspectiveMode]} className="w-5 h-5" />
+            <Icon
+              path={PROJECTIONS.find((p) => p.mode === perspectiveMode)?.icon ?? I.curved}
+              className="w-5 h-5"
+            />
           </button>
           <button
             {...grayThemeControl}

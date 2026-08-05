@@ -5,7 +5,7 @@ import { useStore } from '../store';
 import { noteDragEnd } from '../lib/dragGuard';
 import { createGroundPicker } from '../lib/groundDrag';
 import { SceneModel } from '../types';
-import { authoredMaterial, edgeOverlay } from '../lib/modelMaterials';
+import { authoredMaterial } from '../lib/modelMaterials';
 import { Edges } from '@react-three/drei';
 
 /**
@@ -19,14 +19,6 @@ const MATTE = new THREE.MeshStandardMaterial({
   color: 0xf2f2f0,
   roughness: 0.92,
   metalness: 0,
-});
-
-const TRANSPARENT_MATTE = new THREE.MeshStandardMaterial({
-  color: 0xf2f2f0,
-  roughness: 0.92,
-  metalness: 0,
-  transparent: true,
-  opacity: 0.25,
 });
 
 /**
@@ -55,14 +47,10 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
   useEffect(() => {
     const object = model.object;
     if (!object) return;
-    const outlined = modelMaterial === 'transparent-outline';
-    // The cage is built off this frame, so by the time it lands the mode may
-    // have moved on. This says whether it still belongs on screen.
-    let current = true;
 
     object.traverse((child) => {
       const mesh = child as THREE.Mesh;
-      if (!mesh.isMesh || mesh.userData.edgeOverlay) return;
+      if (!mesh.isMesh) return;
 
       // A figure standing in the sun has to throw a shadow like everything
       // else, or it reads as a sticker on the floor.
@@ -72,22 +60,8 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       // Read the authored materials before swapping, so the first swap is what
       // records them rather than what loses them.
       const own = authoredMaterial(mesh);
-      mesh.material = modelMaterial === 'matte' ? MATTE : outlined ? TRANSPARENT_MATTE : own;
-
-      if (outlined) {
-        edgeOverlay(mesh).then((line) => {
-          if (line) line.visible = current;
-        });
-      } else {
-        mesh.children.forEach((c) => {
-          if (c.userData.edgeOverlay) c.visible = false;
-        });
-      }
+      mesh.material = modelMaterial === 'matte' ? MATTE : own;
     });
-
-    return () => {
-      current = false;
-    };
   }, [modelMaterial, model.object]);
 
   /**

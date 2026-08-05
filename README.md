@@ -39,19 +39,45 @@ Along the bottom, fading out while you draw and back on the first touch:
 - **Frames** — the scene library (below)
 - **Cone** — field of view; drag for any value, tap to step through presets
 - **Horizon** — eye level, from 0.2 m to 12 m
-- **Projection** — linear, equidistant, stereographic, cylindrical, hyperbolic,
-  5-point, and a 720° non-euclidean view
+- **Projection** — opens the wall of projections (below)
 - **Sun / moon** — tap for light and dark, drag through all 256 greys,
   double-tap for the procedural sky
 - **Sliders** — everything else: AR, guides, snap, the 60° cone, view lock,
-  model material, mesh import, de-duplicate, undo, clear, and save the view as
-  a PNG
+  matte models, the lights, mesh import, de-duplicate, undo, clear, and save
+  the view as a PNG
+
+### Projections
+
+Twelve, picked from a grid rather than stepped through: straight lines,
+curvilinear, five-point, fisheye, panorama, Mercator, hyperbolic, mirror ball,
+little planet, inside out, vortex, and 720°. The last five are there to be hard
+to hold in your head — the mirror ball crowds a whole hemisphere against its
+rim, inside out puts what is behind you in the middle of the frame and bends
+every straight line into a circle through the centre, and the vortex winds the
+world up around whatever you are looking at.
+
+### Lights
+
+The sun is one hard light with no fill, which is what makes a box read as a box:
+a face turned away from it is genuinely unlit, and that separation is the thing
+being drawn. Its bearing, height, strength and colour temperature are four
+drags in the light sheet, and its shadows can be switched off.
+
+A **second light** lives under it, off until asked for: shadowless, cooler and
+weaker by default, the way a studio or an overcast sky answers the problem of
+one light leaving half of everything black.
 
 ### Guides
 
 The guides control steps down through four levels rather than switching on and
 off: the curvilinear construction circles, the ground grid, the eye-level line,
 nothing. The useful state is usually one less than what you have.
+
+The ground is ruled as a tape measure is: three rulers at once — the step you
+snap to, the metre, and the five — each heavier than the last, so distance can
+be counted rather than guessed. The two axes through the origin are coloured,
+and coloured to match the curvilinear construction sheet: red along X, green
+along Z. Turning the projection inside out does not change what a colour means.
 
 ### Snap
 
@@ -60,7 +86,9 @@ whatever is chosen** — so what you snap to is what you can see to line things
 up against. Eye level sets to the centimetre.
 
 Selecting something replaces the dock with what you can do to it: turn, size,
-duplicate, export the mesh at the size you settled on, delete. Readings are in
+duplicate, export the mesh at the size you settled on, delete. A copy lands
+beside its original with about six centimetres of air, so duplicating along a
+line builds a row rather than a scattering. Readings are in
 metres — the grid is ruled in metres, so the unit is never written down.
 
 ## Saving a scene
