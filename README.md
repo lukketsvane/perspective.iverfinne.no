@@ -7,17 +7,36 @@ curvilinear projection — set up a view, then draw from it.
 The interface has no words in it. Everything is the scene, a mark, or a number
 of metres, and it is meant to be legible without reading.
 
+## The library
+
+Four Norwegian objects — the Ekstrem chair, the Balans Variabel, Il Tempo
+Gigante, the Tripp Trapp — and one person in ten poses: standing four ways,
+stepping, reaching, lunging, bending to the floor, sitting.
+
+The objects are true to life as authored. The figures are not, and this is the
+one place the app corrects anything: they come from the scanner normalised, each
+fitted to a box exactly a metre on its longest side, so placed as they came a
+standing man would be the height of the reference cube and a man bent to the
+floor the same height as the man beside him. Each figure carries the height of
+its own pose instead — about 1.75 m standing, less by however far the pose folds
+him — read off the poses rather than measured, so good to a few centimetres and
+no better. The height scrub on a selected figure sets it exactly; a double tap
+comes back to the number in the library.
+
 ## Opening
 
-One of four Norwegian objects — the Ekstrem chair, the Balans Variabel, Il
-Tempo Gigante, the Tripp Trapp — is standing on the grid when the tool opens,
-picked at random and framed for its size, on a 180° five-point sheet.
+One of the fourteen is standing on the grid when the tool opens, picked at
+random and framed for its size, on a 180° five-point sheet.
 
 Framing solves for two legs, not one: how far back to stand, and how high the
 eye has to be. A chair 0.7 m away from a 1.9 m eye is not 0.7 m away — it is
 1.7 m away and mostly below you, which is why it used to open small however
-close the walker was put. So the tool kneels to a chair and stands up for a
-car.
+close the walker was put.
+
+Whether to kneel is the other half. Anything over about a metre is something you
+meet from your own height — a person, a car — and dropping to its waist would be
+a strange way to do it. Anything lower has to be knelt to, or it is a thing on
+the floor seen from above.
 
 ## Moving about
 
@@ -39,7 +58,7 @@ car.
 
 Along the bottom, fading out while you draw and back on the first touch:
 
-- **Cube** — the mesh library: a 1 m reference cube, then the four objects
+- **Cube** — the mesh library: a 1 m reference cube, then the objects and figures
 - **Frames** — the scene library (below)
 - **Cone** — field of view; drag for any value, tap to step through presets
 - **Horizon** — eye level, from 0.2 m to 12 m
@@ -139,8 +158,8 @@ manifest utf8      the scene, and where each mesh sits below
 meshes   bytes     concatenated, each padded to four bytes
 ```
 
-The four meshes the app ships with stay as `/meshes/…` references: both ends
-have them already, so a scene of nothing but library objects exports as about a
+The meshes the app ships with stay as `/meshes/…` references: both ends have
+them already, so a scene of nothing but library objects exports as about a
 kilobyte. Older plain-JSON exports still read.
 
 ## Install
@@ -163,7 +182,9 @@ and the walk input are on `window.__store` and `window.__walk`, and
 read and driven from a browser test, since nearly all of it is otherwise only
 pixels on a canvas.
 
-The four meshes ship simplified and quantized (`gltf-transform optimize
---compress quantize --simplify-ratio 0.12`), which takes each from about 20 MB
-to under 3 MB with no visible difference at drawing scale. Quantization is
-`KHR_mesh_quantization`, which three.js reads natively — no decoder to load.
+Every mesh ships simplified and quantized (`gltf-transform optimize --compress
+quantize --simplify-ratio 0.12 --texture-compress webp --texture-size 1024`),
+which takes each from about 21 MB to under 3 MB with no visible difference at
+drawing scale — 650k triangles down to 76k, and 4096² textures that cost 89 MB
+of video memory apiece down to 1024². Quantization is `KHR_mesh_quantization`,
+which three.js reads natively — no decoder to load.
