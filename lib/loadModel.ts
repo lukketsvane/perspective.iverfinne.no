@@ -45,11 +45,23 @@ const readFile = (file: File): Promise<ArrayBuffer> =>
   });
 
 /**
- * Somewhere clear to stand.
+ * How much air to leave between two things placed automatically.
  *
- * Dropping several models at once, or one after another, used to pile them on
- * the same spot. Walk a widening ring around the wanted point until there is
- * room for this one's footprint next to everything already placed.
+ * Six centimetres: enough that two chairs are not fused, little enough that
+ * they read as a pair standing together. Half a metre - what this was - put
+ * every copy its own arm's length away, so a row of chairs came out as a
+ * scattering across the floor and every one had to be dragged back in.
+ */
+const CLEARANCE = 0.06;
+
+/**
+ * Somewhere clear to stand, as close in as it will go.
+ *
+ * Dropping several models at once, or one after another, would pile them on the
+ * same spot. Walk a widening ring around the wanted point until there is room
+ * for this one's footprint beside everything already placed - in steps of about
+ * a radius, so the first ring that clears is the tight one rather than the next
+ * one out.
  */
 export const findFreeSpot = (
   taken: { position: [number, number, number]; radius: number }[],
@@ -59,14 +71,16 @@ export const findFreeSpot = (
   const clashes = (x: number, z: number) =>
     taken.some((other) => {
       const gap = Math.hypot(x - other.position[0], z - other.position[2]);
-      return gap < radius + other.radius + 0.5;
+      return gap < radius + other.radius + CLEARANCE;
     });
 
   if (!clashes(wanted[0], wanted[1])) return wanted;
 
-  const step = Math.max(0.6, radius * 2);
-  for (let ring = 1; ring < 12; ring++) {
-    const count = ring * 6;
+  const step = Math.max(0.12, radius * 0.9);
+  for (let ring = 1; ring < 40; ring++) {
+    // More places to try the further out it goes, so the ring is searched at
+    // about the same spacing however big it is.
+    const count = Math.max(8, Math.round(ring * 8));
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2;
       const x = wanted[0] + Math.cos(angle) * ring * step;

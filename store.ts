@@ -1,6 +1,16 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import { BoxData, GuideLevel, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState } from './types';
+import {
+  BoxData,
+  FillState,
+  GuideLevel,
+  SavedScene,
+  SceneModel,
+  SceneState,
+  SceneView,
+  SNAP_STEPS,
+  SunState,
+} from './types';
 import { releaseSource, cachedSourceUrls, modelRadius, findFreeSpot, loadModelFromUrl } from './lib/loadModel';
 import { cloneModel } from './lib/modelMaterials';
 import { eraseScene, pruneAssets, readScenes, writeScene } from './lib/assets';
@@ -43,6 +53,23 @@ export const DEFAULT_SUN: SunState = {
   shadows: true,
 };
 
+/**
+ * The fill, as it stands when first switched on.
+ *
+ * Opposite the sun and low, so it lifts the faces the sun has left black
+ * without pretending to be a second sun; cool, because a real fill is sky
+ * bounce or open shade, both of which are blue; and a third of the strength,
+ * which is about the ratio a studio would set.
+ */
+export const DEFAULT_FILL: FillState = {
+  enabled: false,
+  azimuth: 235,
+  elevation: 22,
+  intensity: 1.1,
+  temperature: 8200,
+  shadows: false,
+};
+
 /** Eye-level presets, in metres. */
 export const EYE_LEVEL_PRESETS: { label: string; note: string; height: number }[] = [
   { label: '1.2', note: 'Seated', height: 1.2 },
@@ -77,6 +104,7 @@ const SETTING_KEYS = [
   'modelMaterial',
   'sunEnvironment',
   'sun',
+  'fill',
 ] as const;
 
 type PersistedSettings = Pick<SceneState, (typeof SETTING_KEYS)[number]>;
@@ -167,6 +195,7 @@ export const currentView = (state: SceneState): SceneView => ({
   backgroundGray: state.backgroundGray,
   theme: state.theme,
   sun: { ...state.sun },
+  fill: { ...state.fill },
   sunEnvironment: state.sunEnvironment,
   guides: state.guides,
   showCone: state.showCone,
@@ -205,6 +234,7 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
     backgroundGray: view.backgroundGray,
     theme: view.theme,
     sun: { ...DEFAULT_SUN, ...view.sun },
+    fill: { ...DEFAULT_FILL, ...(view.fill ?? {}) },
     sunEnvironment: view.sunEnvironment,
     guides: view.guides ?? ((view.showGuides ?? true) ? 3 : 0),
     showCone: view.showCone,
@@ -242,6 +272,7 @@ export const useStore = create<SceneState>((set, get) => ({
   // A setup stored before the sun existed, or by a version that knew fewer of
   // its fields, must not leave the scene with no light in it.
   sun: { ...DEFAULT_SUN, ...(remembered.sun ?? {}) },
+  fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
 
   // The always-visible cube button is the reliable 1 m ruler: it lands on the
   // grid so a new box shares the scene's vanishing points.
@@ -423,18 +454,13 @@ export const useStore = create<SceneState>((set, get) => ({
     }),
 
   cycleMaterial: () =>
-    set((state) => ({
-      modelMaterial:
-        state.modelMaterial === 'original'
-          ? 'matte'
-          : state.modelMaterial === 'matte'
-            ? 'transparent-outline'
-            : 'original',
-    })),
+    set((state) => ({ modelMaterial: state.modelMaterial === 'original' ? 'matte' : 'original' })),
 
   toggleSunEnvironment: () => set((state) => ({ sunEnvironment: !state.sunEnvironment })),
 
   setSun: (sun) => set((state) => ({ sun: { ...state.sun, ...sun } })),
+
+  setFill: (fill) => set((state) => ({ fill: { ...state.fill, ...fill } })),
 
   toggleViewLock: () => set((state) => ({ viewLocked: !state.viewLocked })),
 

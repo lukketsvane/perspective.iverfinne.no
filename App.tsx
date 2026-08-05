@@ -6,6 +6,8 @@ import { VanishingPoints } from './components/VanishingPoints';
 import { SelectionBar } from './components/SelectionBar';
 import { MeshSheet } from './components/MeshSheet';
 import { SceneSheet } from './components/SceneSheet';
+import { LightSheet } from './components/LightSheet';
+import { ProjectionSheet } from './components/ProjectionSheet';
 import { useStore, saveSettings, currentView } from './store';
 import { loadModelFile, loadModelFromUrl, findFreeSpot, modelRadius } from './lib/loadModel';
 import { MESH_LIBRARY, randomMesh } from './lib/meshLibrary';
@@ -26,7 +28,7 @@ export default function App() {
   const addModel = useStore((s) => s.addModel);
   const applyScene = useStore((s) => s.applyScene);
   const loadSceneHistory = useStore((s) => s.loadSceneHistory);
-  const [sheet, setSheet] = useState<'meshes' | 'scenes' | null>(null);
+  const [sheet, setSheet] = useState<'meshes' | 'scenes' | 'lights' | 'projections' | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
@@ -175,11 +177,16 @@ export default function App() {
       <WalkOverlay
         onModels={() => setSheet('meshes')}
         onScenes={() => setSheet('scenes')}
+        onLights={() => setSheet('lights')}
+        onProjections={() => setSheet('projections')}
         onImport={importModels}
+        covered={sheet !== null}
       />
       {sheet === 'meshes' && (
         <MeshSheet onClose={() => setSheet(null)} onPlace={placeLibraryMesh} busyId={busy} />
       )}
+      {sheet === 'lights' && <LightSheet onClose={() => setSheet(null)} />}
+      {sheet === 'projections' && <ProjectionSheet onClose={() => setSheet(null)} />}
       {sheet === 'scenes' && (
         <SceneSheet
           onClose={() => setSheet(null)}

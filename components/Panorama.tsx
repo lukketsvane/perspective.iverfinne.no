@@ -24,6 +24,21 @@ import type { PerspectiveMode } from '../types';
  * right, up, down and straight ahead all reachable at once - which is the
  * construction Kim Jung Gi rules a page with before he draws a room.
  */
+/** What each projection is, to the shader. Equidistant is zero. */
+const PROJECTION_MODES: Partial<Record<PerspectiveMode, number>> = {
+  equidistant: 0,
+  stereographic: 1,
+  cylindrical: 2,
+  hyperbolic: 3,
+  '5-point': 4,
+  '720-noneuclidean': 5,
+  mercator: 6,
+  'little-planet': 7,
+  'mirror-ball': 8,
+  inversion: 9,
+  vortex: 10,
+};
+
 export const Panorama: React.FC<{
   spread: number;
   mode: Exclude<PerspectiveMode, 'linear'>;
@@ -118,6 +133,20 @@ export const Panorama: React.FC<{
             float yaw = clip.x * halfYaw;
             float pitch = clip.y * halfPitch;
             direction = vec3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch));
+          } else if (projectionMode == 6) {
+            /*
+             * Mercator.
+             *
+             * The map projection, used as a lens. Verticals stay vertical and
+             * every angle is preserved locally, and the price is that the
+             * zenith and the nadir are infinitely far up and down - so walking
+             * under something makes it climb the frame forever without ever
+             * arriving overhead.
+             */
+            float yaw = clip.x * halfYaw;
+            float y = clip.y * halfPitch * 1.4;
+            float pitch = 2.0 * atan(exp(y)) - PI * 0.5;
+            direction = vec3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch));
           } else {
             vec2 radial = vec2(clip.x * halfYaw, clip.y * halfPitch);
             float radius = length(radial);
@@ -127,6 +156,51 @@ export const Panorama: React.FC<{
               theta = 2.0 * atan(radius);
             } else if (projectionMode == 3) { // hyperbolic
               theta = 2.0 * atan(radius / 2.0);
+            } else if (projectionMode == 7) {
+              /*
+               * Little planet.
+               *
+               * Stereographic, but taken from the nadir: the ground curls into
+               * a ball under your feet and the whole rest of the world - all
+               * 360 degrees of it - stands around the rim. The floor you are
+               * standing on becomes an object you are looking at.
+               */
+              theta = 2.0 * atan(radius * 0.55);
+            } else if (projectionMode == 8) {
+              /*
+               * Mirror ball.
+               *
+               * Orthographic: the hemisphere as a solid disc, the way a chrome
+               * sphere shows a room. Angle runs as the *sine* of the distance
+               * from the centre, so everything crowds and flattens against the
+               * rim, and the last few degrees before the edge hold half the
+               * world.
+               */
+              theta = asin(clamp(radius / max(halfPitch, 1e-4) * 0.999, -1.0, 1.0));
+            } else if (projectionMode == 9) {
+              /*
+               * Inversion. The world turned inside out.
+               *
+               * r goes to 1/r, so what is behind you sits in the middle of the
+               * frame and what is in front is smeared round the outside. Every
+               * straight line becomes a circle through the centre, which is
+               * exactly what inversive geometry says should happen, and it is
+               * genuinely hard to hold in your head while it moves.
+               */
+              float r = max(radius, 1e-3);
+              theta = PI - 2.0 * atan(r * 0.7);
+            } else if (projectionMode == 10) {
+              /*
+               * Vortex.
+               *
+               * Equidistant, with the picture rotated by an amount that grows
+               * with distance from the centre. Straight lines become spirals;
+               * the further out, the more twist, so the world winds itself up
+               * around whatever you are looking at.
+               */
+              float twist = radius * 1.6;
+              float c = cos(twist); float sn = sin(twist);
+              radial = vec2(radial.x * c - radial.y * sn, radial.x * sn + radial.y * c);
             } else if (projectionMode == 5) { // 720-noneuclidean
               // Apply a non-Euclidean mapping (e.g. Poincare-like expansion mixed with spherical wrapping)
               // This creates a manifold where parallel lines diverge/converge based on distance
@@ -140,7 +214,7 @@ export const Panorama: React.FC<{
               radial = vec2(radial.x * c - radial.y * s, radial.x * s + radial.y * c);
             }
 
-            if (theta > PI && projectionMode != 4 && projectionMode != 5) {
+            if (theta > PI && projectionMode != 4 && projectionMode != 5 && projectionMode != 9) {
               gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
               return;
             }
@@ -148,6 +222,12 @@ export const Panorama: React.FC<{
             if (radius > 1e-5) {
               direction = vec3(radial * (sin(theta) / radius), -cos(theta));
             }
+          }
+
+          if (projectionMode == 7) {
+            // Tip the whole mapping over, so the centre of the frame is the
+            // ground under the viewer rather than whatever is straight ahead.
+            direction = vec3(direction.x, -direction.z, direction.y);
           }
 
           vec3 world = orientation * normalize(direction);
@@ -234,14 +314,7 @@ export const Panorama: React.FC<{
     rig.material.uniforms.halfYaw.value = halfYaw;
     rig.material.uniforms.halfPitch.value = halfPitch;
     rig.material.uniforms.orientation.value.setFromMatrix4(camera.matrixWorld);
-    let pMode = 0; // equidistant
-    if (mode === 'stereographic') pMode = 1;
-    else if (mode === 'cylindrical') pMode = 2;
-    else if (mode === 'hyperbolic') pMode = 3;
-    else if (mode === '5-point') pMode = 4;
-    else if (mode === '720-noneuclidean') pMode = 5;
-
-    rig.material.uniforms.projectionMode.value = pMode;
+    rig.material.uniforms.projectionMode.value = PROJECTION_MODES[mode] ?? 0;
     rig.material.uniforms.gridColor.value.copy(gridColor);
     rig.material.uniforms.gridStrength.value = gridStrength;
 

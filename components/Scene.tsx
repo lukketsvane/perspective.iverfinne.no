@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { Grid, ContactShadows, Sky } from '@react-three/drei';
+import { ContactShadows, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore, DEFAULT_CAMERA_HEIGHT } from '../store';
+import { GroundGrid } from './GroundGrid';
 import { KimBox } from './KimBox';
 import { HorizonLine } from './Reference';
 import { SceneModels } from './SceneModels';
@@ -143,6 +144,22 @@ const SHADOW_STEP = 8;
  * what made dragging the sun feel like wading. Now it is redrawn when the scene
  * changes, the sun moves, or you cross into a new cell - and not otherwise.
  */
+/**
+ * The fill.
+ *
+ * A directional lamp like the sun and nothing else: no shadow map, no follow,
+ * no cache to invalidate. That is the whole point of a fill - it lifts the dark
+ * side of everything at once, and a shadow from it would be a second story
+ * about where the light comes from.
+ */
+const Fill: React.FC = () => {
+  const fill = useStore((state) => state.fill);
+  const colour = useMemo(() => temperatureColor(fill.temperature), [fill.temperature]);
+  const position = useMemo(() => sunPosition(fill.azimuth, fill.elevation), [fill.azimuth, fill.elevation]);
+  if (!fill.enabled) return null;
+  return <directionalLight position={position} color={colour} intensity={fill.intensity} />;
+};
+
 const Sun: React.FC = () => {
   const sun = useStore((state) => state.sun);
   const light = useRef<THREE.DirectionalLight>(null);
@@ -287,7 +304,7 @@ const SceneContent = () => {
   const curvilinear = perspectiveMode !== 'linear';
 
   /** One metre, or whatever finer step is being snapped to. */
-  const cellSize = Math.max(0.25, snapStep || 1);
+  const cellSize = Math.max(0.05, snapStep || 1);
 
   /** The construction sheet is ruled in red, on paper and here. */
   const gridColor = useMemo(
@@ -316,8 +333,9 @@ const SceneContent = () => {
           sun is unlit, exactly as it would be under a hard key with no bounce.
           That is the point - value separation between the three faces of a box
           is what you are reading when you draw one, and a fill light is what
-          washes it out. */}
+          washes it out - until it is asked for, which is what the fill is. */}
       <Sun />
+      <Fill />
 
       <group>
         {boxes.map((box) => (
@@ -336,27 +354,16 @@ const SceneContent = () => {
         *
         * A grid in metres and a snap in centimetres are two different rulers,
         * and lining an object up against a line it cannot land on is the sort
-        * of small lie that costs half an hour. Below a quarter metre the cells
-        * would be closer together than the screen can draw them, so that is
-        * where the drawn grid stops following.
+        * of small lie that costs half an hour.
         */}
       {guides >= 2 && (
-        <Grid
-          position={[0, 0.01, 0]}
-          args={[100, 100]}
-          cellSize={cellSize}
-          cellThickness={0.5}
-          cellColor={isDark ? "#444444" : "#999999"}
-          sectionSize={cellSize * 4}
-          sectionThickness={1.0}
-          sectionColor={isDark ? "#666666" : "#333333"}
-          fadeDistance={60}
-          fadeStrength={1.5}
-          infiniteGrid
+        <GroundGrid
+          cell={cellSize}
+          dark={isDark}
           onClick={(e) => {
-              if (dragJustEnded()) return;
-              e.stopPropagation();
-              selectBox(null);
+            if (dragJustEnded()) return;
+            e.stopPropagation();
+            selectBox(null);
           }}
         />
       )}

@@ -17,7 +17,13 @@ export type ThemeMode = 'light' | 'dark';
  * - 'stereographic': fisheye view with stronger edge expansion.
  * - 'cylindrical': panorama with straight verticals.
  * - 'hyperbolic': Poincaré-like disc projection.
+ * - 'mercator': the map projection as a lens; verticals straight, poles at
+ *   infinity.
  * - '5-point': the full hemisphere, ceiling and floor points included.
+ * - 'little-planet': stereographic from the nadir; the ground curls into a ball.
+ * - 'mirror-ball': orthographic; the hemisphere as a chrome sphere would show it.
+ * - 'inversion': r goes to 1/r, so what is behind you fills the middle.
+ * - 'vortex': equidistant, wound up by distance from the centre.
  * - '720-noneuclidean': the whole sphere twice over.
  */
 export type PerspectiveMode =
@@ -25,12 +31,17 @@ export type PerspectiveMode =
   | 'equidistant'
   | 'stereographic'
   | 'cylindrical'
+  | 'mercator'
   | 'hyperbolic'
   | '5-point'
+  | 'little-planet'
+  | 'mirror-ball'
+  | 'inversion'
+  | 'vortex'
   | '720-noneuclidean';
 
-/** How placed models are surfaced: as authored, in white, or as glass with edges. */
-export type ModelMaterial = 'original' | 'matte' | 'transparent-outline';
+/** How placed models are surfaced: as the file authored them, or in white. */
+export type ModelMaterial = 'original' | 'matte';
 
 /**
  * How much construction is drawn over the world.
@@ -79,11 +90,11 @@ export interface SceneModel {
 }
 
 /**
- * Where the sun is and how hard it burns.
+ * Where a light is and how hard it burns.
  *
  * Azimuth is the compass bearing it shines *from*, in degrees clockwise from
- * -Z; elevation is its height above the horizon. Together they place the one
- * light in the scene, which is what decides where every cast shadow falls.
+ * -Z; elevation is its height above the horizon. Together they place it, which
+ * is what decides where every cast shadow falls.
  */
 export interface SunState {
   azimuth: number;
@@ -93,6 +104,20 @@ export interface SunState {
   temperature: number;
   /** Cast real shadows from the sun. */
   shadows: boolean;
+}
+
+/**
+ * The second light.
+ *
+ * One hard light is the honest way to read a box - a face turned away from it
+ * is genuinely unlit, and that value separation is the thing being drawn. But
+ * one light is also a scene where half of everything is a black silhouette, and
+ * every photographer, every studio and every overcast sky answers that the same
+ * way: a second, softer, cooler light from somewhere else, throwing no shadows
+ * of its own. It is off until asked for.
+ */
+export interface FillState extends SunState {
+  enabled: boolean;
 }
 
 /**
@@ -127,6 +152,7 @@ export interface SceneView {
   backgroundGray: number;
   theme: ThemeMode;
   sun: SunState;
+  fill?: FillState;
   sunEnvironment: boolean;
   guides: GuideLevel;
   /** Written by a version that had one guides switch instead of four levels. */
@@ -178,6 +204,8 @@ export interface SceneState {
    * box read as a box.
    */
   sun: SunState;
+  /** A second, shadowless light, for when one is too few. */
+  fill: FillState;
   /** Freeze the walk camera so a framed view stops moving. */
   viewLocked: boolean;
   /** Scenes to step back through. Newest last. */
@@ -218,6 +246,8 @@ export interface SceneState {
   toggleSunEnvironment: () => void;
   /** Move the sun, or change how hard it burns. */
   setSun: (sun: Partial<SunState>) => void;
+  /** The same, for the fill. */
+  setFill: (fill: Partial<FillState>) => void;
   toggleViewLock: () => void;
   /** Step back one scene. Destructive actions snapshot themselves. */
   undo: () => void;
