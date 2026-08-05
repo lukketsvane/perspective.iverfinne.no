@@ -122,10 +122,26 @@ afterwards as `asset:<hash>`, so a scene built out of imported furniture comes
 back whole a week later. Importing the same file twice stores it once. Meshes
 stop being kept when no saved scene names them any more.
 
-Scenes can also leave as a file, through the arrows in the scene sheet. A file
-carries the arrangement and the viewpoint; the four bundled meshes travel with
-it, but an imported mesh is a reference to the browser it was imported into, so
-that part of a scene only reopens on the same device.
+Scenes can also leave as a file, through the arrows in the scene sheet — and a
+file is the **whole project**: the arrangement, the viewpoint, and the geometry
+of every imported mesh packed in after it. Carry one to another machine and the
+furniture arrives with it.
+
+The container is built the way GLB is — a short header, a JSON manifest, then
+the mesh bytes uncompressed, since a GLB is already compressed and base64 in
+JSON would cost a third of the file for nothing:
+
+```
+magic    4 bytes   "PSPV"
+version  uint32
+json     uint32    length of the manifest
+manifest utf8      the scene, and where each mesh sits below
+meshes   bytes     concatenated, each padded to four bytes
+```
+
+The four meshes the app ships with stay as `/meshes/…` references: both ends
+have them already, so a scene of nothing but library objects exports as about a
+kilobyte. Older plain-JSON exports still read.
 
 ## Install
 

@@ -156,9 +156,16 @@ export default function App() {
       }
     });
 
-  const exportScene = () => {
-    const state = useStore.getState();
-    downloadSceneFile(toSceneFile(state.boxes, state.models, currentView(state)));
+  const exportScene = async () => {
+    setBusy('export');
+    try {
+      const state = useStore.getState();
+      await downloadSceneFile(toSceneFile(state.boxes, state.models, currentView(state)));
+    } catch (error) {
+      console.error('Could not write the scene file:', error);
+    } finally {
+      setBusy(null);
+    }
   };
 
   const importScene = async (file: File) => {

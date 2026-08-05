@@ -1,20 +1,20 @@
 /**
- * Scene JSON — a composition as a file.
+ * A composition as a file.
  *
  * Saved scenes live in this browser. A file is how one leaves it: onto another
  * device, into a backup, next to the drawing it produced. It carries the boxes,
- * every placed mesh with its transforms, and the viewpoint the scene was
- * composed from.
+ * every placed mesh with its transforms, the viewpoint the scene was composed
+ * from — and the geometry of every imported mesh, packed in after the manifest
+ * by `sceneBundle`. A project that arrives without its furniture is not a
+ * project.
  *
- * What a file cannot carry is the geometry of an imported mesh. Those are
- * recorded as `asset:` references — the bytes stay in the browser they were
- * imported into — so a scene of imported meshes reopens on that device and
- * reports the missing pieces anywhere else. Bundled library meshes travel
- * everywhere, since both ends fetch them from the same path.
+ * The four meshes the app ships with stay as `/meshes/...` references: both
+ * ends have them already.
  */
 
 import { BoxData, SceneInstance, SceneModel, SceneView } from '../types';
 import { loadModelFromUrl } from './loadModel';
+import { gatherMeshes, isBundle, packBundle, readBundle } from './sceneBundle';
 
 export interface SceneFile {
   version: 2;
@@ -60,11 +60,15 @@ const fileNameFor = (name: string | undefined) => {
     .trim()
     .replace(/[^a-z0-9_-]+/gi, '-')
     .replace(/^-+|-+$/g, '');
-  return `${stem || 'scene'}.json`;
+  return `${stem || 'scene'}.perspective`;
 };
 
-export const downloadSceneFile = (file: SceneFile) => {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' }));
+/**
+ * Write the whole project out: the arrangement, and the meshes it stands on.
+ */
+export const downloadSceneFile = async (file: SceneFile) => {
+  const meshes = await gatherMeshes(file.instances.map((instance) => instance.fileUrl));
+  const url = URL.createObjectURL(packBundle(file, meshes));
   const link = document.createElement('a');
   link.href = url;
   link.download = fileNameFor(file.name);
@@ -95,10 +99,17 @@ export interface ImportedScene {
  */
 export const readSceneFile = async (file: File): Promise<ImportedScene> => {
   let data: unknown;
-  try {
-    data = JSON.parse(await file.text());
-  } catch {
-    throw new Error('The file is not valid JSON.');
+
+  if (await isBundle(file)) {
+    // The meshes are put back into storage on the way through, so the loader
+    // below finds every `asset:` reference exactly where the scene expects it.
+    data = await readBundle(file);
+  } else {
+    try {
+      data = JSON.parse(await file.text());
+    } catch {
+      throw new Error('The file is not a perspective scene.');
+    }
   }
 
   if (!isSceneFile(data)) {

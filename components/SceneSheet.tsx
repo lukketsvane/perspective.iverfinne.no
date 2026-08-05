@@ -162,7 +162,7 @@ export const SceneSheet: React.FC<{
       <input
         ref={fileInput}
         type="file"
-        accept=".json,application/json"
+        accept=".perspective,.json,application/json"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
