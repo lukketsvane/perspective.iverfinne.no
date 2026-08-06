@@ -1,230 +1,159 @@
-import React, { useRef, useCallback } from 'react';
-import { useThree, ThreeEvent } from '@react-three/fiber';
+import React, { useMemo, useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Edges, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { BoxData } from '../types';
 import { useStore } from '../store';
-import { noteDragEnd } from '../lib/dragGuard';
+import { faceIsReachable, faceOutward } from '../lib/manipulate';
+import { pixelsPerMetreAt } from '../lib/pick';
 
-interface KimBoxProps {
-  data: BoxData;
-}
+/**
+ * A reference box, standing on the grid.
+ *
+ * It carries nothing but its own appearance and the marks that say what can be
+ * done to it. Taking hold of it is the walk layer's business: that layer covers
+ * the canvas and owns every pointer event on the glass, so a handler hung here
+ * would never fire - which is exactly what used to happen, and why a box could
+ * be selected but never moved.
+ */
 
-export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const selectBox = useStore((state) => state.selectBox);
-  const updateBox = useStore((state) => state.updateBox);
+/** The mark, and what you can hit: radius in pixels on the glass. */
+const DOT_PIXELS = 7;
+const TARGET_PIXELS = 16;
+
+/** All six faces. Which of them are offered is the viewer's business. */
+const FACES = ([0, 1, 2] as const).flatMap((axis) =>
+  ([1, -1] as const).map((sign) => ({ axis, sign, key: `${axis}${sign}` }))
+);
+
+/**
+ * The faces you push and pull, marked with a dot at the centre of each.
+ *
+ * Three things about a face are decided by where the viewer is standing rather
+ * than by the box, so all three are worked out every frame.
+ *
+ * Whether you are looking at it. Only the faces turned towards the eye are
+ * offered - the ones behind are marks you could see and not touch, since the
+ * box itself is in the way of any ray that would reach them.
+ *
+ * Whether it has come clear of the box. Meet a box square on and the face
+ * pointing at you lands over the middle of it, so the mark goes and the middle
+ * of the box goes back to being the middle of the box - which is what you want,
+ * because that face cannot be pushed in any direction you could see anyway.
+ *
+ * And how big the mark is. A handle a fixed size in metres is a thirty-pixel
+ * target on a box at arm's length, swallowing the middle of the very box it
+ * belongs to, and two pixels on one across the room. Held to a size on the
+ * glass, it is the same target wherever the box is standing.
+ */
+const FaceHandles: React.FC<{ data: BoxData; color: string }> = ({ data, color }) => {
+  const { camera } = useThree();
+  const marks = useRef<(THREE.Group | null)[]>([]);
+  const centre = useMemo(() => new THREE.Vector3(...data.position), [data.position]);
+  const outward = useMemo(
+    () => FACES.map((face) => faceOutward(data.rotation, face.axis, face.sign)),
+    [data.rotation]
+  );
+  const at = useMemo(() => new THREE.Vector3(), []);
+  const eye = useMemo(() => new THREE.Vector3(), []);
+
+  useFrame(() => {
+    marks.current.forEach((mark, index) => {
+      if (!mark) return;
+      const half = data.scale[FACES[index].axis] / 2;
+      eye.copy(camera.position).sub(mark.position);
+      mark.visible = outward[index].dot(eye) > 0 && faceIsReachable(centre, outward[index], half);
+      // A handle that is not offered has no size either. Left at its own scale
+      // it would still be a metre-wide sphere of nothing, sitting in front of
+      // the box and catching every ray meant for it.
+      const perMetre = mark.visible ? pixelsPerMetreAt(at.copy(mark.position)) : 0;
+      mark.scale.setScalar(perMetre > 1e-3 ? TARGET_PIXELS / perMetre : 0);
+    });
+  });
+
+  return (
+    <>
+      {FACES.map((face, index) => {
+        const out = outward[index].clone().multiplyScalar(data.scale[face.axis] / 2);
+
+        return (
+          <group
+            key={face.key}
+            ref={(node) => { marks.current[index] = node; }}
+            userData={{ handleAxis: face.axis, handleSign: face.sign }}
+            position={[data.position[0] + out.x, data.position[1] + out.y, data.position[2] + out.z]}
+            // Sized on the first frame, by the viewer. Until then it is nothing.
+            scale={0}
+          >
+            {/* Drawn last and without depth, so the mark stays a mark rather
+                than something seen through the box's own glass. */}
+            <mesh raycast={() => null} renderOrder={999}>
+              <sphereGeometry args={[DOT_PIXELS / TARGET_PIXELS, 16, 12]} />
+              <meshBasicMaterial color={color} toneMapped={false} depthTest={false} transparent />
+            </mesh>
+            {/* The target, which is bigger than the mark. */}
+            <mesh>
+              <sphereGeometry args={[1, 8, 6]} />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
+          </group>
+        );
+      })}
+    </>
+  );
+};
+
+export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
   const selectedId = useStore((state) => state.selectedId);
-  const setIsDraggingGlobal = useStore((state) => state.setIsDragging);
   const theme = useStore((state) => state.theme);
 
-  const { camera } = useThree();
-  
   const isSelected = selectedId === data.id;
   const isDark = theme === 'dark';
 
   // Black boxes on a black ground: the edges and the sun do the describing.
-  const boxColor = isDark ? (isSelected ? "#101010" : "#000000") : (isSelected ? "#ffefef" : "#ffffff");
-  const edgeColor = isDark ? (isSelected ? "#ff5555" : "#ffffff") : (isSelected ? "#ff3b30" : "#0a0a0a");
-
-  const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation();
-
-    // If not selected, just select and return. 
-    // This requires a second click-drag to manipulate, preventing accidental edits when just selecting.
-    if (!isSelected) {
-      selectBox(data.id);
-      return;
-    }
-
-    if (!meshRef.current) return;
-
-    // --- START DRAG ---
-    setIsDraggingGlobal(true);
-    document.body.style.cursor = 'grabbing';
-
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const initialScale = [...data.scale];
-    const initialPos = [...data.position];
-    
-    // Get the local normal of the face we clicked
-    const normalLocal = e.face?.normal?.clone().normalize() || new THREE.Vector3(0, 1, 0);
-
-    // Calculate World Normal to determine screen direction
-    // This ensures "Push" and "Pull" align with visual direction regardless of rotation
-    const normalWorld = normalLocal.clone().applyQuaternion(meshRef.current.quaternion).normalize();
-
-    // Project this normal direction onto the screen
-    // We calculate two points in world space: Center of object, and a point slightly along the normal
-    const centerWorld = meshRef.current.position.clone();
-    const tipWorld = centerWorld.clone().add(normalWorld);
-
-    // Project to NDC
-    centerWorld.project(camera);
-    tipWorld.project(camera);
-
-    // Calculate screen vector (NDC space)
-    // In NDC, Y goes Up. In Screen Pixels, Y goes Down.
-    // We will convert NDC vector to a pixel-space-aligned logic (Y down) for dot product
-    const ndcDx = tipWorld.x - centerWorld.x;
-    const ndcDy = tipWorld.y - centerWorld.y;
-    
-    // Screen vector where Y points DOWN (matching mouse coordinates)
-    // NDC Y is up, so we invert it to match pixel coordinates
-    const screenDirX = ndcDx;
-    const screenDirY = -ndcDy; 
-    
-    // Normalize to get pure direction
-    const len = Math.sqrt(screenDirX * screenDirX + screenDirY * screenDirY);
-    const safeLen = len > 0.0001 ? len : 1;
-    const normalizedScreenDirX = screenDirX / safeLen;
-    const normalizedScreenDirY = screenDirY / safeLen;
-
-    const handleWindowMove = (moveEvent: PointerEvent) => {
-        if (!meshRef.current) return;
-
-        const dx = moveEvent.clientX - startX;
-        const dy = moveEvent.clientY - startY;
-        
-        // Increased sensitivity for fluid feel
-        const sensitivity = 0.03; 
-
-        // --- DIRECTION MAPPING ---
-        // Project the mouse delta onto the visual screen direction of the normal
-        // Dot Product: (dx * dirX) + (dy * dirY)
-        // This tells us how much we moved "along" the visual arrow of the face normal
-        const projection = (dx * normalizedScreenDirX) + (dy * normalizedScreenDirY);
-        
-        const change = projection * sensitivity;
-        
-        const newScale = [...initialScale];
-        const newPos = [...initialPos];
-        const axisIndex = Math.abs(normalLocal.x) > 0.9 ? 0 : Math.abs(normalLocal.y) > 0.9 ? 1 : 2;
-        
-        // Apply Scale. Snapping keeps sizes readable against the 1 m grid -
-        // a box ends up 1.75 m tall, not 1.73 - which is the difference between
-        // a reference you can measure against and one you cannot.
-        const snap = useStore.getState().snapStep;
-        const raw = initialScale[axisIndex] + change;
-        const snapped = snap > 0 ? Math.round(raw / snap) * snap : raw;
-        newScale[axisIndex] = Math.max(snap > 0 ? snap : 0.1, snapped);
-        
-        // --- ANCHORING LOGIC ---
-        // Calculate the physical size change
-        const actualDiff = newScale[axisIndex] - initialScale[axisIndex];
-        
-        // Move center position by half the growth, in the direction of the normal.
-        // We use the LOCAL normal for axis determination, but we need to move in WORLD space if rotated?
-        // BoxData stores position/rotation/scale. The position is the center.
-        // If we scale the object locally, the geometry expands in both directions locally.
-        // To anchor one side, we shift the center by half the diff along the rotated local axis.
-        
-        // Local Axis Vector (e.g. (1,0,0) for Right Face)
-        const axisVector = new THREE.Vector3(
-            axisIndex === 0 ? Math.sign(normalLocal.x) : 0,
-            axisIndex === 1 ? Math.sign(normalLocal.y) : 0,
-            axisIndex === 2 ? Math.sign(normalLocal.z) : 0
-        );
-
-        // Rotate this axis vector to match current object rotation
-        axisVector.applyQuaternion(meshRef.current.quaternion);
-
-        // Update position
-        const shiftAmount = actualDiff / 2;
-        newPos[0] = initialPos[0] + axisVector.x * shiftAmount;
-        newPos[1] = initialPos[1] + axisVector.y * shiftAmount;
-        newPos[2] = initialPos[2] + axisVector.z * shiftAmount;
-
-        // Apply visual updates immediately
-        meshRef.current.scale.set(newScale[0], newScale[1], newScale[2]);
-        meshRef.current.position.set(newPos[0], newPos[1], newPos[2]);
-
-        // Commit as we go, so the size readout counts up under the thumb
-        // instead of only landing when the finger lifts.
-        updateBox(data.id, {
-            scale: [newScale[0], newScale[1], newScale[2]],
-            position: [newPos[0], newPos[1], newPos[2]],
-        });
-    };
-
-    const handleWindowUp = () => {
-        // --- END DRAG ---
-        noteDragEnd();
-        setIsDraggingGlobal(false);
-        document.body.style.cursor = 'auto';
-
-        // Commit final state to store
-        if (meshRef.current) {
-            updateBox(data.id, {
-                scale: [meshRef.current.scale.x, meshRef.current.scale.y, meshRef.current.scale.z],
-                position: [meshRef.current.position.x, meshRef.current.position.y, meshRef.current.position.z]
-            });
-        }
-
-        // Cleanup
-        window.removeEventListener('pointermove', handleWindowMove);
-        window.removeEventListener('pointerup', handleWindowUp);
-    };
-
-    // Attach listeners to window to capture full-screen gestures
-    window.addEventListener('pointermove', handleWindowMove);
-    window.addEventListener('pointerup', handleWindowUp);
-
-  }, [isSelected, data, selectBox, updateBox, setIsDraggingGlobal, camera]);
+  const boxColor = isDark ? (isSelected ? '#101010' : '#000000') : (isSelected ? '#ffefef' : '#ffffff');
+  const edgeColor = isDark ? (isSelected ? '#ff5555' : '#ffffff') : (isSelected ? '#ff3b30' : '#0a0a0a');
 
   return (
     <group userData={{ selectableType: 'box', selectableId: data.id }}>
       {/* Helper lines, drawn only around the selection. */}
       {isSelected && (
         <group>
-            {/* Central Axis Spine - Visual hint for vertical alignment */}
-            <Line
-                raycast={() => null}
-                points={[[data.position[0], 0, data.position[2]], [data.position[0], data.position[1] + data.scale[1]/2 + 2, data.position[2]]]}
-                color={edgeColor}
-                lineWidth={1}
-                dashed
-                dashScale={2}
-                gapSize={0.5}
-                opacity={0.5}
-                transparent
-            />
-            {/* Ground Footprint Shadow */}
-            <mesh 
-                position={[data.position[0], 0.02, data.position[2]]} 
-                rotation={[-Math.PI/2, 0, data.rotation[1]]}
-            >
-                <planeGeometry args={[data.scale[0] + 0.4, data.scale[2] + 0.4]} />
-                <meshBasicMaterial color={edgeColor} transparent opacity={0.1} />
-            </mesh>
+          {/* The vertical through it, for reading its height off the grid. */}
+          <Line
+            raycast={() => null}
+            points={[
+              [data.position[0], 0, data.position[2]],
+              [data.position[0], data.position[1] + data.scale[1] / 2 + 2, data.position[2]],
+            ]}
+            color={edgeColor}
+            lineWidth={1}
+            dashed
+            dashScale={2}
+            gapSize={0.5}
+            opacity={0.5}
+            transparent
+          />
+          {/* Where it stands. */}
+          <mesh
+            raycast={() => null}
+            position={[data.position[0], 0.02, data.position[2]]}
+            rotation={[-Math.PI / 2, 0, data.rotation[1]]}
+          >
+            <planeGeometry args={[data.scale[0] + 0.4, data.scale[2] + 0.4]} />
+            <meshBasicMaterial color={edgeColor} transparent opacity={0.1} />
+          </mesh>
         </group>
       )}
 
       <mesh
-        ref={meshRef}
-        position={data.position as any}
-        rotation={data.rotation as any}
-        scale={data.scale as any}
+        position={data.position}
+        rotation={data.rotation}
+        scale={data.scale}
         // A box that throws no shadow is a box with no relationship to the
         // ground, which is half of what a perspective study is about.
         castShadow
         receiveShadow
-        onPointerDown={handlePointerDown}
-        // The ground plane below deselects on click. Swallow both events here
-        // so hitting a box never falls through to the floor.
-        onClick={(e) => e.stopPropagation()}
-        onDoubleClick={(e) => e.stopPropagation()}
-        onPointerOver={(e) => {
-            e.stopPropagation();
-            // Selected, a face is a handle you push and pull; unselected, the
-            // box is something to click.
-            document.body.style.cursor = isSelected ? 'crosshair' : 'pointer';
-        }}
-        onPointerOut={(e) => {
-            e.stopPropagation();
-            document.body.style.cursor = 'auto';
-        }}
       >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial
@@ -236,34 +165,10 @@ export const KimBox: React.FC<KimBoxProps> = ({ data }) => {
           polygonOffset
           polygonOffsetFactor={1}
         />
-        <Edges
-          raycast={() => null}
-          scale={1}
-          threshold={15}
-          color={edgeColor}
-        />
-        
-        {/* Interaction hints: the three faces you can push and pull. */}
-        {isSelected && (
-           <group>
-               {/* Top Face Dot */}
-               <mesh position={[0, 0.5, 0]}>
-                   <sphereGeometry args={[0.05]} />
-                   <meshBasicMaterial color={edgeColor} toneMapped={false} />
-               </mesh>
-               {/* Right Face Dot */}
-               <mesh position={[0.5, 0, 0]}>
-                   <sphereGeometry args={[0.05]} />
-                   <meshBasicMaterial color={edgeColor} toneMapped={false} />
-               </mesh>
-               {/* Front Face Dot */}
-               <mesh position={[0, 0, 0.5]}>
-                   <sphereGeometry args={[0.05]} />
-                   <meshBasicMaterial color={edgeColor} toneMapped={false} />
-               </mesh>
-           </group>
-        )}
+        <Edges raycast={() => null} scale={1} threshold={15} color={edgeColor} />
       </mesh>
+
+      {isSelected && <FaceHandles data={data} color={edgeColor} />}
     </group>
   );
 };

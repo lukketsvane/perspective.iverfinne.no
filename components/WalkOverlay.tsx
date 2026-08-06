@@ -7,6 +7,8 @@ import { Scrub, useGrayThemeControl } from './controls';
 import { MODEL_ACCEPT } from '../lib/loadModel';
 import { captureFileName, captureView } from '../lib/capture';
 import { ACTIVE, chrome, iconButton } from './ui';
+import { pickObject } from '../lib/pick';
+import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
 import { SNAP_STEPS, type GuideLevel, type PerspectiveMode } from '../types';
 
 /**
@@ -87,6 +89,33 @@ const shapeStick = (magnitude: number) => {
 };
 
 /**
+ * What a mouse becomes over each part of the scene.
+ *
+ * A phone has nothing to show this with and does not need it. A desktop does:
+ * there is otherwise nothing to say that the dot on a face is a handle and the
+ * rest of the box is not, and a tool where you have to discover that by trying
+ * is a tool where you discover it by resizing something you meant to move.
+ */
+const CURSOR: Record<string, string> = {
+  none: 'default',
+  select: 'pointer',
+  move: 'grab',
+  size: 'crosshair',
+};
+
+/** How far the mouse has to travel before the scene is asked about it again. */
+const HOVER_SLOP = 5;
+
+/**
+ * How long a finger may rest before lifting it stops counting as a tap.
+ *
+ * Nothing in the tool answers a long press, so the only thing this has to be is
+ * generous: what separates a tap from a look is that a tap did not move, and a
+ * deliberate one aimed at a chair across the room takes its time.
+ */
+const TAP_MS = 700;
+
+/**
  * Walk-mode controls, built for two thumbs.
  *
  * The left of the screen walks and the right looks, both at once, with the
@@ -125,7 +154,9 @@ export const WalkOverlay: React.FC<{
   const models = useStore((s) => s.models);
   const deduplicateModels = useStore((s) => s.deduplicateModels);
   const undo = useStore((s) => s.undo);
+  const redo = useStore((s) => s.redo);
   const canUndo = useStore((s) => s.undoStack.length > 0);
+  const canRedo = useStore((s) => s.redoStack.length > 0);
   const resetScene = useStore((s) => s.resetScene);
   const selectedModelId = useStore((s) => s.selectedModelId);
   const selectedId = useStore((s) => s.selectedId);
@@ -170,10 +201,23 @@ export const WalkOverlay: React.FC<{
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const tapStarts = useRef(new Map<number, { x: number; y: number; at: number; cancelled: boolean }>());
   const sunPan = useRef<{ x: number; y: number; azimuth: number; elevation: number } | null>(null);
-  const pinch = useRef<{ startDist: number; startAngle: number; startScale: number; startRotY: number; centreX: number; centreY: number; startPos: [number, number, number] } | null>(null);
+  /** One finger on the selection: slide it, lift it, or push a face of it. */
+  const held = useRef<{ id: number; grab: Grab } | null>(null);
+  /** Two fingers on it: turn, size and slide at once. */
+  const pinch = useRef<Pinch | null>(null);
+  const [cursor, setCursor] = useState('default');
+  const hovered = useRef({ x: 0, y: 0 });
 
   const isStickZone = (x: number, y: number) =>
     x < window.innerWidth * 0.45 && y > window.innerHeight * 0.45;
+
+  /** Let go of whatever one finger had hold of. */
+  const release = () => {
+    if (!held.current) return;
+    held.current.grab.end();
+    held.current = null;
+    setCursor('default');
+  };
 
   const applyStick = (originX: number, originY: number, x: number, y: number) => {
     let dx = x - originX;
@@ -195,37 +239,41 @@ export const WalkOverlay: React.FC<{
     walkInput.forward = (-dy / length) * push;
   };
 
+  const stopWalking = () => {
+    stick.current = null;
+    look.current = null;
+    walkInput.forward = 0;
+    walkInput.strafe = 0;
+  };
+
   const onPointerDown = (e: React.PointerEvent) => {
     showRail();
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    tapStarts.current.set(e.pointerId, { x: e.clientX, y: e.clientY, at: performance.now(), cancelled: false });
+    // The event's own clock, not the handler's. A tap that lands while the
+    // panorama is redrawing its six faces can wait a quarter of a second to be
+    // read, and timing it from in here counted that against the tap: a wide
+    // curvilinear frame is exactly where taps went missing.
+    tapStarts.current.set(e.pointerId, { x: e.clientX, y: e.clientY, at: e.timeStamp || performance.now(), cancelled: false });
     if (pointers.current.size > 1) {
       tapStarts.current.forEach((tap) => { tap.cancelled = true; });
     }
-    if (viewLocked) return;
     try {
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     } catch { }
 
-    if (pointers.current.size === 2 && selectedModelId) {
-      const pts = [...pointers.current.values()];
-      const dx = pts[1].x - pts[0].x;
-      const dy = pts[1].y - pts[0].y;
-      const model = models.find((m) => m.id === selectedModelId);
-      pinch.current = {
-        startDist: Math.hypot(dx, dy),
-        startAngle: Math.atan2(dy, dx),
-        startScale: model?.scale ?? 1,
-        startRotY: model?.rotationY ?? 0,
-        centreX: (pts[0].x + pts[1].x) / 2,
-        centreY: (pts[0].y + pts[1].y) / 2,
-        startPos: model?.position ? [...model.position] : [0, 0, 0],
-      };
-      stick.current = null;
-      look.current = null;
-      walkInput.forward = 0;
-      walkInput.strafe = 0;
-    } else if (pointers.current.size === 3) {
+    if (pointers.current.size === 2) {
+      const [first, second] = [...pointers.current.values()];
+      // Two fingers do nothing at all unless something is selected for them to
+      // work on - otherwise a second thumb landing while walking would grab.
+      pinch.current = pinchOn(first.x, first.y, second.x, second.y);
+      if (pinch.current) {
+        release();
+        stopWalking();
+        return;
+      }
+    }
+
+    if (pointers.current.size === 3) {
       const points = [...pointers.current.values()];
       sunPan.current = {
         x: points.reduce((sum, point) => sum + point.x, 0) / 3,
@@ -234,11 +282,34 @@ export const WalkOverlay: React.FC<{
         elevation: sun.elevation,
       };
       pinch.current = null;
-      stick.current = null;
-      look.current = null;
-      walkInput.forward = 0;
-      walkInput.strafe = 0;
-    } else if (!stick.current && isStickZone(e.clientX, e.clientY)) {
+      release();
+      stopWalking();
+      return;
+    }
+
+    if (pointers.current.size === 1) {
+      /*
+       * Taking hold of the selection.
+       *
+       * This comes before walking and before looking, and it is the only thing
+       * that does: it can only happen when the finger lands on the thing already
+       * selected, which is a deliberate act, while a step or a look can start
+       * anywhere else on the glass. It works with the view locked, too - the
+       * whole point of locking is to arrange a composition without the framing
+       * moving under it.
+       */
+      const grab = grabAt(e.clientX, e.clientY);
+      if (grab) {
+        held.current = { id: e.pointerId, grab };
+        if (e.pointerType === 'mouse') setCursor('grabbing');
+        stopWalking();
+        return;
+      }
+    }
+
+    if (viewLocked) return;
+
+    if (!stick.current && isStickZone(e.clientX, e.clientY)) {
       stick.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
       applyStick(e.clientX, e.clientY, e.clientX, e.clientY);
     } else if (!look.current) {
@@ -246,37 +317,32 @@ export const WalkOverlay: React.FC<{
     }
   };
 
+  /** Say what the arrow is over, on a machine that has an arrow. */
+  const trackHover = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'mouse' || e.buttons !== 0) return;
+    if (Math.hypot(e.clientX - hovered.current.x, e.clientY - hovered.current.y) < HOVER_SLOP) return;
+    hovered.current = { x: e.clientX, y: e.clientY };
+    setCursor(CURSOR[hoverAt(e.clientX, e.clientY)] ?? 'default');
+  };
+
   const onPointerMove = (e: React.PointerEvent) => {
     const tap = tapStarts.current.get(e.pointerId);
     if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 9) tap.cancelled = true;
     if (pointers.current.has(e.pointerId)) {
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    } else {
+      trackHover(e);
+      return;
     }
 
-    if (pinch.current && pointers.current.size === 2 && selectedModelId) {
-      const pts = [...pointers.current.values()];
-      const dx = pts[1].x - pts[0].x;
-      const dy = pts[1].y - pts[0].y;
-      const angle = Math.atan2(dy, dx);
-      const cx = (pts[0].x + pts[1].x) / 2;
-      const cy = (pts[0].y + pts[1].y) / 2;
+    if (pinch.current && pointers.current.size === 2) {
+      const [first, second] = [...pointers.current.values()];
+      pinch.current.move(first.x, first.y, second.x, second.y);
+      return;
+    }
 
-      const deltaAngle = angle - pinch.current.startAngle;
-      const newRotY = pinch.current.startRotY - deltaAngle;
-
-      const moveFactor = 0.01;
-      const moveX = (cx - pinch.current.centreX) * moveFactor;
-      const moveZ = (cy - pinch.current.centreY) * moveFactor;
-
-      const updateModel = useStore.getState().updateModel;
-      updateModel(selectedModelId, {
-        rotationY: newRotY,
-        position: [
-          pinch.current.startPos[0] + moveX,
-          pinch.current.startPos[1],
-          pinch.current.startPos[2] + moveZ,
-        ],
-      });
+    if (held.current?.id === e.pointerId) {
+      held.current.grab.move(e.clientX, e.clientY, e.shiftKey);
       return;
     }
 
@@ -315,18 +381,37 @@ export const WalkOverlay: React.FC<{
     }
   };
 
+  /**
+   * A tap on the scene, which is how anything is chosen.
+   *
+   * The walk layer covers the canvas, so this is the only route into selection:
+   * the same projection-correct ray the drags use, and a tap that meets nothing
+   * clears what was selected.
+   */
+  const tapScene = (clientX: number, clientY: number) => {
+    const hit = pickObject(clientX, clientY);
+    const { selectBox, selectModel } = useStore.getState();
+    if (!hit) selectBox(null);
+    else if (hit.type === 'box') selectBox(hit.id);
+    else selectModel(hit.id);
+  };
+
   const endPointer = (e: React.PointerEvent) => {
     const tap = tapStarts.current.get(e.pointerId);
     const wasSinglePointer = pointers.current.size === 1;
     pointers.current.delete(e.pointerId);
     tapStarts.current.delete(e.pointerId);
-    if (tap && wasSinglePointer && !tap.cancelled && performance.now() - tap.at < 400) {
-      window.dispatchEvent(new CustomEvent('perspective:scene-tap', {
-        detail: { clientX: e.clientX, clientY: e.clientY },
-      }));
+
+    if (held.current?.id === e.pointerId) release();
+
+    if (tap && wasSinglePointer && !tap.cancelled && (e.timeStamp || performance.now()) - tap.at < TAP_MS) {
+      tapScene(e.clientX, e.clientY);
     }
     if (pinch.current) {
-      if (pointers.current.size < 2) pinch.current = null;
+      if (pointers.current.size < 2) {
+        pinch.current.end();
+        pinch.current = null;
+      }
       return;
     }
     if (sunPan.current) {
@@ -347,34 +432,123 @@ export const WalkOverlay: React.FC<{
     endPointer(e);
   };
 
+  /**
+   * The finger that was never let go of.
+   *
+   * Pointer capture is asked for and not always granted, so a press that starts
+   * on the scene and ends somewhere else - over the dock, off the edge of the
+   * window, taken away by a system gesture - can have its release delivered to
+   * something other than this layer. The entry then stays in the table for good,
+   * and from that moment every later press is read as a second finger: the
+   * second of two never taps, so nothing can be selected again for the rest of
+   * the session.
+   *
+   * This runs after the layer's own handler - window, bubbling - so it only
+   * ever sees the ones that got away.
+   */
+  useEffect(() => {
+    const forget = (event: PointerEvent) => {
+      if (!pointers.current.has(event.pointerId)) return;
+      pointers.current.delete(event.pointerId);
+      tapStarts.current.delete(event.pointerId);
+      if (held.current?.id === event.pointerId) release();
+      if (stick.current?.id === event.pointerId) {
+        stick.current = null;
+        walkInput.forward = 0;
+        walkInput.strafe = 0;
+      }
+      if (look.current?.id === event.pointerId) look.current = null;
+      if (pointers.current.size < 2 && pinch.current) {
+        pinch.current.end();
+        pinch.current = null;
+      }
+      if (pointers.current.size < 3) sunPan.current = null;
+    };
+    window.addEventListener('pointerup', forget);
+    window.addEventListener('pointercancel', forget);
+    return () => {
+      window.removeEventListener('pointerup', forget);
+      window.removeEventListener('pointercancel', forget);
+    };
+  }, []);
+
+  /**
+   * The keyboard, for the half of the sessions that happen at a desk.
+   *
+   * Nothing here is written anywhere, in keeping with the rest: they are the
+   * keys anyone would try. WASD and the arrows walk, escape backs out of
+   * whatever is up, delete removes the selection, and the undo pair is the one
+   * every application has had for forty years.
+   *
+   * The held keys are dropped whenever the window loses focus or the tab goes
+   * away. Without that, tabbing out mid-stride means the keyup never arrives and
+   * the walker is still walking when you come back - which is the oldest bug in
+   * first-person controls and the most disorienting.
+   */
   useEffect(() => {
     const keys = new Set<string>();
     const apply = () => {
       walkInput.forward = (keys.has('w') || keys.has('arrowup') ? 1 : 0) + (keys.has('s') || keys.has('arrowdown') ? -1 : 0);
       walkInput.strafe = (keys.has('d') || keys.has('arrowright') ? 1 : 0) + (keys.has('a') || keys.has('arrowleft') ? -1 : 0);
     };
+    const drop = () => { keys.clear(); apply(); };
+
     const down = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && showTools) { setShowTools(false); return; }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+      const target = e.target as HTMLElement | null;
+      // Typing into something is typing into something, whatever the key is.
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+
+      const command = e.metaKey || e.ctrlKey;
+      const key = e.key.toLowerCase();
+
+      if (command && (key === 'z' || key === 'y')) {
         e.preventDefault();
-        undo();
+        if (key === 'y' || e.shiftKey) redo();
+        else undo();
         return;
       }
-      const target = e.target as HTMLElement | null;
-      if (target?.closest('button, input, textarea, select')) return;
-      keys.add(e.key.toLowerCase());
+
+      if (e.key === 'Escape') {
+        // A sheet closes itself on escape; backing out of one is not also a
+        // reason to drop what was selected before it was opened.
+        if (showTools) setShowTools(false);
+        else if (!covered) useStore.getState().selectBox(null);
+        return;
+      }
+
+      if (key === 'delete' || key === 'backspace') {
+        const state = useStore.getState();
+        if (!state.selectedId && !state.selectedModelId) return;
+        e.preventDefault();
+        if (state.selectedModelId) state.removeModel(state.selectedModelId);
+        else if (state.selectedId) state.removeBox(state.selectedId);
+        return;
+      }
+
+      // A shortcut is not a step: holding command and pressing D should not
+      // leave the walker strafing once the shortcut has been handled.
+      if (command || e.altKey) return;
+
+      keys.add(key);
       apply();
     };
+
     const up = (e: KeyboardEvent) => { keys.delete(e.key.toLowerCase()); apply(); };
+    const hidden = () => { if (document.hidden) drop(); };
+
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
+    window.addEventListener('blur', drop);
+    document.addEventListener('visibilitychange', hidden);
     return () => {
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
+      window.removeEventListener('blur', drop);
+      document.removeEventListener('visibilitychange', hidden);
       walkInput.forward = 0;
       walkInput.strafe = 0;
     };
-  }, [showTools, undo]);
+  }, [showTools, undo, redo, covered]);
 
   const showRail = useCallback(() => {
     setRailVisible(true);
@@ -386,6 +560,19 @@ export const WalkOverlay: React.FC<{
     showRail();
     return () => { if (railTimer.current) clearTimeout(railTimer.current); };
   }, [showRail]);
+
+  // Opening the second row is a statement that the dock is wanted. It used to
+  // fade out from under an open panel six seconds later, leaving twelve
+  // controls on screen that could be seen through and not pressed. Closing the
+  // row starts the idle count again.
+  useEffect(() => {
+    if (!showTools) {
+      showRail();
+      return;
+    }
+    if (railTimer.current) clearTimeout(railTimer.current);
+    setRailVisible(true);
+  }, [showTools, showRail]);
 
   /**
    * Into the room, or back out of it.
@@ -421,10 +608,12 @@ export const WalkOverlay: React.FC<{
     <>
       <div
         className="fixed inset-0 z-30 touch-none"
+        style={{ cursor }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endPointer}
         onPointerCancel={cancelPointer}
+        onPointerLeave={() => setCursor('default')}
       />
 
       {showTools && (
@@ -492,6 +681,9 @@ export const WalkOverlay: React.FC<{
           </button>
           <button onClick={undo} aria-label="Undo" className={`${button} ${canUndo ? '' : 'opacity-30'}`}>
             <Icon path={I.undo} className="w-5 h-5" />
+          </button>
+          <button onClick={redo} aria-label="Redo" className={`${button} ${canRedo ? '' : 'opacity-30'}`}>
+            <Icon path={I.redo} className="w-5 h-5" />
           </button>
           <button onClick={resetScene} aria-label="Clear the scene" className={button}>
             <Icon path={I.reset} className="w-5 h-5" />

@@ -15,6 +15,8 @@ import { walkInput } from './lib/walkInput';
 import { fieldOf } from './lib/projection';
 import { holdPreviews, resumePreviews } from './lib/meshPreview';
 import { downloadSceneFile, readSceneFile, toSceneFile } from './lib/sceneJson';
+import { beginActivity, reportFailure } from './lib/activity';
+import { Activity } from './components/Activity';
 import type { SceneModel } from './types';
 
 /** The application is always a first-person workspace. */
@@ -48,6 +50,10 @@ export default function App() {
     if (opened.current) return;
     opened.current = true;
     const entry = randomMesh();
+    // Three megabytes over the network before anything stands up. The hairline
+    // says so, rather than the grid sitting empty for a second and a half with
+    // nothing to suggest that it will not stay that way.
+    const done = beginActivity();
     loadModelFromUrl(entry.url, entry.name, [0, 0], entry.height)
       .then(({ model }) => {
         // Anything the viewer did in the meantime wins: a scene opened from the
@@ -55,12 +61,18 @@ export default function App() {
         const { models, boxes } = useStore.getState();
         if (models.length || boxes.length) return;
         addModel({ ...model, position: [0, 0, 0] });
-        useStore.setState({ selectedModelId: null });
+        // Nothing has been done yet: what the tool opened with is where undo
+        // stops, not a first move to be taken back.
+        useStore.setState({ selectedModelId: null, undoStack: [], redoStack: [] });
         // A scanned figure arrives normalised and is scaled on the way in, so
         // what it will stand at is its authored size times that scale.
         frame(model.size.map((metres) => metres * model.scale) as [number, number, number]);
       })
-      .catch((error) => console.error('Could not open with a model:', error));
+      .catch((error) => {
+        console.error('Could not open with a model:', error);
+        reportFailure();
+      })
+      .finally(done);
   }, [addModel]);
 
   /** How much of the frame's height the opening object should fill. */
@@ -133,11 +145,14 @@ export default function App() {
   const whileLoading = async (id: string, work: () => Promise<void>) => {
     setBusy(id);
     holdPreviews();
+    const done = beginActivity();
     try {
       await work();
     } catch (error) {
       console.error('Could not load that mesh:', error);
+      reportFailure();
     } finally {
+      done();
       resumePreviews();
       setBusy(null);
     }
@@ -162,28 +177,37 @@ export default function App() {
 
   const exportScene = async () => {
     setBusy('export');
+    const done = beginActivity();
     try {
       const state = useStore.getState();
       await downloadSceneFile(toSceneFile(state.boxes, state.models, currentView(state)));
     } catch (error) {
       console.error('Could not write the scene file:', error);
+      reportFailure();
     } finally {
+      done();
       setBusy(null);
     }
   };
 
   const importScene = async (file: File) => {
     setBusy('import');
+    const done = beginActivity();
     try {
       const { boxes, models, view, skipped } = await readSceneFile(file);
       applyScene({ boxes, models, view });
       if (skipped.length > 0) {
         console.warn(`Some meshes were skipped on import:\n${skipped.join('\n')}`);
+        // Part of a scene arriving is not a success, and the file it came from
+        // is the only place the missing geometry now exists.
+        reportFailure();
       }
       setSheet(null);
     } catch (error) {
       console.error('Scene import failed:', error);
+      reportFailure();
     } finally {
+      done();
       setBusy(null);
     }
   };
@@ -195,6 +219,7 @@ export default function App() {
       style={{ minHeight: '100dvh', backgroundColor: `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})` }}
     >
       <Scene />
+      <Activity />
       {showCone && perspectiveMode === 'linear' && (
         <ConeOfVision fov={fov} color={isDark ? '#8ab4ff' : '#1f6feb'} />
       )}

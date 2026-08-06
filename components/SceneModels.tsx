@@ -1,9 +1,6 @@
-import React, { useCallback, useEffect } from 'react';
-import { ThreeEvent, useThree } from '@react-three/fiber';
+import React, { useEffect } from 'react';
 import * as THREE from 'three';
 import { useStore } from '../store';
-import { noteDragEnd } from '../lib/dragGuard';
-import { createGroundPicker } from '../lib/groundDrag';
 import { SceneModel } from '../types';
 import { authoredMaterial } from '../lib/modelMaterials';
 import { Edges } from '@react-three/drei';
@@ -27,16 +24,17 @@ const MATTE = new THREE.MeshStandardMaterial({
  * Uploaded models are placed rather than resized: they arrive at their real
  * size (USDZ and glTF are both in metres) and the only handling is sliding them
  * around the floor, so they can be lined up against the cubes and the grid.
+ *
+ * Taking hold of one is the walk layer's business - that layer covers the
+ * canvas and owns every pointer event on the glass, so a handler hung here would
+ * never fire. What this draws is the model, its shadows and the cage around it
+ * when it is the selection.
  */
 const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
   const selectedModelId = useStore((state) => state.selectedModelId);
-  const selectModel = useStore((state) => state.selectModel);
-  const updateModel = useStore((state) => state.updateModel);
-  const setIsDragging = useStore((state) => state.setIsDragging);
   const theme = useStore((state) => state.theme);
 
   const modelMaterial = useStore((state) => state.modelMaterial);
-  const { camera, gl } = useThree();
   const isSelected = selectedModelId === model.id;
   const outlineColor = theme === 'dark' ? '#ff5555' : '#ff3b30';
 
@@ -64,65 +62,6 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
     });
   }, [modelMaterial, model.object]);
 
-  /**
-   * Slide the model along the floor.
-   *
-   * A tap on an unselected model selects it and stops there: the second grab is
-   * what moves it, so brushing past a figure while looking around never shoves
-   * it across the room. Holding shift lifts it instead, for anything that is
-   * meant to be off the ground.
-   */
-  const handlePointerDown = useCallback(
-    (e: ThreeEvent<PointerEvent>) => {
-      e.stopPropagation();
-
-      if (!isSelected) {
-        selectModel(model.id);
-        return;
-      }
-
-      setIsDragging(true);
-      document.body.style.cursor = 'grabbing';
-
-      const start: [number, number, number] = [...model.position];
-      const pointOnGround = createGroundPicker(camera, gl.domElement);
-      const grabbed = pointOnGround(e.clientX, e.clientY) ?? new THREE.Vector3(start[0], 0, start[2]);
-      const startClientY = e.clientY;
-
-      const onMove = (moveEvent: PointerEvent) => {
-        // Same snap as the boxes, so a figure can be lined up on the grid.
-        const snap = useStore.getState().snapStep;
-        const place = (v: number) => (snap > 0 ? Math.round(v / snap) * snap : v);
-
-        if (moveEvent.shiftKey) {
-          // Each pixel of upward drag raises the model by a fraction of a
-          // metre; the scale is loose so a quick swipe covers the useful range.
-          const dy = startClientY - moveEvent.clientY;
-          updateModel(model.id, { position: [start[0], Math.max(0, place(start[1] + dy * 0.02)), start[2]] });
-          return;
-        }
-
-        const now = pointOnGround(moveEvent.clientX, moveEvent.clientY);
-        if (!now) return;
-        updateModel(model.id, {
-          position: [place(start[0] + (now.x - grabbed.x)), start[1], place(start[2] + (now.z - grabbed.z))],
-        });
-      };
-
-      const onUp = () => {
-        noteDragEnd();
-        setIsDragging(false);
-        document.body.style.cursor = 'auto';
-        window.removeEventListener('pointermove', onMove);
-        window.removeEventListener('pointerup', onUp);
-      };
-
-      window.addEventListener('pointermove', onMove);
-      window.addEventListener('pointerup', onUp);
-    },
-    [isSelected, model.id, model.position, selectModel, updateModel, setIsDragging, camera, gl]
-  );
-
   if (!model.object) return null;
 
   return (
@@ -131,9 +70,6 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       position={model.position}
       rotation={[0, model.rotationY, 0]}
       scale={model.scale}
-      onPointerDown={handlePointerDown}
-      onClick={(e) => e.stopPropagation()}
-      onDoubleClick={(e) => e.stopPropagation()}
     >
       <primitive object={model.object} />
 

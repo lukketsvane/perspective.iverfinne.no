@@ -29,8 +29,7 @@ export const GroundGrid: React.FC<{
   /** Metres between the finest lines - whatever dragging currently snaps to. */
   cell: number;
   dark: boolean;
-  onClick?: (event: { stopPropagation: () => void }) => void;
-}> = ({ cell, dark, onClick }) => {
+}> = ({ cell, dark }) => {
   const mesh = useRef<THREE.Mesh>(null);
 
   const material = useMemo(
@@ -144,10 +143,13 @@ export const GroundGrid: React.FC<{
   return (
     <mesh
       ref={mesh}
+      // The sheet is a drawing over the floor, never something to take hold of:
+      // a tap that lands on it is a tap on nothing, which is what clears the
+      // selection.
+      raycast={() => null}
       rotation={[-Math.PI / 2, 0, 0]}
       position={[0, 0.008, 0]}
       material={material}
-      onClick={onClick}
       frustumCulled={false}
     >
       <planeGeometry args={[REACH * 2.4, REACH * 2.4]} />
