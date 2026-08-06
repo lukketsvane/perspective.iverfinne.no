@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { ContactShadows, Sky } from '@react-three/drei';
 import * as THREE from 'three';
@@ -11,10 +11,9 @@ import { SceneModels } from './SceneModels';
 import { WalkControls } from './WalkControls';
 import { updateFocus, focusPoint } from '../lib/focus';
 import { updateVanishing, clearVanishing } from '../lib/vanishing';
-import { sceneRevision } from '../lib/sceneRevision';
+import { markSceneBuilt, sceneRevision } from '../lib/sceneRevision';
 import { Panorama } from './Panorama';
-import { dragJustEnded } from '../lib/dragGuard';
-import { fieldOf } from '../lib/projection';
+import { forgetView, registerView } from '../lib/pick';
 
 /** Keeps the "put one here" point under the middle of the view. */
 const FocusTracker = () => {
@@ -72,6 +71,19 @@ const VanishingTracker = () => {
   });
 
   useEffect(() => clearVanishing, []);
+  return null;
+};
+
+/**
+ * Says the scene is built, every time React finishes building it.
+ *
+ * Subscribed to the whole store deliberately: what matters is not which field
+ * changed but that a commit has just happened, and every commit inside the
+ * canvas follows one.
+ */
+const SceneSettled = () => {
+  useStore();
+  useLayoutEffect(markSceneBuilt);
   return null;
 };
 
@@ -243,7 +255,6 @@ const Sun: React.FC = () => {
 const SceneContent = () => {
   const { camera, gl, scene, size } = useThree();
   const boxes = useStore((state) => state.boxes);
-  const selectBox = useStore((state) => state.selectBox);
 
   const fov = useStore((state) => state.fov);
   const perspectiveMode = useStore((state) => state.perspectiveMode);
@@ -255,47 +266,27 @@ const SceneContent = () => {
   const inAR = useStore((state) => state.arRequested);
   const sunEnvironment = useStore((state) => state.sunEnvironment);
 
-  // The full-screen walk layer owns touch gestures, so browser pointer events
-  // cannot reach R3F. Turn a confirmed tap back into the exact scene ray here.
-  // Curvilinear mode needs the same spherical projection as Panorama; using a
-  // normal perspective ray is why visible meshes previously felt untappable.
+  /*
+   * Hand the walk layer what it needs to aim with.
+   *
+   * The full-screen gesture layer owns every pointer event on the glass, so
+   * react-three-fiber's own picking never sees one. Rather than a second, flatter
+   * copy of the projection living out there - which is what made meshes plainly
+   * in view untappable in a curved frame, and what made dragging one impossible
+   * at all - the scene says what it is drawing with and the picker does the rest.
+   */
   useEffect(() => {
-    const raycaster = new THREE.Raycaster();
-    raycaster.camera = camera;
-    const direction = new THREE.Vector3();
-    const onTap = (event: Event) => {
-      const { clientX, clientY } = (event as CustomEvent<{ clientX: number; clientY: number }>).detail;
-      const rect = gl.domElement.getBoundingClientRect();
-      const x = ((clientX - rect.left) / rect.width) * 2 - 1;
-      const y = 1 - ((clientY - rect.top) / rect.height) * 2;
-
-      if (perspectiveMode !== 'linear') {
-        const { halfYaw, halfPitch } = fieldOf(fov, size.width, size.height);
-        const rx = x * halfYaw;
-        const ry = y * halfPitch;
-        const radius = Math.hypot(rx, ry);
-        if (radius > Math.PI) return;
-        const scale = radius > 1e-5 ? Math.sin(radius) / radius : 1;
-        direction.set(rx * scale, ry * scale, -Math.cos(radius)).applyQuaternion(camera.quaternion).normalize();
-        raycaster.set(camera.position, direction);
-      } else {
-        raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
-      }
-
-      const hits = raycaster.intersectObjects(scene.children, true);
-      for (const hit of hits) {
-        let object: THREE.Object3D | null = hit.object;
-        while (object && !object.userData.selectableType) object = object.parent;
-        if (!object) continue;
-        if (object.userData.selectableType === 'box') selectBox(object.userData.selectableId);
-        else useStore.getState().selectModel(object.userData.selectableId);
-        return;
-      }
-      selectBox(null);
-    };
-    window.addEventListener('perspective:scene-tap', onTap);
-    return () => window.removeEventListener('perspective:scene-tap', onTap);
-  }, [camera, fov, gl, perspectiveMode, scene, selectBox, size.height, size.width]);
+    registerView({
+      camera,
+      element: gl.domElement,
+      root: scene,
+      width: size.width,
+      height: size.height,
+      fov,
+      mode: perspectiveMode,
+    });
+    return forgetView;
+  }, [camera, gl, scene, size.width, size.height, fov, perspectiveMode]);
 
   const isDark = theme === 'dark';
   const bgColor = `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})`;
@@ -359,30 +350,7 @@ const SceneContent = () => {
         * and lining an object up against a line it cannot land on is the sort
         * of small lie that costs half an hour.
         */}
-      {guides >= 2 && (
-        <GroundGrid
-          cell={cellSize}
-          dark={isDark}
-          onClick={(e) => {
-            if (dragJustEnded()) return;
-            e.stopPropagation();
-            selectBox(null);
-          }}
-        />
-      )}
-
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -0.01, 0]}
-        onClick={(e) => {
-            if (dragJustEnded()) return;
-            e.stopPropagation();
-            selectBox(null);
-        }}
-      >
-        <planeGeometry args={[1000, 1000]} />
-        <meshBasicMaterial visible={false} />
-      </mesh>
+      {guides >= 2 && <GroundGrid cell={cellSize} dark={isDark} />}
 
       {/* The floor catches the sun's shadows and nothing else. It is far wider
           than it needs to be for the shadows themselves: a 200 m plane has an
@@ -417,6 +385,7 @@ const SceneContent = () => {
 
       <FocusTracker />
       <VanishingTracker />
+      <SceneSettled />
     </>
   );
 };

@@ -3,6 +3,7 @@ import { useStore } from '../store';
 import { Icon, I } from './icons';
 import { Sheet } from './Sheet';
 import { iconButton, tile } from './ui';
+import { beginActivity, reportFailure } from '../lib/activity';
 import type { SavedScene } from '../types';
 
 /**
@@ -98,20 +99,34 @@ export const SceneSheet: React.FC<{
 
   const run = async (work: () => Promise<unknown>) => {
     setWorking(true);
+    const done = beginActivity();
     try {
       await work();
+    } catch (error) {
+      console.error(error);
+      reportFailure();
     } finally {
+      done();
       setWorking(false);
     }
   };
 
+  /**
+   * Open one.
+   *
+   * The scene comes back whether or not every mesh in it could be found, and
+   * the sheet closes either way - it used to stay up with no explanation, which
+   * read as the tap not having landed. What is missing is said by the mark at
+   * the top of the screen, and named in the console.
+   */
   const open = (id: string) =>
     run(async () => {
       const missing = await loadScene(id);
-      // Nothing to say on screen about a mesh that could not be found: the
-      // scene comes back without it, and the console carries the detail.
-      if (missing.length) console.warn(`Opened without:\n${missing.join('\n')}`);
-      else onClose();
+      if (missing.length) {
+        console.warn(`Opened without:\n${missing.join('\n')}`);
+        reportFailure();
+      }
+      onClose();
     });
 
   const disabled = busy || working;

@@ -83,9 +83,10 @@ export const I = {
   /** Plain white in place of the file's own materials. */
   matte: (<path d="M12 3s6 6.4 6 10a6 6 0 0 1-12 0c0-3.6 6-10 6-10z" />),
 
-  /** Start again, and step back one move. */
+  /** Start again, and step back or forward one move. */
   reset: (<><path d="M3 7v6h6" /><path d="M3.5 13a9 9 0 1 0 2.2-9.3L3 7" /></>),
   undo: (<><polyline points="9 5 3.5 10.5 9 16" /><path d="M3.5 10.5H14a6.5 6.5 0 0 1 0 13H8" /></>),
+  redo: (<><polyline points="15 5 20.5 10.5 15 16" /><path d="M20.5 10.5H10a6.5 6.5 0 0 0 0 13h6" /></>),
 
   /** Take the view away as a picture. */
   camera: (<><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.7l1.4-2.2h6.8L16.8 7h2.7A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z" /><circle cx="12" cy="13" r="3.6" /></>),
