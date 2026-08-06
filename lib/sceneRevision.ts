@@ -18,3 +18,22 @@ export const sceneRevision = { value: 0 };
 useStore.subscribe(() => {
   sceneRevision.value += 1;
 });
+
+/**
+ * The same again, once the scene has actually been built.
+ *
+ * The subscription above fires when the store changes, which is *before* React
+ * has put the new geometry in the scene. A frame landing in that gap redraws
+ * the cube and the shadows for a scene that does not contain the new chair yet,
+ * writes down the revision it drew, and then has no reason ever to draw again -
+ * so in a curvilinear frame the chair is not merely late, it is absent, along
+ * with its world matrix, which is what makes it untappable as well as invisible.
+ * It comes back the moment anything else changes, which is what made it look
+ * like an intermittent fault rather than a missed frame.
+ *
+ * Marking it a second time, from inside the commit, closes the gap: whichever
+ * side of the frame React lands on, one of the two marks is still unread.
+ */
+export const markSceneBuilt = () => {
+  sceneRevision.value += 1;
+};

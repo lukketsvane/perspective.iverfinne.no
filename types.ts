@@ -165,7 +165,6 @@ export interface SavedScene {
 export interface SceneState {
   boxes: BoxData[];
   selectedId: string | null;
-  isDragging: boolean;
   fov: number;
   perspectiveMode: PerspectiveMode;
   /** Camera height above the ground plane, in metres. This is the horizon line. */
@@ -202,6 +201,8 @@ export interface SceneState {
   arRequested: boolean;
   /** Scenes to step back through. Newest last. */
   undoStack: { boxes: BoxData[]; models: SceneModel[] }[];
+  /** Scenes stepped back out of, to go forward into again. Newest last. */
+  redoStack: { boxes: BoxData[]; models: SceneModel[] }[];
   theme: ThemeMode;
   /** Neutral environment/background value, from black (0) to white (255). */
   backgroundGray: number;
@@ -215,7 +216,6 @@ export interface SceneState {
   /** Back to a single reference cube on empty ground. */
   resetScene: () => void;
   selectBox: (id: string | null) => void;
-  setIsDragging: (isDragging: boolean) => void;
   setLens: (fov: number) => void;
   setPerspectiveMode: (mode: PerspectiveMode) => void;
   setCameraHeight: (height: number) => void;
@@ -242,8 +242,17 @@ export interface SceneState {
   setFill: (fill: Partial<FillState>) => void;
   toggleViewLock: () => void;
   setAr: (on: boolean) => void;
-  /** Step back one scene. Destructive actions snapshot themselves. */
+  /**
+   * Draw the line under everything about to change.
+   *
+   * Called once as a gesture begins - a drag, a turn, a scrub - so the whole of
+   * it comes back in one step rather than one step per frame.
+   */
+  beginChange: () => void;
+  /** Step back one scene. */
   undo: () => void;
+  /** Step forward again, until the next change closes the way. */
+  redo: () => void;
   toggleTheme: () => void;
   setBackgroundGray: (value: number) => void;
   /** Write the whole composition to the browser, thumbnail and viewpoint included. */

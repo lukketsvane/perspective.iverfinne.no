@@ -50,6 +50,7 @@ const metres = (value: number) => value.toFixed(2);
  */
 const useTurn = (onTurn: (radians: number) => void, step: number) => {
   const held = useRef<{ id: number; x: number; moved: boolean } | null>(null);
+  const beginChange = useStore((s) => s.beginChange);
 
   return {
     onPointerDown: (e: React.PointerEvent) => {
@@ -58,6 +59,8 @@ const useTurn = (onTurn: (radians: number) => void, step: number) => {
       } catch {
         /* not capturable; the element still sees the moves */
       }
+      // One step back undoes the whole turn, however far it was dragged.
+      beginChange();
       held.current = { id: e.pointerId, x: e.clientX, moved: false };
     },
     onPointerMove: (e: React.PointerEvent) => {
@@ -88,7 +91,8 @@ const useTurn = (onTurn: (radians: number) => void, step: number) => {
  * to go back to where it started.
  */
 const useScrub = (value: number, onChange: (v: number) => void) => {
-  const held = useRef<{ id: number; x: number; from: number } | null>(null);
+  const held = useRef<{ id: number; x: number; from: number; changed: boolean } | null>(null);
+  const beginChange = useStore((s) => s.beginChange);
 
   return {
     onPointerDown: (e: React.PointerEvent) => {
@@ -97,10 +101,15 @@ const useScrub = (value: number, onChange: (v: number) => void) => {
       } catch {
         /* not capturable; the element still sees the moves */
       }
-      held.current = { id: e.pointerId, x: e.clientX, from: value };
+      held.current = { id: e.pointerId, x: e.clientX, from: value, changed: false };
     },
     onPointerMove: (e: React.PointerEvent) => {
       if (held.current?.id !== e.pointerId) return;
+      // One step back undoes the whole scrub - but only once it has scrubbed.
+      if (!held.current.changed) {
+        held.current.changed = true;
+        beginChange();
+      }
       onChange(held.current.from * Math.pow(SCRUB_RATE, e.clientX - held.current.x));
     },
     onPointerUp: (e: React.PointerEvent) => {
@@ -127,6 +136,7 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   const selectedModelId = useStore((s) => s.selectedModelId);
   const rotateSelection = useStore((s) => s.rotateSelection);
   const duplicateSelection = useStore((s) => s.duplicateSelection);
+  const beginChange = useStore((s) => s.beginChange);
   const scaleModel = useStore((s) => s.scaleModel);
   const updateBox = useStore((s) => s.updateBox);
   const removeBox = useStore((s) => s.removeBox);
@@ -213,7 +223,10 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
         {model ? (
           <button
             {...modelScrub}
-            onDoubleClick={() => scaleModel(model.id, model.baseScale)}
+            onDoubleClick={() => {
+              beginChange();
+              scaleModel(model.id, model.baseScale);
+            }}
             className={readout(isDark)}
             aria-label="Height"
           >
@@ -234,7 +247,10 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
             </button>
             <button
               {...boxScrub}
-              onDoubleClick={() => setBoxDim(activeAxis, 1)}
+              onDoubleClick={() => {
+                beginChange();
+                setBoxDim(activeAxis, 1);
+              }}
               className={readout(isDark)}
               aria-label={AXES[activeAxis].label}
             >

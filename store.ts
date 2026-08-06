@@ -180,13 +180,16 @@ const UNDO_DEPTH = 25;
 
 /**
  * Drop any parsed mesh that nothing references any more - not the live scene,
- * and not anything still sitting in the undo stack, since stepping back has to
- * be able to put it on screen again.
+ * and not anything still sitting in either history, since stepping back or
+ * forward has to be able to put it on screen again.
  */
-const releaseUnreferenced = (state: Pick<SceneState, 'models' | 'undoStack'>) => {
+const releaseUnreferenced = (
+  state: Partial<Pick<SceneState, 'models' | 'undoStack' | 'redoStack'>>
+) => {
   const live = new Set<string>();
-  state.models.forEach((m) => live.add(m.fileUrl));
-  state.undoStack.forEach((entry) => entry.models.forEach((m) => live.add(m.fileUrl)));
+  state.models?.forEach((m) => live.add(m.fileUrl));
+  state.undoStack?.forEach((entry) => entry.models.forEach((m) => live.add(m.fileUrl)));
+  state.redoStack?.forEach((entry) => entry.models.forEach((m) => live.add(m.fileUrl)));
 
   cachedSourceUrls().forEach((url) => {
     if (!live.has(url)) releaseSource(url);
@@ -196,6 +199,18 @@ const releaseUnreferenced = (state: Pick<SceneState, 'models' | 'undoStack'>) =>
 /** The scene as it stands, pushed onto the undo stack. */
 const snapshot = (state: Pick<SceneState, 'boxes' | 'models' | 'undoStack'>) =>
   [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH);
+
+/**
+ * A move worth being able to take back.
+ *
+ * Every change to the scene goes through here, and going forward again is a
+ * dead end the moment a new one is made - which is what everything that has
+ * ever had an undo does, and the only behaviour that cannot surprise anyone.
+ */
+const remember = (state: Pick<SceneState, 'boxes' | 'models' | 'undoStack'>) => ({
+  undoStack: snapshot(state),
+  redoStack: [] as SceneState['redoStack'],
+});
 
 /** Everything about how the scene is being looked at, ready to be written down. */
 export const currentView = (state: SceneState): SceneView => ({
@@ -258,7 +273,6 @@ export const useStore = create<SceneState>((set, get) => ({
   // which is asynchronous, so it cannot happen here.
   boxes: [],
   selectedId: null,
-  isDragging: false,
   fov: DEFAULT_FOV,
   perspectiveMode: 'equidistant',
   cameraHeight: DEFAULT_CAMERA_HEIGHT,
@@ -272,6 +286,7 @@ export const useStore = create<SceneState>((set, get) => ({
   viewLocked: false,
   arRequested: false,
   undoStack: [],
+  redoStack: [],
   theme: 'light',
   backgroundGray: 243,
   currentSceneId: null,
@@ -285,12 +300,23 @@ export const useStore = create<SceneState>((set, get) => ({
   sun: { ...DEFAULT_SUN, ...(remembered.sun ?? {}) },
   fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
 
+  /**
+   * The line under everything about to change.
+   *
+   * A drag commits on every frame, so the scene cannot snapshot itself on each
+   * write - twenty-five steps back would be a quarter of a second of one
+   * gesture. The gesture says when it starts instead, and one step back undoes
+   * the whole of it.
+   */
+  beginChange: () => set((state) => remember(state)),
+
   // The always-visible cube button is the reliable 1 m ruler: it lands on the
   // grid so a new box shares the scene's vanishing points.
   addCube: (position) =>
     set((state) => {
       const id = uuidv4();
       return {
+        ...remember(state),
         boxes: [
           ...state.boxes,
           {
@@ -312,7 +338,7 @@ export const useStore = create<SceneState>((set, get) => ({
 
   removeBox: (id) =>
     set((state) => ({
-      undoStack: snapshot(state),
+      ...remember(state),
       boxes: state.boxes.filter((b) => b.id !== id),
       selectedId: state.selectedId === id ? null : state.selectedId,
     })),
@@ -327,7 +353,7 @@ export const useStore = create<SceneState>((set, get) => ({
   resetScene: () =>
     set((state) => {
       const next = {
-        undoStack: snapshot(state),
+        ...remember(state),
         boxes: [],
         models: [],
         selectedId: null,
@@ -345,7 +371,12 @@ export const useStore = create<SceneState>((set, get) => ({
       // Select what was just placed: the next thing anyone does to a new figure
       // is size it or move it, and both need it selected.
       const placed = { id: uuidv4(), ...model };
-      return { models: [...state.models, placed], selectedModelId: placed.id, selectedId: null };
+      return {
+        ...remember(state),
+        models: [...state.models, placed],
+        selectedModelId: placed.id,
+        selectedId: null,
+      };
     }),
 
   /** Scale a placed model about its feet, so it stays on the ground. */
@@ -357,7 +388,7 @@ export const useStore = create<SceneState>((set, get) => ({
   removeModel: (id) =>
     set((state) => {
       const next = {
-        undoStack: snapshot(state),
+        ...remember(state),
         models: state.models.filter((m) => m.id !== id),
         selectedModelId: state.selectedModelId === id ? null : state.selectedModelId,
       };
@@ -373,8 +404,6 @@ export const useStore = create<SceneState>((set, get) => ({
     set((state) => ({
       models: state.models.map((m) => (m.id === id ? { ...m, ...updates } : m)),
     })),
-
-  setIsDragging: (isDragging) => set({ isDragging }),
 
   // The setting goes all the way round. A straight-line camera cannot - Scene
   // clamps the actual lens just short of 180, where a rectilinear projection
@@ -478,10 +507,16 @@ export const useStore = create<SceneState>((set, get) => ({
   setAr: (on) => set((state) => ({ arRequested: on, perspectiveMode: on ? 'linear' : state.perspectiveMode })),
 
   /**
-   * Step back one scene.
+   * Step back one scene, and forward again.
    *
-   * Boxes and models are restored together, because the actions worth undoing -
-   * a delete, a clear, loading a saved scene over your work - move both.
+   * Boxes and models are restored together, because most of what is worth
+   * taking back moves both: a delete, a clear, loading a saved scene over your
+   * work - and now every placement, slide, turn and resize as well, one entry
+   * per gesture rather than one per frame of it.
+   *
+   * Nothing here is released while the other stack still names it. Undoing a
+   * delete and then redoing it has to be able to put the same mesh back on
+   * screen, and the geometry it shares is only handed to the GPU once.
    */
   undo: () =>
     set((state) => {
@@ -491,6 +526,23 @@ export const useStore = create<SceneState>((set, get) => ({
         boxes: previous.boxes,
         models: previous.models,
         undoStack: state.undoStack.slice(0, -1),
+        redoStack: [...state.redoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
+        selectedId: null,
+        selectedModelId: null,
+      };
+      releaseUnreferenced(next);
+      return next;
+    }),
+
+  redo: () =>
+    set((state) => {
+      const ahead = state.redoStack[state.redoStack.length - 1];
+      if (!ahead) return {};
+      const next = {
+        boxes: ahead.boxes,
+        models: ahead.models,
+        undoStack: [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
+        redoStack: state.redoStack.slice(0, -1),
         selectedId: null,
         selectedModelId: null,
       };
@@ -522,7 +574,9 @@ export const useStore = create<SceneState>((set, get) => ({
   toggleTheme: () =>
     set((state) => {
       const dark = state.theme === 'light';
-      return { theme: dark ? 'dark' : 'light', backgroundGray: dark ? 0 : 255 };
+      // Back to the paper the tool opens on, not to pure white: 243 is the tone
+      // every other light-mode default is set against.
+      return { theme: dark ? 'dark' : 'light', backgroundGray: dark ? 0 : 243 };
     }),
 
   setBackgroundGray: (value) =>
@@ -612,7 +666,7 @@ export const useStore = create<SceneState>((set, get) => ({
 
     set((state) => {
       const next = {
-        undoStack: snapshot(state),
+        ...remember(state),
         boxes: scene.boxes.map((box) => ({ ...box, id: uuidv4() })),
         models: restored,
         selectedId: null,
@@ -641,6 +695,7 @@ export const useStore = create<SceneState>((set, get) => ({
       ...after.sceneHistory.flatMap((scene) => scene.models.map((m) => m.fileUrl)),
       ...after.models.map((m) => m.fileUrl),
       ...after.undoStack.flatMap((entry) => entry.models.map((m) => m.fileUrl)),
+      ...after.redoStack.flatMap((entry) => entry.models.map((m) => m.fileUrl)),
     ]);
   },
 
@@ -652,7 +707,7 @@ export const useStore = create<SceneState>((set, get) => ({
   applyScene: ({ boxes, models, view }) =>
     set((state) => {
       const next = {
-        undoStack: snapshot(state),
+        ...remember(state),
         boxes: boxes.map((box) => ({ ...box, id: uuidv4() })),
         models: models.map((model) => ({ ...model, id: uuidv4() })),
         selectedId: null,
@@ -682,7 +737,7 @@ export const useStore = create<SceneState>((set, get) => ({
       });
       if (unique.length === state.models.length) return {};
       const next = {
-        undoStack: snapshot(state),
+        ...remember(state),
         models: unique,
         selectedModelId:
           state.selectedModelId && unique.some((m) => m.id === state.selectedModelId) ? state.selectedModelId : null,

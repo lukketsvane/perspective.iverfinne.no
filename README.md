@@ -44,15 +44,36 @@ the floor seen from above.
 - **Walk** — a thumb stick appears wherever the left thumb lands; WASD or the
   arrow keys on a desktop
 - **Select** — tap an object
-- **Move** — drag a selected object along the floor; hold shift to lift it
-- **Resize a box** — drag one of its faces
-- **Move and turn a mesh** — two fingers on a selected mesh: pinch-twist to
-  turn it, slide to move it
+- **Move** — drag the selection along the floor; hold shift to lift it
+- **Resize a box** — drag one of the dots at the centre of a face
+- **Turn, size and slide at once** — two fingers on the selection: twist to turn
+  it, spread to size it, slide to move it
 - **Turn** — the arrows in the selection bar: a tap steps 15°, a drag turns
   continuously
 - **The sun** — three fingers anywhere: across for its bearing, up and down for
   its height
-- **Undo** — ⌘Z / Ctrl-Z, or the arrow in the tools row
+- **Undo** — ⌘Z / Ctrl-Z; **redo** ⇧⌘Z, or the two arrows in the tools row
+- **Deselect** — escape, or tap where there is nothing
+- **Delete** — the delete key, or the bin in the selection bar
+
+A tap selects and stops there; the *second* grab is what moves. So brushing past
+a figure while looking around never shoves it across the room.
+
+Every one of these is aimed through the projection actually on screen, so a
+chair follows the finger on a five-point sheet exactly as it does on a flat one.
+
+### Taking hold of a box
+
+The dots are the three faces you can push and pull, and each is drawn only where
+it means something: on a face turned towards you, and only once it has come far
+enough clear of the box to be aimed at. Meet a box square on and the face
+pointing at you has no dot — pushing it would move nothing you could see — so
+the middle of the box is the middle of the box, and dragging there slides it.
+
+A face follows the finger rather than moving at some fixed rate: how far a metre
+of the box's own axis reaches across the screen is measured as it is taken hold
+of. The opposite face stays where it is, which is what makes this sizing rather
+than scaling.
 
 ## The dock
 
@@ -126,6 +147,23 @@ beside its original with about six centimetres of air, so duplicating along a
 line builds a row rather than a scattering. Readings are in
 metres — the grid is ruled in metres, so the unit is never written down.
 
+## Undo
+
+Everything that changes the scene can be taken back and put again — placing,
+sliding, lifting, turning, sizing, duplicating, deleting, clearing, and opening
+a saved composition over your work. A gesture is one step however many frames it
+took, and taking hold of something and letting go without moving it is not a
+step at all. Twenty-five deep, and going forward is closed off by the next
+change, as everywhere else.
+
+## While it is working
+
+There is one mark for it, along the top edge of the frame: a hairline running
+while a mesh is being fetched, a scene written or a file read, and the same line
+in red for a moment when what was asked for never arrived. A library mesh is
+three megabytes over the network, and a tool that does nothing for two seconds
+after being asked has, as far as anyone watching can tell, not heard.
+
 ## Saving a scene
 
 The scene library (the frames icon) keeps whole compositions in the browser:
@@ -176,11 +214,21 @@ npm run build
 ```
 
 State lives in `store.ts` (zustand). `lib/assets.ts` is the IndexedDB layer:
-imported meshes, saved scenes and library thumbnails. In a dev build the store
-and the walk input are on `window.__store` and `window.__walk`, and
-`window.__forceMesh` pins which object opens — that is how the scene can be
-read and driven from a browser test, since nearly all of it is otherwise only
-pixels on a canvas.
+imported meshes, saved scenes and library thumbnails.
+
+`lib/pick.ts` is the one place that knows where a pixel is in the world and
+where a point in the world is on the glass, in each of the four projections. It
+has to live outside the canvas: the walk layer covers it and owns every pointer
+event, so react-three-fiber's own picking never sees one. The scene registers
+what it is drawing with; `lib/manipulate.ts` turns a pointer into a grab.
+
+In a dev build the store, the walk input and the picker are on `window.__store`,
+`window.__walk` and `window.__pick`, and `window.__forceMesh` pins which object
+opens — that is how the scene can be read and driven from a browser test, since
+nearly all of it is otherwise only pixels on a canvas. The picker is published
+by the running app rather than imported by the test on purpose: a dev server
+that has hot-reloaded the file hands out a second copy of it, with nothing
+registered in it.
 
 Every mesh ships simplified and quantized (`gltf-transform optimize --compress
 quantize --simplify-ratio 0.12 --texture-compress webp --texture-size 1024`),
