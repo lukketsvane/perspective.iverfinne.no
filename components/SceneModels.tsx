@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import * as THREE from 'three';
 import { useStore } from '../store';
-import { SceneModel } from '../types';
+import { MESH_SURFACES, nearestSurface, SceneModel } from '../types';
 import { authoredMaterial } from '../lib/modelMaterials';
 import { Edges, Line } from '@react-three/drei';
 
@@ -16,6 +16,24 @@ const MATTE = new THREE.MeshStandardMaterial({
   color: 0xf2f2f0,
   roughness: 0.92,
   metalness: 0,
+});
+
+/**
+ * The same, seen through.
+ *
+ * Both sides, because the inside of a form you can see into is part of what you
+ * are looking at; and no depth written, so the far side of the mesh comes
+ * through the near side rather than being sorted away behind it. That is the
+ * same drawing-through a glass box does, on something that is not a box.
+ */
+const GLASS = new THREE.MeshStandardMaterial({
+  color: 0xf2f2f0,
+  roughness: 0.92,
+  metalness: 0,
+  transparent: true,
+  opacity: 0.26,
+  depthWrite: false,
+  side: THREE.DoubleSide,
 });
 
 /**
@@ -34,10 +52,12 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
   const selectedModelId = useStore((state) => state.selectedModelId);
   const theme = useStore((state) => state.theme);
 
-  const modelMaterial = useStore((state) => state.modelMaterial);
+  const sceneSurface = useStore((state) => state.surface);
   const showConstruction = useStore((state) => state.showConstruction);
   const isSelected = selectedModelId === model.id;
   const dark = theme === 'dark';
+
+  const surface = nearestSurface(model.surface ?? sceneSurface, MESH_SURFACES);
 
   /*
    * Red for the construction, green for the one in your hands.
@@ -63,16 +83,18 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       if (!mesh.isMesh) return;
 
       // A figure standing in the sun has to throw a shadow like everything
-      // else, or it reads as a sticker on the floor.
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
+      // else, or it reads as a sticker on the floor - unless you can see
+      // through it, in which case a solid black shadow is the one thing on
+      // screen still insisting it is solid.
+      mesh.castShadow = surface !== 'glass';
+      mesh.receiveShadow = surface !== 'glass';
 
       // Read the authored materials before swapping, so the first swap is what
       // records them rather than what loses them.
       const own = authoredMaterial(mesh);
-      mesh.material = modelMaterial === 'matte' ? MATTE : own;
+      mesh.material = surface === 'matte' ? MATTE : surface === 'glass' ? GLASS : own;
     });
-  }, [modelMaterial, model.object]);
+  }, [surface, model.object]);
 
   if (!model.object) return null;
 

@@ -3,6 +3,8 @@ import { useStore } from '../store';
 import { Icon, I } from './icons';
 import { chrome, iconButton, readout } from './ui';
 import { exportScaledModel } from '../lib/exportModel';
+import { SURFACE_ICON } from './icons';
+import { BOX_SURFACES, MESH_SURFACES, nearestSurface } from '../types';
 
 /** A tap turns by this much: 15 degrees, so 24 taps is a full circle. */
 const STEP = Math.PI / 12;
@@ -142,6 +144,8 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   const removeBox = useStore((s) => s.removeBox);
   const removeModel = useStore((s) => s.removeModel);
   const selectBox = useStore((s) => s.selectBox);
+  const sceneSurface = useStore((s) => s.surface);
+  const cycleSelectionSurface = useStore((s) => s.cycleSelectionSurface);
 
   const [activeAxis, setActiveAxis] = useState<0 | 1 | 2>(1);
   const [exporting, setExporting] = useState(false);
@@ -180,6 +184,18 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   const turnRight = useTurn(rotateSelection, STEP);
 
   if (!box && !model) return null;
+
+  /*
+   * Which rung this one is on.
+   *
+   * The scene has a setting and each thing can overrule it, so the button shows
+   * what is actually being drawn rather than what the scene would draw by
+   * default - and it shows it as the cube itself, so the state and the control
+   * are the same mark.
+   */
+  const surface = model
+    ? nearestSurface(model.surface ?? sceneSurface, MESH_SURFACES)
+    : nearestSurface(box!.surface ?? sceneSurface, BOX_SURFACES);
 
   const isDark = theme === 'dark';
   const button = `${iconButton(isDark)} border border-transparent`;
@@ -261,6 +277,13 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
           </div>
         )}
 
+        <button
+          onClick={cycleSelectionSurface}
+          className={button}
+          aria-label={`Surface of this one: ${surface}`}
+        >
+          <Icon path={SURFACE_ICON[surface]} className="w-5 h-5" />
+        </button>
         <button onClick={duplicateSelection} className={button} aria-label="Duplicate">
           <Icon path={I.duplicate} className="w-5 h-5" />
         </button>

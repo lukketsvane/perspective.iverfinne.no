@@ -2,7 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Edges, Line } from '@react-three/drei';
 import * as THREE from 'three';
-import { BoxData } from '../types';
+import { BOX_SURFACES, BoxData, nearestSurface } from '../types';
 import { useStore } from '../store';
 import { faceIsReachable, faceOutward } from '../lib/manipulate';
 import { pixelsPerMetreAt } from '../lib/pick';
@@ -106,9 +106,21 @@ const FaceHandles: React.FC<{ data: BoxData; color: string }> = ({ data, color }
 export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
   const selectedId = useStore((state) => state.selectedId);
   const theme = useStore((state) => state.theme);
+  const sceneSurface = useStore((state) => state.surface);
 
   const isSelected = selectedId === data.id;
   const isDark = theme === 'dark';
+
+  /*
+   * How solid this one is drawn.
+   *
+   * Opaque by default - a box you cannot see past is a box, and it is what the
+   * sun models. The other two rungs are the ones a study reaches for: glass to
+   * draw through it and check the corner you cannot see, wire to keep the
+   * construction and take the object away.
+   */
+  const surface = nearestSurface(data.surface ?? sceneSurface, BOX_SURFACES);
+  const solid = surface === 'original';
 
   // Black boxes on a black ground: the edges and the sun do the describing.
   const boxColor = isDark ? (isSelected ? '#101010' : '#000000') : (isSelected ? '#ffefef' : '#ffffff');
@@ -151,15 +163,30 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
         rotation={data.rotation}
         scale={data.scale}
         // A box that throws no shadow is a box with no relationship to the
-        // ground, which is half of what a perspective study is about.
-        castShadow
-        receiveShadow
+        // ground, which is half of what a perspective study is about - but only
+        // a solid one has anything to cast.
+        castShadow={solid}
+        receiveShadow={solid}
       >
         <boxGeometry args={[1, 1, 1]} />
+        {/* Every rung is the same material with its faces turned down, so the
+            twelve edges below are the one constant: what changes is how much
+            of the box is in front of them. Writing no depth is what puts the
+            far three edges back on the page - that is the whole of drawing
+            through, and it is one flag.
+
+            Keyed on the rung, so stepping to the next one builds a new
+            material rather than editing the live one. Whether a material is
+            transparent decides which pass it is drawn in and which shader is
+            compiled for it, and neither of those is re-decided by assigning to
+            the flag: the box went on rendering solid while the store said
+            glass. A fresh material is re-decided by definition. */}
         <meshStandardMaterial
+          key={surface}
           color={boxColor}
-          transparent
-          opacity={0.8}
+          transparent={!solid}
+          opacity={surface === 'wire' ? 0 : surface === 'glass' ? 0.22 : 1}
+          depthWrite={solid}
           roughness={0.8}
           metalness={0.1}
           polygonOffset

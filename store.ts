@@ -1,15 +1,20 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import {
+  BOX_SURFACES,
   BoxData,
   FillState,
   GuideLevel,
+  MESH_SURFACES,
+  nearestSurface,
   SavedScene,
   SceneModel,
   SceneState,
   SceneView,
   SNAP_STEPS,
   SunState,
+  Surface,
+  SURFACES,
 } from './types';
 import { releaseSource, cachedSourceUrls, modelRadius, findFreeSpot, loadModelFromUrl } from './lib/loadModel';
 import { cloneModel } from './lib/modelMaterials';
@@ -110,9 +115,10 @@ const SETTING_KEYS = [
   'guides',
   'showCone',
   'showConstruction',
+  'showRoom',
   'fov',
   'snapStep',
-  'modelMaterial',
+  'surface',
   'sunEnvironment',
   'sun',
   'fill',
@@ -162,7 +168,10 @@ export const saveSettings = (state: SceneState) => {
 const loadedSettings = loadSettings();
 const legacy = (() => {
   try {
-    return JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') as { showGuides?: boolean };
+    return JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') as {
+      showGuides?: boolean;
+      modelMaterial?: Surface;
+    };
   } catch {
     return {};
   }
@@ -174,6 +183,9 @@ const remembered = {
   backgroundGray: loadedSettings.backgroundGray ?? (loadedSettings.theme === 'dark' ? 0 : 243),
   // ...and before the guides were four levels rather than on and off.
   guides: loadedSettings.guides ?? ((legacy.showGuides ?? true) ? 3 : 0),
+  // ...and before the surface was a property of each thing rather than one
+  // switch over every mesh in the scene.
+  surface: loadedSettings.surface ?? legacy.modelMaterial ?? 'original',
 };
 
 /** How many steps back you can take. */
@@ -240,7 +252,8 @@ export const currentView = (state: SceneState): SceneView => ({
   sunEnvironment: state.sunEnvironment,
   guides: state.guides,
   showCone: state.showCone,
-  modelMaterial: state.modelMaterial,
+  surface: state.surface,
+  showRoom: state.showRoom,
   snapStep: state.snapStep,
   camera: {
     x: walkInput.position.x,
@@ -279,10 +292,15 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
     sunEnvironment: view.sunEnvironment,
     guides: view.guides ?? ((view.showGuides ?? true) ? 3 : 0),
     showCone: view.showCone,
-    modelMaterial: view.modelMaterial,
+    surface: view.surface ?? view.modelMaterial ?? 'original',
+    showRoom: view.showRoom ?? false,
     snapStep: view.snapStep ?? 0.25,
   };
 };
+
+/** The next rung round, from wherever this thing currently sits. */
+const stepSurface = (rungs: Surface[], from: Surface) =>
+  rungs[(rungs.indexOf(nearestSurface(from, rungs)) + 1) % rungs.length];
 
 export const useStore = create<SceneState>((set, get) => ({
   // Empty ground. One of the library objects is stood on it as the app opens -
@@ -295,10 +313,11 @@ export const useStore = create<SceneState>((set, get) => ({
   guides: 3,
   showCone: false,
   showConstruction: true,
+  showRoom: false,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   models: [],
   selectedModelId: null,
-  modelMaterial: 'original',
+  surface: 'original',
   sunEnvironment: false,
   viewLocked: false,
   arRequested: false,
@@ -342,6 +361,7 @@ export const useStore = create<SceneState>((set, get) => ({
             position: [snapToCell(position[0]), UNIT / 2, snapToCell(position[2])],
             scale: [UNIT, UNIT, UNIT],
             rotation: [0, 0, 0],
+            surface: state.surface,
           },
         ],
         selectedId: id,
@@ -395,7 +415,7 @@ export const useStore = create<SceneState>((set, get) => ({
    * you touch the screen.
    */
   standObject: (model) =>
-    set((state) => ({ models: [...state.models, { id: uuidv4(), ...model }] })),
+    set((state) => ({ models: [...state.models, { id: uuidv4(), surface: state.surface, ...model }] })),
 
   selectBox: (id) => set({ selectedId: id, selectedModelId: null }),
 
@@ -403,7 +423,7 @@ export const useStore = create<SceneState>((set, get) => ({
     set((state) => {
       // Select what was just placed: the next thing anyone does to a new figure
       // is size it or move it, and both need it selected.
-      const placed = { id: uuidv4(), ...model };
+      const placed = { id: uuidv4(), surface: state.surface, ...model };
       return {
         ...remember(state),
         models: [...state.models, placed],
@@ -553,8 +573,51 @@ export const useStore = create<SceneState>((set, get) => ({
       return {};
     }),
 
-  cycleMaterial: () =>
-    set((state) => ({ modelMaterial: state.modelMaterial === 'original' ? 'matte' : 'original' })),
+  /**
+   * The whole scene to the next rung.
+   *
+   * This both moves the default - so what is placed next matches what is
+   * already standing there - and stamps every box and mesh, since a scene-wide
+   * control that quietly skipped everything you had set by hand would read as
+   * broken. Undoable, because it rewrites the scene: one step back and every
+   * object is as it was, whatever mixture that was.
+   */
+  cycleSurface: () =>
+    set((state) => {
+      const next = SURFACES[(SURFACES.indexOf(state.surface) + 1) % SURFACES.length];
+      return {
+        ...remember(state),
+        surface: next,
+        boxes: state.boxes.map((box) => ({ ...box, surface: next })),
+        models: state.models.map((model) => ({ ...model, surface: next })),
+      };
+    }),
+
+  /** Just this one, through the rungs its own kind has. */
+  cycleSelectionSurface: () =>
+    set((state) => {
+      if (state.selectedModelId) {
+        const model = state.models.find((m) => m.id === state.selectedModelId);
+        if (!model) return {};
+        const next = stepSurface(MESH_SURFACES, model.surface ?? state.surface);
+        return {
+          ...remember(state),
+          models: state.models.map((m) => (m.id === model.id ? { ...m, surface: next } : m)),
+        };
+      }
+      if (state.selectedId) {
+        const box = state.boxes.find((b) => b.id === state.selectedId);
+        if (!box) return {};
+        const next = stepSurface(BOX_SURFACES, box.surface ?? state.surface);
+        return {
+          ...remember(state),
+          boxes: state.boxes.map((b) => (b.id === box.id ? { ...b, surface: next } : b)),
+        };
+      }
+      return {};
+    }),
+
+  toggleRoom: () => set((state) => ({ showRoom: !state.showRoom })),
 
   toggleSunEnvironment: () => set((state) => ({ sunEnvironment: !state.sunEnvironment })),
 
@@ -683,6 +746,7 @@ export const useStore = create<SceneState>((set, get) => ({
         scale: model.scale,
         baseScale: model.baseScale,
         size: [...model.size] as [number, number, number],
+        surface: model.surface,
       })),
       view: currentView(state),
       thumbnail: captureThumbnail(),
@@ -725,6 +789,7 @@ export const useStore = create<SceneState>((set, get) => ({
           scale: instance.scale,
           baseScale: instance.baseScale,
           size: [...instance.size] as [number, number, number],
+          surface: instance.surface,
         });
       } catch (error) {
         missing.push(`${instance.name} (${error instanceof Error ? error.message : 'could not be loaded'})`);

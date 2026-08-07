@@ -7,6 +7,8 @@ export interface BoxData {
   scale: [number, number, number];
   rotation: [number, number, number];
   name?: string;
+  /** How solidly it is drawn. Absent means whatever the scene's default is. */
+  surface?: Surface;
 }
 
 export type ThemeMode = 'light' | 'dark';
@@ -29,8 +31,53 @@ export type ThemeMode = 'light' | 'dark';
  */
 export type PerspectiveMode = 'linear' | 'cylindrical' | 'equidistant' | '5-point';
 
-/** How placed models are surfaced: as the file authored them, or in white. */
-export type ModelMaterial = 'original' | 'matte';
+/**
+ * How solidly one thing in the scene is drawn.
+ *
+ * Not a look: four different questions you can ask of the same object, and the
+ * one worth asking changes several times in the course of a study.
+ *
+ * - 'original': opaque, as the thing is. A box in plain white, a mesh in the
+ *   materials its file was authored with. What is behind it is behind it.
+ * - 'matte': opaque, plain white, no texture. Photographed skin and fabric is a
+ *   lot of information to draw past; stripped out, a figure reads as form and
+ *   value only, which is what it is doing in a scene full of white boxes.
+ * - 'glass': translucent, and writing no depth - so the far edges come through
+ *   the near faces. This is drawing through, which is how a box is checked: if
+ *   the hidden corner is in the wrong place the whole thing is, and on an opaque
+ *   box there is nothing to check it against.
+ * - 'wire': the twelve edges and nothing else. The construction with the object
+ *   taken away.
+ *
+ * Every box and every placed mesh carries its own, so a scene can have a solid
+ * car standing inside a wire box standing on a floor of glass ones - which is
+ * exactly the arrangement a study wants and what a single scene-wide setting
+ * could never say.
+ */
+export type Surface = 'original' | 'matte' | 'glass' | 'wire';
+
+/** The whole ladder, in order. What the scene-wide control steps through. */
+export const SURFACES: Surface[] = ['original', 'matte', 'glass', 'wire'];
+
+/** What a box steps through: it has no authored material to strip. */
+export const BOX_SURFACES: Surface[] = ['original', 'glass', 'wire'];
+
+/**
+ * What a mesh steps through: it has no cage to fall back on, so taking its
+ * surface away entirely would leave nothing on screen to take hold of again.
+ */
+export const MESH_SURFACES: Surface[] = ['original', 'matte', 'glass'];
+
+/**
+ * The nearest rung a given kind of thing can actually draw.
+ *
+ * The scene-wide control names one of the four for everything at once, and each
+ * kind answers with the closest thing it has: a box asked for matte is already
+ * plain white, and a mesh asked for wire gives you the glass it can do instead
+ * of disappearing.
+ */
+export const nearestSurface = (surface: Surface, rungs: Surface[]): Surface =>
+  rungs.includes(surface) ? surface : surface === 'matte' ? 'original' : 'glass';
 
 /**
  * How much construction is drawn over the world.
@@ -76,6 +123,8 @@ export interface SceneModel {
   fileUrl: string;
   format: 'usdz' | 'gltf';
   previewSupported: boolean;
+  /** How solidly it is drawn. Absent means whatever the scene's default is. */
+  surface?: Surface;
 }
 
 /**
@@ -124,6 +173,7 @@ export interface SceneInstance {
   scale: number;
   baseScale: number;
   size: [number, number, number];
+  surface?: Surface;
 }
 
 /**
@@ -147,7 +197,12 @@ export interface SceneView {
   /** Written by a version that had one guides switch instead of four levels. */
   showGuides?: boolean;
   showCone: boolean;
-  modelMaterial: ModelMaterial;
+  /** The default surface for anything placed after the scene comes back. */
+  surface?: Surface;
+  /** Written by a version whose surface setting was models-only and had two rungs. */
+  modelMaterial?: Surface;
+  /** Whether the room was standing round the scene. */
+  showRoom?: boolean;
   snapStep: number;
   /** Where the walker stands, and which way it faces. */
   camera: { x: number; z: number; yaw: number; pitch: number };
@@ -187,12 +242,25 @@ export interface SceneState {
    * standing in it, and the two are wanted at different times.
    */
   showConstruction: boolean;
+  /**
+   * Four walls and a ceiling, standing round the origin.
+   *
+   * The room is the perspective exercise. A box on open ground shows you its
+   * own twelve edges; a room shows you the ones that reach the edge of the
+   * frame, which is where a curved projection does its most visible work.
+   */
+  showRoom: boolean;
   /** Metres that edits snap to while dragging. 0 is free. */
   snapStep: number;
   models: SceneModel[];
   selectedModelId: string | null;
-  /** Replace model materials for reading form. */
-  modelMaterial: ModelMaterial;
+  /**
+   * The surface anything placed from now on is drawn with, and what the
+   * scene-wide control stamps onto everything already standing there.
+   *
+   * Each box and mesh carries its own; this is only where a new one starts.
+   */
+  surface: Surface;
   /** Use the directional sun to generate a full-frame sky gradient. */
   sunEnvironment: boolean;
   /**
@@ -244,6 +312,7 @@ export interface SceneState {
   cycleGuides: () => void;
   toggleCone: () => void;
   toggleConstruction: () => void;
+  toggleRoom: () => void;
   /** Read the viewer's own shelf back out of the browser. */
   loadOwnMeshes: () => Promise<void>;
   /** Put an imported mesh on it, or leave it there if it already is. */
@@ -262,7 +331,13 @@ export interface SceneState {
   scaleModel: (id: string, scale: number) => void;
   /** Copy whatever is selected, placed clear of the original. */
   duplicateSelection: () => void;
-  cycleMaterial: () => void;
+  /**
+   * Step the whole scene to the next surface: the default for what comes next,
+   * and everything already standing there with it.
+   */
+  cycleSurface: () => void;
+  /** Step only the selection, through the rungs its own kind can draw. */
+  cycleSelectionSurface: () => void;
   toggleSunEnvironment: () => void;
   /** Move the sun, or change how hard it burns. */
   setSun: (sun: Partial<SunState>) => void;

@@ -97,8 +97,9 @@ Along the bottom, fading out while you draw and back on the first touch:
 - **Sun / moon** — tap for light and dark, drag through all 256 greys,
   double-tap for the procedural sky
 - **Sliders** — everything else: AR, guides, snap, the 60° cone, the
-  construction around each object, view lock, matte models, the lights,
-  de-duplicate, undo, redo, clear, and save the view as a PNG
+  construction around each object, view lock, the room, the surface of
+  everything, the lights, de-duplicate, undo, redo, back to the opening scene,
+  and save the view as a PNG
 
 ### Projections
 
@@ -201,10 +202,54 @@ whatever is chosen** — so what you snap to is what you can see to line things
 up against. Eye level sets to the centimetre.
 
 Selecting something replaces the dock with what you can do to it: turn, size,
-duplicate, export the mesh at the size you settled on, delete. A copy lands
-beside its original with about six centimetres of air, so duplicating along a
-line builds a row rather than a scattering. Readings are in
+change its surface, duplicate, export the mesh at the size you settled on,
+delete. A copy lands beside its original with about six centimetres of air, so
+duplicating along a line builds a row rather than a scattering. Readings are in
 metres — the grid is ruled in metres, so the unit is never written down.
+
+## The room
+
+Four walls, a ceiling and a floor, ten metres square and three high, standing
+round the origin. It is the perspective exercise. A box on open ground gives you
+its own twelve edges and a horizon somewhere past it; a room gives you the ones
+that reach the corners of the frame, which is where a curved projection does all
+of its visible work. Standing in the middle of one on a five-point sheet, the
+floor lines run to the point under your feet, the ceiling lines to the one over
+your head and the four wall corners out to the four around the horizon — five
+points, one picture, nothing left to imagine.
+
+Every edge of it lands on a whole metre, and the walls are ruled in world
+coordinates rather than their own, so a line across the floor is the same line
+continuing up the wall. That is what makes it a measuring device rather than
+wallpaper.
+
+There is no lighting in it. One directional sun outside a closed box leaves the
+ceiling and two of the four walls perfectly black, which is true and useless.
+These are construction surfaces: flat tones, lightest at the ceiling and darkest
+underfoot, so the room still reads as a box under any light at all.
+
+## How solid a thing is drawn
+
+Every box and every placed mesh carries its own surface, so a scene can have a
+solid car standing inside a wire box on a floor of glass ones. Four rungs:
+
+- **solid** — as the thing is: a box in plain white, a mesh in the materials its
+  file was authored with
+- **matte** — opaque, plain white, no texture. Photographed skin and fabric is a
+  lot of information to draw past; stripped out, a figure reads as form and
+  value only, which is what it is doing in a scene full of white boxes
+- **glass** — translucent, writing no depth, so the far edges come through the
+  near faces. This is drawing through, and it is how a box is checked: if the
+  hidden corner is in the wrong place then the whole thing is, and on an opaque
+  box there is nothing to check it against
+- **wire** — the twelve edges and nothing else: the construction with the object
+  taken away
+
+The button on the selection bar steps the one thing you are holding, through the
+rungs its own kind has — a box skips matte, being plain white already, and a
+mesh skips wire, having no cage to fall back on. The button in the tools row
+steps the whole scene at once and stamps everything standing in it, in one
+undoable move.
 
 ## Undo
 
@@ -241,7 +286,8 @@ it is the one you are holding:
 It is drawn in the construction red like the rest of the sheet, and goes
 **green** on the one a drag would move. The whole of it switches off from the
 tools row, since the construction of the things and the construction of the room
-are wanted at different times.
+are wanted at different times — which is also why the room has a switch of its
+own.
 
 ## Saving a scene
 

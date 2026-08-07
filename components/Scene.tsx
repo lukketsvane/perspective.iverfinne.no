@@ -7,6 +7,7 @@ import { ARSession } from './ARSession';
 import { GroundGrid } from './GroundGrid';
 import { KimBox } from './KimBox';
 import { HorizonLine } from './Reference';
+import { Room } from './Room';
 import { SceneModels } from './SceneModels';
 import { WalkControls } from './WalkControls';
 import { updateFocus, focusPoint } from '../lib/focus';
@@ -262,6 +263,7 @@ const SceneContent = () => {
   const backgroundGray = useStore((state) => state.backgroundGray);
   const sunShadows = useStore((state) => state.sun.shadows);
   const inAR = useStore((state) => state.arRequested);
+  const showRoom = useStore((state) => state.showRoom);
   const sunEnvironment = useStore((state) => state.sunEnvironment);
 
   /*
@@ -328,6 +330,10 @@ const SceneContent = () => {
           washes it out - until it is asked for, which is what the fill is. */}
       <Sun />
       <Fill />
+
+      {/* Four walls and a ceiling round the origin. Never in AR: you are
+          already standing in a room there, and it is a better one. */}
+      {showRoom && !inAR && <Room dark={isDark} />}
 
       <group>
         {boxes.map((box) => (
