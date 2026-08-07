@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
 import { walkInput, enableDeviceOrientation } from '../lib/walkInput';
 import { arSupported } from '../lib/xr';
-import { Icon, I } from './icons';
+import { Icon, I, SURFACE_ICON } from './icons';
 import { Scrub, useGrayThemeControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
 import { ACTIVE, chrome, iconButton } from './ui';
@@ -43,6 +43,7 @@ const GUIDE_ICON: Record<GuideLevel, React.ReactNode> = {
 
 /** In the order of SNAP_STEPS: free, 5 cm, 25 cm, 1 m. */
 const SNAP_ICON: React.ReactNode[] = [I.snapFree, I.snapFine, I.snapMedium, I.snapCoarse];
+
 
 const MAX_PITCH = Math.PI / 2 - 0.05;
 const STICK_RADIUS = 64; // px
@@ -165,8 +166,10 @@ export const WalkOverlay: React.FC<{
   const [railVisible, setRailVisible] = useState(true);
   const [arSensor, setArSensor] = useState(false);
   const railTimer = useRef<number | undefined>(undefined);
-  const modelMaterial = useStore((s) => s.modelMaterial);
-  const cycleMaterial = useStore((s) => s.cycleMaterial);
+  const sceneSurface = useStore((s) => s.surface);
+  const cycleSurface = useStore((s) => s.cycleSurface);
+  const showRoom = useStore((s) => s.showRoom);
+  const toggleRoom = useStore((s) => s.toggleRoom);
   const models = useStore((s) => s.models);
   const deduplicateModels = useStore((s) => s.deduplicateModels);
   const undo = useStore((s) => s.undo);
@@ -690,8 +693,15 @@ export const WalkOverlay: React.FC<{
               {viewLocked ? <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /> : <path d="M8 10.5V7a4 4 0 0 1 7.5-2" />}
             </svg>
           </button>
-          <button onClick={cycleMaterial} aria-label="Model material" className={`${button} ${modelMaterial !== 'original' ? ACTIVE : ''}`}>
-            <Icon path={I.matte} className="w-5 h-5" />
+          <button onClick={toggleRoom} aria-label="Room" className={`${button} ${showRoom ? ACTIVE : ''}`}>
+            <Icon path={I.room} className="w-5 h-5" />
+          </button>
+          <button
+            onClick={cycleSurface}
+            aria-label={`Surface of everything: ${sceneSurface}`}
+            className={`${button} ${sceneSurface !== 'original' ? ACTIVE : ''}`}
+          >
+            <Icon path={SURFACE_ICON[sceneSurface]} className="w-5 h-5" />
           </button>
           <button onClick={() => { setShowTools(false); onLights(); }} aria-label="Lights" className={button}>
             <Icon path={I.strength} className="w-5 h-5" />

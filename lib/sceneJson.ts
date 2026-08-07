@@ -50,6 +50,7 @@ export const toSceneFile = (
     scale: m.scale,
     baseScale: m.baseScale,
     size: [...m.size] as [number, number, number],
+    surface: m.surface,
   })),
   view,
 });
@@ -138,6 +139,7 @@ export const readSceneFile = async (file: File): Promise<ImportedScene> => {
         scale: record.scale,
         baseScale: record.baseScale,
         size: [...record.size] as [number, number, number],
+        surface: record.surface,
       });
     } catch (error) {
       skipped.push(`${record.name} (${error instanceof Error ? error.message : 'could not be loaded'})`);

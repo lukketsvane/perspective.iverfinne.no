@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Surface } from '../types';
 
 /**
  * The icon set.
@@ -86,8 +87,22 @@ export const I = {
    */
   cage: (<><path d="M8 7.5l8-3.5 4 2v9l-8 3.5-4-2z" strokeOpacity="0.9" /><path d="M8 7.5l4 2 8-3.5M12 9.5v9" strokeOpacity="0.5" /><path d="M3 20.5l6-2.6 5 2.2-6 2.6z" strokeOpacity="0.45" /></>),
 
-  /** Plain white in place of the file's own materials. */
+  /**
+   * How solidly a thing is drawn, as that thing: the same cube filled, then
+   * painted plain, then seen through, then taken away and left as its own
+   * construction. The three hidden edges appear at the rung where you can
+   * actually see them, which is the point of that rung.
+   */
+  surfaceSolid: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" fill="currentColor" fillOpacity="0.7" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" strokeOpacity="0.3" /></>),
   matte: (<path d="M12 3s6 6.4 6 10a6 6 0 0 1-12 0c0-3.6 6-10 6-10z" />),
+  surfaceGlass: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" fill="currentColor" fillOpacity="0.16" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" /><path d="M12 11.5V3M12 11.5l8 5.3M12 11.5l-8 5.3" strokeOpacity="0.4" strokeDasharray="2 2" /></>),
+  surfaceWire: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" strokeOpacity="0.75" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" strokeOpacity="0.75" /><path d="M12 11.5V3M12 11.5l8 5.3M12 11.5l-8 5.3" strokeOpacity="0.75" /></>),
+
+  /**
+   * The room: a wall square on, the four corners running back to the eye, and
+   * the opening you are standing in.
+   */
+  room: (<><rect x="2.5" y="4" width="19" height="16" rx="1" /><rect x="8.5" y="9.5" width="7" height="5.5" rx="0.5" strokeOpacity="0.65" /><path d="M2.5 4l6 5.5M21.5 4l-6 5.5M2.5 20l6-5M21.5 20l-6-5" strokeOpacity="0.4" /></>),
 
   /** Start again, and step back or forward one move. */
   reset: (<><path d="M3 7v6h6" /><path d="M3.5 13a9 9 0 1 0 2.2-9.3L3 7" /></>),
@@ -120,4 +135,12 @@ export const I = {
   sceneExport: (<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M8 12h8M14 9l3 3-3 3" /></>),
   /** Scene JSON import: a box with an inward arrow. */
   sceneImport: (<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M16 12H8M10 9l-3 3 3 3" /></>),
+};
+
+/** Which cube goes on the button, for the rung the thing is currently on. */
+export const SURFACE_ICON: Record<Surface, React.ReactNode> = {
+  original: I.surfaceSolid,
+  matte: I.matte,
+  glass: I.surfaceGlass,
+  wire: I.surfaceWire,
 };
