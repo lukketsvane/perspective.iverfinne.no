@@ -34,13 +34,25 @@ export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'il-tempo-gigante', name: 'Il Tempo Gigante', url: '/meshes/il-tempo-gigante.glb' },
 ];
 
-/** One of them, for the scene the tool opens with. */
-export const randomMesh = (): LibraryMesh => {
+/**
+ * What the tool stands up on the empty grid - when it opens, and again whenever
+ * the scene is reset.
+ *
+ * The car, always. It used to be whichever of them the dice picked, on the
+ * reasoning that a different object each time is a different exercise, but
+ * opening on something different every time is not a room you know - and the
+ * three are not equal for this. A chair is a box with legs. The car is curved
+ * where the box is flat, six metres long so its far end is visibly smaller than
+ * its near one, and turned enough that all three of its axes run off to three
+ * separate points. It is the object here with the most perspective in it, which
+ * makes it the one worth finding on the grid.
+ */
+export const openingMesh = (): LibraryMesh => {
   if (import.meta.env.DEV) {
     // A browser test needs to be able to look at each of them in turn.
     const forced = (window as unknown as { __forceMesh?: string }).__forceMesh;
     const wanted = MESH_LIBRARY.find((mesh) => mesh.id === forced);
     if (wanted) return wanted;
   }
-  return MESH_LIBRARY[Math.floor(Math.random() * MESH_LIBRARY.length)];
+  return MESH_LIBRARY.find((mesh) => mesh.id === 'il-tempo-gigante') ?? MESH_LIBRARY[0];
 };

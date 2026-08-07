@@ -28,8 +28,15 @@ and the file goes with it unless a saved scene still stands on it.
 
 ## Opening
 
-One of the fourteen is standing on the grid when the tool opens, picked at
-random and framed for its size, on a 180° five-point sheet.
+The car is standing on the grid when the tool opens, framed for its size, on a
+180° five-point sheet. The reset control comes back to exactly this, rather than
+to an empty floor — it clears the scene in one undoable step and stands the car
+back up, so one undo returns the whole composition.
+
+It is always the car and never one of the chairs. A chair is a box with legs;
+the car is curved where a box is flat, six metres long so its far end is visibly
+smaller than its near one, and turned enough that all three of its axes run to
+three separate points. It is the object here with the most perspective in it.
 
 Framing solves for two legs, not one: how far back to stand, and how high the
 eye has to be. A chair 0.7 m away from a 1.9 m eye is not 0.7 m away — it is
