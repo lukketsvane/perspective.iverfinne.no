@@ -366,7 +366,10 @@ export const useStore = create<SceneState>((set, get) => ({
    *
    * Leaving models behind meant "clear" put you on a clean grid with
    * yesterday's furniture still standing on it. Undoable, like every other
-   * destructive action.
+   * destructive action - and the opening object is stood back up on it
+   * afterwards by `standObject`, which deliberately does not write a second
+   * step, so one undo comes back to the whole scene rather than to the moment
+   * between the clearing and the car.
    */
   resetScene: () =>
     set((state) => {
@@ -381,6 +384,18 @@ export const useStore = create<SceneState>((set, get) => ({
       releaseUnreferenced(next);
       return next;
     }),
+
+  /**
+   * Put something on the ground that the viewer did not ask for.
+   *
+   * The same as `addModel` in every way except the two that matter here: it
+   * writes no undo step and it selects nothing. What the tool opens with is
+   * where the history begins, not a first move to be taken back - and a
+   * selection you did not make is a set of handles under your thumb the moment
+   * you touch the screen.
+   */
+  standObject: (model) =>
+    set((state) => ({ models: [...state.models, { id: uuidv4(), ...model }] })),
 
   selectBox: (id) => set({ selectedId: id, selectedModelId: null }),
 

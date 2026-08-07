@@ -229,8 +229,13 @@ export interface SceneState {
   addCube: (position: [number, number, number]) => void;
   updateBox: (id: string, updates: Partial<BoxData>) => void;
   removeBox: (id: string) => void;
-  /** Back to a single reference cube on empty ground. */
+  /** Empty ground, undoably. The opening object is stood back up on it after. */
   resetScene: () => void;
+  /**
+   * Stand a model up without writing a history step or selecting it - the
+   * opening object, which is where the history begins rather than a first move.
+   */
+  standObject: (model: Omit<SceneModel, 'id'>) => void;
   selectBox: (id: string | null) => void;
   setLens: (fov: number) => void;
   setPerspectiveMode: (mode: PerspectiveMode) => void;

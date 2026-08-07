@@ -9,7 +9,7 @@ import { SceneSheet } from './components/SceneSheet';
 import { LightSheet } from './components/LightSheet';
 import { useStore, saveSettings, currentView } from './store';
 import { loadModelFile, loadModelFromUrl, findFreeSpot, modelRadius } from './lib/loadModel';
-import { MESH_LIBRARY, randomMesh } from './lib/meshLibrary';
+import { MESH_LIBRARY, openingMesh } from './lib/meshLibrary';
 import { focusPoint } from './lib/focus';
 import { walkInput } from './lib/walkInput';
 import { fieldOf } from './lib/projection';
@@ -27,6 +27,8 @@ export default function App() {
   const perspectiveMode = useStore((s) => s.perspectiveMode);
   const showCone = useStore((s) => s.showCone);
   const addModel = useStore((s) => s.addModel);
+  const standObject = useStore((s) => s.standObject);
+  const resetScene = useStore((s) => s.resetScene);
   const applyScene = useStore((s) => s.applyScene);
   const loadSceneHistory = useStore((s) => s.loadSceneHistory);
   const loadOwnMeshes = useStore((s) => s.loadOwnMeshes);
@@ -40,49 +42,23 @@ export default function App() {
   }, [loadSceneHistory, loadOwnMeshes]);
   useEffect(() => useStore.subscribe((state) => saveSettings(state)), []);
 
-  /**
-   * What is standing there when the tool opens.
-   *
-   * One of the four, picked at random, on the origin. An empty grid is a
-   * harder thing to start drawing than a chair whose real size you know, and a
-   * different one each time is a different exercise. Guarded because a strict
-   * mode double-mount would otherwise stand up two of them.
-   */
-  const opened = useRef(false);
-  useEffect(() => {
-    if (opened.current) return;
-    opened.current = true;
-    const entry = randomMesh();
-    // Three megabytes over the network before anything stands up. The hairline
-    // says so, rather than the grid sitting empty for a second and a half with
-    // nothing to suggest that it will not stay that way.
-    const done = beginActivity();
-    loadModelFromUrl(entry.url, entry.name, [0, 0], entry.height)
-      .then(({ model }) => {
-        // Anything the viewer did in the meantime wins: a scene opened from the
-        // library, or a mesh placed by hand, is not something to land on top of.
-        const { models, boxes } = useStore.getState();
-        if (models.length || boxes.length) return;
-        addModel({ ...model, position: [0, 0, 0] });
-        // Nothing has been done yet: what the tool opened with is where undo
-        // stops, not a first move to be taken back.
-        useStore.setState({ selectedModelId: null, undoStack: [], redoStack: [] });
-        // A scanned figure arrives normalised and is scaled on the way in, so
-        // what it will stand at is its authored size times that scale.
-        frame(model.size.map((metres) => metres * model.scale) as [number, number, number]);
-      })
-      .catch((error) => {
-        console.error('Could not open with a model:', error);
-        reportFailure();
-      })
-      .finally(done);
-  }, [addModel]);
-
   /** How much of the frame's height the opening object should fill. */
   const OPENING_SIZE = 0.45;
 
   /** Above this, it is something you look at standing up. */
   const EYE_TO_EYE = 1.2;
+
+  /**
+   * How far the opening object is turned off square, in radians.
+   *
+   * Forty degrees, which is the three-quarter view every product photograph and
+   * every drawing lesson opens on. Square-on, a thing this long is a one-point
+   * construction: one face, one point, and its whole depth hidden behind its own
+   * back. Turned, all three of its axes run off to three separate places, and
+   * the box drawn round it says so. That is the first thing the tool should be
+   * showing, so it is what it starts with.
+   */
+  const OPENING_TURN = 0.7;
 
   /**
    * Stand where the whole of it can be seen, and look at its middle.
@@ -126,6 +102,61 @@ export default function App() {
     walkInput.lookYaw = 0;
     walkInput.lookPitch = 0;
     walkInput.seeded = true;
+  };
+
+  /**
+   * The scene the tool starts from: the car on the origin, framed to fill it.
+   *
+   * Both the opening and the reset go through here, so those two are the same
+   * state by construction rather than by two pieces of code agreeing. Reset
+   * therefore means "back to how this started", which is a place to draw from,
+   * rather than "empty grid", which is a place to look at.
+   */
+  const standOpening = () => {
+    const entry = openingMesh();
+    // Three megabytes over the network before anything stands up. The hairline
+    // says so, rather than the grid sitting empty for a second and a half with
+    // nothing to suggest that it will not stay that way. (A reset pays nothing:
+    // the parsed source is still in hand, kept alive by the undo step.)
+    const done = beginActivity();
+    return loadModelFromUrl(entry.url, entry.name, [0, 0], entry.height)
+      .then(({ model }) => {
+        // Anything the viewer did in the meantime wins: a scene opened from the
+        // library, or a mesh placed by hand, is not something to land on top of.
+        const { models, boxes } = useStore.getState();
+        if (models.length || boxes.length) return;
+        standObject({ ...model, position: [0, 0, 0], rotationY: OPENING_TURN });
+        // A scanned figure arrives normalised and is scaled on the way in, so
+        // what it will stand at is its authored size times that scale. The turn
+        // is not folded in: the framing wants the longest edge either way, and
+        // the diagonal it presents when turned is within a few per cent of it.
+        frame(model.size.map((metres) => metres * model.scale) as [number, number, number]);
+      })
+      .catch((error) => {
+        console.error('Could not stand the opening model up:', error);
+        reportFailure();
+      })
+      .finally(done);
+  };
+
+  /**
+   * What is standing there when the tool opens. Guarded because a strict mode
+   * double-mount would otherwise stand up two of them.
+   */
+  const opened = useRef(false);
+  useEffect(() => {
+    if (opened.current) return;
+    opened.current = true;
+    standOpening();
+    // Once: this is the scene the tool arrives with, not something that follows
+    // any later state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Clear the floor, then put the opening object back on it. */
+  const restartScene = () => {
+    resetScene();
+    standOpening();
   };
 
   /** Stand a new mesh clear of everything already placed, near the gaze point. */
@@ -246,6 +277,7 @@ export default function App() {
         onModels={() => setSheet('meshes')}
         onScenes={() => setSheet('scenes')}
         onLights={() => setSheet('lights')}
+        onReset={restartScene}
         covered={sheet !== null}
       />
       {sheet === 'meshes' && (
