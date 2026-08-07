@@ -9,19 +9,22 @@ of metres, and it is meant to be legible without reading.
 
 ## The library
 
-Four Norwegian objects — the Ekstrem chair, the Balans Variabel, Il Tempo
-Gigante, the Tripp Trapp — and one person in ten poses: standing four ways,
-stepping, reaching, lunging, bending to the floor, sitting.
+Three Norwegian objects — the Ekstrem chair, the Balans Variabel and Il Tempo
+Gigante — true to life as authored. Measured, they come in at the sizes the real
+things are, so anything drawn against one is drawn against a real chair. A knee-
+high thing, a seat-high thing and a six-metre thing: between them they cover the
+range a study needs something known to be measured against.
 
-The objects are true to life as authored. The figures are not, and this is the
-one place the app corrects anything: they come from the scanner normalised, each
-fitted to a box exactly a metre on its longest side, so placed as they came a
-standing man would be the height of the reference cube and a man bent to the
-floor the same height as the man beside him. Each figure carries the height of
-its own pose instead — about 1.75 m standing, less by however far the pose folds
-him — read off the poses rather than measured, so good to a few centimetres and
-no better. The height scrub on a selected figure sets it exactly; a double tap
-comes back to the number in the library.
+Everything else in the library is yours. The tile beside the reference cube
+takes a file, and what comes in is both placed and **kept** — listed with the
+three from then on, in this browser, so a mesh is imported once and placed as
+often as the drawing wants. An import used to be a one-off: it stood in the
+scene, it was saved with it, and placing it a second time meant finding it on
+disk again.
+
+The bytes are filed under a hash of themselves, so importing the same file twice
+is one entry. The small mark on a tile takes it off the shelf, twice to confirm,
+and the file goes with it unless a saved scene still stands on it.
 
 ## Opening
 
@@ -86,15 +89,14 @@ Along the bottom, fading out while you draw and back on the first touch:
 - **Projection** — steps through the four systems (below)
 - **Sun / moon** — tap for light and dark, drag through all 256 greys,
   double-tap for the procedural sky
-- **Sliders** — everything else: AR, guides, snap, the 60° cone, view lock,
-  matte models, the lights, mesh import, de-duplicate, undo, clear, and save
-  the view as a PNG
+- **Sliders** — everything else: AR, guides, snap, the 60° cone, the
+  construction around each object, view lock, matte models, the lights,
+  de-duplicate, undo, redo, clear, and save the view as a PNG
 
 ### Projections
 
-Four systems, all of them ones you can draw in, cycled with one button:
+Three systems, all of them ones you can draw in, cycled with one button:
 
-- **Linear** — straight-line perspective: one, two and three point.
 - **Cylindrical** — four-point. Verticals stay straight and vertical while
   horizontals bow. The system for ruling a long wall.
 - **Equidistant** — five-point, and the default. Angle from the centre of the
@@ -103,6 +105,17 @@ Four systems, all of them ones you can draw in, cycled with one button:
   draws on.
 - **Five point** — the same projection taken past the hemisphere, so the zenith
   and nadir points are both on the page with the four around them.
+
+Straight-line perspective is not among them. It is honest inside the cone of
+vision and nowhere else, and this is a tool whose whole subject is the wide
+field — so opening the lens in it did not open the view out, it smeared the
+edges of the frame into something no drawing could be made from. The three above
+answer the same question at forty degrees as at three hundred, and at forty they
+*are* the flat one to within the width of a pencil line.
+
+It is still there for one thing: a session standing in the real room is drawn
+through the phone's own rectilinear lens, and bending that would be drawing a
+perspective over a perspective.
 
 The tool opens at **180°**, which is the number that matters for a curvilinear
 study: the four horizon points land exactly on the edge of the frame and the
@@ -202,6 +215,26 @@ while a mesh is being fetched, a scene written or a file read, and the same line
 in red for a moment when what was asked for never arrived. A library mesh is
 three megabytes over the network, and a tool that does nothing for two seconds
 after being asked has, as far as anyone watching can tell, not heard.
+
+## The construction around each thing
+
+Every object standing in the scene carries its own construction, whether or not
+it is the one you are holding:
+
+- **the box it blocks into** — the first mark anyone makes when they draw a
+  figure, and the thing a drawing is measured in
+- **the ground it stands on** — where its footprint meets the floor, to be lined
+  up against the grid
+- **the diagonals of that footprint** — crossed, they mark its true centre *in
+  perspective*, which is not the middle of the drawn rectangle and is how a
+  receding row is halved and doubled without measuring anything
+- **the plumb line** — up through the middle and on past the top, which is what
+  a figure's height and balance are read against
+
+It is drawn in the construction red like the rest of the sheet, and goes
+**green** on the one a drag would move. The whole of it switches off from the
+tools row, since the construction of the things and the construction of the room
+are wanted at different times.
 
 ## Saving a scene
 
