@@ -203,6 +203,22 @@ export const screenReach = (at: THREE.Vector3, along: THREE.Vector3): number => 
   return Math.hypot(there.x - here.x, there.y - here.y);
 };
 
+const heading = new THREE.Vector3();
+
+/**
+ * Where a direction *relative to where you are looking* lands on the glass.
+ *
+ * Given in the camera's own frame: -Z straight ahead, +X to the right, +Y up.
+ * Everything drawn about the frame rather than about the room is this question
+ * - the cone of vision, for one, which is a fixed angle off the view axis and
+ * has to be asked of whichever projection is on rather than assumed round.
+ */
+export const projectView = (x: number, y: number, z: number): { x: number; y: number } | null => {
+  if (!view) return null;
+  heading.set(x, y, z).applyQuaternion(view.camera.quaternion).add(view.camera.position);
+  return project(heading);
+};
+
 const across = new THREE.Vector3();
 
 /**

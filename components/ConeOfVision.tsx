@@ -1,51 +1,85 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { projectView } from '../lib/pick';
 
 /**
  * The 60 degree cone of vision.
  *
  * Inside this circle a rectilinear projection matches what an eye actually
  * sees; outside it, squares stretch and spheres go oval - the classic
- * perspective-drawing error is placing the subject beyond it. Drawn from the
- * projection itself: at a focal length f (in pixels) an angle t lands at
- * f * tan(t), so the 60 degree cone is a circle of radius f * tan(30 degrees)
- * around the centre of the frame.
+ * perspective-drawing error is placing the subject beyond it.
  *
- * Only meaningful for straight-line perspective; the curvilinear projection
- * bends the same angles somewhere else, so the caller hides it there.
+ * It matters at least as much on a curved sheet, where it is the line between
+ * the two systems: inside it, straight-line perspective is honest and you can
+ * rule with a straight edge; outside it, the bend is not a stylisation but the
+ * only truthful answer. Drawing it only on the flat side left the student
+ * unable to see, on the sheet they were actually drawing on, where one stops
+ * being the other.
+ *
+ * So it is not worked out from a focal length any more. It is thirty degrees
+ * off the view axis, all the way round, asked of whichever projection is in
+ * front of you: a circle on a flat frame, a circle of a different size on an
+ * equidistant one, and an oval on the unrolled cylinder, each because that is
+ * what that projection does to a cone.
  */
-export const ConeOfVision: React.FC<{ fov: number; color: string }> = ({ fov, color }) => {
-  const [size, setSize] = useState(() => ({
-    width: typeof window === 'undefined' ? 0 : window.innerWidth,
-    height: typeof window === 'undefined' ? 0 : window.innerHeight,
-  }));
 
+/** Half the cone: thirty degrees off the axis. */
+const HALF = Math.PI / 6;
+
+/** How many places round it are asked about. */
+const AROUND = 96;
+
+const outline = (): string | null => {
+  const points: string[] = [];
+  const sin = Math.sin(HALF);
+  const cos = Math.cos(HALF);
+
+  for (let i = 0; i < AROUND; i++) {
+    const turn = (i / AROUND) * Math.PI * 2;
+    const at = projectView(sin * Math.cos(turn), sin * Math.sin(turn), -cos);
+    if (!at) return null;
+    points.push(`${at.x.toFixed(1)},${at.y.toFixed(1)}`);
+  }
+
+  return points.join(' ');
+};
+
+export const ConeOfVision: React.FC<{ color: string }> = ({ color }) => {
+  const [shape, setShape] = useState<string | null>(null);
+  const drawn = useRef<string | null>(null);
+
+  /*
+   * Watched rather than computed once: the cone is fixed to the frame, so it
+   * does not move when you look around, but it does change with the lens, the
+   * projection and the shape of the window - and none of those announce
+   * themselves here. Ninety-six directions a frame is nothing, and the state is
+   * only touched when the answer is different, so nothing re-renders while it
+   * is standing still.
+   */
   useEffect(() => {
-    const onResize = () => setSize({ width: window.innerWidth, height: window.innerHeight });
-    window.addEventListener('resize', onResize);
-    window.addEventListener('orientationchange', onResize);
-    return () => {
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('orientationchange', onResize);
+    let running = true;
+    const tick = () => {
+      if (!running) return;
+      const next = outline();
+      if (next !== drawn.current) {
+        drawn.current = next;
+        setShape(next);
+      }
+      requestAnimationFrame(tick);
     };
+    requestAnimationFrame(tick);
+    return () => { running = false; };
   }, []);
 
-  // three's fov is vertical, so the focal length comes off the frame height.
-  const focal = size.height / 2 / Math.tan((fov * Math.PI) / 360);
-  const radius = focal * Math.tan(Math.PI / 6);
-
-  // Below 60 degrees the whole frame is already inside the cone.
-  if (radius > Math.hypot(size.width, size.height) / 2) return null;
+  if (!shape) return null;
 
   return (
     <svg
       className="absolute inset-0 w-full h-full pointer-events-none z-20"
-      width={size.width}
-      height={size.height}
+      width={window.innerWidth}
+      height={window.innerHeight}
     >
-      <circle
-        cx={size.width / 2}
-        cy={size.height / 2}
-        r={radius}
+      <polygon
+        points={shape}
         fill="none"
         stroke={color}
         strokeWidth={1}
