@@ -220,9 +220,7 @@ export default function App() {
     >
       <Scene />
       <Activity />
-      {showCone && perspectiveMode === 'linear' && (
-        <ConeOfVision fov={fov} color={isDark ? '#8ab4ff' : '#1f6feb'} />
-      )}
+      {showCone && <ConeOfVision color={isDark ? '#8ab4ff' : '#1f6feb'} />}
       <VanishingPoints color={isDark ? '#ff6a5e' : '#e0342a'} />
       <WalkOverlay
         onModels={() => setSheet('meshes')}
