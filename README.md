@@ -112,6 +112,45 @@ With the construction guides on, **all five vanishing points are marked** on the
 sphere. They are fixed to the room, not to the frame, so they slide as you turn
 and stay where the geometry says they are.
 
+### The selection's own points
+
+Select anything and its own vanishing points are drawn, with its edges carried
+out to them — in every one of the four systems, not only the flat one.
+
+That is the whole lesson, and it is invisible until somebody draws it: a box has
+its own points, decided by how *it* is turned relative to you, not by the scene
+being "in two-point perspective". Turn one off the grid and its pair moves off
+the scene's.
+
+The maths is the same everywhere — a direction vanishes where a point infinitely
+far along it is drawn — and everything else about it changes with the sheet. On
+a flat one only the point in front of you exists and the lines to it are
+straight. On a curved one **both** points are on the page, opposite each other,
+and the edge between them is a great circle rather than a straight line. So the
+edges are drawn by asking the projection where the line itself lands, a sample
+at a time, which draws a straight one straight and a bent one bent.
+
+The verticals are ruled too on a curved sheet, to the point overhead: that is
+the fifth point, and it is the one thing a five-point sheet is for.
+
+A point that lands off the frame is pinned to the edge rather than dropped —
+"off to the left, roughly level with here" is what you need when you are ruling
+by hand. Which is also how the fifth point stays locatable at 180°, where a
+landscape frame reaches about 65° up and the zenith is at 90°.
+
+### The cone of vision
+
+The 60° cone is drawn in all four systems, and it is not the same shape in each:
+a circle on a flat frame, a smaller circle on an equidistant one, an oval on the
+unrolled cylinder — because that is what each projection does to a cone. It is
+worked out by asking the projection about thirty degrees off the view axis, all
+the way round, rather than from a focal length.
+
+It matters most on a curved sheet, where it is the line between the two systems:
+inside it a rectilinear projection matches what an eye sees and you can rule
+with a straight edge; outside it squares stretch and spheres go oval, and the
+bend is not a stylisation but the only truthful answer.
+
 ### Lights
 
 The sun is one hard light with no fill, which is what makes a box read as a box:

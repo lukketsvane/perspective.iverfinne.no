@@ -42,15 +42,13 @@ const VanishingTracker = () => {
   const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
 
   useFrame(() => {
-    // Curvilinear bends every one of these lines somewhere else, so the flat
-    // construction would be a lie there.
-    if (!guides || perspectiveMode !== 'linear' || (!box && !model)) {
+    if (!guides || (!box && !model)) {
       clearVanishing();
       return;
     }
 
     if (box) {
-      updateVanishing(camera, size.width, size.height, {
+      updateVanishing(camera, perspectiveMode, {
         centre: new THREE.Vector3(...box.position),
         size: new THREE.Vector3(...box.scale),
         rotationY: box.rotation[1],
@@ -59,7 +57,7 @@ const VanishingTracker = () => {
     }
 
     const height = model!.size[1] * model!.scale;
-    updateVanishing(camera, size.width, size.height, {
+    updateVanishing(camera, perspectiveMode, {
       centre: new THREE.Vector3(model!.position[0], height / 2, model!.position[2]),
       size: new THREE.Vector3(
         model!.size[0] * model!.scale,
