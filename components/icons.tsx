@@ -80,6 +80,12 @@ export const I = {
   shadow: (<><circle cx="8.6" cy="8" r="3.4" /><path d="M12.2 10.6L21 19.6H7.4z" fill="currentColor" stroke="none" strokeOpacity="0.35" fillOpacity="0.35" /></>),
   fill: (<><circle cx="12" cy="12" r="4" strokeOpacity="0.5" /><path d="M12 2.4v2.6M2.4 12h2.6M19 12h2.6M12 19v2.6" strokeOpacity="0.5" /><path d="M4.4 4.4l1.9 1.9M17.7 17.7l1.9 1.9" strokeOpacity="0.5" /><path d="M12 8a4 4 0 0 1 0 8z" fill="currentColor" stroke="none" /></>),
 
+  /**
+   * The box a thing blocks into, standing on its own footprint: the
+   * construction drawn around every object rather than around the room.
+   */
+  cage: (<><path d="M8 7.5l8-3.5 4 2v9l-8 3.5-4-2z" strokeOpacity="0.9" /><path d="M8 7.5l4 2 8-3.5M12 9.5v9" strokeOpacity="0.5" /><path d="M3 20.5l6-2.6 5 2.2-6 2.6z" strokeOpacity="0.45" /></>),
+
   /** Plain white in place of the file's own materials. */
   matte: (<path d="M12 3s6 6.4 6 10a6 6 0 0 1-12 0c0-3.6 6-10 6-10z" />),
 

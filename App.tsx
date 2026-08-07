@@ -29,12 +29,15 @@ export default function App() {
   const addModel = useStore((s) => s.addModel);
   const applyScene = useStore((s) => s.applyScene);
   const loadSceneHistory = useStore((s) => s.loadSceneHistory);
+  const loadOwnMeshes = useStore((s) => s.loadOwnMeshes);
+  const rememberMesh = useStore((s) => s.rememberMesh);
   const [sheet, setSheet] = useState<'meshes' | 'scenes' | 'lights' | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
     loadSceneHistory();
-  }, [loadSceneHistory]);
+    loadOwnMeshes();
+  }, [loadSceneHistory, loadOwnMeshes]);
   useEffect(() => useStore.subscribe((state) => saveSettings(state)), []);
 
   /**
@@ -167,12 +170,29 @@ export default function App() {
     });
   };
 
+  /**
+   * A file dropped in.
+   *
+   * It is placed *and* kept: the shelf is what makes an import worth the walk to
+   * the file picker, since the second time you want that chair it is already
+   * here. A file the browser cannot read is not put on the shelf - there would
+   * be nothing to place from it.
+   */
   const importModels = (files: FileList) =>
     whileLoading('import', async () => {
       for (const file of Array.from(files)) {
         const { model } = await loadModelFile(file, [focusPoint.x, focusPoint.z]);
-        if (model.previewSupported) place(model);
+        if (!model.previewSupported) continue;
+        place(model);
+        await rememberMesh(model.fileUrl, model.name);
       }
+    });
+
+  /** Place one of the viewer's own again, from the shelf. */
+  const placeOwnMesh = (url: string, name: string) =>
+    whileLoading(url, async () => {
+      const { model } = await loadModelFromUrl(url, name, [focusPoint.x, focusPoint.z]);
+      if (model.previewSupported) place(model);
     });
 
   const exportScene = async () => {
@@ -226,11 +246,16 @@ export default function App() {
         onModels={() => setSheet('meshes')}
         onScenes={() => setSheet('scenes')}
         onLights={() => setSheet('lights')}
-        onImport={importModels}
         covered={sheet !== null}
       />
       {sheet === 'meshes' && (
-        <MeshSheet onClose={() => setSheet(null)} onPlace={placeLibraryMesh} busyId={busy} />
+        <MeshSheet
+          onClose={() => setSheet(null)}
+          onPlace={placeLibraryMesh}
+          onPlaceOwn={placeOwnMesh}
+          onImport={importModels}
+          busyId={busy}
+        />
       )}
       {sheet === 'lights' && <LightSheet onClose={() => setSheet(null)} />}
       {sheet === 'scenes' && (

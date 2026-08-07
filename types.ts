@@ -1,4 +1,5 @@
 import type { Object3D } from 'three';
+import type { OwnMesh } from './lib/assets';
 
 export interface BoxData {
   id: string;
@@ -11,9 +12,13 @@ export interface BoxData {
 export type ThemeMode = 'light' | 'dark';
 
 /**
- * How the scene is projected. Four systems, all of them ones you can draw in.
+ * How the scene is projected. Three systems to draw in, and one to stand in.
  *
- * - 'linear': straight-line rectilinear perspective - one, two and three point.
+ * - 'linear': straight-line rectilinear perspective. Not offered any more - it
+ *   is honest inside the cone of vision and smears everything outside it, which
+ *   is most of the frame in a tool built for the wide field. It stays for AR,
+ *   where the picture is the phone's own rectilinear camera and bending it
+ *   would be drawing a perspective over a perspective.
  * - 'cylindrical': four-point. Verticals stay straight and vertical; horizontals
  *   bow. The panoramic system, and the one to rule a long wall with.
  * - 'equidistant': five-point, and the default. Angle from the centre of the
@@ -173,6 +178,15 @@ export interface SceneState {
   guides: GuideLevel;
   /** The 60 degree cone of vision, drawn over the view. */
   showCone: boolean;
+  /**
+   * The construction drawn around each object: the box it blocks into, the
+   * ground it stands on, and the plumb line through it.
+   *
+   * Separate from `guides`, which is the construction of the *room* - the
+   * horizon, the floor and the sheet. This is the construction of the things
+   * standing in it, and the two are wanted at different times.
+   */
+  showConstruction: boolean;
   /** Metres that edits snap to while dragging. 0 is free. */
   snapStep: number;
   models: SceneModel[];
@@ -209,6 +223,8 @@ export interface SceneState {
   /** The saved scene last opened or written, so the library can mark it. */
   currentSceneId: string | null;
   sceneHistory: SavedScene[];
+  /** Meshes the viewer has imported and kept, listed beside the built-in three. */
+  ownMeshes: OwnMesh[];
   /** Place the toolbar's canonical one-metre reference cube. */
   addCube: (position: [number, number, number]) => void;
   updateBox: (id: string, updates: Partial<BoxData>) => void;
@@ -222,6 +238,13 @@ export interface SceneState {
   /** Step down through the construction: everything, less, less, none, round. */
   cycleGuides: () => void;
   toggleCone: () => void;
+  toggleConstruction: () => void;
+  /** Read the viewer's own shelf back out of the browser. */
+  loadOwnMeshes: () => Promise<void>;
+  /** Put an imported mesh on it, or leave it there if it already is. */
+  rememberMesh: (url: string, name: string) => Promise<void>;
+  /** Take one off, and let go of the bytes if nothing else wants them. */
+  forgetMesh: (url: string) => Promise<void>;
   /** Step through free, 5 cm, 25 cm, 1 m. */
   cycleSnap: () => void;
   /** Turn the selection (box or model) about its own vertical axis. */
