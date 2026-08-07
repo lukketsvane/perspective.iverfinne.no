@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { useStore } from '../store';
 import { SceneModel } from '../types';
 import { authoredMaterial } from '../lib/modelMaterials';
-import { Edges } from '@react-three/drei';
+import { Edges, Line } from '@react-three/drei';
 
 /**
  * One matte white material, shared by every model that is switched to it.
@@ -35,8 +35,20 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
   const theme = useStore((state) => state.theme);
 
   const modelMaterial = useStore((state) => state.modelMaterial);
+  const showConstruction = useStore((state) => state.showConstruction);
   const isSelected = selectedModelId === model.id;
-  const outlineColor = theme === 'dark' ? '#ff5555' : '#ff3b30';
+  const dark = theme === 'dark';
+
+  /*
+   * Red for the construction, green for the one in your hands.
+   *
+   * The cage is not a selection highlight - it is the box the thing blocks into,
+   * which is the first mark anyone makes when they draw a figure, and it is
+   * wanted around everything standing in the scene rather than around whichever
+   * one was last tapped. So it is drawn in the construction red like the rest of
+   * the sheet, and goes green only to say which one a drag would move.
+   */
+  const cageColor = isSelected ? (dark ? '#4ade80' : '#16a34a') : dark ? '#ff5555' : '#ff3b30';
 
   /**
    * Swap materials in place, keeping each mesh's own on the side so the switch
@@ -72,16 +84,93 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       scale={model.scale}
     >
       <primitive object={model.object} />
+      {showConstruction && <Construction model={model} color={cageColor} lit={isSelected} />}
+    </group>
+  );
+};
 
-      {isSelected && (
-        <mesh position={[0, model.size[1] / 2, 0]} raycast={() => null}>
-          <boxGeometry args={[model.size[0], model.size[1], model.size[2]]} />
-          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-          {/* Geometry wireframes include each face's triangulation. Edges keeps
-              only the twelve outside cage segments. */}
-          <Edges raycast={() => null} threshold={15} color={outlineColor} />
-        </mesh>
-      )}
+/**
+ * What is drawn around a thing so it can be drawn.
+ *
+ * The box it blocks into, the ground it stands on, the diagonals of that ground
+ * and the plumb line up through the middle of it. Between them they answer the
+ * four questions anyone asks of an object in a perspective study: how big is it,
+ * where is it standing, where is its centre, and is it upright.
+ *
+ * The diagonals are the one that earns its place twice. Crossed, they mark the
+ * true centre of the footprint *in perspective* - which is not the middle of the
+ * drawn rectangle, and which is how a receding row is halved and doubled without
+ * measuring anything.
+ *
+ * Everything here is inside the model's own group, so it turns and scales with
+ * it and needs no arithmetic of its own.
+ */
+const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }> = ({
+  model,
+  color,
+  lit,
+}) => {
+  const [width, height, depth] = model.size;
+  const x = width / 2;
+  const z = depth / 2;
+  const weight = lit ? 0.85 : 0.4;
+
+  return (
+    <group raycast={() => null}>
+      {/* The box it blocks into. */}
+      <mesh position={[0, height / 2, 0]} raycast={() => null}>
+        <boxGeometry args={[width, height, depth]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        {/* Geometry wireframes include each face's triangulation. Edges keeps
+            only the twelve outside cage segments. */}
+        <Edges raycast={() => null} threshold={15} color={color} />
+      </mesh>
+
+      {/* Where it stands, and the diagonals that find the middle of that. */}
+      <Line
+        raycast={() => null}
+        points={[[-x, 0, -z], [x, 0, -z], [x, 0, z], [-x, 0, z], [-x, 0, -z]]}
+        color={color}
+        lineWidth={1}
+        transparent
+        opacity={weight * 0.8}
+      />
+      <Line
+        raycast={() => null}
+        points={[[-x, 0, -z], [x, 0, z]]}
+        color={color}
+        lineWidth={1}
+        dashed
+        dashScale={3}
+        gapSize={0.4}
+        transparent
+        opacity={weight * 0.55}
+      />
+      <Line
+        raycast={() => null}
+        points={[[x, 0, -z], [-x, 0, z]]}
+        color={color}
+        lineWidth={1}
+        dashed
+        dashScale={3}
+        gapSize={0.4}
+        transparent
+        opacity={weight * 0.55}
+      />
+
+      {/* The plumb line: up through the middle, and on past the top, which is
+          what you read a figure's height and balance against. */}
+      <Line
+        raycast={() => null}
+        points={[[0, 0, 0], [0, height * 1.25, 0]]}
+        color={color}
+        lineWidth={1}
+        dashed
+        dashScale={4}
+        gapSize={0.5}
+        transparent
+        opacity={weight * 0.5}
+      />
     </group>
   );
 };

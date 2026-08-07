@@ -15,10 +15,11 @@
 import type { SavedScene } from '../types';
 
 const DB_NAME = 'perspective';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const ASSETS = 'assets';
 const SCENES = 'scenes';
 const PREVIEWS = 'previews';
+const LIBRARY = 'library';
 
 export const ASSET_SCHEME = 'asset:';
 
@@ -39,6 +40,7 @@ export interface StoredAsset {
  */
 const memoryAssets = new Map<string, StoredAsset>();
 const memoryScenes = new Map<string, SavedScene>();
+const memoryLibrary = new Map<string, OwnMesh>();
 
 let connection: Promise<IDBDatabase | null> | null = null;
 
@@ -61,6 +63,7 @@ const open = (): Promise<IDBDatabase | null> => {
       if (!db.objectStoreNames.contains(ASSETS)) db.createObjectStore(ASSETS);
       if (!db.objectStoreNames.contains(SCENES)) db.createObjectStore(SCENES, { keyPath: 'id' });
       if (!db.objectStoreNames.contains(PREVIEWS)) db.createObjectStore(PREVIEWS);
+      if (!db.objectStoreNames.contains(LIBRARY)) db.createObjectStore(LIBRARY, { keyPath: 'url' });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => resolve(null);
@@ -160,8 +163,9 @@ const assetRefs = async (): Promise<string[]> => {
 /**
  * Drop imported meshes nothing points at any more.
  *
- * Called after a scene is deleted or overwritten: a scene is the only thing
- * that can make an import worth keeping past the session it arrived in.
+ * Called after a scene is deleted: a saved scene, the scene on screen, a step
+ * through the history - or a place on the viewer's own shelf, which is the
+ * whole point of the shelf and is why the caller has to hand those in too.
  */
 export const pruneAssets = async (keep: Iterable<string>): Promise<void> => {
   const live = new Set(keep);
@@ -174,6 +178,46 @@ export const pruneAssets = async (keep: Iterable<string>): Promise<void> => {
         await transact(ASSETS, 'readwrite', (store) => store.delete(ref));
       })
   );
+};
+
+// ---------------------------------------------------------------------------
+// The viewer's own library
+// ---------------------------------------------------------------------------
+// A file dropped into the scene used to be a one-off: it stood there, it was
+// saved with the scene, and placing it a second time meant finding it on disk
+// again. But the shelf of things you draw against is personal - a chair from
+// your own room is worth more to you than the three that ship here - so an
+// import is now put on that shelf. The bytes were already being kept under a
+// hash of themselves; this is the short record that says the viewer wants it
+// listed, and that it is not to be swept up with the rest.
+
+export interface OwnMesh {
+  /** The `asset:` reference, which is also the key. */
+  url: string;
+  /** What the file was called, minus the extension. */
+  name: string;
+  addedAt: number;
+}
+
+/** Everything on the shelf, oldest first, so the order does not shuffle. */
+export const readLibrary = async (): Promise<OwnMesh[]> => {
+  const stored = await transact<OwnMesh[]>(LIBRARY, 'readonly', (store) => store.getAll());
+  const meshes = stored ?? Array.from(memoryLibrary.values());
+  return [...meshes].sort((a, b) => a.addedAt - b.addedAt);
+};
+
+export const addToLibrary = async (url: string, name: string): Promise<OwnMesh> => {
+  const existing = memoryLibrary.get(url);
+  if (existing) return existing;
+  const mesh: OwnMesh = { url, name, addedAt: Date.now() };
+  memoryLibrary.set(url, mesh);
+  await transact(LIBRARY, 'readwrite', (store) => store.put(mesh));
+  return mesh;
+};
+
+export const removeFromLibrary = async (url: string): Promise<void> => {
+  memoryLibrary.delete(url);
+  await transact(LIBRARY, 'readwrite', (store) => store.delete(url));
 };
 
 // ---------------------------------------------------------------------------

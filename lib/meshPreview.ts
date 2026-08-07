@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { getPreview, putPreview } from './assets';
+import { getAsset, getPreview, isAssetRef, putPreview } from './assets';
 
 /**
  * The picture on a library tile.
@@ -116,9 +116,23 @@ export const generateMeshPreview = (url: string): Promise<string> => {
   return promise;
 };
 
+/**
+ * The file itself, wherever it lives.
+ *
+ * A bundled mesh is a path and the loader fetches it. One of the viewer's own
+ * is a hash naming bytes in this browser, which the loader has never heard of,
+ * so those are read out and parsed directly - otherwise every imported mesh
+ * sits in the library as a glyph.
+ */
+const loadForPreview = async (url: string): Promise<THREE.Object3D> => {
+  if (!isAssetRef(url)) return (await new GLTFLoader().loadAsync(url)).scene;
+  const asset = await getAsset(url);
+  if (!asset) throw new Error('the imported file is no longer in this browser');
+  return (await new GLTFLoader().parseAsync(asset.bytes, '')).scene;
+};
+
 const renderPreview = async (url: string): Promise<string> => {
-  const gltf = await new GLTFLoader().loadAsync(url);
-  const model = gltf.scene;
+  const model = await loadForPreview(url);
 
   // Sit the model in the middle of the frame, and back off by its bounding
   // sphere rather than its longest edge: a six metre car seen three-quarters on

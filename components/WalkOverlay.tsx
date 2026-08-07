@@ -4,7 +4,6 @@ import { walkInput, enableDeviceOrientation } from '../lib/walkInput';
 import { arSupported } from '../lib/xr';
 import { Icon, I } from './icons';
 import { Scrub, useGrayThemeControl } from './controls';
-import { MODEL_ACCEPT } from '../lib/loadModel';
 import { captureFileName, captureView } from '../lib/capture';
 import { ACTIVE, chrome, iconButton } from './ui';
 import { pickObject } from '../lib/pick';
@@ -12,10 +11,22 @@ import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipula
 import { SNAP_STEPS, type GuideLevel, type PerspectiveMode } from '../types';
 
 /**
- * The four systems, in the order a study moves through them: flat, then bowed
- * horizontals, then the ruled sphere, then the whole hemisphere of it.
+ * The systems the button steps through: bowed horizontals, then the ruled
+ * sphere, then the whole hemisphere of it.
+ *
+ * Straight-line perspective is not among them any more. It is honest inside the
+ * cone of vision and nowhere else, and this is a tool whose whole subject is the
+ * wide field - so widening the lens in it did not open the view out, it smeared
+ * the edges of the frame into something no drawing could be made from. The
+ * curvilinear systems answer the same question at forty degrees as they do at
+ * three hundred, and at forty they *are* the flat one to within the width of a
+ * pencil line.
+ *
+ * The mode itself stays: a session standing in the real room is drawn through
+ * the phone's own rectilinear lens, and bending that would be drawing a
+ * perspective over a perspective.
  */
-const PROJECTION_ORDER: PerspectiveMode[] = ['linear', 'cylindrical', 'equidistant', '5-point'];
+const PROJECTION_ORDER: PerspectiveMode[] = ['cylindrical', 'equidistant', '5-point'];
 const PROJECTION_ICON: Record<PerspectiveMode, React.ReactNode> = {
   linear: I.straight,
   cylindrical: I.cylindrical,
@@ -128,10 +139,9 @@ export const WalkOverlay: React.FC<{
   onModels: () => void;
   onScenes: () => void;
   onLights: () => void;
-  onImport: (files: FileList) => void;
   /** True while a sheet is up: the dock belongs under it, not beside it. */
   covered?: boolean;
-}> = ({ onModels, onScenes, onLights, onImport, covered = false }) => {
+}> = ({ onModels, onScenes, onLights, covered = false }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -164,7 +174,6 @@ export const WalkOverlay: React.FC<{
   const setAr = useStore((s) => s.setAr);
   const arActive = useStore((s) => s.arRequested);
   const arMode = arActive || arSensor;
-  const importInputRef = useRef<HTMLInputElement>(null);
   const hasDuplicates = models.length !== new Set(models.map((m) => m.fileUrl)).size;
 
   const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
@@ -174,6 +183,8 @@ export const WalkOverlay: React.FC<{
   const cycleSnap = useStore((s) => s.cycleSnap);
   const showCone = useStore((s) => s.showCone);
   const toggleCone = useStore((s) => s.toggleCone);
+  const showConstruction = useStore((s) => s.showConstruction);
+  const toggleConstruction = useStore((s) => s.toggleConstruction);
 
   const isDark = theme === 'dark';
   const surface = chrome(isDark);
@@ -661,6 +672,13 @@ export const WalkOverlay: React.FC<{
           <button onClick={toggleCone} aria-label="Cone of vision" className={`${button} ${showCone ? ACTIVE : ''}`}>
             <Icon path={I.cone} className="w-5 h-5" />
           </button>
+          <button
+            onClick={toggleConstruction}
+            aria-label="Construction around each object"
+            className={`${button} ${showConstruction ? ACTIVE : ''}`}
+          >
+            <Icon path={I.cage} className="w-5 h-5" />
+          </button>
           <button onClick={toggleViewLock} aria-label="Lock view" className={`${button} ${viewLocked ? '!text-amber-400' : ''}`}>
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="4" y="10.5" width="16" height="10" rx="2" />
@@ -672,9 +690,6 @@ export const WalkOverlay: React.FC<{
           </button>
           <button onClick={() => { setShowTools(false); onLights(); }} aria-label="Lights" className={button}>
             <Icon path={I.strength} className="w-5 h-5" />
-          </button>
-          <button onClick={() => importInputRef.current?.click()} aria-label="Import mesh" className={button}>
-            <Icon path={I.upload} className="w-5 h-5" />
           </button>
           <button onClick={deduplicateModels} aria-label="Remove duplicate meshes" className={`${button} ${!hasDuplicates ? 'opacity-30' : ''}`}>
             <Icon path={I.dedup} className="w-5 h-5" />
@@ -758,17 +773,6 @@ export const WalkOverlay: React.FC<{
         </div>
       </div>
 
-      <input
-        ref={importInputRef}
-        type="file"
-        multiple
-        accept={MODEL_ACCEPT}
-        className="hidden"
-        onChange={(e) => {
-          if (e.target.files?.length) onImport(e.target.files);
-          e.target.value = '';
-        }}
-      />
     </>
   );
 };

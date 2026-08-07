@@ -13,7 +13,7 @@ import {
 } from './types';
 import { releaseSource, cachedSourceUrls, modelRadius, findFreeSpot, loadModelFromUrl } from './lib/loadModel';
 import { cloneModel } from './lib/modelMaterials';
-import { eraseScene, pruneAssets, readScenes, writeScene } from './lib/assets';
+import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
 import { walkInput } from './lib/walkInput';
 
@@ -109,6 +109,7 @@ const SETTING_KEYS = [
   'cameraHeight',
   'guides',
   'showCone',
+  'showConstruction',
   'fov',
   'snapStep',
   'modelMaterial',
@@ -177,6 +178,21 @@ const remembered = {
 
 /** How many steps back you can take. */
 const UNDO_DEPTH = 25;
+
+/**
+ * Every imported mesh something still stands on.
+ *
+ * A saved scene, the scene on screen, a step back through the history that
+ * would put it there again - and now the viewer's own shelf, which is a reason
+ * to keep a file whether or not anything is currently standing on it.
+ */
+const referenced = (state: SceneState): string[] => [
+  ...state.sceneHistory.flatMap((scene) => scene.models.map((m) => m.fileUrl)),
+  ...state.models.map((m) => m.fileUrl),
+  ...state.undoStack.flatMap((entry) => entry.models.map((m) => m.fileUrl)),
+  ...state.redoStack.flatMap((entry) => entry.models.map((m) => m.fileUrl)),
+  ...state.ownMeshes.map((m) => m.url),
+];
 
 /**
  * Drop any parsed mesh that nothing references any more - not the live scene,
@@ -278,6 +294,7 @@ export const useStore = create<SceneState>((set, get) => ({
   cameraHeight: DEFAULT_CAMERA_HEIGHT,
   guides: 3,
   showCone: false,
+  showConstruction: true,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   models: [],
   selectedModelId: null,
@@ -291,6 +308,7 @@ export const useStore = create<SceneState>((set, get) => ({
   backgroundGray: 243,
   currentSceneId: null,
   sceneHistory: [],
+  ownMeshes: [],
 
   // Anything remembered from last time overrides the defaults above. Only the
   // setup is remembered - never the scene, the projection or the camera.
@@ -439,6 +457,40 @@ export const useStore = create<SceneState>((set, get) => ({
     }),
 
   toggleCone: () => set((state) => ({ showCone: !state.showCone })),
+
+  toggleConstruction: () => set((state) => ({ showConstruction: !state.showConstruction })),
+
+  // -------------------------------------------------------------------------
+  // The viewer's own shelf
+  // -------------------------------------------------------------------------
+
+  loadOwnMeshes: async () => {
+    const own = await readLibrary();
+    if (own.length) set({ ownMeshes: own });
+  },
+
+  /**
+   * Put an imported file on the shelf.
+   *
+   * The bytes are already kept, under a hash of themselves, so importing the
+   * same file twice lands on the same reference and this is a no-op - which is
+   * what you want: one entry, however many times it is dropped in.
+   */
+  rememberMesh: async (url, name) => {
+    const mesh = await addToLibrary(url, name);
+    set((state) =>
+      state.ownMeshes.some((m) => m.url === url) ? {} : { ownMeshes: [...state.ownMeshes, mesh] }
+    );
+  },
+
+  forgetMesh: async (url) => {
+    await removeFromLibrary(url);
+    set((state) => ({ ownMeshes: state.ownMeshes.filter((m) => m.url !== url) }));
+    // The bytes go too, unless a scene or the scene on screen still stands on
+    // them - which is the same question `deleteScene` asks.
+    const after = get();
+    await pruneAssets(referenced(after));
+  },
 
   /**
    * Copy the selection.
@@ -690,13 +742,7 @@ export const useStore = create<SceneState>((set, get) => ({
     // An imported file is only worth keeping while something still stands on
     // it: a saved scene, the scene on screen, or a step back through the undo
     // stack that would put it there again.
-    const after = get();
-    await pruneAssets([
-      ...after.sceneHistory.flatMap((scene) => scene.models.map((m) => m.fileUrl)),
-      ...after.models.map((m) => m.fileUrl),
-      ...after.undoStack.flatMap((entry) => entry.models.map((m) => m.fileUrl)),
-      ...after.redoStack.flatMap((entry) => entry.models.map((m) => m.fileUrl)),
-    ]);
+    await pruneAssets(referenced(get()));
   },
 
   loadSceneHistory: async () => {
