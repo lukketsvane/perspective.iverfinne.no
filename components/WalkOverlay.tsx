@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
 import { walkInput } from '../lib/walkInput';
+import { holdRail, showRail, useRail } from '../lib/rail';
 import { Icon, I, SURFACE_ICON } from './icons';
 import { Scrub, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
@@ -157,8 +158,7 @@ export const WalkOverlay: React.FC<{
   const toggleSunEnvironment = useStore((s) => s.toggleSunEnvironment);
   const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
   const [showTools, setShowTools] = useState(false);
-  const [railVisible, setRailVisible] = useState(true);
-  const railTimer = useRef<number | undefined>(undefined);
+  const railVisible = useRail();
   const sceneSurface = useStore((s) => s.surface);
   const cycleSurface = useStore((s) => s.cycleSurface);
   const showRoom = useStore((s) => s.showRoom);
@@ -577,29 +577,14 @@ export const WalkOverlay: React.FC<{
     };
   }, [showTools, undo, redo, covered]);
 
-  const showRail = useCallback(() => {
-    setRailVisible(true);
-    if (railTimer.current) clearTimeout(railTimer.current);
-    railTimer.current = setTimeout(() => setRailVisible(false), 6000) as unknown as number;
-  }, []);
-
-  useEffect(() => {
-    showRail();
-    return () => { if (railTimer.current) clearTimeout(railTimer.current); };
-  }, [showRail]);
-
-  // Opening the second row is a statement that the dock is wanted. It used to
+  // Opening the second row is a statement that the chrome is wanted. It used to
   // fade out from under an open panel six seconds later, leaving twelve
   // controls on screen that could be seen through and not pressed. Closing the
   // row starts the idle count again.
   useEffect(() => {
-    if (!showTools) {
-      showRail();
-      return;
-    }
-    if (railTimer.current) clearTimeout(railTimer.current);
-    setRailVisible(true);
-  }, [showTools, showRail]);
+    if (showTools) holdRail();
+    else showRail();
+  }, [showTools]);
 
 
   const button = iconButton(isDark);
