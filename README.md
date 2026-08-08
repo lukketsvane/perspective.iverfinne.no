@@ -106,7 +106,8 @@ Along the bottom, fading out while you draw and back on the first touch:
 - **Sliders** — everything else: AR, guides, snap, the field of view, the
   construction around each object, view lock, the room (tap to toggle, drag to
   size), the surface of everything, the lights, de-duplicate, undo, redo, back
-  to the opening scene, and save the view as a PNG
+  to the opening scene, the selection's own vanishing points, and save the view
+  as a PNG
 
 ### Projections
 
@@ -188,7 +189,12 @@ whole panoramic band, top edge, bottom edge and both ends.
 ### The selection's own points
 
 Select anything and its own vanishing points are drawn, with its edges carried
-out to them — in every one of the four systems, not only the flat one.
+out to them — in every one of the four systems, not only the flat one. **On its
+own switch**, not a rung of the guides: the guides are the construction of the
+*room* — the horizon, the floor, the sheet — and are wanted or not wanted for a
+whole session, while this is the construction of the one thing in your hand, and
+it is wanted while you work out where that thing's edges run and in the way the
+moment you have.
 
 That is the whole lesson, and it is invisible until somebody draws it: a box has
 its own points, decided by how *it* is turned relative to you, not by the scene
@@ -297,19 +303,21 @@ your head and the four wall corners out to the four around the horizon — five
 points, one picture, nothing left to imagine.
 
 **Tap the room control to put it up or take it down; drag it to size it** —
-across for the floor, up and down for the ceiling, both at once from one
-diagonal drag, with the reading floating above your thumb. It goes from a 3 m
-cupboard to a 40 m hangar and from a 2 m ceiling to a 12 m one, always to the
-tenth of a metre so the walls keep landing on the ruling. Dragging raises the
-room if it was down, because sizing something you cannot see is a control with
-no feedback — and if the walls would pass you as it shrinks, you come in with
-them, so they close on you rather than leaving you outside looking at a box.
+across for the length running away from you, up and down for the width running
+across, both at once from one diagonal drag, with the reading floating above
+your thumb. Continuous, not stepped: a room is set by eye against what is
+standing in it, and a control that jumps under the thumb is a control fighting
+the eye. From a 3 m cupboard to a 40 m hangar on either axis, so a corridor, a
+square studio and a wide shallow hall are all one drag apart.
 
-Two numbers, not three: the floor is square. What a room teaches is the ratio of
-its ceiling to its floor — ten by three is a studio, forty by three a warehouse,
-six by five a stairwell, and each is a different exercise — while a floor ten by
-twelve instead of ten by ten is the same exercise seen slightly off centre,
-which walking already does.
+Dragging raises the room if it was down, because sizing something you cannot see
+is a control with no feedback — and if the walls would pass you as it shrinks,
+you come in with them, so they close on you rather than leaving you outside
+looking at the box you were sizing.
+
+The ceiling stays at three metres. It is the floor's proportion that decides
+which exercise you are in, and moving the lid turns out to be the least
+interesting thing about a room.
 
 The walls are ruled in world coordinates rather than their own, so a line across
 the floor is the same line continuing up the wall. That is what makes it a
@@ -352,6 +360,26 @@ a saved composition over your work. A gesture is one step however many frames it
 took, and taking hold of something and letting go without moving it is not a
 step at all. Twenty-five deep, and going forward is closed off by the next
 change, as everywhere else.
+
+## Taking the picture away
+
+The camera control writes a **PNG at three times the frame** — around 3000 px on
+the long edge of a laptop, which is A3 at 250 dpi — and it is drawn again at that
+size rather than scraped off the glass.
+
+That distinction is the whole of it. The canvas runs at a capped pixel ratio to
+hold sixty frames a second, so a screenshot of it is both small and soft, and it
+carries none of the SVG construction drawn over it. The export runs the same
+projection sums with the export's own frame in them: a source built at the
+export's density rather than the screen's, so nothing is magnified; multisampled,
+so the geometry's edges are resolved rather than stepped; and carrying mipmaps
+with trilinear minification, so where the projection squeezes the source — which
+it does hard towards the edge of a wide field — the picture is filtered down
+instead of point-sampled into sparkle. Then the overlays are re-rendered from
+their own markup at the same scale and composited on top, so the cone and the
+points come with it.
+
+None of those compromises are worth making for a picture that is drawn once.
 
 ## While it is working
 

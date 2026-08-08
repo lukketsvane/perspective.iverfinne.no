@@ -99,14 +99,14 @@ export const EYE_LEVEL_PRESETS: { label: string; note: string; height: number }[
 /**
  * The room, as it stands when first switched on.
  *
- * A studio rather than a hall: ten metres is far enough across to walk about in
- * and to stand the six-metre car in with room at both ends, and a three metre
+ * A studio rather than a hall: ten metres each way is far enough to walk about
+ * in and to stand the six-metre car in with room at both ends, and a three metre
  * ceiling is close enough over your head - a metre above a standing eye - that
  * its convergence is something you can see rather than something you have to
- * measure. Both are whole metres, so every edge of the room lands on a ruled
- * line instead of a hand's width off one.
+ * measure. All three are whole metres, so every edge of the room lands on a
+ * ruled line instead of a hand's width off one.
  */
-export const DEFAULT_ROOM: RoomSize = { floor: 10, height: 3 };
+export const DEFAULT_ROOM: RoomSize = { width: 10, depth: 10, height: 3 };
 
 /**
  * The furthest back anything should stand the viewer from the middle of it.
@@ -117,7 +117,7 @@ export const DEFAULT_ROOM: RoomSize = { floor: 10, height: 3 };
  * the tool opens should be one place, not one place with the room and another
  * without.
  */
-export const standingRoom = (room: RoomSize) => Math.max(1.6, room.floor / 2 - 1.2);
+export const standingRoom = (room: RoomSize) => Math.max(1.6, room.depth / 2 - 1.2);
 
 /** Snap a spawned cube to the centre of a 1 m grid cell, so stacks line up. */
 const snapToCell = (v: number) => Math.floor(v) + 0.5;
@@ -146,6 +146,7 @@ const SETTING_KEYS = [
   'showConstruction',
   'showRoom',
   'room',
+  'showVanishing',
   'fov',
   'snapStep',
   'surface',
@@ -285,6 +286,7 @@ export const currentView = (state: SceneState): SceneView => ({
   surface: state.surface,
   showRoom: state.showRoom,
   room: { ...state.room },
+  showVanishing: state.showVanishing,
   snapStep: state.snapStep,
   camera: {
     x: walkInput.position.x,
@@ -326,6 +328,7 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
     surface: view.surface ?? view.modelMaterial ?? 'original',
     showRoom: view.showRoom ?? false,
     room: { ...DEFAULT_ROOM, ...(view.room ?? {}) },
+    showVanishing: view.showVanishing ?? true,
     snapStep: view.snapStep ?? 0.25,
   };
 };
@@ -347,6 +350,7 @@ export const useStore = create<SceneState>((set, get) => ({
   showConstruction: true,
   showRoom: false,
   room: DEFAULT_ROOM,
+  showVanishing: true,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   models: [],
   selectedModelId: null,
@@ -654,20 +658,25 @@ export const useStore = create<SceneState>((set, get) => ({
 
   toggleRoom: () => set((state) => ({ showRoom: !state.showRoom })),
 
+  toggleVanishing: () => set((state) => ({ showVanishing: !state.showVanishing })),
+
   /**
-   * Size it, to the tenth of a metre.
+   * Size it.
    *
-   * Rounded there rather than left continuous because the room is a ruler as
-   * much as it is a room - its edges are meant to land on the ruled lines of
-   * its own floor - and a wall at 9.87 metres is a wall that misses every one
-   * of them by a different amount.
+   * Continuous, not stepped. A wall that lands on a whole metre lines up with
+   * the ruling on its own floor, which is tidy - and getting there by having
+   * the control jump under the thumb is not worth it, because a room is set by
+   * eye against what is standing in it rather than by reading a number off a
+   * dial. Every value between is reachable, and the whole ones are still there
+   * to be stopped on.
    */
   setRoom: (room) =>
     set((state) => {
       const next = { ...state.room, ...room };
       const sized = {
-        floor: Math.round(clampTo(next.floor, ROOM_LIMITS.floor) * 10) / 10,
-        height: Math.round(clampTo(next.height, ROOM_LIMITS.height) * 10) / 10,
+        width: clampTo(next.width, ROOM_LIMITS.width),
+        depth: clampTo(next.depth, ROOM_LIMITS.depth),
+        height: clampTo(next.height, ROOM_LIMITS.height),
       };
 
       /*
@@ -682,9 +691,10 @@ export const useStore = create<SceneState>((set, get) => ({
        * nothing to be outside of.
        */
       if (state.showRoom) {
-        const reach = Math.max(0.3, sized.floor / 2 - 0.5);
-        walkInput.position.x = Math.max(-reach, Math.min(reach, walkInput.position.x));
-        walkInput.position.z = Math.max(-reach, Math.min(reach, walkInput.position.z));
+        const across = Math.max(0.3, sized.width / 2 - 0.5);
+        const along = Math.max(0.3, sized.depth / 2 - 0.5);
+        walkInput.position.x = Math.max(-across, Math.min(across, walkInput.position.x));
+        walkInput.position.z = Math.max(-along, Math.min(along, walkInput.position.z));
       }
 
       return { room: sized };

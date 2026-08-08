@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Icon } from './icons';
 import { useStore } from '../store';
+import type { RoomSize } from '../types';
 
 /**
  * The panel's controls.
@@ -113,23 +114,25 @@ export const useGrayThemeControl = (onDoubleTap?: () => void) => {
  * The same shape as the light/dark button, and for the same reason - there is
  * no toolbar room for a second control and no words to label one with, so the
  * mark that says whether a thing is there is also the mark that says how big.
- * Across is the floor, up and down is the ceiling, which is the arrangement of
- * the room itself: pulling the walls apart is a sideways movement and raising
- * the ceiling is not.
  *
- * Both at once on purpose. What a room teaches is the ratio between the two,
- * and finding a ratio by setting one number and then the other is a slower way
- * of doing what one diagonal drag does.
+ * It is the floor that is dragged, on both of its axes at once: across for the
+ * length running away from you, up and down for the width running across. One
+ * diagonal drag finds a proportion, which is the thing being set - a corridor,
+ * a square studio and a wide shallow hall are three different exercises, and
+ * setting one number and then the other is a slower way of arriving at the same
+ * place. The ceiling stays where it is; three metres is a ceiling.
+ *
+ * Continuous, not stepped: a room is set by eye against what is standing in it,
+ * and a control that jumps under the thumb is a control fighting the eye.
  */
-const FLOOR_RATE = 0.06; // metres per pixel across
-const CEILING_RATE = 0.02; // metres per pixel up
+const ROOM_RATE = 0.06; // metres per pixel, both ways
 
 export const useRoomControl = () => {
   const room = useStore((state) => state.room);
   const setRoom = useStore((state) => state.setRoom);
   const toggleRoom = useStore((state) => state.toggleRoom);
   const showRoom = useStore((state) => state.showRoom);
-  const drag = useRef<{ id: number; x: number; y: number; from: { floor: number; height: number }; moved: boolean } | null>(null);
+  const drag = useRef<{ id: number; x: number; y: number; from: RoomSize; moved: boolean } | null>(null);
   const [sizing, setSizing] = React.useState(false);
 
   return {
@@ -153,8 +156,8 @@ export const useRoomControl = () => {
           if (!showRoom) toggleRoom();
         }
         setRoom({
-          floor: held.from.floor + across * FLOOR_RATE,
-          height: held.from.height + up * CEILING_RATE,
+          width: held.from.width + up * ROOM_RATE,
+          depth: held.from.depth + across * ROOM_RATE,
         });
       },
       onPointerUp: (event: React.PointerEvent) => {
