@@ -107,7 +107,13 @@ the floor seen from above.
 - **Move** — drag the selection along the floor; hold shift to lift it
 - **Resize a box** — drag one of the dots at the centre of a face
 - **Turn, size and slide at once** — two fingers on the selection: twist to turn
-  it, spread to size it, slide to move it
+  it, spread to size it, slide to move it. The turn lands on 15° steps whenever
+  the snap is on, so 45° — the two-point setup — is hittable by hand
+- **Turn from a keyboard** — `[` and `]`, fifteen degrees a press, shift for one.
+  Two fingers is the gesture and a mouse has one, so on a laptop nothing in the
+  scene could be turned at all — which put the lesson the selection's own
+  vanishing points exist to teach out of reach on the machine most people will
+  open this on
 - **The sun** — three fingers anywhere: across for its bearing, up and down for
   its height
 - **Undo** — ⌘Z / Ctrl-Z; **redo** ⇧⌘Z, or the two arrows in the tools row
@@ -155,8 +161,23 @@ The controls:
   double-tap for the procedural sky
 - **Sliders** — everything else: the room's guides, the floor's two rulings, snap,
   the construction around each object, the selection's own vanishing points,
-  view lock, the room (tap to toggle, drag to size), the surface of everything,
-  the lights, de-duplicate, undo, redo, and save the view as a PNG
+  view lock, the room (tap to step, drag to size), the surface of everything,
+  the lights, undo, redo, and save the view as a PNG
+
+The **light** control is the one that changes what it does with the mode. On the
+clay it sweeps the page from black to white, as it always did. In ink it sweeps
+the *paper* — a warm ramp from a near-black board to white — and the pen is
+derived from it rather than chosen: a near-black or a chalk, whichever has more
+contrast against the sheet. The two are equal at a relative luminance of 0.179,
+which is exactly where a sheet stops being paper and becomes a board, so drag
+past that point and the drawing turns to chalk on slate on its own. Paper and
+pen are one decision with a constraint on it, and offering them as two controls
+would be offering a way to make the mode useless.
+
+**The dock stays up when something is selected**, with the selection bar stacked
+above it. It used to hide — and three of the things it hides do nothing *except*
+when something is selected: the cage, the selection's own vanishing points, and
+the export that would carry them into a picture.
 
 ### Projections
 
@@ -418,9 +439,19 @@ Dragging lands on free, 5 cm, 25 cm or 1 m, and **the ground grid is ruled at
 whatever is chosen** — so what you snap to is what you can see to line things
 up against. Eye level sets to the centimetre.
 
-Selecting something replaces the dock with what you can do to it: size,
+Selecting something raises a second bar above the dock — it does not replace it —
+with what you can do to the thing you are holding: **how far away it is**, size,
 **lock the size**, lift it off the floor, change its surface, duplicate, export
-the mesh at the size you settled on, delete. Turning is not on the bar — it is
+the mesh at the size you settled on, delete.
+
+The distance is a reading, not a control. Perspective is a relation between
+three numbers — how big a thing is, how far away it is, and how high your eye is
+— and the tool stated the height here, the eye level on the dock, and computed
+the third silently. Past about fifteen metres, which is where foreshortening
+starts being the lesson, you could not count your way to it either: the fine
+ruler fades by twelve metres and the sheet from seventeen.
+
+Turning is not on the bar — it is
 two fingers on the thing itself, which is where it is looked for first, and a
 pair of arrows that step a thing round by a fixed amount is a worse version of
 that gesture rather than a second way to reach it. A copy lands beside its original with about six
@@ -460,32 +491,43 @@ floor lines run to the point under your feet, the ceiling lines to the one over
 your head and the four wall corners out to the four around the horizon — five
 points, one picture, nothing left to imagine.
 
-**Tap the room control to put it up or take it down; drag it to size it** —
-across for the length running away from you, up and down for the width running
-across, both at once from one diagonal drag, with the reading floating above
-your thumb. Continuous, not stepped: a room is set by eye against what is
-standing in it, and a control that jumps under the thumb is a control fighting
-the eye. From a 3 m cupboard to a 40 m hangar on either axis, so a corridor, a
-square studio and a wide shallow hall are all one drag apart.
+The room is a ladder, not a switch: **off, the lines, the lines and the walls**.
 
-Dragging raises the room if it was down, because sizing something you cannot see
-is a control with no feedback — and if the walls would pass you as it shrinks,
-you come in with them, so they close on you rather than leaving you outside
-looking at the box you were sizing.
+The lines are the rung that teaches. Where a wall meets the floor is the most
+informative mark in a room — it is the one that says how far away the wall is —
+and until this you could not have it without three flat greys standing between
+you and your drawing. At that rung the wall surfaces are gone and the ruling
+hangs in the air where they would be, writing no depth, so nothing inside the
+room is sorted away behind a wall you cannot see.
 
-The ceiling stays at three metres. It is the floor's proportion that decides
-which exercise you are in, and moving the lid turns out to be the least
-interesting thing about a room.
+At the top rung, on the clay, it is the flat value ladder it always was: one
+value per orientation, because a box under no lighting has to read as a box. In
+ink every face is paper. Ink has no tone in it anywhere else and does not get
+one here — what the top rung means on a sheet is "you cannot see through the
+walls", which is the more useful distinction anyway.
 
-The walls are ruled in world coordinates rather than their own, so a line across
-the floor is the same line continuing up the wall. That is what makes it a
-measuring device rather than wallpaper, and it is also what lets the room be
-resized without rebuilding a single shader.
+Dragging the control while the room is off raises the **lines**, not the walls.
+You cannot size a room you cannot see, and it is the rung nobody would otherwise
+find.
 
-There is no lighting in it. One directional sun outside a closed box leaves the
+Three decisions are worth writing down.
+
+The floor sits four millimetres under the ground plane rather than on it.
+Everything else in the tool that draws the floor — the ruled grid, the plane the
+sun's shadows land on — is at exactly zero, and two surfaces at the same height
+fight for every pixel between them. And the room's floor face is not ruled at
+all: the ground already rules that exact plane, at the snap step as well as the
+metre, and fades honestly with distance where this did not, so the two were only
+doubling each other's darkness.
+
+There is no lighting. One directional sun outside a closed box leaves the
 ceiling and two of the four walls perfectly black, which is true and useless.
-These are construction surfaces: flat tones, lightest at the ceiling and darkest
-underfoot, so the room still reads as a box under any light at all.
+These are construction surfaces.
+
+And the ruling is in world coordinates, not the plane's own. A line up the wall
+is the continuation of a line across the floor, because both are asking the same
+question of the same metre — which is the property that makes the room a
+measuring device rather than wallpaper.
 
 ## How solid a thing is drawn
 
@@ -539,17 +581,44 @@ across each one and its derivative is nothing — there is no contour to find an
 none is wanted. A box's lines are its twelve edges, which it already carries as
 geometry. Ink only lays the paper under them.
 
-**No cast shadow.** A shadow is a tone; its boundary is soft, and it is softened
-again by the reprojection and again by the export, so on a sheet you are about
-to trace there is no telling which line is an edge of the object and which is an
-edge of its shadow. Things still do not float — the ground ruling running behind
-a foot and reappearing the other side pins it better than a blur does, and says
-*where* on the floor as well.
+**A cast shadow only when it is hard.** The objection was never to shadows; it
+was to soft *boundaries*. A penumbra is resampled by the reprojection and again
+by the export, so on a sheet you are about to trace there is no telling which
+line is an edge of the object and which is the edge of its shadow. A hard shadow
+has no penumbra to confuse: it is a shape, and a shape is a thing you can lay a
+pen round and fill.
 
-**Ink is on paper in both themes.** The theme is for the chrome, which sits in
-the room you are in. This is the drawing, and the drawing is what the export
-writes out at three times the frame to be printed or dropped into a tablet layer
-and traced over. A white line on a black field cannot be used that way.
+The shadow control steps **off, hard, soft**. Hard is PCF rather than the
+unfiltered map — both give the same shape, and the difference is one shadow-map
+texel, about 5 mm on the floor here, which PCF spreads into a line and the
+unfiltered one steps into a staircase. A line is what you would have drawn. In
+ink the fill is light, about 1.4:1 against the paper: the object's own contour
+is a full-ink line and a fill near that value would put two drawings on one
+page. It fades out entirely as the sheet darkens, because on a blackboard you
+draw the lit parts and the shadow is bare board.
+
+With shadows soft or off, ink casts nothing, and things still do not float — the
+ground ruling running behind a foot and reappearing the other side pins it
+better than a blur does, and says *where* on the floor as well.
+
+An inked object never *receives* a shadow, and that is not an oversight: the ink
+material carries no lighting, so there is nothing in it for a shadow to darken,
+and a drawing says which side is dark with its terminator rather than with a
+wash laid over the form.
+
+**Ink is on paper in both themes**, and the paper is what the light control
+sweeps. The theme is for the chrome, which sits in the room you are in; this is
+the drawing, and the drawing is what the export writes out at three times the
+frame to be printed or dropped into a tablet layer and traced over. Which sheet
+you want is yours to choose — but a *white line on a black field* is not what
+the dark theme should hand you by default, so the two are separate decisions.
+
+The marks are composited in display space rather than in linear light. Both
+colours are linear, and mixing them linearly is what a camera records of a
+half-covered pixel — not what ink does to paper: a stroke at forty per cent
+coverage came out a 22 per cent grey rather than the 36 the number reads as, so
+every line landed a third lighter than asked for. Physically the linear blend is
+the correct one. This is a sheet that exists to be traced.
 
 ### Why a dot product rather than an edge filter
 
@@ -603,6 +672,19 @@ their own markup at the same scale and composited on top, so the vanishing
 points and the lines ruled towards them come with it.
 
 None of those compromises are worth making for a picture that is drawn once.
+
+**It is written in display light.** three forces a render target's output colour
+space to linear for anything that is not an XR target, so the conversion the
+live frame gets was a no-op on the export path and only on the export path.
+Every PNG this tool wrote before this was in linear light: paper measured
+247,244,239 on screen and 237,231,220 in the file, midtones crushed 200 to 147
+and 128 to 55, ink mass roughly tripled. It is encoded in the shader rather than
+after the readback, so the eight-bit quantisation still happens in display
+space; a lookup table applied to the bytes afterwards would band the darks.
+
+The filename says which sheet it was drawn on — `perspective-eye1.60m-90deg-
+equidistant-2026-08-08.png`. An equidistant 180 and a stereographic 180 are
+different drawings of the same room, and nothing in the pixels says which.
 
 ## Coming back to it
 
