@@ -62,14 +62,13 @@ export const I = {
    */
   lift: (<><path d="M3 21h18" /><rect x="7.5" y="3" width="9" height="6.5" rx="0.8" /><path d="M12 18.5v-6M9.6 14.9 12 12.5l2.4 2.4" strokeOpacity="0.65" /></>),
 
-  /** Horizon line and cone of vision. */
+  /** Horizon line, and the field of view, which is the lens control's mark. */
   horizon: (<><line x1="2" y1="12" x2="22" y2="12" /><path d="M4 19l7-5M20 19l-7-5" strokeOpacity="0.45" /></>),
   cone: (<><path d="M12 3L4 20h16z" /><path d="M6.5 14h11" strokeOpacity="0.45" /></>),
 
   /**
-   * How much construction is drawn, as the drawing itself: bare frame, then the
-   * eye-level line, then the ground running to it, then the curved sheet a
-   * fisheye is ruled on.
+   * How much of the room's construction is drawn, as the drawing itself: bare
+   * frame, then the eye-level line, then the curved sheet it is all ruled on.
    */
   guides0: (<><path d="M3 12h3M10.5 12h3M18 12h3" strokeOpacity="0.4" /></>),
   guides1: (<><line x1="2" y1="12" x2="22" y2="12" /></>),
@@ -130,17 +129,14 @@ export const I = {
   lockSize: (<><rect x="4" y="11" width="16" height="9.5" rx="2" /><path d="M8 11V7.6a4 4 0 0 1 8 0V11" /><path d="M8.8 15.8h6.4" strokeOpacity="0.75" /><path d="M10.5 14.2 8.8 15.8l1.7 1.6M13.5 14.2l1.7 1.6-1.7 1.6" strokeOpacity="0.75" /></>),
   unlockSize: (<><rect x="4" y="11" width="16" height="9.5" rx="2" /><path d="M8 11V7.6a4 4 0 0 1 7.4-2.1" /><path d="M8.8 15.8h6.4" strokeOpacity="0.75" /><path d="M10.5 14.2 8.8 15.8l1.7 1.6M13.5 14.2l1.7 1.6-1.7 1.6" strokeOpacity="0.75" /></>),
 
-  /** Start again, and step back or forward one move. */
-  reset: (<><path d="M3 7v6h6" /><path d="M3.5 13a9 9 0 1 0 2.2-9.3L3 7" /></>),
+  /** Step back or forward one move. */
   undo: (<><polyline points="9 5 3.5 10.5 9 16" /><path d="M3.5 10.5H14a6.5 6.5 0 0 1 0 13H8" /></>),
   redo: (<><polyline points="15 5 20.5 10.5 15 16" /><path d="M20.5 10.5H10a6.5 6.5 0 0 0 0 13h6" /></>),
 
   /** Take the view away as a picture. */
   camera: (<><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.7l1.4-2.2h6.8L16.8 7h2.7A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z" /><circle cx="12" cy="13" r="3.6" /></>),
 
-  /** Turn on the spot, and make two of it. */
-  turnLeft: (<><path d="M3 12a9 9 0 1 0 3-6.7" /><polyline points="3 4 3 9 8 9" /></>),
-  turnRight: (<><path d="M21 12a9 9 0 1 1-3-6.7" /><polyline points="21 4 21 9 16 9" /></>),
+  /** Make two of it. */
   duplicate: (<><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" /></>),
   /** Remove duplicate meshes: a stack with a slash through extras. */
   dedup: (<><rect x="3" y="11" width="11" height="10" rx="2" /><path d="M7 11V7a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-4" /><line x1="17" y1="3" x2="7" y2="21" /></>),

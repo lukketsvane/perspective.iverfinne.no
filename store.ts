@@ -146,7 +146,6 @@ const SETTING_KEYS = [
   'guides',
   'gridX',
   'gridZ',
-  'showCone',
   'showConstruction',
   'showRoom',
   'room',
@@ -186,7 +185,6 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   guides: number,
   gridX: boolean,
   gridZ: boolean,
-  showCone: boolean,
   showConstruction: boolean,
   showRoom: boolean,
   room: object,
@@ -369,7 +367,6 @@ export const currentView = (state: SceneState): SceneView => ({
   guides: state.guides,
   gridX: state.gridX,
   gridZ: state.gridZ,
-  showCone: state.showCone,
   surface: state.surface,
   showRoom: state.showRoom,
   room: { ...state.room },
@@ -413,7 +410,6 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
     guides: (Math.min(2, view.guides ?? ((view.showGuides ?? true) ? 3 : 0)) as GuideLevel),
     gridX: view.gridX ?? (view.guides ?? 3) >= 2,
     gridZ: view.gridZ ?? (view.guides ?? 3) >= 2,
-    showCone: view.showCone,
     surface: view.surface ?? view.modelMaterial ?? 'original',
     showRoom: view.showRoom ?? false,
     room: readRoom(view.room),
@@ -437,7 +433,6 @@ export const useStore = create<SceneState>((set, get) => ({
   guides: 2,
   gridX: true,
   gridZ: true,
-  showCone: false,
   showConstruction: true,
   showRoom: false,
   room: DEFAULT_ROOM,
@@ -513,10 +508,14 @@ export const useStore = create<SceneState>((set, get) => ({
    *
    * Leaving models behind meant "clear" put you on a clean grid with
    * yesterday's furniture still standing on it. Undoable, like every other
-   * destructive action - and the opening object is stood back up on it
-   * afterwards by `standObject`, which deliberately does not write a second
-   * step, so one undo comes back to the whole scene rather than to the moment
-   * between the clearing and the car.
+   * destructive action.
+   *
+   * Nothing in the interface calls this. There was a control that did, sitting
+   * a thumb-width from the ones you reach for constantly, with a single undo
+   * between a mis-tap and an hour's work - and a tool you draw from should not
+   * carry a button that empties it. What is left is the primitive: the one
+   * place that knows what clearing a composition has to touch, kept whole for
+   * whatever asks next, and reached from the console and the tests meanwhile.
    */
   resetScene: () =>
     set((state) => {
@@ -643,8 +642,6 @@ export const useStore = create<SceneState>((set, get) => ({
       const index = SNAP_STEPS.indexOf(state.snapStep as (typeof SNAP_STEPS)[number]);
       return { snapStep: SNAP_STEPS[(index + 1) % SNAP_STEPS.length] };
     }),
-
-  toggleCone: () => set((state) => ({ showCone: !state.showCone })),
 
   toggleConstruction: () => set((state) => ({ showConstruction: !state.showConstruction })),
 
@@ -864,27 +861,6 @@ export const useStore = create<SceneState>((set, get) => ({
       };
       releaseUnreferenced(next);
       return next;
-    }),
-
-  rotateSelection: (radians) =>
-    set((state) => {
-      if (state.selectedModelId) {
-        return {
-          models: state.models.map((m) =>
-            m.id === state.selectedModelId ? { ...m, rotationY: m.rotationY + radians } : m
-          ),
-        };
-      }
-      if (state.selectedId) {
-        return {
-          boxes: state.boxes.map((b) =>
-            b.id === state.selectedId
-              ? { ...b, rotation: [b.rotation[0], b.rotation[1] + radians, b.rotation[2]] as [number, number, number] }
-              : b
-          ),
-        };
-      }
-      return {};
     }),
 
   toggleTheme: () =>

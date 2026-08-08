@@ -7,12 +7,6 @@ import { SURFACE_ICON } from './icons';
 import { useRail } from '../lib/rail';
 import { BOX_SURFACES, MESH_SURFACES, nearestSurface } from '../types';
 
-/** A tap turns by this much: 15 degrees, so 24 taps is a full circle. */
-const STEP = Math.PI / 12;
-
-/** Radians per pixel of drag on a turn button: a phone's width is about 200°. */
-const TURN_RATE = 0.009;
-
 /** Everything sizes to the centimetre. Below that is not a drawing decision. */
 const CM = 0.01;
 
@@ -55,49 +49,6 @@ const AXES = [
  * never has to be written down: 1.75 is a person, 0.79 is the chair.
  */
 const metres = (value: number) => value.toFixed(2);
-
-/**
- * A control that is a tap and a drag at once.
- *
- * The turn buttons stepped 15 degrees and nothing else, so anything that wanted
- * to sit at an angle to the grid had to be tapped towards it and then lived
- * with. Dragging either button now turns continuously, at about a degree per
- * pixel; a tap - no movement - still steps.
- */
-const useTurn = (onTurn: (radians: number) => void, step: number) => {
-  const held = useRef<{ id: number; x: number; moved: boolean } | null>(null);
-  const beginChange = useStore((s) => s.beginChange);
-
-  return {
-    onPointerDown: (e: React.PointerEvent) => {
-      try {
-        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-      } catch {
-        /* not capturable; the element still sees the moves */
-      }
-      // One step back undoes the whole turn, however far it was dragged.
-      beginChange();
-      held.current = { id: e.pointerId, x: e.clientX, moved: false };
-    },
-    onPointerMove: (e: React.PointerEvent) => {
-      const grip = held.current;
-      if (grip?.id !== e.pointerId) return;
-      const travel = e.clientX - grip.x;
-      if (!grip.moved && Math.abs(travel) < 3) return;
-      grip.moved = true;
-      grip.x = e.clientX;
-      onTurn(travel * TURN_RATE);
-    },
-    onPointerUp: (e: React.PointerEvent) => {
-      const grip = held.current;
-      held.current = null;
-      if (grip?.id === e.pointerId && !grip.moved) onTurn(step);
-    },
-    onPointerCancel: () => {
-      held.current = null;
-    },
-  };
-};
 
 /**
  * A reading you drag.
@@ -184,9 +135,14 @@ const useLift = (value: number, onChange: (v: number) => void) => {
 };
 
 /**
- * What you can do to the thing you just tapped: turn it, size it, lift it off
- * the floor, change how solidly it is drawn, copy it, delete it - and, for a
- * mesh, take it away at the size you settled on.
+ * What you can do to the thing you just tapped: size it, lift it off the floor,
+ * change how solidly it is drawn, copy it, delete it - and, for a mesh, take it
+ * away at the size you settled on.
+ *
+ * Turning is not here. It is a drag on the thing itself, which is where it was
+ * always going to be looked for first, and a pair of arrows on a bar that turn
+ * something by a fixed step is a worse version of that gesture rather than a
+ * second way to reach it.
  *
  * For models the reading is the height. For boxes one pill shows one axis at a
  * time; tap the letter to move to the next.
@@ -197,7 +153,6 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   const models = useStore((s) => s.models);
   const selectedId = useStore((s) => s.selectedId);
   const selectedModelId = useStore((s) => s.selectedModelId);
-  const rotateSelection = useStore((s) => s.rotateSelection);
   const duplicateSelection = useStore((s) => s.duplicateSelection);
   const beginChange = useStore((s) => s.beginChange);
   const scaleModel = useStore((s) => s.scaleModel);
@@ -276,8 +231,6 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   const modelScrub = useScrub(height, setHeight);
   const boxScrub = useScrub(activeDim, (v) => setBoxDim(activeAxis, v));
   const liftScrub = useLift(lift, setLift);
-  const turnLeft = useTurn(rotateSelection, -STEP);
-  const turnRight = useTurn(rotateSelection, STEP);
 
   if (!box && !model) return null;
 
@@ -334,13 +287,6 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
           raised || !railVisible ? 'pointer-events-none' : 'pointer-events-auto'
         } ${chrome(isDark)}`}
       >
-        <button {...turnLeft} className={`${button} touch-none`} aria-label="Turn left">
-          <Icon path={I.turnLeft} className="w-5 h-5" />
-        </button>
-        <button {...turnRight} className={`${button} touch-none`} aria-label="Turn right">
-          <Icon path={I.turnRight} className="w-5 h-5" />
-        </button>
-
         {model ? (
           <>
             <button

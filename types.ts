@@ -244,7 +244,6 @@ export interface SceneView {
   showGuides?: boolean;
   gridX?: boolean;
   gridZ?: boolean;
-  showCone: boolean;
   /** The default surface for anything placed after the scene comes back. */
   surface?: Surface;
   /** Written by a version whose surface setting was models-only and had two rungs. */
@@ -291,8 +290,6 @@ export interface SceneState {
    */
   gridX: boolean;
   gridZ: boolean;
-  /** The 60 degree cone of vision, drawn over the view. */
-  showCone: boolean;
   /**
    * The construction drawn around each object: the box it blocks into, the
    * ground it stands on, and the plumb line through it.
@@ -378,7 +375,6 @@ export interface SceneState {
   /** One family of the ground's ruling, or the other. */
   toggleGridX: () => void;
   toggleGridZ: () => void;
-  toggleCone: () => void;
   toggleConstruction: () => void;
   toggleRoom: () => void;
   /** Change the floor's two axes, or the ceiling. Clamped to what a room can be. */
@@ -392,8 +388,6 @@ export interface SceneState {
   forgetMesh: (url: string) => Promise<void>;
   /** Step through free, 5 cm, 25 cm, 1 m. */
   cycleSnap: () => void;
-  /** Turn the selection (box or model) about its own vertical axis. */
-  rotateSelection: (radians: number) => void;
   addModel: (model: Omit<SceneModel, 'id'>) => void;
   removeModel: (id: string) => void;
   selectModel: (id: string | null) => void;

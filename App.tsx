@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Scene } from './components/Scene';
 import { WalkOverlay } from './components/WalkOverlay';
-import { ConeOfVision } from './components/ConeOfVision';
 import { VanishingPoints } from './components/VanishingPoints';
 import { SelectionBar } from './components/SelectionBar';
 import { MeshSheet } from './components/MeshSheet';
@@ -25,10 +24,8 @@ export default function App() {
   const backgroundGray = useStore((s) => s.backgroundGray);
   const fov = useStore((s) => s.fov);
   const perspectiveMode = useStore((s) => s.perspectiveMode);
-  const showCone = useStore((s) => s.showCone);
   const addModel = useStore((s) => s.addModel);
   const standObject = useStore((s) => s.standObject);
-  const resetScene = useStore((s) => s.resetScene);
   const applyScene = useStore((s) => s.applyScene);
   const loadSceneHistory = useStore((s) => s.loadSceneHistory);
   const loadOwnMeshes = useStore((s) => s.loadOwnMeshes);
@@ -153,11 +150,6 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Clear the floor, then put the opening object back on it. */
-  const restartScene = () => {
-    resetScene();
-    standOpening();
-  };
 
   /** Stand a new mesh clear of everything already placed, near the gaze point. */
   const place = (model: Omit<SceneModel, 'id'>) => {
@@ -271,13 +263,11 @@ export default function App() {
     >
       <Scene />
       <Activity />
-      {showCone && <ConeOfVision color={isDark ? '#8ab4ff' : '#1f6feb'} />}
       <VanishingPoints color={isDark ? '#ff6a5e' : '#e0342a'} />
       <WalkOverlay
         onModels={() => setSheet('meshes')}
         onScenes={() => setSheet('scenes')}
         onLights={() => setSheet('lights')}
-        onReset={restartScene}
         covered={sheet !== null}
       />
       {sheet === 'meshes' && (
