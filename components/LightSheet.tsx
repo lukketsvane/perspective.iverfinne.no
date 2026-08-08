@@ -4,7 +4,7 @@ import { Icon, I } from './icons';
 import { Sheet } from './Sheet';
 import { Scrub } from './controls';
 import { ACTIVE, iconButton } from './ui';
-import type { SunState } from '../types';
+import { SHADOW_KINDS, type SunState } from '../types';
 
 /**
  * The lights, taken apart.
@@ -22,7 +22,7 @@ const Lamp: React.FC<{
   light: SunState;
   dark: boolean;
   onChange: (light: Partial<SunState>) => void;
-  /** The sun's shadows can be switched off; a fill never casts any. */
+  /** The sun's shadows step off / hard / soft; a fill never casts any. */
   shadows?: boolean;
 }> = ({ light, dark, onChange, shadows = false }) => {
   const skin = { dark, touch: true };
@@ -75,11 +75,15 @@ const Lamp: React.FC<{
       />
       {shadows && (
         <button
-          onClick={() => onChange({ shadows: !light.shadows })}
-          aria-label="Cast shadows"
-          className={`${iconButton(dark)} ${light.shadows ? ACTIVE : 'opacity-40'}`}
+          onClick={() =>
+            onChange({
+              shadows: SHADOW_KINDS[(SHADOW_KINDS.indexOf(light.shadows) + 1) % SHADOW_KINDS.length],
+            })
+          }
+          aria-label={`Cast shadows: ${light.shadows}`}
+          className={`${iconButton(dark)} ${light.shadows !== 'off' ? ACTIVE : 'opacity-40'}`}
         >
-          <Icon path={I.shadow} className="w-5 h-5" />
+          <Icon path={light.shadows === 'hard' ? I.shadowHard : I.shadow} className="w-5 h-5" />
         </button>
       )}
     </div>

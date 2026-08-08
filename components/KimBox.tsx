@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { BOX_SURFACES, BoxData, nearestSurface } from '../types';
 import { useStore } from '../store';
 import { faceIsReachable, faceOutward } from '../lib/manipulate';
-import { INK_BOX } from '../lib/inkMaterial';
+import { constructionInk, inkHex, INK_BOX, paperHex } from '../lib/inkMaterial';
 import { pixelsPerMetreAt } from '../lib/pick';
 
 /**
@@ -137,16 +137,17 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
    * Ink only lays the paper under them and turns the sun off.
    */
   const inked = surface === 'ink';
+  const hardShadows = useStore((state) => state.sun.shadows) === 'hard';
 
   // Black boxes on a black ground: the edges and the sun do the describing.
   // In ink the page decides both, in both themes.
   const boxColor = inked
-    ? '#f7f4ef'
+    ? paperHex()
     : isDark
       ? isSelected ? '#101010' : '#000000'
       : isSelected ? '#ffefef' : '#ffffff';
   const edgeColor = inked
-    ? '#16130f'
+    ? inkHex()
     : isDark
       ? isSelected ? '#ff5555' : '#ffffff'
       : isSelected ? '#ff3b30' : '#0a0a0a';
@@ -160,7 +161,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
    * argument is that every mark on it is one you could put a pen on. A handle
    * is furniture; it goes quieter than the drawing, not louder.
    */
-  const handleColor = inked ? '#b3aca1' : edgeColor;
+  const handleColor = inked ? constructionInk(true, isDark) : edgeColor;
 
   return (
     <group userData={{ selectableType: 'box', selectableId: data.id }}>
@@ -227,7 +228,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
         // A box that throws no shadow is a box with no relationship to the
         // ground, which is half of what a perspective study is about - but only
         // a solid one has anything to cast.
-        castShadow={solid}
+        castShadow={solid || (inked && hardShadows)}
         receiveShadow={solid}
       >
         <boxGeometry args={[1, 1, 1]} />

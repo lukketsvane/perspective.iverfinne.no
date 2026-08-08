@@ -91,6 +91,8 @@ export const I = {
   strength: (<><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none" /><path d="M12 1.8v3.4M12 18.8v3.4M1.8 12h3.4M18.8 12h3.4" /><path d="M4.9 4.9l2.4 2.4M16.7 16.7l2.4 2.4M19.1 4.9l-2.4 2.4M4.9 19.1l2.4-2.4" strokeOpacity="0.5" /></>),
   kelvin: (<><path d="M10 14.5V4.6a2 2 0 0 1 4 0v9.9" /><circle cx="12" cy="17.4" r="3.4" /><path d="M16.6 6.4h3.6M16.6 9.8h2.4M16.6 13.2h3.6" strokeOpacity="0.5" /></>),
   shadow: (<><circle cx="8.6" cy="8" r="3.4" /><path d="M12.2 10.6L21 19.6H7.4z" fill="currentColor" stroke="none" strokeOpacity="0.35" fillOpacity="0.35" /></>),
+  /** The same shape as one solid black, which is precisely the difference. */
+  shadowHard: (<><circle cx="8.6" cy="8" r="3.4" /><path d="M12.2 10.6L21 19.6H7.4z" fill="currentColor" stroke="none" /></>),
   fill: (<><circle cx="12" cy="12" r="4" strokeOpacity="0.5" /><path d="M12 2.4v2.6M2.4 12h2.6M19 12h2.6M12 19v2.6" strokeOpacity="0.5" /><path d="M4.4 4.4l1.9 1.9M17.7 17.7l1.9 1.9" strokeOpacity="0.5" /><path d="M12 8a4 4 0 0 1 0 8z" fill="currentColor" stroke="none" /></>),
 
   /**
@@ -119,6 +121,8 @@ export const I = {
    * the opening you are standing in.
    */
   room: (<><rect x="2.5" y="4" width="19" height="16" rx="1" /><rect x="8.5" y="9.5" width="7" height="5.5" rx="0.5" strokeOpacity="0.65" /><path d="M2.5 4l6 5.5M21.5 4l-6 5.5M2.5 20l6-5M21.5 20l-6-5" strokeOpacity="0.4" /></>),
+  /** The same room with its surfaces in it, for the rung that has walls. */
+  roomWalls: (<><rect x="2.5" y="4" width="19" height="16" rx="1" fill="currentColor" fillOpacity="0.16" /><rect x="8.5" y="9.5" width="7" height="5.5" rx="0.5" strokeOpacity="0.65" fill="currentColor" fillOpacity="0.12" /><path d="M2.5 4l6 5.5M21.5 4l-6 5.5M2.5 20l6-5M21.5 20l-6-5" strokeOpacity="0.4" /></>),
 
   /**
    * A size that is settled, and one that is not: a padlock with the two sizing

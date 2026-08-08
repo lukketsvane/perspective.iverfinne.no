@@ -18,13 +18,17 @@ import {
   SunState,
   Surface,
   SURFACES,
+  readRoomLevel,
+  readShadows,
   readSurface,
+  RoomLevel,
 } from './types';
 import { releaseSource, cachedSourceUrls, modelRadius, findFreeSpot, loadModelFromUrl } from './lib/loadModel';
 import { cloneModel } from './lib/modelMaterials';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
 import { MAX_FIELD } from './lib/projection';
+import { luminance, paperFor } from './lib/inkMaterial';
 import { walkInput } from './lib/walkInput';
 
 // ---------------------------------------------------------------------------
@@ -81,7 +85,7 @@ export const DEFAULT_SUN: SunState = {
   elevation: 48,
   intensity: 3.5,
   temperature: 5600,
-  shadows: true,
+  shadows: 'soft',
 };
 
 /**
@@ -98,7 +102,7 @@ export const DEFAULT_FILL: FillState = {
   elevation: 22,
   intensity: 1.1,
   temperature: 8200,
-  shadows: false,
+  shadows: 'off',
 };
 
 /** Eye-level presets, in metres. */
@@ -159,7 +163,7 @@ const SETTING_KEYS = [
   'gridX',
   'gridZ',
   'showConstruction',
-  'showRoom',
+  'roomLevel',
   'room',
   'showVanishing',
   'fov',
@@ -198,7 +202,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   gridX: boolean,
   gridZ: boolean,
   showConstruction: boolean,
-  showRoom: boolean,
+  roomLevel: number,
   room: object,
   showVanishing: boolean,
   fov: number,
@@ -287,6 +291,8 @@ const legacy = (() => {
       modelMaterial?: Surface;
       /** Written by the version whose room floor was one square number. */
       room?: { floor?: number };
+      /** Written by the version that had one switch for the room. */
+      showRoom?: boolean;
     };
   } catch {
     return {};
@@ -335,6 +341,20 @@ const readMode = (stored: unknown): PerspectiveMode =>
 const kept = <T extends object>(source: T): Partial<T> =>
   Object.fromEntries(Object.entries(source).filter(([, value]) => value !== undefined)) as Partial<T>;
 
+/**
+ * A sun read back from something written earlier.
+ *
+ * `sun` is stored as one object and the settings check only asks that it IS an
+ * object, so every field inside it is whatever the last version wrote. Only one
+ * of them has changed shape so far, and that one is enough to stop the sun
+ * casting entirely without a word.
+ */
+const readSun = (stored: Partial<SunState> | undefined): SunState => ({
+  ...DEFAULT_SUN,
+  ...(stored ?? {}),
+  shadows: readShadows(stored?.shadows),
+});
+
 const remembered = kept({
   ...loadedSettings,
   // Migrate settings written before the continuous background control existed.
@@ -360,6 +380,8 @@ const remembered = kept({
   // ...and before the surface was a property of each thing rather than one
   // switch over every mesh in the scene.
   surface: loadedSettings.surface ?? legacy.modelMaterial ?? 'ink',
+  // ...and before the room was a ladder rather than a switch.
+  roomLevel: loadedSettings.roomLevel ?? (legacy.showRoom ? 2 : undefined),
   // ...and before the room's floor was two numbers rather than one.
   room: readRoom(loadedSettings.room),
 });
@@ -430,7 +452,7 @@ export const currentView = (state: SceneState): SceneView => ({
   gridX: state.gridX,
   gridZ: state.gridZ,
   surface: state.surface,
-  showRoom: state.showRoom,
+  roomLevel: state.roomLevel,
   room: { ...state.room },
   showVanishing: state.showVanishing,
   snapStep: state.snapStep,
@@ -466,14 +488,14 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
     perspectiveMode: readMode(view.perspectiveMode),
     backgroundGray: view.backgroundGray,
     theme: view.theme,
-    sun: { ...DEFAULT_SUN, ...view.sun },
+    sun: readSun(view.sun),
     fill: { ...DEFAULT_FILL, ...(view.fill ?? {}) },
     sunEnvironment: view.sunEnvironment,
     guides: (Math.min(2, view.guides ?? ((view.showGuides ?? true) ? 3 : 0)) as GuideLevel),
     gridX: view.gridX ?? (view.guides ?? 3) >= 2,
     gridZ: view.gridZ ?? (view.guides ?? 3) >= 2,
     surface: readSurface(view.surface ?? view.modelMaterial),
-    showRoom: view.showRoom ?? false,
+    roomLevel: readRoomLevel(view.roomLevel ?? view.showRoom),
     room: readRoom(view.room),
     showVanishing: view.showVanishing ?? true,
     snapStep: view.snapStep ?? 0.25,
@@ -498,7 +520,7 @@ export const useStore = create<SceneState>((set, get) => ({
   gridX: true,
   gridZ: true,
   showConstruction: false,
-  showRoom: false,
+  roomLevel: 0,
   room: DEFAULT_ROOM,
   showVanishing: true,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
@@ -521,7 +543,7 @@ export const useStore = create<SceneState>((set, get) => ({
   ...remembered,
   // A setup stored before the sun existed, or by a version that knew fewer of
   // its fields, must not leave the scene with no light in it.
-  sun: { ...DEFAULT_SUN, ...(remembered.sun ?? {}) },
+  sun: readSun(remembered.sun),
   fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
 
   /**
@@ -832,7 +854,7 @@ export const useStore = create<SceneState>((set, get) => ({
       return {};
     }),
 
-  toggleRoom: () => set((state) => ({ showRoom: !state.showRoom })),
+  cycleRoom: () => set((state) => ({ roomLevel: ((state.roomLevel + 1) % 3) as RoomLevel })),
 
   toggleVanishing: () => set((state) => ({ showVanishing: !state.showVanishing })),
 
@@ -866,7 +888,7 @@ export const useStore = create<SceneState>((set, get) => ({
        * control while watching. Only while the room is up; with it down there is
        * nothing to be outside of.
        */
-      if (state.showRoom) {
+      if (state.roomLevel > 0) {
         const across = Math.max(0.3, sized.width / 2 - 0.5);
         const along = Math.max(0.3, sized.depth / 2 - 0.5);
         walkInput.position.x = Math.max(-across, Math.min(across, walkInput.position.x));
@@ -936,10 +958,23 @@ export const useStore = create<SceneState>((set, get) => ({
       return { theme: dark ? 'dark' : 'light', backgroundGray: dark ? 0 : 243 };
     }),
 
+  /*
+   * How light the page is - and which page depends on the surface.
+   *
+   * The chrome has to flip when the page actually crosses from light to dark,
+   * and that is not the same number on both. On the clay the page IS the value,
+   * so it crosses at the middle. In ink the value runs through a warm ramp with
+   * a deliberately steep run in it, and it crosses at about 78 - a plain
+   * midpoint rule would leave a light tan sheet under dark chrome for fifty
+   * units of sweep. Asking the ramp is the same rule for both: it just happens
+   * to answer 118 for the grey one, which is within a hair of the midpoint.
+   */
   setBackgroundGray: (value) =>
-    set({
-      backgroundGray: Math.max(0, Math.min(255, Math.round(value))),
-      theme: value < 128 ? 'dark' : 'light',
+    set((state) => {
+      const gray = Math.max(0, Math.min(255, Math.round(value)));
+      const light =
+        state.surface === 'ink' ? luminance(paperFor(gray)) >= 0.18 : gray >= 128;
+      return { backgroundGray: gray, theme: light ? 'light' : 'dark' };
     }),
 
   // -------------------------------------------------------------------------

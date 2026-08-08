@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { useStore } from '../store';
 import { MESH_SURFACES, nearestSurface, SceneModel } from '../types';
 import { authoredMaterial } from '../lib/modelMaterials';
-import { INK } from '../lib/inkMaterial';
+import { constructionInk, INK } from '../lib/inkMaterial';
 import { Edges, Line } from '@react-three/drei';
 
 /**
@@ -42,6 +42,7 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
 
   const surface = nearestSurface(model.surface ?? sceneSurface, MESH_SURFACES);
   const inked = surface === 'ink';
+  const hardShadows = useStore((state) => state.sun.shadows) === 'hard';
 
   /*
    * The cage goes round the one in your hands, and only that one.
@@ -58,7 +59,7 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
    * So it is the selection's, which is the moment you actually want it - and it
    * follows the page: green against the clay, ink against the ink.
    */
-  const cageColor = inked ? '#16130f' : dark ? '#4ade80' : '#16a34a';
+  const cageColor = inked ? constructionInk(true, dark) : dark ? '#4ade80' : '#16a34a';
 
   /**
    * Swap materials in place, keeping each mesh's own on the side so the switch
@@ -72,19 +73,27 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       const mesh = child as THREE.Mesh;
       if (!mesh.isMesh) return;
 
-      // A figure standing in the sun has to throw a shadow like everything
-      // else, or it reads as a sticker on the floor. Ink throws none: a cast
-      // shadow is a tone, and on a sheet you are going to trace, its soft
-      // boundary is indistinguishable from an edge of the object.
-      mesh.castShadow = surface !== 'ink';
-      mesh.receiveShadow = mesh.castShadow;
+      /*
+       * A figure standing in the sun has to throw a shadow like everything
+       * else, or it reads as a sticker on the floor. Ink throws one only when
+       * the shadow is hard: a soft boundary on a sheet you are going to trace
+       * is indistinguishable from an edge of the object, and a hard one is a
+       * shape you can lay a pen round.
+       *
+       * It never RECEIVES in ink, and that is not an oversight. The ink
+       * material carries no lighting, so there is nothing in it for a shadow to
+       * darken - and a drawing says which side is dark with its terminator,
+       * not with a wash laid over the form.
+       */
+      mesh.castShadow = surface !== 'ink' || hardShadows;
+      mesh.receiveShadow = surface !== 'ink';
 
       // Read the authored materials before swapping, so the first swap is what
       // records them rather than what loses them.
       const own = authoredMaterial(mesh);
       mesh.material = surface === 'matte' ? MATTE : surface === 'ink' ? INK : own;
     });
-  }, [surface, model.object]);
+  }, [surface, hardShadows, model.object]);
 
   if (!model.object) return null;
 

@@ -2,6 +2,8 @@ import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { Line } from '@react-three/drei';
 import { useStore } from '../store';
+import { constructionInk, paperHex } from '../lib/inkMaterial';
+import type { RoomLevel } from '../types';
 
 /**
  * Four walls and a ceiling, ruled, standing round the origin.
@@ -47,16 +49,27 @@ const surfaceMaterial = (
   up: THREE.Vector3,
   tint: string,
   ink: string,
-  strength: number
+  strength: number,
+  /** 1 for a surface, 0 for the ruling alone hanging in the air. */
+  tone: number,
+  /** 0 to leave a face bare - what the floor gets, the ground already ruling it. */
+  ruling: number
 ) =>
   new THREE.ShaderMaterial({
     side: THREE.DoubleSide,
+    // A room with no surfaces still has to let you see the things standing
+    // inside it. Without this the far wall's invisible face still writes depth
+    // and sorts the whole scene away behind nothing.
+    transparent: tone < 0.5,
+    depthWrite: tone >= 0.5,
     uniforms: {
       along: { value: along },
       up: { value: up },
       tint: { value: new THREE.Color(tint) },
       ink: { value: new THREE.Color(ink) },
       strength: { value: strength },
+      tone: { value: tone },
+      ruling: { value: ruling },
     },
     vertexShader: `
       varying vec3 vWorld;
@@ -71,6 +84,8 @@ const surfaceMaterial = (
       uniform vec3 tint;
       uniform vec3 ink;
       uniform float strength;
+      uniform float tone;
+      uniform float ruling;
       varying vec3 vWorld;
 
       /**
@@ -91,7 +106,19 @@ const surfaceMaterial = (
         vec2 p = vec2(dot(vWorld, along), dot(vWorld, up));
         float metre = ruled(p, 1.0, 1.0) * 0.30;
         float section = ruled(p, 5.0, 1.15) * 0.6;
-        gl_FragColor = vec4(mix(tint, ink, max(metre, section) * strength), 1.0);
+        float pen = max(metre, section) * strength * ruling;
+
+        /*
+         * With no tone, the ruling is all there is: lines hanging in the air
+         * where the wall would be. That is the rung worth having - the line
+         * where a wall meets the floor is the single most useful mark in a
+         * room, being the one that says how far away the wall is, and it is
+         * exactly the mark you could not have without three flat greys.
+         */
+        gl_FragColor = tone > 0.5
+          ? vec4(mix(tint, ink, pen), 1.0)
+          : vec4(mix(tint, ink, pen), pen);
+        if (gl_FragColor.a < 0.004) discard;
         #include <colorspace_fragment>
       }
     `,
@@ -150,19 +177,49 @@ const TONES: Record<'light' | 'dark', [string, string, string, string]> = {
   dark: ['#2b2b2b', '#202020', '#171717', '#0f0f0f'],
 };
 
-export const Room: React.FC<{ dark: boolean }> = ({ dark }) => {
+export const Room: React.FC<{ level: RoomLevel; dark: boolean; inked: boolean }> = ({
+  level,
+  dark,
+  inked,
+}) => {
   const { width, depth, height } = useStore((state) => state.room);
   const faces = useMemo(() => facesFor(width, depth, height), [width, depth, height]);
 
   const materials = useMemo(() => {
-    const tones = TONES[dark ? 'dark' : 'light'];
-    const ink = dark ? '#9aa0a6' : '#6d6862';
-    // One per rung of the ladder and per pair of ruling axes, built once for the
-    // theme and reused at every size.
+    /*
+     * Two rungs, three cases.
+     *
+     * At level 1 there are no surfaces at all: the ruling hangs in the air
+     * where the walls would be, which is the room as a measuring device with
+     * nothing in front of what you are drawing.
+     *
+     * At level 2 on the clay it is the flat value ladder it always was - a box
+     * under no lighting has to read as a box, and one value per orientation is
+     * what does that. At level 2 in ink there is no ladder: every face is the
+     * paper. Ink has no tone in it anywhere else and it does not get one here;
+     * what level 2 means on a sheet is "you cannot see through the walls",
+     * which is the more useful distinction anyway.
+     */
+    const paper = paperHex();
+    const tones: [string, string, string, string] = inked
+      ? [paper, paper, paper, paper]
+      : TONES[dark ? 'dark' : 'light'];
+    const pen = inked ? constructionInk(true, dark) : dark ? '#9aa0a6' : '#6d6862';
     return facesFor(1, 1, 1).map((face) =>
-      surfaceMaterial(face.along, face.up, tones[face.value], ink, dark ? 0.65 : 0.8)
+      surfaceMaterial(
+        face.along,
+        face.up,
+        tones[face.value],
+        pen,
+        inked ? 1 : dark ? 0.65 : 0.8,
+        level === 2 ? 1 : 0,
+        // The floor is left bare. The ground already rules that exact plane, at
+        // the snap step as well as the metre, and fades honestly with distance
+        // where this does not - so ruling it twice only doubles its darkness.
+        face.key === 'floor' ? 0 : 1
+      )
     );
-  }, [dark]);
+  }, [dark, inked, level]);
 
   // Free the shaders when the room is put away, or the theme swapped under it.
   React.useEffect(() => () => materials.forEach((material) => material.dispose()), [materials]);
@@ -173,7 +230,9 @@ export const Room: React.FC<{ dark: boolean }> = ({ dark }) => {
    * where the wall meets the ground is the single most useful line in the room,
    * being the one that says how far away the wall is.
    */
-  const edge = dark ? '#ff6a5e' : '#e0342a';
+  // The room was the one construction in the tool that never got the one-ink
+  // memo: a saturated red pen laid over a black drawing on a paper page.
+  const edge = constructionInk(inked, dark);
   const x = width / 2;
   const z = depth / 2;
   const corners: [number, number][] = [

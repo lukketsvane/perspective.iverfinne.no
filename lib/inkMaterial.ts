@@ -282,10 +282,84 @@ export const INK = build();
  */
 export const INK_BOX = build({ polygonOffset: true, polygonOffsetFactor: 1 });
 
-/** Ink on paper, or chalk on slate. */
-export const setInkTheme = (dark: boolean) => {
-  inkUniforms.paper.value.set(dark ? '#15171b' : '#f7f4ef');
-  inkUniforms.ink.value.set(dark ? '#e9e5dc' : '#16130f');
+/**
+ * The sheet you are drawing on, from black paper to white.
+ *
+ * Warm, because paper is. Flat greys are right for the clay - a lit scene with
+ * a hue in its background has a colour cast - and wrong for this, which is not
+ * a room with a wall behind it but a sheet, and no sheet is neutral.
+ *
+ * The run between 58 and 88 is deliberately steep. There is no such thing as a
+ * mid-value drawing surface: paper is light or the board is dark, and the
+ * middle is a place the thumb passes through rather than somewhere to stop.
+ * Both ends are what the mode already shipped before this was a control.
+ */
+const PAPER_RAMP: [number, string][] = [
+  [0, '#15171b'],
+  [26, '#24262b'],
+  [58, '#3a3630'],
+  [72, '#4b453c'],
+  [88, '#b9aa8f'],
+  [128, '#cbbda2'],
+  [190, '#eee5d3'],
+  [243, '#f7f4ef'],
+  [255, '#fffdf8'],
+];
+
+const rampLow = new THREE.Color();
+const rampHigh = new THREE.Color();
+
+/**
+ * The paper at a given setting of the light.
+ *
+ * Mixed in linear light rather than in sRGB, or the middle of every run comes
+ * out muddy - which is the same reason the renderer works in linear and the
+ * same mistake as averaging two photographs by their file bytes.
+ */
+export const paperFor = (gray: number): THREE.Color => {
+  const at = Math.max(0, Math.min(255, gray));
+  let i = 0;
+  while (i < PAPER_RAMP.length - 2 && PAPER_RAMP[i + 1][0] < at) i++;
+  const [lowAt, lowHex] = PAPER_RAMP[i];
+  const [highAt, highHex] = PAPER_RAMP[i + 1];
+  const t = highAt === lowAt ? 0 : (at - lowAt) / (highAt - lowAt);
+  rampLow.set(lowHex).convertSRGBToLinear();
+  rampHigh.set(highHex).convertSRGBToLinear();
+  return rampLow.clone().lerp(rampHigh, t).convertLinearToSRGB();
+};
+
+/** Rec. 709 relative luminance, for deciding what can be read against what. */
+export const luminance = (colour: THREE.Color) =>
+  0.2126 * colour.r + 0.7152 * colour.g + 0.0722 * colour.b;
+
+const contrast = (a: THREE.Color, b: THREE.Color) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
+
+/**
+ * The pen for a given sheet.
+ *
+ * Derived rather than chosen. The paper and the pen are one decision with a
+ * constraint on it - the line has to be readable - and offering them as two
+ * free controls is offering the user a way to make the mode useless. A near
+ * black or a chalk, whichever wins; the two are equal at a relative luminance
+ * of 0.179, which is exactly where the sheet stops being paper and starts
+ * being a board, so this is provably the best any single pen can do.
+ */
+export const inkFor = (paper: THREE.Color): THREE.Color => {
+  const hsl = { h: 0, s: 0, l: 0 };
+  paper.getHSL(hsl);
+  const pen = new THREE.Color().setHSL(hsl.h, Math.min(0.6, hsl.s * 1.5 + 0.06), 0.045);
+  const chalk = new THREE.Color().setHSL(hsl.h, Math.min(0.08, hsl.s * 0.3), 0.95);
+  return contrast(paper, pen) >= contrast(paper, chalk) ? pen : chalk;
+};
+
+/** Put the sheet and the pen where the shaders can see them. */
+export const setInkPaper = (gray: number) => {
+  const paper = paperFor(gray);
+  inkUniforms.paper.value.copy(paper);
+  inkUniforms.ink.value.copy(inkFor(paper));
 };
 
 /**
@@ -309,7 +383,27 @@ export const setInkScale = (halfYaw: number, cssWidth: number) => {
  * to carry across a lit grey scene.
  */
 export const constructionInk = (inkMode: boolean, dark: boolean) =>
-  inkMode ? '#8c8378' : dark ? '#ff6a5e' : '#e0342a';
+  inkMode
+    ? `#${inkUniforms.paper.value.clone().lerp(inkUniforms.ink.value, 0.52).getHexString()}`
+    : dark
+      ? '#ff6a5e'
+      : '#e0342a';
+
+/** The pen and the sheet, as hex, for everything drawn outside a shader. */
+export const inkHex = () => `#${inkUniforms.ink.value.getHexString()}`;
+export const paperHex = () => `#${inkUniforms.paper.value.getHexString()}`;
+
+/**
+ * How dark a cast shadow may be laid on the sheet.
+ *
+ * A flat fill, and a light one: the object's own contour is a full-ink line,
+ * and a fill anywhere near that value would put two drawings on the same page.
+ * At about 1.4:1 against the paper it reads unambiguously as a plane and can
+ * never be mistaken for a line. It fades out entirely as the sheet darkens -
+ * on a blackboard you draw the lit parts, and the shadow is bare board.
+ */
+export const inkShadowAlpha = (gray: number) =>
+  0.3 * Math.max(0, Math.min(1, (luminance(paperFor(gray)) - 0.18) / 0.22));
 
 /** Which way the sun is, so the terminator knows where to fall. */
 export const setInkLight = (x: number, y: number, z: number) => {
