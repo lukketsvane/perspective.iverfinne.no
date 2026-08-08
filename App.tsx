@@ -7,8 +7,7 @@ import { SelectionBar } from './components/SelectionBar';
 import { MeshSheet } from './components/MeshSheet';
 import { SceneSheet } from './components/SceneSheet';
 import { LightSheet } from './components/LightSheet';
-import { ROOM_STANDING_ROOM } from './components/Room';
-import { useStore, saveSettings, currentView } from './store';
+import { useStore, saveSettings, currentView, standingRoom } from './store';
 import { loadModelFile, loadModelFromUrl, findFreeSpot, modelRadius } from './lib/loadModel';
 import { MESH_LIBRARY, openingMesh } from './lib/meshLibrary';
 import { focusPoint } from './lib/focus';
@@ -77,7 +76,7 @@ export default function App() {
    * to be knelt to, or it is a thing on the floor seen from above.
    */
   const frame = (size: [number, number, number]) => {
-    const { cameraHeight, fov, perspectiveMode, setCameraHeight } = useStore.getState();
+    const { cameraHeight, fov, perspectiveMode, room, setCameraHeight } = useStore.getState();
     const vertical =
       perspectiveMode === 'linear'
         ? (fov * Math.PI) / 180
@@ -92,7 +91,7 @@ export default function App() {
     // further than the room has floor: the car is six metres long, so its own
     // length put the viewer a step outside the front wall, looking in at it
     // through the brickwork.
-    const distance = Math.min(ROOM_STANDING_ROOM, 14, Math.max(0.9, longest * 0.9));
+    const distance = Math.min(standingRoom(room), 14, Math.max(0.9, longest * 0.9));
     const middle = size[1] / 2;
     // Whatever is left of the slant after the ground distance is height.
     const rise = Math.sqrt(Math.max(slant * slant - distance * distance, 0));
