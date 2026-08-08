@@ -93,7 +93,15 @@ than scaling.
 
 ## The dock
 
-Along the bottom, fading out while you draw and back on the first touch:
+Along the bottom, fading out a few seconds after the last touch and back on the
+next one — as does the selection bar, which is the same kind of chrome over the
+same view. The point of the tool is the picture you set up and then draw from,
+and chrome that will not get out of the way is a window with a sticker on it.
+The timer lives outside both of them, in `lib/rail.ts`, since they are different
+components in different parts of the tree and there is only one idea of "the
+chrome is wanted" between them.
+
+The controls:
 
 - **Cube** — the mesh library: a 1 m reference cube, then the objects and figures
 - **Frames** — the scene library (below)
@@ -297,11 +305,24 @@ whatever is chosen** — so what you snap to is what you can see to line things
 up against. Eye level sets to the centimetre.
 
 Selecting something replaces the dock with what you can do to it: turn, size,
-lift it off the floor, change its surface, duplicate, export the mesh at the
-size you settled on, delete. A copy lands beside its original with about six
+**lock the size**, lift it off the floor, change its surface, duplicate, export
+the mesh at the size you settled on, delete. A copy lands beside its original with about six
 centimetres of air, so duplicating along a line builds a row rather than a
 scattering. Readings are in metres — the grid is ruled in metres, so the unit is
 never written down.
+
+**Lock** pins a mesh's size and nothing else. A mesh arrives at the size its
+file says it is — and for the three that ship, that is the real thing's size,
+which is the whole reason for drawing against them. Everything else about a
+placed mesh is meant to be handled: slid, turned, lifted. Sizing is the one
+usually done once and then only ever done again by accident, because the gesture
+that turns a thing is the same two fingers that resize it and the two are hard
+to keep apart on glass. Locked, two fingers still turn it and still slide it and
+the size in that same gesture is refused; the reading goes quiet and the padlock
+goes amber. It is enforced in the store rather than at the controls, because
+there are three ways to resize a mesh and a rule kept at the controls holds only
+until somebody adds a fourth. Meshes only — a box is sized by its faces, which
+is deliberate every time.
 
 **Lift** drags by the metre rather than by proportion, unlike everything else on
 that bar: scrubbing by percentage is right for a size and useless for a height

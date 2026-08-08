@@ -559,10 +559,24 @@ export const useStore = create<SceneState>((set, get) => ({
       };
     }),
 
-  /** Scale a placed model about its feet, so it stays on the ground. */
+  /**
+   * Scale a placed model about its feet, so it stays on the ground.
+   *
+   * The lock is enforced here and in `updateModel` rather than at the controls,
+   * because there are three ways to resize a mesh - the reading on the bar, a
+   * double tap on it, and two fingers on the mesh itself - and a rule kept at
+   * the controls is a rule that holds until somebody adds a fourth.
+   */
   scaleModel: (id, scale) =>
     set((state) => ({
-      models: state.models.map((m) => (m.id === id ? { ...m, scale: Math.max(0.02, Math.min(50, scale)) } : m)),
+      models: state.models.map((m) =>
+        m.id === id && !m.lockedScale ? { ...m, scale: Math.max(0.02, Math.min(50, scale)) } : m
+      ),
+    })),
+
+  toggleModelLock: (id) =>
+    set((state) => ({
+      models: state.models.map((m) => (m.id === id ? { ...m, lockedScale: !m.lockedScale } : m)),
     })),
 
   removeModel: (id) =>
@@ -582,7 +596,14 @@ export const useStore = create<SceneState>((set, get) => ({
 
   updateModel: (id, updates) =>
     set((state) => ({
-      models: state.models.map((m) => (m.id === id ? { ...m, ...updates } : m)),
+      models: state.models.map((m) => {
+        if (m.id !== id) return m;
+        // A pinned size survives a gesture that would have changed it while
+        // everything else in that same gesture goes through: two fingers on a
+        // locked mesh still turn it and still slide it.
+        const { scale, ...rest } = updates;
+        return m.lockedScale ? { ...m, ...rest } : { ...m, ...updates };
+      }),
     })),
 
   // The setting goes all the way round, and then past it: a full turn is
@@ -912,6 +933,7 @@ export const useStore = create<SceneState>((set, get) => ({
         baseScale: model.baseScale,
         size: [...model.size] as [number, number, number],
         surface: model.surface,
+        lockedScale: model.lockedScale,
       })),
       view: currentView(state),
       thumbnail: captureThumbnail(),
@@ -955,6 +977,7 @@ export const useStore = create<SceneState>((set, get) => ({
           baseScale: instance.baseScale,
           size: [...instance.size] as [number, number, number],
           surface: instance.surface,
+          lockedScale: instance.lockedScale,
         });
       } catch (error) {
         missing.push(`${instance.name} (${error instanceof Error ? error.message : 'could not be loaded'})`);

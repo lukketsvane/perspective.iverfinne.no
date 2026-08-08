@@ -123,6 +123,13 @@ export const I = {
    */
   room: (<><rect x="2.5" y="4" width="19" height="16" rx="1" /><rect x="8.5" y="9.5" width="7" height="5.5" rx="0.5" strokeOpacity="0.65" /><path d="M2.5 4l6 5.5M21.5 4l-6 5.5M2.5 20l6-5M21.5 20l-6-5" strokeOpacity="0.4" /></>),
 
+  /**
+   * A size that is settled, and one that is not: a padlock with the two sizing
+   * arrows inside it, since what is shut is the sizing rather than the thing.
+   */
+  lockSize: (<><rect x="4" y="11" width="16" height="9.5" rx="2" /><path d="M8 11V7.6a4 4 0 0 1 8 0V11" /><path d="M8.8 15.8h6.4" strokeOpacity="0.75" /><path d="M10.5 14.2 8.8 15.8l1.7 1.6M13.5 14.2l1.7 1.6-1.7 1.6" strokeOpacity="0.75" /></>),
+  unlockSize: (<><rect x="4" y="11" width="16" height="9.5" rx="2" /><path d="M8 11V7.6a4 4 0 0 1 7.4-2.1" /><path d="M8.8 15.8h6.4" strokeOpacity="0.75" /><path d="M10.5 14.2 8.8 15.8l1.7 1.6M13.5 14.2l1.7 1.6-1.7 1.6" strokeOpacity="0.75" /></>),
+
   /** Start again, and step back or forward one move. */
   reset: (<><path d="M3 7v6h6" /><path d="M3.5 13a9 9 0 1 0 2.2-9.3L3 7" /></>),
   undo: (<><polyline points="9 5 3.5 10.5 9 16" /><path d="M3.5 10.5H14a6.5 6.5 0 0 1 0 13H8" /></>),

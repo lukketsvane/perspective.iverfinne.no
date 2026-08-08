@@ -4,6 +4,7 @@ import { Icon, I } from './icons';
 import { chrome, readout, snugIconButton } from './ui';
 import { exportScaledModel } from '../lib/exportModel';
 import { SURFACE_ICON } from './icons';
+import { useRail } from '../lib/rail';
 import { BOX_SURFACES, MESH_SURFACES, nearestSurface } from '../types';
 
 /** A tap turns by this much: 15 degrees, so 24 taps is a full circle. */
@@ -206,6 +207,11 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   const selectBox = useStore((s) => s.selectBox);
   const sceneSurface = useStore((s) => s.surface);
   const cycleSelectionSurface = useStore((s) => s.cycleSelectionSurface);
+  const toggleModelLock = useStore((s) => s.toggleModelLock);
+  // The same fade the dock has: this is chrome over a view meant to be drawn
+  // from, and chrome that will not get out of the way is a window with a sticker
+  // on it. A touch anywhere brings it back.
+  const railVisible = useRail();
 
   const [activeAxis, setActiveAxis] = useState<0 | 1 | 2>(1);
   const [exporting, setExporting] = useState(false);
@@ -224,6 +230,9 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
     },
     [model, scaleModel]
   );
+
+  /** Whether this one's size is pinned. Only a mesh has the question. */
+  const locked = !!model?.lockedScale;
 
   /**
    * How far off the floor the selection is standing.
@@ -309,15 +318,21 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
 
   return (
     <div
-      className={`fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none transition-all duration-300 ${
-        raised ? 'opacity-0 scale-95' : 'opacity-100 scale-100 bottom-safe-panel'
+      className={`fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none transition-all ${
+        raised
+          ? 'opacity-0 scale-95 duration-300'
+          : railVisible
+            ? 'opacity-100 scale-100 bottom-safe-panel duration-300'
+            : 'opacity-0 scale-100 bottom-safe-panel duration-[1500ms]'
       }`}
     >
       {/* Narrower gaps than the dock has, and it scrolls rather than spills.
           This bar grows with what you can do to a thing, and a control pushed
           off the edge of a phone is not a smaller control, it is a missing one. */}
       <div
-        className={`flex items-center pointer-events-auto max-w-full overflow-x-auto scrollbar-none p-1 sm:p-1.5 gap-0.5 sm:gap-1 rounded-full border shadow-2xl ${chrome(isDark)}`}
+        className={`flex items-center max-w-full overflow-x-auto scrollbar-none p-1 sm:p-1.5 gap-0.5 sm:gap-1 rounded-full border shadow-2xl ${
+          raised || !railVisible ? 'pointer-events-none' : 'pointer-events-auto'
+        } ${chrome(isDark)}`}
       >
         <button {...turnLeft} className={`${button} touch-none`} aria-label="Turn left">
           <Icon path={I.turnLeft} className="w-5 h-5" />
@@ -327,19 +342,30 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
         </button>
 
         {model ? (
-          <button
-            {...modelScrub}
-            onDoubleClick={() => {
-              beginChange();
-              scaleModel(model.id, model.baseScale);
-            }}
-            className={readout(isDark)}
-            aria-label="Height"
-          >
-            <span className="text-[13px] font-bold tabular-nums tracking-wide opacity-80">
-              {metres(height)}
-            </span>
-          </button>
+          <>
+            <button
+              {...modelScrub}
+              onDoubleClick={() => {
+                beginChange();
+                scaleModel(model.id, model.baseScale);
+              }}
+              className={`${readout(isDark)} ${locked ? 'opacity-40 cursor-default' : ''}`}
+              aria-label={locked ? 'Height, locked' : 'Height'}
+            >
+              <span className="text-[13px] font-bold tabular-nums tracking-wide opacity-80">
+                {metres(height)}
+              </span>
+            </button>
+            {/* The pin sits against the reading it pins, so what it holds still
+                is unambiguous: this mesh's size, and nothing else about it. */}
+            <button
+              onClick={() => toggleModelLock(model.id)}
+              className={`${button} ${locked ? '!text-amber-500' : ''}`}
+              aria-label={locked ? 'Size locked' : 'Lock the size'}
+            >
+              <Icon path={locked ? I.lockSize : I.unlockSize} className="w-5 h-5" />
+            </button>
+          </>
         ) : (
           <div className="flex items-center">
             <button

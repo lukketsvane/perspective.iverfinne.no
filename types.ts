@@ -155,6 +155,21 @@ export interface SceneModel {
   previewSupported: boolean;
   /** How solidly it is drawn. Absent means whatever the scene's default is. */
   surface?: Surface;
+  /**
+   * Its size is settled: leave it alone.
+   *
+   * A mesh comes in at the size the file says it is, and for the library three
+   * that size is the real thing's - which is the whole reason for drawing
+   * against them. Everything else about a placed mesh is meant to be handled:
+   * slid along the floor, turned, lifted. Sizing is the one that is usually
+   * done once and then only ever done again by accident, because the gesture
+   * that turns a thing is the same two fingers that resize it and the two are
+   * hard to keep apart on glass.
+   *
+   * So the size can be pinned on its own, and moving and turning carry on
+   * exactly as before.
+   */
+  lockedScale?: boolean;
 }
 
 /**
@@ -204,6 +219,7 @@ export interface SceneInstance {
   baseScale: number;
   size: [number, number, number];
   surface?: Surface;
+  lockedScale?: boolean;
 }
 
 /**
@@ -382,8 +398,10 @@ export interface SceneState {
   removeModel: (id: string) => void;
   selectModel: (id: string | null) => void;
   updateModel: (id: string, updates: Partial<Omit<SceneModel, 'id'>>) => void;
-  /** Uniform scale on a placed model. */
+  /** Uniform scale on a placed model. Refused while its size is pinned. */
   scaleModel: (id: string, scale: number) => void;
+  /** Pin a placed mesh's size, or let it go again. */
+  toggleModelLock: (id: string) => void;
   /** Copy whatever is selected, placed clear of the original. */
   duplicateSelection: () => void;
   /**
