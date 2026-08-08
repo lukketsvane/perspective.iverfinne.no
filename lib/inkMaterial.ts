@@ -282,19 +282,6 @@ export const INK = build();
  */
 export const INK_BOX = build({ polygonOffset: true, polygonOffsetFactor: 1 });
 
-/**
- * Ink, drawn through.
- *
- * Both sides and no depth written, so the contours of the far side of a form
- * come through the near side - which is what drawing through a glass box does,
- * on something that is not a box. Optional: it is a lot of line.
- */
-export const INK_GLASS = build({
-  side: THREE.DoubleSide,
-  depthWrite: false,
-  transparent: true,
-});
-
 /** Ink on paper, or chalk on slate. */
 export const setInkTheme = (dark: boolean) => {
   inkUniforms.paper.value.set(dark ? '#15171b' : '#f7f4ef');
@@ -311,6 +298,18 @@ export const setInkTheme = (dark: boolean) => {
 export const setInkScale = (halfYaw: number, cssWidth: number) => {
   inkUniforms.radPerSheetPixel.value = halfYaw / Math.max(cssWidth / 2, 1);
 };
+
+/**
+ * What a construction is ruled in.
+ *
+ * One place, because there are three of them - the room's sheet, the ground's
+ * two axes and the selection's own rays - and a page with a warm grey sheet, a
+ * red selection and a green floor axis on it is a page with three inks and one
+ * drawing. On the clay it stays the construction red it always was, which has
+ * to carry across a lit grey scene.
+ */
+export const constructionInk = (inkMode: boolean, dark: boolean) =>
+  inkMode ? '#8c8378' : dark ? '#ff6a5e' : '#e0342a';
 
 /** Which way the sun is, so the terminator knows where to fall. */
 export const setInkLight = (x: number, y: number, z: number) => {

@@ -273,13 +273,49 @@ and the edge between them is a great circle rather than a straight line. So the
 edges are drawn by asking the projection where the line itself lands, a sample
 at a time, which draws a straight one straight and a bent one bent.
 
-The verticals are ruled too on a curved sheet, to the point overhead: that is
-the fifth point, and it is the one thing a five-point sheet is for.
+**Two families and four rays, and nothing else.** Two rays per family: the top
+and the bottom of the corner nearest you, each starting on the object, running
+out to its point, and stopping there. Four is the number because one is fewer
+than the lesson needs — a single line through a thing to a mark is a pointer,
+and what perspective actually looks like is *two* lines closing. The near corner
+in particular, because then all four rays pass through the same place in space,
+so they radiate from one point on the page instead of netting the object from
+four sides.
+
+Not the verticals. They have a real point overhead on a curved sheet, and it is
+the room's rather than this object's: the construction sheet already rings the
+zenith and rules the whole family that meets there, so drawing it again here was
+drawing the fifth point twice in two inks — and at 90°, where the zenith is
+three and a half frames off the top, it drew it as two pins stuck to the top and
+bottom edges pointing at nothing.
+
+Not the whole great circle either. A ray used to run to infinity *both* ways,
+which draws the circle the edge lies on rather than the edge — and the far half
+converges on the same point carrying no information, at the cost of the whole
+width of the page and everything it crosses on the way. It runs one way and
+stops.
+
+Which way is "out" is decided by which way the edge **recedes**, not by which
+way the camera is pointing. The two agree near the middle of a frame and part
+company off to one side of a wide one, where an edge can run away from you while
+pointing across your view.
 
 A point that lands off the frame is pinned to the edge rather than dropped —
 "off to the left, roughly level with here" is what you need when you are ruling
-by hand. Which is also how the fifth point stays locatable at 180°, where a
-landscape frame reaches about 65° up and the zenith is at 90°.
+by hand — but only out to one frame. Past that it is not off to the left, it is
+behind your head, and the tick is telling you to rule the wrong way.
+
+**Nothing on a selection is dashed.** The dash was meant to say "this is
+construction, not the drawing", and since every mark on the sheet is
+construction it was distinguishing nothing from nothing. In the drafting
+convention it is borrowed from, a dashed line means a *hidden edge*, which is
+not what any of these are. And on a curved sheet it is actively worse than a
+line: a curve turning ninety degrees across the frame, chopped five on and six
+off, stops reading as one line and starts reading as a field of ticks pointing
+in slightly different directions. What says "guide" instead is what a pencil
+actually does — lighter weight, one ink, and pressure that dies away as the line
+leaves the thing it belongs to. Each ray is drawn in three bands, darkest where
+you place it and faintest out where it would otherwise cross the drawing.
 
 ### The field of view
 
@@ -454,7 +490,7 @@ underfoot, so the room still reads as a box under any light at all.
 ## How solid a thing is drawn
 
 Every box and every placed mesh carries its own surface, so a scene can have a
-solid car standing inside a wire box on a floor of glass ones. Five rungs,
+solid car standing inside a wire box on a floor of inked ones. Four rungs,
 ordered by how much has been taken away:
 
 - **solid** — as the thing is: a box in plain white, a mesh in the materials its
@@ -464,12 +500,17 @@ ordered by how much has been taken away:
   value only, which is what it is doing in a scene full of white boxes
 - **ink** — the light gone too, and only the line left. This is the one the tool
   opens on; it has its own section below
-- **glass** — translucent, writing no depth, so the far edges come through the
-  near faces. This is drawing through, and it is how a box is checked: if the
-  hidden corner is in the wrong place then the whole thing is, and on an opaque
-  box there is nothing to check it against
 - **wire** — the twelve edges and nothing else: the construction with the object
   taken away
+
+There was a fifth, **glass**: translucent and writing no depth, so the far edges
+came through the near faces. The argument for it was drawing through — if a
+box's hidden corner is in the wrong place then the whole box is, and on an
+opaque box there is nothing to check it against. Good argument, answered better
+elsewhere. A wire box draws through by construction, and on a mesh, where the
+rung was a wash of overlapping translucency rather than a readable interior, ink
+already draws the far side's contour wherever the form rolls over. A rung nobody
+reaches for is a rung in the way of the next one.
 
 The button on the selection bar steps the one thing you are holding, through the
 rungs its own kind has — a box skips matte, being plain white already, and a
@@ -590,8 +631,11 @@ after being asked has, as far as anyone watching can tell, not heard.
 
 ## The construction around each thing
 
-Every object standing in the scene carries its own construction, whether or not
-it is the one you are holding:
+The selection carries its own construction — and only the selection. Drawing it
+round everything standing in the scene was defensible when a scene had three
+things in it and indefensible at fifteen: fifteen cages, fifteen footprints,
+thirty diagonals and fifteen plumb lines over the drawing. A box round
+everything at once is a box round nothing in particular.
 
 - **the box it blocks into** — the first mark anyone makes when they draw a
   figure, and the thing a drawing is measured in
@@ -600,14 +644,26 @@ it is the one you are holding:
 - **the diagonals of that footprint** — crossed, they mark its true centre *in
   perspective*, which is not the middle of the drawn rectangle and is how a
   receding row is halved and doubled without measuring anything
-- **the plumb line** — up through the middle and on past the top, which is what
-  a figure's height and balance are read against
+- **the crossing itself**, marked. Every other mark here confirms geometry you
+  already have; the diagonals *derive* geometry you do not, and ruling the
+  working while leaving the answer for the eye to find stops one step short
+- **the plumb line** — up through the middle and a little past the top, which is
+  what a figure's height and balance are read against. A share of the object's
+  own height rather than a flat two metres, which on a half-metre box was a mark
+  five times the height of the thing it belonged to
 
-It is drawn in the construction red like the rest of the sheet, and goes
-**green** on the one a drag would move. The whole of it switches off from the
-tools row, since the construction of the things and the construction of the room
-are wanted at different times — which is also why the room has a switch of its
-own.
+A box gets exactly the same four marks a mesh does, on the same switch. It used
+to draw two of its own regardless of that switch, and one of them was a tinted
+plane rather than a line — a tone, which is the one thing a line drawing cannot
+carry and the one thing you cannot trace — and 40 cm larger than the box in both
+directions, so lining it up against the grid lined up the wrong rectangle.
+
+All of it in one ink, and none of it dashed, for the reasons under *the
+selection's own points*. It follows the page: the construction red on the clay,
+where it has to carry across a lit grey scene, and the same warm grey as the
+rest of the construction in ink. The whole of it switches off from the tools
+row, since the construction of the things and the construction of the room are
+wanted at different times — which is also why the room has a switch of its own.
 
 ## Saving a scene
 
@@ -662,7 +718,7 @@ State lives in `store.ts` (zustand). `lib/assets.ts` is the IndexedDB layer:
 imported meshes, saved scenes and library thumbnails.
 
 `lib/pick.ts` is the one place that knows where a pixel is in the world and
-where a point in the world is on the glass, in each of the four projections. It
+where a point in the world is on the glass, in each of the three projections. It
 has to live outside the canvas: the walk layer covers it and owns every pointer
 event, so react-three-fiber's own picking never sees one. The scene registers
 what it is drawing with; `lib/manipulate.ts` turns a pointer into a grab.

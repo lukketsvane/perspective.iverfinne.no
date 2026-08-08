@@ -18,6 +18,7 @@ import {
   SunState,
   Surface,
   SURFACES,
+  readSurface,
 } from './types';
 import { releaseSource, cachedSourceUrls, modelRadius, findFreeSpot, loadModelFromUrl } from './lib/loadModel';
 import { cloneModel } from './lib/modelMaterials';
@@ -471,7 +472,7 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
     guides: (Math.min(2, view.guides ?? ((view.showGuides ?? true) ? 3 : 0)) as GuideLevel),
     gridX: view.gridX ?? (view.guides ?? 3) >= 2,
     gridZ: view.gridZ ?? (view.guides ?? 3) >= 2,
-    surface: view.surface ?? view.modelMaterial ?? 'ink',
+    surface: readSurface(view.surface ?? view.modelMaterial),
     showRoom: view.showRoom ?? false,
     room: readRoom(view.room),
     showVanishing: view.showVanishing ?? true,
@@ -1017,7 +1018,7 @@ export const useStore = create<SceneState>((set, get) => ({
           scale: instance.scale,
           baseScale: instance.baseScale,
           size: [...instance.size] as [number, number, number],
-          surface: instance.surface,
+          surface: instance.surface === undefined ? undefined : readSurface(instance.surface),
           kind: instance.kind,
           lockedScale: instance.lockedScale,
         });
@@ -1064,8 +1065,16 @@ export const useStore = create<SceneState>((set, get) => ({
     set((state) => {
       const next = {
         ...remember(state),
-        boxes: boxes.map((box) => ({ ...box, id: uuidv4() })),
-        models: models.map((model) => ({ ...model, id: uuidv4() })),
+        boxes: boxes.map((box) => ({
+          ...box,
+          id: uuidv4(),
+          surface: box.surface === undefined ? undefined : readSurface(box.surface),
+        })),
+        models: models.map((model) => ({
+          ...model,
+          id: uuidv4(),
+          surface: model.surface === undefined ? undefined : readSurface(model.surface),
+        })),
         selectedId: null,
         selectedModelId: null,
         currentSceneId: null,

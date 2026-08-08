@@ -59,7 +59,20 @@ let view: RegisteredView | null = null;
 export const registerView = (next: ViewSource) => {
   const box = next.element.getBoundingClientRect();
   view = { ...next, rect: { left: box.left, top: box.top, width: box.width, height: box.height } };
+  viewNonce.value += 1;
 };
+
+/**
+ * Bumped whenever anything about the projection changes.
+ *
+ * Anyone caching an answer that came out of `project` needs to know when to
+ * throw it away, and the alternative is copying this module's inputs into their
+ * own cache key - which is how the vanishing overlay came to key on the mode
+ * and the window size but not the field of view, and froze while the field was
+ * dragged. One number, bumped in the one place every one of those inputs
+ * arrives through.
+ */
+export const viewNonce = { value: 0 };
 
 export const forgetView = () => {
   view = null;
@@ -273,9 +286,22 @@ export const project = (point: THREE.Vector3): { x: number; y: number } | null =
   const field = Math.max(halfYaw, halfPitch);
   const radius = view.mode === 'stereographic' ? stereographicRadius(theta, field) : theta;
 
+  /*
+   * Which way out from the middle of the frame.
+   *
+   * Undefined for the two directions where there is no "out": straight ahead,
+   * and straight behind. Straight ahead is the middle of the frame and zero is
+   * the right answer. Straight behind is the *rim* - theta is pi - and zero was
+   * putting it in the middle of the frame, which is as wrong as an answer can
+   * be and is exactly the ordinary case: look down a box's own axis, which is
+   * one-point perspective, and the point behind you was drawn on top of the
+   * point in front of you. Any bearing will do out there, so it takes the one
+   * to the right, and lands where it belongs: off the page.
+   */
   const outward = Math.hypot(local.x, local.y);
-  const rx = outward > 1e-6 ? (local.x / outward) * radius : 0;
-  const ry = outward > 1e-6 ? (local.y / outward) * radius : 0;
+  const settled = outward > 1e-6;
+  const rx = settled ? (local.x / outward) * radius : local.z > 0 ? radius : 0;
+  const ry = settled ? (local.y / outward) * radius : 0;
 
   return toClient(rx / halfYaw, ry / halfPitch);
 };

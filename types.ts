@@ -34,8 +34,8 @@ export type PerspectiveMode = 'cylindrical' | 'equidistant' | 'stereographic';
 /**
  * How solidly one thing in the scene is drawn.
  *
- * Not a look: four different questions you can ask of the same object, and the
- * one worth asking changes several times in the course of a study.
+ * Not a look: different questions you can ask of the same object, and the one
+ * worth asking changes several times in the course of a study.
  *
  * - 'original': opaque, as the thing is. A box in plain white, a mesh in the
  *   materials its file was authored with. What is behind it is behind it.
@@ -47,48 +47,68 @@ export type PerspectiveMode = 'cylindrical' | 'equidistant' | 'stereographic';
  *   other rung answers "what is this made of", which is a question a perspective
  *   study never asks. This one answers "where would the pen go", and it is the
  *   only rung whose output you can put a sheet of paper beside.
- * - 'glass': translucent, and writing no depth - so the far edges come through
- *   the near faces. This is drawing through, which is how a box is checked: if
- *   the hidden corner is in the wrong place the whole thing is, and on an opaque
- *   box there is nothing to check it against.
  * - 'wire': the twelve edges and nothing else. The construction with the object
  *   taken away.
  *
+ * There was a fifth, 'glass' - translucent and writing no depth, so the far
+ * edges came through the near faces. The argument for it was drawing through:
+ * if a box's hidden corner is in the wrong place then the whole box is, and on
+ * an opaque box there is nothing to check it against. Good argument, and it was
+ * answered better elsewhere. A wire box draws through by construction, and on a
+ * mesh - where the rung was a wash of overlapping translucency rather than a
+ * readable interior - ink already draws the far side's contour wherever the form
+ * rolls over. A rung nobody reaches for is a rung in the way of the next one.
+ *
  * Every box and every placed mesh carries its own, so a scene can have a solid
- * car standing inside a wire box standing on a floor of glass ones - which is
- * exactly the arrangement a study wants and what a single scene-wide setting
- * could never say.
+ * car standing inside a wire box on a floor of inked ones - which is exactly the
+ * arrangement a study wants and what a single scene-wide setting could never say.
  */
-export type Surface = 'original' | 'matte' | 'ink' | 'glass' | 'wire';
+export type Surface = 'original' | 'matte' | 'ink' | 'wire';
 
 /**
  * The whole ladder, in order. What the scene-wide control steps through.
  *
  * Ordered by how much has been taken away: everything the file says, then the
- * texture gone, then the light gone too and only the line left, then the near
- * side gone, then the object itself.
+ * texture gone, then the light gone too and only the line left, then the object
+ * itself.
  */
-export const SURFACES: Surface[] = ['original', 'matte', 'ink', 'glass', 'wire'];
+export const SURFACES: Surface[] = ['original', 'matte', 'ink', 'wire'];
 
 /** What a box steps through: it has no authored material to strip. */
-export const BOX_SURFACES: Surface[] = ['original', 'ink', 'glass', 'wire'];
+export const BOX_SURFACES: Surface[] = ['original', 'ink', 'wire'];
 
 /**
  * What a mesh steps through: it has no cage to fall back on, so taking its
  * surface away entirely would leave nothing on screen to take hold of again.
  */
-export const MESH_SURFACES: Surface[] = ['original', 'matte', 'ink', 'glass'];
+export const MESH_SURFACES: Surface[] = ['original', 'matte', 'ink'];
 
 /**
  * The nearest rung a given kind of thing can actually draw.
  *
- * The scene-wide control names one of the four for everything at once, and each
- * kind answers with the closest thing it has: a box asked for matte is already
- * plain white, and a mesh asked for wire gives you the glass it can do instead
- * of disappearing.
+ * The scene-wide control names one rung for everything at once, and each kind
+ * answers with the closest thing it has: a box asked for matte is already plain
+ * white, and a mesh asked for wire gives you the ink it can do instead of
+ * disappearing - which is the honest neighbour, both being line and no surface.
  */
 export const nearestSurface = (surface: Surface, rungs: Surface[]): Surface =>
-  rungs.includes(surface) ? surface : surface === 'matte' ? 'original' : 'glass';
+  rungs.includes(surface) ? surface : surface === 'matte' ? 'original' : 'ink';
+
+/**
+ * A surface read back from something written earlier.
+ *
+ * A remembered *setting* is already checked against this list on the way in, so
+ * a rung that no longer exists is dropped and the default stands. A saved
+ * *scene* is not: it comes back through `restoreView` and goes straight into
+ * the store, where nothing throws and everything downstream quietly disagrees -
+ * the icon lookup comes back undefined and draws an empty button, and the
+ * ladder's own step lands on the wrong rung because `indexOf` returned -1.
+ *
+ * So anything that was written by a version with a different ladder is read
+ * through here, the same way the projection is.
+ */
+export const readSurface = (stored: unknown): Surface =>
+  SURFACES.includes(stored as Surface) ? (stored as Surface) : 'ink';
 
 /**
  * How much of the *room's* construction is drawn over the world.

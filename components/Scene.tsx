@@ -14,7 +14,7 @@ import { markSceneBuilt, sceneRevision } from '../lib/sceneRevision';
 import { Panorama } from './Panorama';
 import { forgetView, registerView } from '../lib/pick';
 import { fieldOf } from '../lib/projection';
-import { setInkLight, setInkScale } from '../lib/inkMaterial';
+import { constructionInk, setInkLight, setInkScale } from '../lib/inkMaterial';
 
 /** Keeps the "put one here" point under the middle of the view. */
 const FocusTracker = () => {
@@ -65,7 +65,11 @@ const VanishingTracker = () => {
 
     const height = model!.size[1] * model!.scale;
     updateVanishing(camera, perspectiveMode, {
-      centre: new THREE.Vector3(model!.position[0], height / 2, model!.position[2]),
+      // A mesh's position is its footprint and it can be lifted off the floor,
+      // so the middle of it is the lift plus half the height. Left out, the
+      // rays detached from the cage the moment anything was raised - and the
+      // cage is right, being drawn inside the model's own group.
+      centre: new THREE.Vector3(model!.position[0], model!.position[1] + height / 2, model!.position[2]),
       size: new THREE.Vector3(
         model!.size[0] * model!.scale,
         height,
@@ -349,7 +353,7 @@ const SceneContent = () => {
    * sheet in one pencil and presses harder for the lines that matter.
    */
   const gridColor = useMemo(
-    () => new THREE.Color(inkMode ? '#8c8378' : isDark ? '#ff6a5e' : '#e0342a'),
+    () => new THREE.Color(constructionInk(inkMode, isDark)),
     [inkMode, isDark]
   );
 
