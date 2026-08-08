@@ -3,7 +3,7 @@ import { useStore, EYE_LEVEL_PRESETS } from '../store';
 import { walkInput, enableDeviceOrientation } from '../lib/walkInput';
 import { arSupported } from '../lib/xr';
 import { Icon, I, SURFACE_ICON } from './icons';
-import { Scrub, useGrayThemeControl } from './controls';
+import { Scrub, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
 import { ACTIVE, chrome, iconButton } from './ui';
 import { pickObject } from '../lib/pick';
@@ -170,7 +170,8 @@ export const WalkOverlay: React.FC<{
   const sceneSurface = useStore((s) => s.surface);
   const cycleSurface = useStore((s) => s.cycleSurface);
   const showRoom = useStore((s) => s.showRoom);
-  const toggleRoom = useStore((s) => s.toggleRoom);
+  const room = useStore((s) => s.room);
+  const roomControl = useRoomControl();
   const models = useStore((s) => s.models);
   const deduplicateModels = useStore((s) => s.deduplicateModels);
   const undo = useStore((s) => s.undo);
@@ -706,9 +707,24 @@ export const WalkOverlay: React.FC<{
               {viewLocked ? <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /> : <path d="M8 10.5V7a4 4 0 0 1 7.5-2" />}
             </svg>
           </button>
-          <button onClick={toggleRoom} aria-label="Room" className={`${button} ${showRoom ? ACTIVE : ''}`}>
-            <Icon path={I.room} className="w-5 h-5" />
-          </button>
+          <div className="relative flex items-center">
+            <button
+              {...roomControl.handlers}
+              aria-label={`Room, ${room.floor} by ${room.height} metres`}
+              className={`${button} touch-none ${showRoom ? ACTIVE : ''}`}
+            >
+              <Icon path={I.room} className="w-5 h-5" />
+            </button>
+            {roomControl.sizing && (
+              <div
+                className={`absolute left-1/2 -translate-x-1/2 -top-11 px-3 py-1 rounded-full text-xs font-bold tabular-nums border shadow-xl pointer-events-none whitespace-nowrap ${
+                  isDark ? 'bg-neutral-950/95 text-white border-white/20' : 'bg-white/95 text-black border-black/10'
+                }`}
+              >
+                {room.floor.toFixed(1)} × {room.height.toFixed(1)}
+              </div>
+            )}
+          </div>
           <button
             onClick={cycleSurface}
             aria-label={`Surface of everything: ${sceneSurface}`}

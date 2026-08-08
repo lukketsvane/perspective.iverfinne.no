@@ -107,6 +107,70 @@ export const useGrayThemeControl = (onDoubleTap?: () => void) => {
   };
 };
 
+/**
+ * The room's own control: tap to put it up or take it down, drag to size it.
+ *
+ * The same shape as the light/dark button, and for the same reason - there is
+ * no toolbar room for a second control and no words to label one with, so the
+ * mark that says whether a thing is there is also the mark that says how big.
+ * Across is the floor, up and down is the ceiling, which is the arrangement of
+ * the room itself: pulling the walls apart is a sideways movement and raising
+ * the ceiling is not.
+ *
+ * Both at once on purpose. What a room teaches is the ratio between the two,
+ * and finding a ratio by setting one number and then the other is a slower way
+ * of doing what one diagonal drag does.
+ */
+const FLOOR_RATE = 0.06; // metres per pixel across
+const CEILING_RATE = 0.02; // metres per pixel up
+
+export const useRoomControl = () => {
+  const room = useStore((state) => state.room);
+  const setRoom = useStore((state) => state.setRoom);
+  const toggleRoom = useStore((state) => state.toggleRoom);
+  const showRoom = useStore((state) => state.showRoom);
+  const drag = useRef<{ id: number; x: number; y: number; from: { floor: number; height: number }; moved: boolean } | null>(null);
+  const [sizing, setSizing] = React.useState(false);
+
+  return {
+    sizing,
+    handlers: {
+      onPointerDown: (event: React.PointerEvent) => {
+        event.stopPropagation();
+        try { (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); } catch { /* continue uncaptured */ }
+        drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, from: { ...room }, moved: false };
+      },
+      onPointerMove: (event: React.PointerEvent) => {
+        const held = drag.current;
+        if (held?.id !== event.pointerId) return;
+        const across = event.clientX - held.x;
+        const up = held.y - event.clientY;
+        if (!held.moved && Math.hypot(across, up) < 4) return;
+        if (!held.moved) {
+          held.moved = true;
+          setSizing(true);
+          // Sizing a room you cannot see is a control with no feedback.
+          if (!showRoom) toggleRoom();
+        }
+        setRoom({
+          floor: held.from.floor + across * FLOOR_RATE,
+          height: held.from.height + up * CEILING_RATE,
+        });
+      },
+      onPointerUp: (event: React.PointerEvent) => {
+        const held = drag.current;
+        drag.current = null;
+        setSizing(false);
+        if (held?.id === event.pointerId && !held.moved) toggleRoom();
+      },
+      onPointerCancel: () => {
+        drag.current = null;
+        setSizing(false);
+      },
+    },
+  };
+};
+
 const useScrub = (
   { value, min, max, step, cycle, wrap, sweep = SWEEP, onChange }: DraggableNumber,
   axis: 'x' | 'both'

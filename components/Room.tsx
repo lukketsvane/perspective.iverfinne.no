@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { Line } from '@react-three/drei';
+import { useStore } from '../store';
 
 /**
  * Four walls and a ceiling, ruled, standing round the origin.
@@ -33,33 +34,6 @@ import { Line } from '@react-three/drei';
  * the same question of the same metre - which is the property that makes the
  * room a measuring device rather than wallpaper.
  */
-
-/**
- * Ten metres square and three high.
- *
- * A studio rather than a hall: far enough across to walk about in and to stand
- * the six-metre car in with room at both ends, low enough that the ceiling is
- * close over your head - a metre above a standing eye - which is what makes its
- * convergence something you can see rather than something you can measure. All
- * three are whole metres, so every edge of the room lands on a ruled line
- * instead of a hand's width off one.
- */
-const WIDTH = 10;
-const DEPTH = 10;
-const HEIGHT = 3;
-
-const half = { x: WIDTH / 2, z: DEPTH / 2 };
-
-/**
- * The furthest back anything should stand the viewer from the origin.
- *
- * A metre and a bit inside the wall, so a framing worked out from an object's
- * size cannot put you through it. The room is off by default and this holds
- * anyway: where the tool opens should be one place, not one place with the room
- * and another without, and there is no view of a six-metre car worth having
- * from outside the room it is standing in.
- */
-export const ROOM_STANDING_ROOM = DEPTH / 2 - 1.2;
 
 /**
  * One flat, ruled surface.
@@ -143,21 +117,29 @@ const Y = new THREE.Vector3(0, 1, 0);
 const Z = new THREE.Vector3(0, 0, 1);
 
 /**
- * The six surfaces.
+ * The six surfaces, at whatever size the room currently is.
  *
  * Each orientation takes its own value, lightest at the ceiling and darkest
  * underfoot, which is the oldest trick there is for making a box read as a box:
  * planes at different angles are different values, and the eye does the rest. A
  * room lit by nothing still has to look like a room.
+ *
+ * Only the placements depend on the size. The materials do not: the ruling is
+ * measured in world coordinates, so a wall moved two metres out is still ruled
+ * at the same metres, which is the property that lets the room be resized
+ * without rebuilding a single shader.
  */
-const FACES: Face[] = [
-  { key: 'back', position: [0, HEIGHT / 2, -half.z], rotation: [0, 0, 0], size: [WIDTH, HEIGHT], along: X, up: Y, value: 1 },
-  { key: 'front', position: [0, HEIGHT / 2, half.z], rotation: [0, Math.PI, 0], size: [WIDTH, HEIGHT], along: X, up: Y, value: 1 },
-  { key: 'left', position: [-half.x, HEIGHT / 2, 0], rotation: [0, Math.PI / 2, 0], size: [DEPTH, HEIGHT], along: Z, up: Y, value: 2 },
-  { key: 'right', position: [half.x, HEIGHT / 2, 0], rotation: [0, -Math.PI / 2, 0], size: [DEPTH, HEIGHT], along: Z, up: Y, value: 2 },
-  { key: 'ceiling', position: [0, HEIGHT, 0], rotation: [Math.PI / 2, 0, 0], size: [WIDTH, DEPTH], along: X, up: Z, value: 0 },
-  { key: 'floor', position: [0, -FLOOR_DROP, 0], rotation: [-Math.PI / 2, 0, 0], size: [WIDTH, DEPTH], along: X, up: Z, value: 3 },
-];
+const facesFor = (floor: number, height: number): Face[] => {
+  const half = floor / 2;
+  return [
+    { key: 'back', position: [0, height / 2, -half], rotation: [0, 0, 0], size: [floor, height], along: X, up: Y, value: 1 },
+    { key: 'front', position: [0, height / 2, half], rotation: [0, Math.PI, 0], size: [floor, height], along: X, up: Y, value: 1 },
+    { key: 'left', position: [-half, height / 2, 0], rotation: [0, Math.PI / 2, 0], size: [floor, height], along: Z, up: Y, value: 2 },
+    { key: 'right', position: [half, height / 2, 0], rotation: [0, -Math.PI / 2, 0], size: [floor, height], along: Z, up: Y, value: 2 },
+    { key: 'ceiling', position: [0, height, 0], rotation: [Math.PI / 2, 0, 0], size: [floor, floor], along: X, up: Z, value: 0 },
+    { key: 'floor', position: [0, -FLOOR_DROP, 0], rotation: [-Math.PI / 2, 0, 0], size: [floor, floor], along: X, up: Z, value: 3 },
+  ];
+};
 
 /** Ceiling, the two end walls, the two side walls, the floor. Light, then dark. */
 const TONES: Record<'light' | 'dark', [string, string, string, string]> = {
@@ -168,10 +150,15 @@ const TONES: Record<'light' | 'dark', [string, string, string, string]> = {
 };
 
 export const Room: React.FC<{ dark: boolean }> = ({ dark }) => {
+  const { floor, height } = useStore((state) => state.room);
+  const faces = useMemo(() => facesFor(floor, height), [floor, height]);
+
   const materials = useMemo(() => {
     const tones = TONES[dark ? 'dark' : 'light'];
     const ink = dark ? '#9aa0a6' : '#6d6862';
-    return FACES.map((face) =>
+    // One per rung of the ladder and per pair of ruling axes, built once for the
+    // theme and reused at every size.
+    return facesFor(1, 1).map((face) =>
       surfaceMaterial(face.along, face.up, tones[face.value], ink, dark ? 0.65 : 0.8)
     );
   }, [dark]);
@@ -186,18 +173,19 @@ export const Room: React.FC<{ dark: boolean }> = ({ dark }) => {
    * being the one that says how far away the wall is.
    */
   const edge = dark ? '#ff6a5e' : '#e0342a';
+  const half = floor / 2;
   const corners: [number, number][] = [
-    [-half.x, -half.z],
-    [half.x, -half.z],
-    [half.x, half.z],
-    [-half.x, half.z],
+    [-half, -half],
+    [half, -half],
+    [half, half],
+    [-half, half],
   ];
   const loop = (y: number) =>
     [...corners, corners[0]].map(([x, z]) => [x, y, z] as [number, number, number]);
 
   return (
     <group raycast={() => null}>
-      {FACES.map((face, index) => (
+      {faces.map((face, index) => (
         <mesh
           key={face.key}
           // A wall is a thing you draw, never a thing you take hold of: a tap
@@ -212,12 +200,12 @@ export const Room: React.FC<{ dark: boolean }> = ({ dark }) => {
       ))}
 
       <Line raycast={() => null} points={loop(0)} color={edge} lineWidth={1.5} transparent opacity={0.85} />
-      <Line raycast={() => null} points={loop(HEIGHT)} color={edge} lineWidth={1.5} transparent opacity={0.7} />
+      <Line raycast={() => null} points={loop(height)} color={edge} lineWidth={1.5} transparent opacity={0.7} />
       {corners.map(([x, z]) => (
         <Line
           key={`${x},${z}`}
           raycast={() => null}
-          points={[[x, 0, z], [x, HEIGHT, z]]}
+          points={[[x, 0, z], [x, height, z]]}
           color={edge}
           lineWidth={1.5}
           transparent

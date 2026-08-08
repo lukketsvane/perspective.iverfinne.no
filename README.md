@@ -38,10 +38,11 @@ the car is curved where a box is flat, six metres long so its far end is visibly
 smaller than its near one, and turned enough that all three of its axes run to
 three separate points. It is the object here with the most perspective in it.
 
-You stand 3.8 m back from it, which is as far as the room has floor — the car is
-nearly six metres long, so framing it by its own length used to put the viewer a
-step outside the front wall, looking in at it through the brickwork. Where the
-tool opens should be one place, whether or not the room is switched on.
+You stand as far back as the room has floor — 3.8 m at its default size. The car
+is nearly six metres long, so framing it by its own length used to put the
+viewer a step outside the front wall, looking in at it through the brickwork.
+Where the tool opens should be one place, whether or not the room is switched
+on; make the room smaller and the opening view comes in with it.
 
 Framing solves for two legs, not one: how far back to stand, and how high the
 eye has to be. A chair 0.7 m away from a 1.9 m eye is not 0.7 m away — it is
@@ -102,10 +103,10 @@ Along the bottom, fading out while you draw and back on the first touch:
 - **Projection** — steps through the four systems (below)
 - **Sun / moon** — tap for light and dark, drag through all 256 greys,
   double-tap for the procedural sky
-- **Sliders** — everything else: AR, guides, snap, the 60° cone, the
-  construction around each object, view lock, the room, the surface of
-  everything, the lights, de-duplicate, undo, redo, back to the opening scene,
-  and save the view as a PNG
+- **Sliders** — everything else: AR, guides, snap, the field of view, the
+  construction around each object, view lock, the room (tap to toggle, drag to
+  size), the surface of everything, the lights, de-duplicate, undo, redo, back
+  to the opening scene, and save the view as a PNG
 
 ### Projections
 
@@ -286,8 +287,8 @@ the height it was left at rather than dropping it.
 
 ## The room
 
-Four walls, a ceiling and a floor, ten metres square and three high, standing
-round the origin. It is the perspective exercise. A box on open ground gives you
+Four walls, a ceiling and a floor, standing round the origin — ten metres square
+and three high to begin with, and settable. It is the perspective exercise. A box on open ground gives you
 its own twelve edges and a horizon somewhere past it; a room gives you the ones
 that reach the corners of the frame, which is where a curved projection does all
 of its visible work. Standing in the middle of one on a five-point sheet, the
@@ -295,10 +296,25 @@ floor lines run to the point under your feet, the ceiling lines to the one over
 your head and the four wall corners out to the four around the horizon — five
 points, one picture, nothing left to imagine.
 
-Every edge of it lands on a whole metre, and the walls are ruled in world
-coordinates rather than their own, so a line across the floor is the same line
-continuing up the wall. That is what makes it a measuring device rather than
-wallpaper.
+**Tap the room control to put it up or take it down; drag it to size it** —
+across for the floor, up and down for the ceiling, both at once from one
+diagonal drag, with the reading floating above your thumb. It goes from a 3 m
+cupboard to a 40 m hangar and from a 2 m ceiling to a 12 m one, always to the
+tenth of a metre so the walls keep landing on the ruling. Dragging raises the
+room if it was down, because sizing something you cannot see is a control with
+no feedback — and if the walls would pass you as it shrinks, you come in with
+them, so they close on you rather than leaving you outside looking at a box.
+
+Two numbers, not three: the floor is square. What a room teaches is the ratio of
+its ceiling to its floor — ten by three is a studio, forty by three a warehouse,
+six by five a stairwell, and each is a different exercise — while a floor ten by
+twelve instead of ten by ten is the same exercise seen slightly off centre,
+which walking already does.
+
+The walls are ruled in world coordinates rather than their own, so a line across
+the floor is the same line continuing up the wall. That is what makes it a
+measuring device rather than wallpaper, and it is also what lets the room be
+resized without rebuilding a single shader.
 
 There is no lighting in it. One directional sun outside a closed box leaves the
 ceiling and two of the four walls perfectly black, which is true and useless.

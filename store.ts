@@ -7,6 +7,8 @@ import {
   GuideLevel,
   MESH_SURFACES,
   nearestSurface,
+  ROOM_LIMITS,
+  RoomSize,
   SavedScene,
   SceneModel,
   SceneState,
@@ -94,8 +96,34 @@ export const EYE_LEVEL_PRESETS: { label: string; note: string; height: number }[
   { label: '2.5', note: 'Raised - the wide establishing view', height: 2.5 },
 ];
 
+/**
+ * The room, as it stands when first switched on.
+ *
+ * A studio rather than a hall: ten metres is far enough across to walk about in
+ * and to stand the six-metre car in with room at both ends, and a three metre
+ * ceiling is close enough over your head - a metre above a standing eye - that
+ * its convergence is something you can see rather than something you have to
+ * measure. Both are whole metres, so every edge of the room lands on a ruled
+ * line instead of a hand's width off one.
+ */
+export const DEFAULT_ROOM: RoomSize = { floor: 10, height: 3 };
+
+/**
+ * The furthest back anything should stand the viewer from the middle of it.
+ *
+ * A metre and a bit inside the wall, so a framing worked out from an object's
+ * size cannot put you through it - and never so close that a small room makes
+ * the framing useless. The room is off by default and this holds anyway: where
+ * the tool opens should be one place, not one place with the room and another
+ * without.
+ */
+export const standingRoom = (room: RoomSize) => Math.max(1.6, room.floor / 2 - 1.2);
+
 /** Snap a spawned cube to the centre of a 1 m grid cell, so stacks line up. */
 const snapToCell = (v: number) => Math.floor(v) + 0.5;
+
+const clampTo = (value: number, [low, high]: readonly [number, number]) =>
+  Math.max(low, Math.min(high, value));
 
 // ---------------------------------------------------------------------------
 // Remembered settings
@@ -117,6 +145,7 @@ const SETTING_KEYS = [
   'showCone',
   'showConstruction',
   'showRoom',
+  'room',
   'fov',
   'snapStep',
   'surface',
@@ -255,6 +284,7 @@ export const currentView = (state: SceneState): SceneView => ({
   showCone: state.showCone,
   surface: state.surface,
   showRoom: state.showRoom,
+  room: { ...state.room },
   snapStep: state.snapStep,
   camera: {
     x: walkInput.position.x,
@@ -295,6 +325,7 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
     showCone: view.showCone,
     surface: view.surface ?? view.modelMaterial ?? 'original',
     showRoom: view.showRoom ?? false,
+    room: { ...DEFAULT_ROOM, ...(view.room ?? {}) },
     snapStep: view.snapStep ?? 0.25,
   };
 };
@@ -315,6 +346,7 @@ export const useStore = create<SceneState>((set, get) => ({
   showCone: false,
   showConstruction: true,
   showRoom: false,
+  room: DEFAULT_ROOM,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   models: [],
   selectedModelId: null,
@@ -621,6 +653,42 @@ export const useStore = create<SceneState>((set, get) => ({
     }),
 
   toggleRoom: () => set((state) => ({ showRoom: !state.showRoom })),
+
+  /**
+   * Size it, to the tenth of a metre.
+   *
+   * Rounded there rather than left continuous because the room is a ruler as
+   * much as it is a room - its edges are meant to land on the ruled lines of
+   * its own floor - and a wall at 9.87 metres is a wall that misses every one
+   * of them by a different amount.
+   */
+  setRoom: (room) =>
+    set((state) => {
+      const next = { ...state.room, ...room };
+      const sized = {
+        floor: Math.round(clampTo(next.floor, ROOM_LIMITS.floor) * 10) / 10,
+        height: Math.round(clampTo(next.height, ROOM_LIMITS.height) * 10) / 10,
+      };
+
+      /*
+       * If the walls have gone past you, come in with them.
+       *
+       * Shrinking a room you are standing in the middle of eventually puts the
+       * wall behind your back, and what you are then looking at is the outside
+       * of a box - which is not the thing being sized and not a view anybody
+       * asked for. Half a metre inside, keeping the bearing: the walls close on
+       * you rather than pass you, which is the whole point of dragging the
+       * control while watching. Only while the room is up; with it down there is
+       * nothing to be outside of.
+       */
+      if (state.showRoom) {
+        const reach = Math.max(0.3, sized.floor / 2 - 0.5);
+        walkInput.position.x = Math.max(-reach, Math.min(reach, walkInput.position.x));
+        walkInput.position.z = Math.max(-reach, Math.min(reach, walkInput.position.z));
+      }
+
+      return { room: sized };
+    }),
 
   toggleSunEnvironment: () => set((state) => ({ sunEnvironment: !state.sunEnvironment })),
 

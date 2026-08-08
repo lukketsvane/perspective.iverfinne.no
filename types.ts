@@ -90,6 +90,27 @@ export const nearestSurface = (surface: Surface, rungs: Surface[]): Surface =>
 export type GuideLevel = 0 | 1 | 2 | 3;
 
 /**
+ * How big the room is, in metres.
+ *
+ * Two numbers rather than three: the floor is square, and what a room teaches
+ * is the ratio of its ceiling to its floor. Ten by three is a studio, forty by
+ * three is a warehouse, six by five is a stairwell, and each is a different
+ * exercise - while a floor ten by twelve instead of ten by ten is the same
+ * exercise seen from slightly off centre, which walking already does.
+ */
+export interface RoomSize {
+  /** Both plan axes. The floor is square. */
+  floor: number;
+  height: number;
+}
+
+/** As small and as large as the room goes. */
+export const ROOM_LIMITS = {
+  floor: [3, 40] as const,
+  height: [2, 12] as const,
+};
+
+/**
  * Metres that dragging snaps to. 0 is free.
  *
  * The ground grid is ruled at whatever is chosen here, so what you snap to is
@@ -201,8 +222,9 @@ export interface SceneView {
   surface?: Surface;
   /** Written by a version whose surface setting was models-only and had two rungs. */
   modelMaterial?: Surface;
-  /** Whether the room was standing round the scene. */
+  /** Whether the room was standing round the scene, and how big it was. */
   showRoom?: boolean;
+  room?: RoomSize;
   snapStep: number;
   /** Where the walker stands, and which way it faces. */
   camera: { x: number; z: number; yaw: number; pitch: number };
@@ -250,6 +272,8 @@ export interface SceneState {
    * frame, which is where a curved projection does its most visible work.
    */
   showRoom: boolean;
+  /** How big it is. */
+  room: RoomSize;
   /** Metres that edits snap to while dragging. 0 is free. */
   snapStep: number;
   models: SceneModel[];
@@ -313,6 +337,8 @@ export interface SceneState {
   toggleCone: () => void;
   toggleConstruction: () => void;
   toggleRoom: () => void;
+  /** Change the floor, the ceiling, or both. Clamped to what a room can be. */
+  setRoom: (room: Partial<RoomSize>) => void;
   /** Read the viewer's own shelf back out of the browser. */
   loadOwnMeshes: () => Promise<void>;
   /** Put an imported mesh on it, or leave it there if it already is. */
