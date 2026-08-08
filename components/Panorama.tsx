@@ -70,7 +70,7 @@ type Sheet =
  * picture is. That is the whole of what makes the export sharper: the same
  * sums, asked for a bigger frame, with the cap lifted because it happens once.
  */
-const sheetFor = (
+export const sheetFor = (
   mode: PerspectiveMode,
   spread: number,
   cssWidth: number,
@@ -148,6 +148,42 @@ const sheetFor = (
     width: cap(cssWidth * density.flat * (tanX / Math.max(halfYaw, 1e-6))),
     height: cap(cssHeight * density.flat * (tanY / Math.max(halfPitch, 1e-6))),
   };
+};
+
+/**
+ * What to ask drei for, to get the width you actually wanted on the sheet.
+ *
+ * `Line2` offsets by `linewidth / resolution` in clip space, and drei sets that
+ * resolution to the CANVAS size - while this app never draws to the canvas. The
+ * pass is rasterised into a cube face or a flat target and then re-projected,
+ * and the exporter runs it all again three times larger. So a width asked for
+ * in canvas pixels is that width in none of those places: a box's twelve edges
+ * came out a different weight from a mesh's ink contour standing beside it, and
+ * changed weight as the field was dragged.
+ *
+ * Two lines of arithmetic, and the interesting part is that they disagree about
+ * which way to go. On the flat pass the answer is within two per cent of one,
+ * which is why a fixed 1.5 looked fine at ordinary fields. On the cube it is
+ * 4 * halfYaw / PI - so the width has to GROW as the lens opens, because the
+ * face stays the same size while the sheet it feeds spreads over more of the
+ * world. The face size cancels out entirely, which is what makes this a number
+ * and not a table.
+ */
+export const penScale = (
+  mode: PerspectiveMode,
+  spread: number,
+  cssWidth: number,
+  cssHeight: number,
+  dpr: number
+): number => {
+  const { halfYaw } = fieldOf(spread, cssWidth, cssHeight);
+  const plan = sheetFor(mode, spread, cssWidth, cssHeight, {
+    flat: Math.min(dpr, 2.5) * SHARPEN,
+    cube: Math.min(dpr, 2),
+  });
+  return plan.source === 'cube'
+    ? (4 * halfYaw) / Math.PI
+    : halfYaw / Math.max(plan.tanX, 1e-6);
 };
 
 export const Panorama: React.FC<{

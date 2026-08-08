@@ -4,7 +4,8 @@ import { useStore } from '../store';
 import { MESH_SURFACES, nearestSurface, SceneModel } from '../types';
 import { authoredMaterial } from '../lib/modelMaterials';
 import { constructionInk, INK } from '../lib/inkMaterial';
-import { Edges, Line } from '@react-three/drei';
+import { Line } from '@react-three/drei';
+import { BOX_EDGES, usePen } from '../lib/pen';
 
 /**
  * One matte white material, shared by every model that is switched to it.
@@ -133,6 +134,8 @@ const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }>
   color,
   lit,
 }) => {
+  // One weight on the finished sheet - see lib/pen.ts.
+  const pen = usePen();
   const [width, height, depth] = model.size;
   const x = width / 2;
   const z = depth / 2;
@@ -140,14 +143,19 @@ const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }>
 
   return (
     <group raycast={() => null}>
-      {/* The box it blocks into. */}
-      <mesh position={[0, height / 2, 0]} raycast={() => null}>
-        <boxGeometry args={[width, height, depth]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-        {/* Geometry wireframes include each face's triangulation. Edges keeps
-            only the twelve outside cage segments. */}
-        <Edges raycast={() => null} threshold={15} color={color} />
-      </mesh>
+      {/* The box it blocks into: twelve segments rather than a wireframe, which
+          would include every face's triangulation - and drawn with the same pen
+          as everything else, which drei's <Edges> cannot be, its material's
+          width being one WebGL ignores. */}
+      <Line
+        raycast={() => null}
+        position={[0, height / 2, 0]}
+        scale={[width, height, depth]}
+        points={BOX_EDGES}
+        segments
+        color={color}
+        lineWidth={pen}
+      />
 
       {/* Where it stands, and the diagonals that find the middle of that.
 
@@ -170,7 +178,7 @@ const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }>
         raycast={() => null}
         points={[[-x, 0, -z], [x, 0, -z], [x, 0, z], [-x, 0, z], [-x, 0, -z]]}
         color={color}
-        lineWidth={1}
+        lineWidth={pen}
         transparent
         depthTest={false}
         renderOrder={998}
@@ -180,7 +188,7 @@ const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }>
         raycast={() => null}
         points={[[-x, 0, -z], [x, 0, z]]}
         color={color}
-        lineWidth={1}
+        lineWidth={pen}
         transparent
         depthTest={false}
         renderOrder={998}
@@ -190,7 +198,7 @@ const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }>
         raycast={() => null}
         points={[[x, 0, -z], [-x, 0, z]]}
         color={color}
-        lineWidth={1}
+        lineWidth={pen}
         transparent
         depthTest={false}
         renderOrder={998}
@@ -215,7 +223,7 @@ const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }>
         raycast={() => null}
         points={[[0, 0, 0], [0, height * 1.15, 0]]}
         color={color}
-        lineWidth={1}
+        lineWidth={pen}
         transparent
         depthTest={false}
         renderOrder={998}

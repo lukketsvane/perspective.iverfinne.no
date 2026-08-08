@@ -1,12 +1,13 @@
 import React, { useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Edges, Line } from '@react-three/drei';
+import { Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { BOX_SURFACES, BoxData, nearestSurface } from '../types';
 import { useStore } from '../store';
 import { faceIsReachable, faceOutward } from '../lib/manipulate';
 import { constructionInk, inkHex, INK_BOX, paperHex } from '../lib/inkMaterial';
 import { pixelsPerMetreAt } from '../lib/pick';
+import { BOX_EDGES, usePen } from '../lib/pen';
 
 /**
  * A reference box, standing on the grid.
@@ -110,6 +111,9 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
   const sceneSurface = useStore((state) => state.surface);
 
   const showConstruction = useStore((state) => state.showConstruction);
+  // One weight on the finished sheet, whatever the field is doing and whatever
+  // the picture is being rendered into - see lib/pen.ts.
+  const pen = usePen();
 
   const isSelected = selectedId === data.id;
   const isDark = theme === 'dark';
@@ -193,7 +197,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
             raycast={() => null}
             points={[[-hx, 0, -hz], [hx, 0, -hz], [hx, 0, hz], [-hx, 0, hz], [-hx, 0, -hz]]}
             color={guideColor}
-            lineWidth={1}
+            lineWidth={pen}
             transparent
             depthTest={false}
             renderOrder={998}
@@ -203,7 +207,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
             raycast={() => null}
             points={[[-hx, 0, -hz], [hx, 0, hz]]}
             color={guideColor}
-            lineWidth={1}
+            lineWidth={pen}
             transparent
             depthTest={false}
             renderOrder={998}
@@ -213,7 +217,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
             raycast={() => null}
             points={[[hx, 0, -hz], [-hx, 0, hz]]}
             color={guideColor}
-            lineWidth={1}
+            lineWidth={pen}
             transparent
             depthTest={false}
             renderOrder={998}
@@ -231,7 +235,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
             raycast={() => null}
             points={[[0, 0, 0], [0, data.position[1] + data.scale[1] * 0.65, 0]]}
             color={guideColor}
-            lineWidth={1}
+            lineWidth={pen}
             transparent
             depthTest={false}
             renderOrder={998}
@@ -277,7 +281,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
             polygonOffsetFactor={1}
           />
         )}
-        <Edges raycast={() => null} scale={1} threshold={15} color={edgeColor} />
+        <Line raycast={() => null} points={BOX_EDGES} segments color={edgeColor} lineWidth={pen} />
       </mesh>
 
       {isSelected && <FaceHandles data={data} color={handleColor} />}
