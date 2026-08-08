@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { fieldOf } from '../lib/projection';
+import { registerFrameRenderer } from '../lib/capture';
 import { sceneRevision } from '../lib/sceneRevision';
 import type { PerspectiveMode } from '../types';
 
@@ -50,6 +51,86 @@ const MARGIN = 1.02;
 /** And a little more resolution than the screen, so the resample is a downsample. */
 const SHARPEN = 1.15;
 
+type Sheet =
+  | { source: 'cube'; faceSize: number }
+  | { source: 'flat'; tanX: number; tanY: number; width: number; height: number };
+
+/**
+ * Which source, and how big, for a frame of this shape at this field.
+ *
+ * Density is how many source pixels are wanted per CSS pixel of frame, and the
+ * two branches want different numbers - which is why it is two numbers. A flat
+ * pass is one render into one texture, so it can afford to be denser than the
+ * glass and should be, since a source denser than its destination is what turns
+ * the resample into a downsample. A cube is six of them and lives between
+ * frames, so every step up costs four times the video memory; it takes what the
+ * canvas actually has and no more.
+ *
+ * For a picture being taken away, both become however many times larger the
+ * picture is. That is the whole of what makes the export sharper: the same
+ * sums, asked for a bigger frame, with the cap lifted because it happens once.
+ */
+const sheetFor = (
+  mode: Exclude<PerspectiveMode, 'linear'>,
+  spread: number,
+  cssWidth: number,
+  cssHeight: number,
+  density: { flat: number; cube: number },
+  faceCap = cssWidth < 700 ? 1024 : 2048
+): Sheet => {
+  const { halfYaw, halfPitch } = fieldOf(spread, cssWidth, cssHeight);
+
+  /** How far off the axis the corner of the frame reaches. */
+  const corner =
+    mode === 'cylindrical'
+      ? Math.acos(
+          Math.max(-1, Math.min(1, Math.cos(Math.min(halfYaw, Math.PI)) * Math.cos(Math.min(halfPitch, HALF_PI))))
+        )
+      : Math.hypot(halfYaw, halfPitch);
+
+  if (corner > FLAT_LIMIT) {
+    // The picture is read off the cube by angle, so what matters is how many
+    // pixels of source there are per degree of view against how many pixels of
+    // screen there are to fill.
+    const wanted = (90 / Math.max(spread, 20)) * (cssWidth * density.cube);
+    const capped = Math.min(faceCap, Math.max(512, wanted));
+    // Round up to a power of two: cube faces prefer it, and it stops the target
+    // being rebuilt for every degree the field changes by.
+    return { source: 'cube', faceSize: 2 ** Math.ceil(Math.log2(capped)) };
+  }
+
+  /*
+   * The flat frustum, in tangent units.
+   *
+   * Every direction the frame asks for lies within `corner` of the axis, and
+   * the one furthest out along each screen axis is at the corner itself - so
+   * the extents are the frame's own half-angles, scaled by however much the
+   * tangent has run ahead of the angle by the time it gets there.
+   */
+  const stretch = Math.tan(corner) / Math.max(corner, 1e-6);
+  const tanX = (mode === 'cylindrical' ? Math.tan(halfYaw) : halfYaw * stretch) * MARGIN;
+  const tanY =
+    (mode === 'cylindrical' ? Math.tan(halfPitch) / Math.cos(halfYaw) : halfPitch * stretch) * MARGIN;
+
+  /*
+   * And how many pixels of it.
+   *
+   * Enough that the middle of the flat render is at least as dense as the
+   * middle of the frame: resampling a source denser than its destination is a
+   * downsample, which softens nothing and smooths the stair steps a same-size
+   * resample would leave. The frame's own half-angles are its density, so the
+   * ratio of tangent to angle is the ratio of sizes.
+   */
+  const cap = (value: number) => Math.max(256, Math.min(4096, Math.round(value)));
+  return {
+    source: 'flat',
+    tanX,
+    tanY,
+    width: cap(cssWidth * density.flat * (tanX / Math.max(halfYaw, 1e-6))),
+    height: cap(cssHeight * density.flat * (tanY / Math.max(halfPitch, 1e-6))),
+  };
+};
+
 export const Panorama: React.FC<{
   spread: number;
   mode: Exclude<PerspectiveMode, 'linear'>;
@@ -88,61 +169,22 @@ export const Panorama: React.FC<{
    * degrees out from the axis, at the corner of the frame. Past that the cube
    * takes it, by which point the cube has enough face to spare.
    */
-  const sheet = useMemo(() => {
-    const { halfYaw, halfPitch } = fieldOf(spread, size.width, size.height);
+  const sheet: Sheet = useMemo(
+    () =>
+      sheetFor(mode, spread, size.width, size.height, {
+        // Denser than the glass, deliberately: the canvas runs at a capped
+        // pixel ratio to keep sixty frames a second, and the source is what
+        // decides whether the picture is magnified or supersampled.
+        flat: Math.min(typeof window === 'undefined' ? 2 : window.devicePixelRatio || 1, 2.5) * SHARPEN,
+        cube: Math.min(viewport.dpr, 2),
+      }),
+    [mode, spread, size.width, size.height, viewport.dpr]
+  );
 
-    /** How far off the axis the corner of the frame reaches. */
-    const corner =
-      mode === 'cylindrical'
-        ? Math.acos(
-            Math.max(-1, Math.min(1, Math.cos(Math.min(halfYaw, Math.PI)) * Math.cos(Math.min(halfPitch, HALF_PI))))
-          )
-        : Math.hypot(halfYaw, halfPitch);
-
-    if (corner > FLAT_LIMIT) {
-      // The picture is read off the cube by angle, so what matters is how many
-      // pixels of source there are per degree of view against how many pixels
-      // of screen there are to fill.
-      const pixels = size.width * Math.min(viewport.dpr, 2);
-      const wanted = (90 / Math.max(spread, 20)) * pixels;
-      const capped = Math.min(size.width < 700 ? 1024 : 2048, Math.max(512, wanted));
-      // Round up to a power of two: cube faces prefer it, and it stops the
-      // target being rebuilt for every degree the field changes by.
-      return { wide: true as const, faceSize: 2 ** Math.ceil(Math.log2(capped)) };
-    }
-
-    /*
-     * The flat frustum, in tangent units.
-     *
-     * Every direction the frame asks for lies within `corner` of the axis, and
-     * the one furthest out along each screen axis is at the corner itself - so
-     * the extents are the frame's own half-angles, scaled by however much the
-     * tangent has run ahead of the angle by the time it gets there.
-     */
-    const stretch = Math.tan(corner) / Math.max(corner, 1e-6);
-    const tanX = (mode === 'cylindrical' ? Math.tan(halfYaw) : halfYaw * stretch) * MARGIN;
-    const tanY =
-      (mode === 'cylindrical' ? Math.tan(halfPitch) / Math.cos(halfYaw) : halfPitch * stretch) * MARGIN;
-
-    /*
-     * And how many pixels of it.
-     *
-     * Enough that the middle of the flat render is at least as dense as the
-     * middle of the screen, times a little: resampling a source denser than the
-     * screen is a downsample, which softens nothing and smooths the stair steps
-     * that a same-size resample would leave. The frame's own half-angles are the
-     * screen's density, so the ratio of tangent to angle is the ratio of sizes.
-     */
-    const dense = Math.min(typeof window === 'undefined' ? 2 : window.devicePixelRatio || 1, 2.5) * SHARPEN;
-    const cap = (value: number) => Math.max(256, Math.min(4096, Math.round(value)));
-    return {
-      wide: false as const,
-      tanX,
-      tanY,
-      width: cap(size.width * dense * (tanX / Math.max(halfYaw, 1e-6))),
-      height: cap(size.height * dense * (tanY / Math.max(halfPitch, 1e-6))),
-    };
-  }, [mode, spread, size.width, size.height, viewport.dpr]);
+  // Narrowed once, here, so every use below is a plain object or null rather
+  // than a discriminated union threaded through five closures and a dep array.
+  const wideSheet = sheet.source === 'cube' ? sheet : null;
+  const flatSheet = sheet.source === 'flat' ? sheet : null;
 
   /** The full-screen pass that turns whichever source it is into the picture. */
   const optics = useMemo(() => {
@@ -369,33 +411,33 @@ export const Panorama: React.FC<{
 
   /** Six faces of world, for a field too wide for one flat frustum. */
   const cube = useMemo(() => {
-    if (!sheet.wide) return null;
-    const target = new THREE.WebGLCubeRenderTarget(sheet.faceSize, {
+    if (!wideSheet) return null;
+    const target = new THREE.WebGLCubeRenderTarget(wideSheet.faceSize, {
       generateMipmaps: false,
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
     });
     return { target, camera: new THREE.CubeCamera(0.05, 2000, target) };
-  }, [sheet.wide, sheet.wide ? sheet.faceSize : 0]);
+  }, [wideSheet?.faceSize]);
 
   useEffect(() => () => cube?.target.dispose(), [cube]);
 
   /** One flat pass, for a field that fits in one. */
   const flat = useMemo(() => {
-    if (sheet.wide) return null;
-    const target = new THREE.WebGLRenderTarget(sheet.width, sheet.height, {
+    if (!flatSheet) return null;
+    const target = new THREE.WebGLRenderTarget(flatSheet.width, flatSheet.height, {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
       depthBuffer: true,
     });
     const camera = new THREE.PerspectiveCamera(
-      (2 * Math.atan(sheet.tanY) * 180) / Math.PI,
-      sheet.tanX / sheet.tanY,
+      (2 * Math.atan(flatSheet.tanY) * 180) / Math.PI,
+      flatSheet.tanX / flatSheet.tanY,
       0.05,
       2000
     );
     return { target, camera };
-  }, [sheet.wide, sheet.wide ? 0 : sheet.width, sheet.wide ? 0 : sheet.height, sheet.wide ? 0 : sheet.tanX, sheet.wide ? 0 : sheet.tanY]);
+  }, [flatSheet?.width, flatSheet?.height, flatSheet?.tanX, flatSheet?.tanY]);
 
   useEffect(() => () => flat?.target.dispose(), [flat]);
 
@@ -424,10 +466,10 @@ export const Panorama: React.FC<{
     uniforms.gridColor.value.copy(gridColor);
     uniforms.gridStrength.value = gridStrength;
     uniforms.surround.value.copy(surround);
-    uniforms.useFlat.value = !sheet.wide;
+    uniforms.useFlat.value = !!flatSheet;
     uniforms.panorama.value = cube?.target.texture ?? null;
     uniforms.flatMap.value = flat?.target.texture ?? null;
-    if (!sheet.wide) uniforms.flatTan.value.set(sheet.tanX, sheet.tanY);
+    if (flatSheet) uniforms.flatTan.value.set(flatSheet.tanX, flatSheet.tanY);
 
     const was = drawnAt.current;
     const moved =
@@ -435,8 +477,8 @@ export const Panorama: React.FC<{
       Math.abs(was.y - camera.position.y) > 1e-4 ||
       Math.abs(was.z - camera.position.z) > 1e-4;
     // Which way the flat pass was pointing. The cube does not care.
-    const aim = sheet.wide ? 0 : camera.quaternion.x + camera.quaternion.y * 3 + camera.quaternion.w * 7;
-    const source = sheet.wide ? sheet.faceSize : -(sheet.width + sheet.height / 8192);
+    const aim = flatSheet ? camera.quaternion.x + camera.quaternion.y * 3 + camera.quaternion.w * 7 : 0;
+    const source = wideSheet ? wideSheet.faceSize : -(flatSheet!.width + flatSheet!.height / 8192);
     const stale =
       moved ||
       was.revision !== sceneRevision.value ||
@@ -468,12 +510,131 @@ export const Panorama: React.FC<{
     gl.render(optics.quadScene, optics.quadCamera);
   }, 1);
 
+  /**
+   * The same picture, drawn once, as large as it is asked for.
+   *
+   * Everything above is built for a screen: a source sized to the glass, kept
+   * between frames, and a cube capped at what a phone can hold. A picture that
+   * is leaving to be drawn from wants none of those compromises and pays for
+   * none of them, because it happens once. So the sums are run again at the
+   * export's own size - the same sums, with a bigger frame in them - into
+   * targets that are thrown away immediately after.
+   *
+   * Three things make it better than a screenshot of the glass and not one of
+   * them is the pixel count on its own. The source is built at the export's
+   * density rather than the screen's, so nothing is magnified. It is
+   * multisampled, so the edges of the geometry are resolved rather than
+   * stepped. And it carries mipmaps with trilinear minification, so where the
+   * projection squeezes the source - which it does hard towards the edge of a
+   * wide field - the picture is filtered down instead of point-sampled into
+   * sparkle.
+   */
+  useEffect(() => {
+    registerFrameRenderer((width, height) => {
+      const density = width / Math.max(size.width, 1);
+      const plan = sheetFor(mode, spread, size.width, size.height, { flat: density * SHARPEN, cube: density }, 4096);
+      const { halfYaw, halfPitch } = fieldOf(spread, size.width, size.height);
+
+      const material = optics.material;
+      const held = {
+        panorama: material.uniforms.panorama.value,
+        flatMap: material.uniforms.flatMap.value,
+        useFlat: material.uniforms.useFlat.value,
+        flatTan: material.uniforms.flatTan.value.clone(),
+      };
+      const out = new THREE.WebGLRenderTarget(width, height, {
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+      });
+
+      let source: THREE.WebGLRenderTarget | THREE.WebGLCubeRenderTarget | null = null;
+      try {
+        if (plan.source === 'cube') {
+          const cubeTarget = new THREE.WebGLCubeRenderTarget(plan.faceSize, {
+            generateMipmaps: true,
+            minFilter: THREE.LinearMipmapLinearFilter,
+            magFilter: THREE.LinearFilter,
+          });
+          source = cubeTarget;
+          const rig = new THREE.CubeCamera(0.05, 2000, cubeTarget);
+          rig.position.copy(camera.position);
+          rig.update(gl, scene);
+          material.uniforms.useFlat.value = false;
+          material.uniforms.panorama.value = cubeTarget.texture;
+        } else {
+          const flatTarget = new THREE.WebGLRenderTarget(plan.width, plan.height, {
+            // Four samples resolves the geometry's own edges; the mipmaps
+            // handle what the projection does to them afterwards.
+            samples: 4,
+            generateMipmaps: true,
+            minFilter: THREE.LinearMipmapLinearFilter,
+            magFilter: THREE.LinearFilter,
+          });
+          source = flatTarget;
+          const rig = new THREE.PerspectiveCamera(
+            (2 * Math.atan(plan.tanY) * 180) / Math.PI,
+            plan.tanX / plan.tanY,
+            0.05,
+            2000
+          );
+          rig.position.copy(camera.position);
+          rig.quaternion.copy(camera.quaternion);
+          rig.updateMatrixWorld();
+          gl.setRenderTarget(flatTarget);
+          gl.render(scene, rig);
+          material.uniforms.useFlat.value = true;
+          material.uniforms.flatMap.value = flatTarget.texture;
+          material.uniforms.flatTan.value.set(plan.tanX, plan.tanY);
+        }
+
+        material.uniforms.halfYaw.value = halfYaw;
+        material.uniforms.halfPitch.value = halfPitch;
+        material.uniforms.orientation.value.setFromMatrix4(camera.matrixWorld);
+        material.uniforms.projectionMode.value = PROJECTION_MODES[mode] ?? 0;
+
+        gl.setRenderTarget(out);
+        gl.render(optics.quadScene, optics.quadCamera);
+
+        const pixels = new Uint8Array(width * height * 4);
+        gl.readRenderTargetPixels(out, 0, 0, width, height, pixels);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d');
+        if (!context) return null;
+        const image = context.createImageData(width, height);
+        // WebGL hands the buffer back bottom row first.
+        for (let row = 0; row < height; row++) {
+          const from = (height - 1 - row) * width * 4;
+          image.data.set(pixels.subarray(from, from + width * 4), row * width * 4);
+        }
+        context.putImageData(image, 0, 0);
+        return canvas;
+      } catch (error) {
+        console.error('Could not draw the picture at that size:', error);
+        return null;
+      } finally {
+        source?.dispose();
+        out.dispose();
+        gl.setRenderTarget(null);
+        // Put the live frame's uniforms back; the next tick would anyway, but
+        // not before the one this was called from has been drawn.
+        material.uniforms.panorama.value = held.panorama;
+        material.uniforms.flatMap.value = held.flatMap;
+        material.uniforms.useFlat.value = held.useFlat;
+        material.uniforms.flatTan.value.copy(held.flatTan);
+      }
+    });
+    return () => registerFrameRenderer(null);
+  }, [gl, scene, camera, optics, mode, spread, size.width, size.height]);
+
   // Which source the picture is being read off, and how big it is. A browser
   // test cannot tell a sharp frame from a soft one by looking; it can ask.
   if (import.meta.env.DEV) {
-    (window as unknown as { __panorama?: unknown }).__panorama = sheet.wide
-      ? { source: 'cube', faceSize: sheet.faceSize }
-      : { source: 'flat', width: sheet.width, height: sheet.height };
+    (window as unknown as { __panorama?: unknown }).__panorama = wideSheet
+      ? { source: 'cube', faceSize: wideSheet.faceSize }
+      : { source: 'flat', width: flatSheet!.width, height: flatSheet!.height };
   }
 
   return null;

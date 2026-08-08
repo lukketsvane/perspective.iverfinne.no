@@ -129,15 +129,16 @@ const Z = new THREE.Vector3(0, 0, 1);
  * at the same metres, which is the property that lets the room be resized
  * without rebuilding a single shader.
  */
-const facesFor = (floor: number, height: number): Face[] => {
-  const half = floor / 2;
+const facesFor = (width: number, depth: number, height: number): Face[] => {
+  const x = width / 2;
+  const z = depth / 2;
   return [
-    { key: 'back', position: [0, height / 2, -half], rotation: [0, 0, 0], size: [floor, height], along: X, up: Y, value: 1 },
-    { key: 'front', position: [0, height / 2, half], rotation: [0, Math.PI, 0], size: [floor, height], along: X, up: Y, value: 1 },
-    { key: 'left', position: [-half, height / 2, 0], rotation: [0, Math.PI / 2, 0], size: [floor, height], along: Z, up: Y, value: 2 },
-    { key: 'right', position: [half, height / 2, 0], rotation: [0, -Math.PI / 2, 0], size: [floor, height], along: Z, up: Y, value: 2 },
-    { key: 'ceiling', position: [0, height, 0], rotation: [Math.PI / 2, 0, 0], size: [floor, floor], along: X, up: Z, value: 0 },
-    { key: 'floor', position: [0, -FLOOR_DROP, 0], rotation: [-Math.PI / 2, 0, 0], size: [floor, floor], along: X, up: Z, value: 3 },
+    { key: 'back', position: [0, height / 2, -z], rotation: [0, 0, 0], size: [width, height], along: X, up: Y, value: 1 },
+    { key: 'front', position: [0, height / 2, z], rotation: [0, Math.PI, 0], size: [width, height], along: X, up: Y, value: 1 },
+    { key: 'left', position: [-x, height / 2, 0], rotation: [0, Math.PI / 2, 0], size: [depth, height], along: Z, up: Y, value: 2 },
+    { key: 'right', position: [x, height / 2, 0], rotation: [0, -Math.PI / 2, 0], size: [depth, height], along: Z, up: Y, value: 2 },
+    { key: 'ceiling', position: [0, height, 0], rotation: [Math.PI / 2, 0, 0], size: [width, depth], along: X, up: Z, value: 0 },
+    { key: 'floor', position: [0, -FLOOR_DROP, 0], rotation: [-Math.PI / 2, 0, 0], size: [width, depth], along: X, up: Z, value: 3 },
   ];
 };
 
@@ -150,15 +151,15 @@ const TONES: Record<'light' | 'dark', [string, string, string, string]> = {
 };
 
 export const Room: React.FC<{ dark: boolean }> = ({ dark }) => {
-  const { floor, height } = useStore((state) => state.room);
-  const faces = useMemo(() => facesFor(floor, height), [floor, height]);
+  const { width, depth, height } = useStore((state) => state.room);
+  const faces = useMemo(() => facesFor(width, depth, height), [width, depth, height]);
 
   const materials = useMemo(() => {
     const tones = TONES[dark ? 'dark' : 'light'];
     const ink = dark ? '#9aa0a6' : '#6d6862';
     // One per rung of the ladder and per pair of ruling axes, built once for the
     // theme and reused at every size.
-    return facesFor(1, 1).map((face) =>
+    return facesFor(1, 1, 1).map((face) =>
       surfaceMaterial(face.along, face.up, tones[face.value], ink, dark ? 0.65 : 0.8)
     );
   }, [dark]);
@@ -173,12 +174,13 @@ export const Room: React.FC<{ dark: boolean }> = ({ dark }) => {
    * being the one that says how far away the wall is.
    */
   const edge = dark ? '#ff6a5e' : '#e0342a';
-  const half = floor / 2;
+  const x = width / 2;
+  const z = depth / 2;
   const corners: [number, number][] = [
-    [-half, -half],
-    [half, -half],
-    [half, half],
-    [-half, half],
+    [-x, -z],
+    [x, -z],
+    [x, z],
+    [-x, z],
   ];
   const loop = (y: number) =>
     [...corners, corners[0]].map(([x, z]) => [x, y, z] as [number, number, number]);

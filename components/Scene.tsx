@@ -37,13 +37,15 @@ const VanishingTracker = () => {
   const selectedId = useStore((state) => state.selectedId);
   const selectedModelId = useStore((state) => state.selectedModelId);
   const perspectiveMode = useStore((state) => state.perspectiveMode);
-  const guides = useStore((state) => state.guides);
+  // Its own switch, not a rung of the guides: the room's construction and the
+  // selection's construction are wanted at different moments.
+  const showVanishing = useStore((state) => state.showVanishing);
 
   const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
   const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
 
   useFrame(() => {
-    if (!guides || (!box && !model)) {
+    if (!showVanishing || (!box && !model)) {
       clearVanishing();
       return;
     }

@@ -5,6 +5,7 @@ import { arSupported } from '../lib/xr';
 import { Icon, I, SURFACE_ICON } from './icons';
 import { Scrub, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
+import { whileWorking } from '../lib/activity';
 import { ACTIVE, chrome, iconButton } from './ui';
 import { pickObject } from '../lib/pick';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
@@ -195,6 +196,8 @@ export const WalkOverlay: React.FC<{
   const toggleCone = useStore((s) => s.toggleCone);
   const showConstruction = useStore((s) => s.showConstruction);
   const toggleConstruction = useStore((s) => s.toggleConstruction);
+  const showVanishing = useStore((s) => s.showVanishing);
+  const toggleVanishing = useStore((s) => s.toggleVanishing);
 
   const isDark = theme === 'dark';
   const surface = chrome(isDark);
@@ -701,6 +704,13 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.cage} className="w-5 h-5" />
           </button>
+          <button
+            onClick={toggleVanishing}
+            aria-label="The selection's own vanishing points"
+            className={`${button} ${showVanishing ? ACTIVE : ''}`}
+          >
+            <Icon path={I.vanishing} className="w-5 h-5" />
+          </button>
           <button onClick={toggleViewLock} aria-label="Lock view" className={`${button} ${viewLocked ? '!text-amber-400' : ''}`}>
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="4" y="10.5" width="16" height="10" rx="2" />
@@ -710,7 +720,7 @@ export const WalkOverlay: React.FC<{
           <div className="relative flex items-center">
             <button
               {...roomControl.handlers}
-              aria-label={`Room, ${room.floor} by ${room.height} metres`}
+              aria-label={`Room, ${room.width.toFixed(1)} by ${room.depth.toFixed(1)} metres`}
               className={`${button} touch-none ${showRoom ? ACTIVE : ''}`}
             >
               <Icon path={I.room} className="w-5 h-5" />
@@ -721,7 +731,7 @@ export const WalkOverlay: React.FC<{
                   isDark ? 'bg-neutral-950/95 text-white border-white/20' : 'bg-white/95 text-black border-black/10'
                 }`}
               >
-                {room.floor.toFixed(1)} × {room.height.toFixed(1)}
+                {room.width.toFixed(1)} × {room.depth.toFixed(1)}
               </div>
             )}
           </div>
@@ -748,7 +758,7 @@ export const WalkOverlay: React.FC<{
             <Icon path={I.reset} className="w-5 h-5" />
           </button>
           <button
-            onClick={() => captureView(captureFileName(cameraHeight, fov))}
+            onClick={() => whileWorking(() => captureView(captureFileName(cameraHeight, fov)))}
             aria-label="Save the view as a picture"
             className={button}
           >
