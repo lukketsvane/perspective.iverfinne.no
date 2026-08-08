@@ -42,6 +42,11 @@ export type PerspectiveMode = 'cylindrical' | 'equidistant' | 'stereographic';
  * - 'matte': opaque, plain white, no texture. Photographed skin and fabric is a
  *   lot of information to draw past; stripped out, a figure reads as form and
  *   value only, which is what it is doing in a scene full of white boxes.
+ * - 'ink': not a material at all - the drawing. Line where the form turns away
+ *   from the eye, and nothing else: no light, no tone, no cast shadow. Every
+ *   other rung answers "what is this made of", which is a question a perspective
+ *   study never asks. This one answers "where would the pen go", and it is the
+ *   only rung whose output you can put a sheet of paper beside.
  * - 'glass': translucent, and writing no depth - so the far edges come through
  *   the near faces. This is drawing through, which is how a box is checked: if
  *   the hidden corner is in the wrong place the whole thing is, and on an opaque
@@ -54,19 +59,25 @@ export type PerspectiveMode = 'cylindrical' | 'equidistant' | 'stereographic';
  * exactly the arrangement a study wants and what a single scene-wide setting
  * could never say.
  */
-export type Surface = 'original' | 'matte' | 'glass' | 'wire';
+export type Surface = 'original' | 'matte' | 'ink' | 'glass' | 'wire';
 
-/** The whole ladder, in order. What the scene-wide control steps through. */
-export const SURFACES: Surface[] = ['original', 'matte', 'glass', 'wire'];
+/**
+ * The whole ladder, in order. What the scene-wide control steps through.
+ *
+ * Ordered by how much has been taken away: everything the file says, then the
+ * texture gone, then the light gone too and only the line left, then the near
+ * side gone, then the object itself.
+ */
+export const SURFACES: Surface[] = ['original', 'matte', 'ink', 'glass', 'wire'];
 
 /** What a box steps through: it has no authored material to strip. */
-export const BOX_SURFACES: Surface[] = ['original', 'glass', 'wire'];
+export const BOX_SURFACES: Surface[] = ['original', 'ink', 'glass', 'wire'];
 
 /**
  * What a mesh steps through: it has no cage to fall back on, so taking its
  * surface away entirely would leave nothing on screen to take hold of again.
  */
-export const MESH_SURFACES: Surface[] = ['original', 'matte', 'glass'];
+export const MESH_SURFACES: Surface[] = ['original', 'matte', 'ink', 'glass'];
 
 /**
  * The nearest rung a given kind of thing can actually draw.
@@ -156,6 +167,16 @@ export interface SceneModel {
   /** How solidly it is drawn. Absent means whatever the scene's default is. */
   surface?: Surface;
   /**
+   * A room rather than an object.
+   *
+   * Everything about a placed mesh assumes you are standing outside it looking
+   * at it: the cage it blocks into, its own three vanishing points, the
+   * footprint it stands on. None of that means anything for a mesh you are
+   * standing inside, where the box round it is the box round the room and its
+   * axes are the world's. So a scene carries none of it.
+   */
+  kind?: 'object' | 'scene';
+  /**
    * Its size is settled: leave it alone.
    *
    * A mesh comes in at the size the file says it is, and for the library three
@@ -219,6 +240,7 @@ export interface SceneInstance {
   baseScale: number;
   size: [number, number, number];
   surface?: Surface;
+  kind?: 'object' | 'scene';
   lockedScale?: boolean;
 }
 

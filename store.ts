@@ -43,14 +43,25 @@ export const UNIT = 1;
 export const DEFAULT_CAMERA_HEIGHT = 1.9;
 
 /**
- * The whole hemisphere, and the field the tool opens on.
+ * The field the tool opens on.
  *
- * At 180 the four horizon points land exactly on the edge of the frame and the
- * fifth is at its centre - which is the five-point sheet itself, not an
- * approximation of it. Wider than that and the sheet shrinks into a bubble
- * with dead paper around it; narrower and the points walk off the page.
+ * It used to open at 180, the whole hemisphere, where the four horizon points
+ * land exactly on the edge of the frame and the fifth is at its centre - the
+ * five-point sheet itself rather than an approximation of it. That is still
+ * what the projection is for and it is still one drag of the field away.
+ *
+ * It is not what to open on. At 180 every straight edge in the world is
+ * visibly bowed, so there is nothing on the page you can lay a straightedge
+ * against and nothing that looks like the perspective anyone was taught first.
+ * Someone opening this to learn perspective is handed the hardest case in the
+ * subject before the ordinary one. At 90 the equidistant sheet is within a
+ * pencil-width of straight-line perspective, and - because the corner of a
+ * 16:9 frame then reaches about 52 degrees, inside FLAT_LIMIT - it also drops
+ * onto the single flat pass instead of the six-face cube, so it is sharper and
+ * a sixth of the cost. Widen it and you watch the straight lines bend, which is
+ * the lesson, in the order it can be learned.
  */
-export const DEFAULT_FOV = 180;
+export const DEFAULT_FOV = 90;
 
 /**
  * The sun, as it stands when the tool opens.
@@ -197,6 +208,29 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   fill: object,
 };
 
+/**
+ * Which opening view a stored setup was written against.
+ *
+ * A remembered setting is normally sacred: you chose it, so it wins over any
+ * default. That breaks exactly once - when the *opening view itself* changes,
+ * because then everyone who has ever opened the tool is pinned to the old one
+ * and the change reaches nobody who has used it before.
+ *
+ * That is what happened here. The field moved from the whole hemisphere to 90
+ * degrees, the construction sheet lost two of its three families, the cage came
+ * off everything but the selection, and the surface ladder gained the rung the
+ * tool now opens on. Anyone returning with the old values stored would see none
+ * of it and would reasonably conclude nothing had been done.
+ *
+ * So these four are taken back to the new defaults once, and once only. Nothing
+ * else in the setup is touched: the theme, the room, the sun, the fill, the eye
+ * level and the snap are all still yours.
+ */
+const VIEW_GENERATION = 2;
+
+/** The keys the reset above drops. Everything else survives it. */
+const VIEW_KEYS = ['fov', 'guides', 'showConstruction', 'surface'] as const;
+
 const loadSettings = (): Partial<PersistedSettings> => {
   if (typeof localStorage === 'undefined') return {};
   try {
@@ -204,9 +238,13 @@ const loadSettings = (): Partial<PersistedSettings> => {
     if (!stored) return {};
     const parsed = JSON.parse(stored) as Record<string, unknown>;
     if (!object(parsed)) return {};
+    const stale = parsed.viewGeneration !== VIEW_GENERATION;
     return Object.fromEntries(
       SETTING_KEYS.filter(
-        (key) => Object.prototype.hasOwnProperty.call(parsed, key) && SETTING_SHAPE[key](parsed[key])
+        (key) =>
+          Object.prototype.hasOwnProperty.call(parsed, key) &&
+          SETTING_SHAPE[key](parsed[key]) &&
+          !(stale && (VIEW_KEYS as readonly string[]).includes(key))
       ).map((key) => [key, parsed[key]])
     ) as Partial<PersistedSettings>;
   } catch {
@@ -229,7 +267,10 @@ export const saveSettings = (state: SceneState) => {
     try {
       localStorage.setItem(
         SETTINGS_KEY,
-        JSON.stringify(Object.fromEntries(SETTING_KEYS.map((key) => [key, state[key]])))
+        JSON.stringify({
+          ...Object.fromEntries(SETTING_KEYS.map((key) => [key, state[key]])),
+          viewGeneration: VIEW_GENERATION,
+        })
       );
     } catch {
       // A full or blocked store is not worth interrupting a drawing session for.
@@ -281,7 +322,19 @@ const readMode = (stored: unknown): PerspectiveMode =>
     ? stored
     : 'equidistant';
 
-const remembered = {
+/**
+ * Drop the keys that came back undefined.
+ *
+ * This whole object is spread over the defaults, and a spread copies a key
+ * whose value is `undefined` just as willingly as one with a value in it - so a
+ * migration that answers "nothing stored, use the default" by returning
+ * undefined would instead overwrite the default with undefined. Which is how
+ * you get a field that is neither what was saved nor what was meant.
+ */
+const kept = <T extends object>(source: T): Partial<T> =>
+  Object.fromEntries(Object.entries(source).filter(([, value]) => value !== undefined)) as Partial<T>;
+
+const remembered = kept({
   ...loadedSettings,
   // Migrate settings written before the continuous background control existed.
   backgroundGray: loadedSettings.backgroundGray ?? (loadedSettings.theme === 'dark' ? 0 : 243),
@@ -291,16 +344,24 @@ const remembered = {
    * own. Anything written by the four-rung version says "grid" at 2 and above,
    * so that is where the switches come from, and every rung above the grid
    * slides down one.
+   *
+   * `undefined` when there is nothing stored either way, so a browser that has
+   * never opened this takes the opening default rather than the top of the
+   * ladder. It read `legacy.showGuides ?? true` before, which is a sensible
+   * migration and a bad default: it meant a first visitor was migrated from a
+   * setting they had never had, and the store's own value never applied.
    */
-  guides: (Math.min(2, loadedSettings.guides ?? ((legacy.showGuides ?? true) ? 3 : 0)) as GuideLevel),
+  guides: (loadedSettings.guides ?? legacy.showGuides) === undefined
+    ? undefined
+    : (Math.min(2, loadedSettings.guides ?? (legacy.showGuides ? 3 : 0)) as GuideLevel),
   gridX: loadedSettings.gridX ?? (loadedSettings.guides ?? 3) >= 2,
   gridZ: loadedSettings.gridZ ?? (loadedSettings.guides ?? 3) >= 2,
   // ...and before the surface was a property of each thing rather than one
   // switch over every mesh in the scene.
-  surface: loadedSettings.surface ?? legacy.modelMaterial ?? 'original',
+  surface: loadedSettings.surface ?? legacy.modelMaterial ?? 'ink',
   // ...and before the room's floor was two numbers rather than one.
   room: readRoom(loadedSettings.room),
-};
+});
 
 /** How many steps back you can take. */
 const UNDO_DEPTH = 25;
@@ -410,7 +471,7 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
     guides: (Math.min(2, view.guides ?? ((view.showGuides ?? true) ? 3 : 0)) as GuideLevel),
     gridX: view.gridX ?? (view.guides ?? 3) >= 2,
     gridZ: view.gridZ ?? (view.guides ?? 3) >= 2,
-    surface: view.surface ?? view.modelMaterial ?? 'original',
+    surface: view.surface ?? view.modelMaterial ?? 'ink',
     showRoom: view.showRoom ?? false,
     room: readRoom(view.room),
     showVanishing: view.showVanishing ?? true,
@@ -430,17 +491,20 @@ export const useStore = create<SceneState>((set, get) => ({
   fov: DEFAULT_FOV,
   perspectiveMode: 'equidistant',
   cameraHeight: DEFAULT_CAMERA_HEIGHT,
-  guides: 2,
+  // The eye level and the points, not the ruled sphere behind them: what you
+  // set a drawing up with, rather than the lesson in what the projection does.
+  guides: 1,
   gridX: true,
   gridZ: true,
-  showConstruction: true,
+  showConstruction: false,
   showRoom: false,
   room: DEFAULT_ROOM,
   showVanishing: true,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   models: [],
   selectedModelId: null,
-  surface: 'original',
+  // The tool opens on the drawing, not on a lighting study of it.
+  surface: 'ink',
   sunEnvironment: false,
   viewLocked: false,
   undoStack: [],
@@ -909,6 +973,7 @@ export const useStore = create<SceneState>((set, get) => ({
         baseScale: model.baseScale,
         size: [...model.size] as [number, number, number],
         surface: model.surface,
+        kind: model.kind,
         lockedScale: model.lockedScale,
       })),
       view: currentView(state),
@@ -953,6 +1018,7 @@ export const useStore = create<SceneState>((set, get) => ({
           baseScale: instance.baseScale,
           size: [...instance.size] as [number, number, number],
           surface: instance.surface,
+          kind: instance.kind,
           lockedScale: instance.lockedScale,
         });
       } catch (error) {

@@ -15,6 +15,30 @@ things are, so anything drawn against one is drawn against a real chair. A knee-
 high thing, a seat-high thing and a six-metre thing: between them they cover the
 range a study needs something known to be measured against.
 
+Then three **studies**, reconstructed from Kim Jung Gi pages. Each is a single
+sculpted mesh — fifteen figures, the furniture they are on, the animals among
+them, welded into one — so there is nothing in them to take apart and nothing to
+select inside. That is the point: they are not a kit, they are a room to stand
+in and draw, at the density of incident he actually drew at.
+
+A study is a *scene* rather than an object, and the difference is not size, it
+is what you do with it. An object is something you stand a known distance from
+and draw; a scene is something you walk into and draw from inside. So a study
+lands on the origin rather than beside whatever is already there, and it carries
+no construction cage and no vanishing points of its own — one box round fifteen
+figures answers nothing, and its three axes are the world's, which the
+construction sheet already marks. They are placed exactly as authored, like
+everything else here, because measuring them says they already are life size:
+stood at scale 1 with the eye at 1.9 m, the tallest figure's head sits on the
+horizon, which is what a 1.9 m thing does at any distance.
+
+They arrive at about 960,000 triangles and 24 MB each, which is not a thing to
+put on a static site three times over. Shipped, they are decimated to 15 % and
+quantized — 144,000 triangles and 2.6 MB, in line with the three objects — and
+at the size a figure occupies on screen the two are indistinguishable. The
+quantization is `KHR_mesh_quantization`, which three.js reads natively, so
+there is no decoder to ship and no loader to wire up.
+
 Everything else in the library is yours. The tile beside the reference cube
 takes a file, and what comes in is both placed and **kept** — listed with the
 three from then on, in this browser, so a mesh is imported once and placed as
@@ -28,8 +52,23 @@ and the file goes with it unless a saved scene still stands on it.
 
 ## Opening
 
-The car is standing on the grid when the tool opens, framed for its size, on a
-180° five-point sheet.
+The car is standing on the grid when the tool opens, framed for its size, drawn
+in ink, at a 90° field, with the eye level and the six points ruled and nothing
+else.
+
+It used to open at 180°, the whole hemisphere, where the four horizon points
+land exactly on the edge of the frame and the fifth is at its centre — the
+five-point sheet itself rather than an approximation of it. That is still what
+the projection is for and it is still one drag of the field away. It is not what
+to open on. At 180° every straight edge in the world is visibly bowed, so there
+is nothing on the page you can lay a straightedge against and nothing that looks
+like the perspective anyone was taught first: someone opening this to learn
+perspective was handed the hardest case in the subject before the ordinary one.
+At 90° the equidistant sheet is within a pencil-width of straight-line
+perspective — and, because the corner of a 16:9 frame then reaches about 52°,
+inside `FLAT_LIMIT`, it also drops onto the single flat pass instead of the
+six-face cube, so it is sharper and a sixth of the cost. Widen it and you watch
+the straight lines bend, which is the lesson, in the order it can be learned.
 
 **Nothing in the tool erases the scene.** There was a control that came back to
 exactly this opening, and it sat a thumb-width from the ones you reach for
@@ -157,9 +196,10 @@ frame into something no drawing could be made from. The three above answer the
 same question at forty degrees as at three hundred, and at forty they *are* the
 flat one to within the width of a pencil line.
 
-The tool opens at **180°**, which is the number that matters for a curvilinear
-study: the four horizon points land exactly on the edge of the frame and the
-fifth is dead centre — the five-point sheet itself, not an approximation of it.
+**180°** is the number that matters for a curvilinear study: the four horizon
+points land exactly on the edge of the frame and the fifth is dead centre — the
+five-point sheet itself, not an approximation of it. It is one drag of the field
+away, and it is not where the tool opens; see *Opening*.
 
 With the construction guides on, **all five vanishing points are marked** on the
 sphere. They are fixed to the room, not to the frame, so they slide as you turn
@@ -285,8 +325,36 @@ one light leaving half of everything black.
 ### Guides, and the floor's two rulings
 
 The guides control steps down through three levels rather than switching on and
-off: the curvilinear construction circles, the eye-level line, nothing. The
-useful state is usually one less than what you have.
+off: the ruled sphere, then the eye level and the points alone, then nothing.
+The middle rung is where the tool opens and is the one that earns its place —
+the eye level and the six points are what you set a drawing up with, and the
+ruled sphere behind them is a lesson in what the projection is doing, which is
+wanted while you are learning it and not while you are drawing.
+
+**The sheet is ruled in one ink, and in one family.** It used to draw three at
+once, in three saturated hues — forty-seven curves in red, green and blue over
+the thing you were trying to draw. Two of the three did not survive inspection.
+One was ruled on latitude, which gives *parallels*: concentric rings that
+converge on nothing, so they were not the image of any set of parallel lines in
+the world and there was nothing to rule towards. The second was honest great
+circles about the Z axis, but ±Z is whichever way the scene file happened to be
+authored, and once you have turned your head it is not an axis of anything you
+are drawing.
+
+What is left is the family every upright edge in the world runs along. They meet
+overhead and underfoot, and that meeting is the fifth point — the whole thing
+the sheet is here to show. The pole fade went with the other two: it erased the
+family over a 35° disc centred on the pole, which is to say it deleted the
+crowding that *is* the vanishing point and kept the noise everywhere else.
+
+The construction cage goes round **the selection, and only the selection**. It
+is the box a thing blocks into, which is the first mark anyone makes when they
+draw a figure, and the argument for drawing it round everything standing in the
+scene was that you block the whole scene in before you block in one object of
+it. True, and it does not survive contact with a scene that has fifteen things
+in it: fifteen cages, fifteen footprints, thirty dashed diagonals and fifteen
+plumb lines, over the drawing. A box round everything at once is a box round
+nothing in particular.
 
 **The ground grid is two switches, one per direction** — the lines running away
 from you, and the lines running across. It used to be a rung of the ladder,
@@ -297,8 +365,16 @@ alone is the step before a grid; both is a grid; neither is bare ground.
 The ground is ruled as a tape measure is: three rulers at once — the step you
 snap to, the metre, and the five — each heavier than the last, so distance can
 be counted rather than guessed. The two axes through the origin are coloured,
-and coloured to match the curvilinear construction sheet: red along X, green
-along Z. Turning the projection inside out does not change what a colour means.
+red along X and green along Z, except in ink, where they go to the same ink as
+everything else: a red line and a green line running through a pen drawing are
+two things you did not draw.
+
+**The finest ruler is a near ruler.** It is spaced at whatever dragging snaps to
+— a quarter of a metre by default — and at about twelve metres out that spacing
+has fallen below a pixel. Past there it is not a ruler, it is a band of
+interference, and it was the densest thing on screen after the sheet. It fades
+out between four and twelve metres; you measure with it at your feet, and from
+across the room the metre and the five do the work.
 
 ### Snap
 
@@ -378,13 +454,16 @@ underfoot, so the room still reads as a box under any light at all.
 ## How solid a thing is drawn
 
 Every box and every placed mesh carries its own surface, so a scene can have a
-solid car standing inside a wire box on a floor of glass ones. Four rungs:
+solid car standing inside a wire box on a floor of glass ones. Five rungs,
+ordered by how much has been taken away:
 
 - **solid** — as the thing is: a box in plain white, a mesh in the materials its
   file was authored with
 - **matte** — opaque, plain white, no texture. Photographed skin and fabric is a
   lot of information to draw past; stripped out, a figure reads as form and
   value only, which is what it is doing in a scene full of white boxes
+- **ink** — the light gone too, and only the line left. This is the one the tool
+  opens on; it has its own section below
 - **glass** — translucent, writing no depth, so the far edges come through the
   near faces. This is drawing through, and it is how a box is checked: if the
   hidden corner is in the wrong place then the whole thing is, and on an opaque
@@ -397,6 +476,63 @@ rungs its own kind has — a box skips matte, being plain white already, and a
 mesh skips wire, having no cage to fall back on. The button in the tools row
 steps the whole scene at once and stamps everything standing in it, in one
 undoable move.
+
+## Ink
+
+The other four rungs answer *what is this object made of*. A perspective study
+never asks that. **Ink** answers the only question it does ask — where would the
+pen go — and it is what the tool opens on.
+
+It draws three families of line straight out of the surface, per pixel, with no
+extra geometry at all. The **contour** is wherever the form turns edge-on to the
+eye: on a smooth closed shape that locus *is* the silhouette, and it is also
+every interior edge the form rolls over — the far rim of an ear, the inside of a
+nostril, the crease of a bent elbow. Outline and inner line are one term, not
+two, because geometrically they are one thing seen from one place. The **form
+lines** are ruled at even steps of the same quantity and wrap the shape the way
+the lines of an engraving do. The **terminator** is the single line where the
+light grazes, which says which way the sun is without laying down a wash.
+
+Boxes need none of it. A box's faces are flat, so that quantity is constant
+across each one and its derivative is nothing — there is no contour to find and
+none is wanted. A box's lines are its twelve edges, which it already carries as
+geometry. Ink only lays the paper under them.
+
+**No cast shadow.** A shadow is a tone; its boundary is soft, and it is softened
+again by the reprojection and again by the export, so on a sheet you are about
+to trace there is no telling which line is an edge of the object and which is an
+edge of its shadow. Things still do not float — the ground ruling running behind
+a foot and reappearing the other side pins it better than a blur does, and says
+*where* on the floor as well.
+
+**Ink is on paper in both themes.** The theme is for the chrome, which sits in
+the room you are in. This is the drawing, and the drawing is what the export
+writes out at three times the frame to be printed or dropped into a tablet layer
+and traced over. A white line on a black field cannot be used that way.
+
+### Why a dot product rather than an edge filter
+
+The obvious way to outline a 3D scene is to compare neighbouring pixels of the
+rendered frame — a Sobel over depth and normals. It cannot work here. The scene
+is not rendered to the screen; it goes onto the six faces of a cube (or one flat
+pass) and a shader re-projects that, so a cube face has no neighbours past its
+own border and every one of the twelve seams would gain a false line or lose a
+true one. The source's pixels-per-degree also varies two or three times across a
+single face, so the weight would breathe and then jump at the seam.
+
+How squarely a surface faces the eye has no such problem: it is a property of
+the surface at that point and of where you are standing, not of a framebuffer.
+Both vectors live in view space, and a dot product of two vectors turned by the
+same matrix is the same number — so all six faces agree exactly. It also costs
+nothing to look around in, because the cube is only redrawn when you *move*, and
+nothing here depends on which way your head is pointing.
+
+Line weight is specified in pixels of the finished sheet and converted, per
+fragment, into pixels of whatever the source happens to be. That is what holds
+one pen across a cube face, a flat pass and the 3× export. It is exact in
+equidistant, the default; in cylindrical the lines thin towards the top and
+bottom, and in stereographic they thicken towards the rim, along with everything
+else those projections magnify out there.
 
 ## Undo
 

@@ -187,9 +187,21 @@ export default function App() {
   const placeLibraryMesh = (id: string) => {
     const entry = MESH_LIBRARY.find((mesh) => mesh.id === id);
     if (!entry) return;
+    const scene = entry.kind === 'scene';
     return whileLoading(id, async () => {
-      const { model } = await loadModelFromUrl(entry.url, entry.name, [focusPoint.x, focusPoint.z], entry.height);
-      if (model.previewSupported) place(model);
+      const { model } = await loadModelFromUrl(
+        entry.url,
+        entry.name,
+        scene ? [0, 0] : [focusPoint.x, focusPoint.z],
+        entry.height
+      );
+      if (!model.previewSupported) return;
+      // A room goes on the origin, squarely, and does not go looking for a
+      // clear patch of floor to stand beside what is already there - it *is*
+      // the floor. Standing one where you happened to be looking would put you
+      // in the middle of a wall.
+      if (scene) addModel({ ...model, kind: 'scene', position: [0, 0, 0] });
+      else place(model);
     });
   };
 
