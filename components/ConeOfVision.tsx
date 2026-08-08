@@ -2,40 +2,71 @@ import React, { useEffect, useRef, useState } from 'react';
 import { projectView } from '../lib/pick';
 
 /**
- * The 60 degree cone of vision.
+ * The field of view - the shape a pair of eyes actually has.
  *
- * Inside this circle a rectilinear projection matches what an eye actually
- * sees; outside it, squares stretch and spheres go oval - the classic
- * perspective-drawing error is placing the subject beyond it.
+ * Inside it a rectilinear projection matches what you see; outside it, squares
+ * stretch and spheres go oval, and the classic perspective-drawing error is
+ * placing the subject beyond it. It matters at least as much on a curved sheet,
+ * where it is the line between the two systems: inside it, straight-line
+ * perspective is honest and you can rule with a straight edge; outside it, the
+ * bend is not a stylisation but the only truthful answer.
  *
- * It matters at least as much on a curved sheet, where it is the line between
- * the two systems: inside it, straight-line perspective is honest and you can
- * rule with a straight edge; outside it, the bend is not a stylisation but the
- * only truthful answer. Drawing it only on the flat side left the student
- * unable to see, on the sheet they were actually drawing on, where one stops
- * being the other.
+ * It used to be a circle, thirty degrees off the axis all the way round, which
+ * is what "the sixty degree cone" says and is not what anyone has. Two eyes are
+ * side by side in a head with brows over them and cheeks under them, so the
+ * field they share is a wide, slightly low oval: something over two hundred
+ * degrees across, about a hundred and thirty from top to bottom, and more of
+ * that below the line of sight than above it. That is why you notice movement
+ * beside you and not above you, and it is the shape everything you have ever
+ * seen arrived in.
  *
- * So it is not worked out from a focal length any more. It is thirty degrees
- * off the view axis, all the way round, asked of whichever projection is in
- * front of you: a circle on a flat frame, a circle of a different size on an
- * equidistant one, and an oval on the unrolled cylinder, each because that is
- * what that projection does to a cone.
+ * So it keeps the sixty degrees across, which is the number the drawing
+ * convention is about and the one worth knowing, and takes its height and its
+ * offset from the eyes. The result is not a cone at all - a cone would have to
+ * come from one eye at the middle of a face - which is the point.
+ *
+ * Whatever the shape, it is asked of the projection in front of you rather than
+ * worked out from a focal length: an oval on a flat frame, an oval of a
+ * different size on an equidistant one, a fatter one on the unrolled cylinder,
+ * each because that is what that projection does to this solid angle.
  */
 
-/** Half the cone: thirty degrees off the axis. */
-const HALF = Math.PI / 6;
+/** Thirty degrees to either side: the sixty degree field, kept. */
+const SIDE = Math.PI / 6;
+
+/**
+ * And what a face allows above and below it, in the same proportion the real
+ * field has: about sixty degrees up against seventy-three down, over roughly
+ * two hundred and ten across.
+ */
+const UP = SIDE * (2 * 0.64 * (60 / 133));
+const DOWN = SIDE * (2 * 0.64 * (73 / 133));
 
 /** How many places round it are asked about. */
 const AROUND = 96;
 
+/**
+ * How far off the axis the edge lies in one direction round the frame.
+ *
+ * The polar form of an ellipse, with a different half-height above the line of
+ * sight and below it. The two halves meet where the vertical term vanishes, so
+ * the join is on the widest point of the oval and there is no corner in it.
+ */
+const halfAngleAt = (turn: number) => {
+  const across = Math.cos(turn);
+  const upward = Math.sin(turn);
+  const vertical = upward > 0 ? UP : DOWN;
+  return 1 / Math.hypot(across / SIDE, upward / vertical);
+};
+
 const outline = (): string | null => {
   const points: string[] = [];
-  const sin = Math.sin(HALF);
-  const cos = Math.cos(HALF);
 
   for (let i = 0; i < AROUND; i++) {
     const turn = (i / AROUND) * Math.PI * 2;
-    const at = projectView(sin * Math.cos(turn), sin * Math.sin(turn), -cos);
+    const half = halfAngleAt(turn);
+    const sin = Math.sin(half);
+    const at = projectView(sin * Math.cos(turn), sin * Math.sin(turn), -Math.cos(half));
     if (!at) return null;
     points.push(`${at.x.toFixed(1)},${at.y.toFixed(1)}`);
   }

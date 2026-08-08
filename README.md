@@ -38,6 +38,11 @@ the car is curved where a box is flat, six metres long so its far end is visibly
 smaller than its near one, and turned enough that all three of its axes run to
 three separate points. It is the object here with the most perspective in it.
 
+You stand 3.8 m back from it, which is as far as the room has floor — the car is
+nearly six metres long, so framing it by its own length used to put the viewer a
+step outside the front wall, looking in at it through the brickwork. Where the
+tool opens should be one place, whether or not the room is switched on.
+
 Framing solves for two legs, not one: how far back to stand, and how high the
 eye has to be. A chair 0.7 m away from a 1.9 m eye is not 0.7 m away — it is
 1.7 m away and mostly below you, which is why it used to open small however
@@ -176,13 +181,23 @@ A point that lands off the frame is pinned to the edge rather than dropped —
 by hand. Which is also how the fifth point stays locatable at 180°, where a
 landscape frame reaches about 65° up and the zenith is at 90°.
 
-### The cone of vision
+### The field of view
 
-The 60° cone is drawn in all four systems, and it is not the same shape in each:
-a circle on a flat frame, a smaller circle on an equidistant one, an oval on the
-unrolled cylinder — because that is what each projection does to a cone. It is
-worked out by asking the projection about thirty degrees off the view axis, all
-the way round, rather than from a focal length.
+Drawn in all four systems, and not the same shape in any two of them, because
+that is what each projection does to the same solid angle.
+
+It is **an oval, not a circle**. "The sixty degree cone" is a cone, and a cone
+would have to come from one eye at the middle of a face. Two eyes are side by
+side in a head with brows over them and cheeks under them, so what they share is
+a wide, slightly low oval — something over 200° across, about 130° from top to
+bottom, and more of that below the line of sight than above it. That is why you
+notice movement beside you and not above you, and it is the shape everything you
+have ever seen arrived in.
+
+So it keeps the 60° across, which is the number the drawing convention is about
+and the one worth knowing, and takes its height and its offset from the eyes. It
+is asked of the projection in front of you rather than worked out from a focal
+length.
 
 It matters most on a curved sheet, where it is the line between the two systems:
 inside it a rectilinear projection matches what an eye sees and you can rule
@@ -195,6 +210,13 @@ The sun is one hard light with no fill, which is what makes a box read as a box:
 a face turned away from it is genuinely unlit, and that separation is the thing
 being drawn. Its bearing, height, strength and colour temperature are four
 drags in the light sheet, and its shadows can be switched off.
+
+The panel is ten knobs in two rows and is exactly ten knobs wide — it hugs its
+contents rather than stretching to the edge of the screen, and each knob's
+reading floats clear of it rather than being kept inside by 40 px of empty
+headroom. It covers about a tenth of a phone where it used to cover a quarter,
+which matters for a control whose whole purpose is watching the scene change
+while you drag it.
 
 A **second light** lives under it, off until asked for: shadowless, cooler and
 weaker by default, the way a studio or an overcast sky answers the problem of
