@@ -822,7 +822,10 @@ export const WalkOverlay: React.FC<{
 
         <div
           {...(dockVisible ? {} : { inert: '' })}
-          className={`flex items-center p-1.5 gap-1 rounded-full border shadow-2xl ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
+          // Tighter on a small phone, for the same reason the controls in it
+          // are - seven of them plus the glass around them is more than 320 px
+          // of screen has, and the two on the ends were the ones paying.
+          className={`flex items-center p-1.5 gap-1 max-[359px]:p-1 max-[359px]:gap-0.5 rounded-full border shadow-2xl ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
         >
           <button onClick={onModels} aria-label="Add model" className={button}>
             <Icon path={I.cube} className="w-5 h-5" />
