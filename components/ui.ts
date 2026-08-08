@@ -11,9 +11,18 @@
 export const chrome = (dark: boolean) =>
   dark ? 'bg-neutral-950/92 text-white border-white/20' : 'bg-white/92 text-black border-gray-300';
 
-/** A round 44 px control - the smallest target a thumb can be asked to hit. */
+/**
+ * A round 44 px control - the smallest target a thumb can be asked to hit.
+ *
+ * Forty below 360 px of screen, which is where seven of them in a row stop
+ * fitting: measured at 320, the dock came to 346 px and hung six pixels off
+ * each end, so the first control and the last one were half unreachable. Four
+ * pixels of one dimension is a worse target than 44; a control you cannot put
+ * a thumb on at all is not a target. The height does not move, and a thumb is
+ * wider than it is tall.
+ */
 export const iconButton = (dark: boolean) =>
-  `flex items-center justify-center w-11 h-11 rounded-full transition-transform active:scale-95 ${
+  `flex items-center justify-center w-11 max-[359px]:w-10 h-11 rounded-full transition-transform active:scale-95 ${
     dark ? 'text-white hover:bg-white/10' : 'text-gray-900 hover:bg-black/5'
   }`;
 
