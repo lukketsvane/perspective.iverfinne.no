@@ -179,6 +179,17 @@ above it. It used to hide — and three of the things it hides do nothing *excep
 when something is selected: the cage, the selection's own vanishing points, and
 the export that would carry them into a picture.
 
+Seven controls plus the glass around them come to 346 px, which is more than the
+narrowest screens still in use have: at 320 px the dock was centred over the
+window and hung six pixels off each end, so the first control and the last were
+half unreachable. Below 360 px they go to 40 px wide with tighter gaps, and the
+whole thing comes to 310. Four pixels off one dimension is a worse target than
+44; a control you cannot get a thumb on at all is not a target. The height does
+not move, and a thumb is wider than it is tall. The two drag readouts stay full
+width, since dragging is what they are for. The selection bar solves the same
+problem the other way — it scrolls sideways, because it is a list of things you
+can do to one object and a list can be as long as it likes.
+
 ### Projections
 
 Three systems, all of them ones you can draw in, cycled with one button:
@@ -643,6 +654,25 @@ one pen across a cube face, a flat pass and the 3× export. It is exact in
 equidistant, the default; in cylindrical the lines thin towards the top and
 bottom, and in stereographic they thicken towards the rim, along with everything
 else those projections magnify out there.
+
+The lines that are geometry rather than shader — a box's twelve edges, the
+room's, the construction ruled under a selection — could not do that per
+fragment, because the library that draws them measures a width against the
+canvas, and this app never draws to the canvas. So they were ruled in pixels of
+an intermediate nobody sees, and a box got *thinner* the wider the lens opened,
+a wide field sampling that intermediate down harder. Measured across 60° to
+270°, a box on its own fell from 1.54 px to 1.28 while the ink contour beside it
+went 1.85 up to 2.11 — two marks that are the same mark, drifting a quarter of a
+pixel apart over the range.
+
+They now carry the same correction, worked out once per draw instead of once per
+fragment. The two cases disagree about which way to go: on the flat pass the
+answer is within two per cent of one, which is why a fixed width looked right at
+ordinary fields and hid this for so long; on the cube it is `4·halfYaw/π`, so the
+width has to *grow* as the lens opens. The face size cancels out, which is what
+makes it a number rather than a table. The pen is two sheet pixels, which is not
+a fitted constant — it is what a silhouette is drawn at, and a box's twelve edges
+are its silhouette.
 
 ## Undo
 
