@@ -126,6 +126,29 @@ export const readSurface = (stored: unknown): Surface =>
 export type GuideLevel = 0 | 1 | 2;
 
 /**
+ * How much of the room is drawn.
+ *
+ * 0 nothing, 1 the ruling alone - lines hanging in the air where the walls
+ * would be - and 2 the surfaces with it.
+ *
+ * A rung rather than a second switch. It was one boolean giving walls AND
+ * twelve edges together, and the lines are the part that does the teaching: the
+ * line where a wall meets the floor is the most informative mark in a room,
+ * being the one that says how far away the wall is. You could not have it
+ * without three flat greys standing in front of your drawing.
+ */
+export type RoomLevel = 0 | 1 | 2;
+
+/**
+ * Read a room setting written by any version.
+ *
+ * `true` reads as 2, not 1: it is what the flag used to draw, and nobody's
+ * saved composition should come back looking different from how they left it.
+ */
+export const readRoomLevel = (stored: unknown): RoomLevel =>
+  stored === true ? 2 : stored === 1 || stored === 2 ? stored : 0;
+
+/**
  * How big the room is, in metres.
  *
  * The floor is the part worth changing and it is the part you drag: a corridor,
@@ -214,6 +237,42 @@ export interface SceneModel {
 }
 
 /**
+ * How a cast shadow lands.
+ *
+ * Not a switch, because "hard" and "soft" are two different drawing decisions
+ * rather than two settings of one. A soft edge is a rendering of what light
+ * does at a real penumbra; on a sheet you are about to trace it is useless,
+ * because you cannot tell which of your lines is the object and which is the
+ * edge of its shadow. A hard edge is a shape - one you can lay a pen round and
+ * drop as a solid, which is what a page of ink actually does with a shadow.
+ *
+ * So ink casts when, and only when, the shadow is hard. The mode's objection
+ * was never to shadows; it was to soft boundaries.
+ */
+export type ShadowKind = 'off' | 'hard' | 'soft';
+
+/** The ladder, in order: none, a shape, a rendering. */
+export const SHADOW_KINDS: ShadowKind[] = ['off', 'hard', 'soft'];
+
+/**
+ * Read a shadow setting written by any version.
+ *
+ * It was a boolean, and `sun` is stored as one object that passes the settings
+ * check on being an object at all - so without this a remembered `true` lands
+ * in a string-typed field, every comparison against it is false, and a
+ * returning viewer's sun quietly stops casting anything at all. `true` reads as
+ * soft, so reloading changes nobody's picture.
+ */
+export const readShadows = (stored: unknown): ShadowKind =>
+  stored === true
+    ? 'soft'
+    : stored === false
+      ? 'off'
+      : SHADOW_KINDS.includes(stored as ShadowKind)
+        ? (stored as ShadowKind)
+        : 'soft';
+
+/**
  * Where a light is and how hard it burns.
  *
  * Azimuth is the compass bearing it shines *from*, in degrees clockwise from
@@ -226,8 +285,8 @@ export interface SunState {
   intensity: number;
   /** Black-body colour temperature used by both the lamp and procedural sky. */
   temperature: number;
-  /** Cast real shadows from the sun. */
-  shadows: boolean;
+  /** How the sun's shadows fall, if at all. */
+  shadows: ShadowKind;
 }
 
 /**
@@ -291,6 +350,8 @@ export interface SceneView {
   /** Written by a version whose surface setting was models-only and had two rungs. */
   modelMaterial?: Surface;
   /** Whether the room was standing round the scene, and how big it was. */
+  roomLevel?: RoomLevel;
+  /** Written by the version that had one switch for the room. */
   showRoom?: boolean;
   room?: RoomSize;
   showVanishing?: boolean;
@@ -348,7 +409,7 @@ export interface SceneState {
    * own twelve edges; a room shows you the ones that reach the edge of the
    * frame, which is where a curved projection does its most visible work.
    */
-  showRoom: boolean;
+  roomLevel: RoomLevel;
   /** How big it is. */
   room: RoomSize;
   /**
@@ -418,7 +479,7 @@ export interface SceneState {
   toggleGridX: () => void;
   toggleGridZ: () => void;
   toggleConstruction: () => void;
-  toggleRoom: () => void;
+  cycleRoom: () => void;
   /** Change the floor's two axes, or the ceiling. Clamped to what a room can be. */
   setRoom: (room: Partial<RoomSize>) => void;
   toggleVanishing: () => void;

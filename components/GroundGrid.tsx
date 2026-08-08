@@ -36,14 +36,15 @@ export const GroundGrid: React.FC<{
   cell: number;
   dark: boolean;
   /**
-   * Whether the scene is being drawn as a line drawing.
+   * The pen, when the scene is being drawn as a line drawing.
    *
    * With the construction sheet cut to one ink, the two coloured axes on the
    * floor are the only hue left on the page. In a line drawing they go to the
-   * same ink as everything else: a red line and a green line running through a
-   * pen drawing are two things you did not draw.
+   * same ink as everything else - a red line and a green line running through a
+   * pen drawing are two things you did not draw - and that ink now follows the
+   * sheet, so it is passed in rather than written down here.
    */
-  inked?: boolean;
+  ink?: string;
   /**
    * Which of the two families to rule.
    *
@@ -53,7 +54,7 @@ export const GroundGrid: React.FC<{
    * ruler and a tablecloth.
    */
   along: { x: boolean; z: boolean };
-}> = ({ cell, dark, along, inked = false }) => {
+}> = ({ cell, dark, along, ink }) => {
   const mesh = useRef<THREE.Mesh>(null);
 
   const material = useMemo(
@@ -172,10 +173,11 @@ export const GroundGrid: React.FC<{
     []
   );
 
+  const inked = ink !== undefined;
   material.uniforms.cell.value = cell;
-  material.uniforms.ink.value.set(inked ? '#16130f' : dark ? '#c8c8c8' : '#111111');
-  material.uniforms.axisX.value.set(inked ? '#16130f' : dark ? '#ff6a5e' : '#e0342a');
-  material.uniforms.axisZ.value.set(inked ? '#16130f' : dark ? '#5fd08a' : '#2e9e4f');
+  material.uniforms.ink.value.set(ink ?? (dark ? '#c8c8c8' : '#111111'));
+  material.uniforms.axisX.value.set(ink ?? (dark ? '#ff6a5e' : '#e0342a'));
+  material.uniforms.axisZ.value.set(ink ?? (dark ? '#5fd08a' : '#2e9e4f'));
   material.uniforms.strength.value = inked ? 0.62 : dark ? 0.75 : 1;
   material.uniforms.families.value.set(along.x ? 1 : 0, along.z ? 1 : 0);
 

@@ -14,7 +14,15 @@ import { markSceneBuilt, sceneRevision } from '../lib/sceneRevision';
 import { Panorama } from './Panorama';
 import { forgetView, registerView } from '../lib/pick';
 import { fieldOf } from '../lib/projection';
-import { constructionInk, setInkLight, setInkScale } from '../lib/inkMaterial';
+import {
+  constructionInk,
+  inkHex,
+  inkShadowAlpha,
+  paperHex,
+  setInkLight,
+  setInkPaper,
+  setInkScale,
+} from '../lib/inkMaterial';
 
 /** Keeps the "put one here" point under the middle of the view. */
 const FocusTracker = () => {
@@ -242,7 +250,7 @@ const Sun: React.FC = () => {
         position={offset}
         color={color}
         intensity={sun.intensity}
-        castShadow={sun.shadows}
+        castShadow={sun.shadows !== 'off'}
         shadow-mapSize-width={mapSize}
         shadow-mapSize-height={mapSize}
         // A room at 1:1 puts big flat surfaces almost edge-on to the sun, which
@@ -273,8 +281,9 @@ const SceneContent = () => {
   const snapStep = useStore((state) => state.snapStep);
   const theme = useStore((state) => state.theme);
   const backgroundGray = useStore((state) => state.backgroundGray);
-  const sunShadows = useStore((state) => state.sun.shadows);
-  const showRoom = useStore((state) => state.showRoom);
+  const shadowKind = useStore((state) => state.sun.shadows);
+  const hardShadows = shadowKind === 'hard';
+  const roomLevel = useStore((state) => state.roomLevel);
   const sunEnvironment = useStore((state) => state.sunEnvironment);
   const sun = useStore((state) => state.sun);
   /**
@@ -320,8 +329,47 @@ const SceneContent = () => {
    * line on a black field cannot be used that way, and a study you cannot put a
    * sheet of paper beside is not what the mode is for.
    */
+  /*
+   * The light control sweeps the page, and in ink the page is the sheet.
+   *
+   * Written before the colour is read, not in a passive effect: `useEffect` is
+   * flushed on a scheduler task with no ordering against the animation frame,
+   * so a frame landing in the gap draws the source with the OLD uniform, writes
+   * down the new scene revision, and then has no reason ever to redraw. During
+   * a drag that self-heals; the last frame of a drag does not. (That was a live
+   * bug for the sun as well - drop it at the end of a sweep and the terminator
+   * lagged - so both writes moved.)
+   */
+  useLayoutEffect(() => setInkPaper(backgroundGray), [backgroundGray]);
+
+  /*
+   * Hard or soft, at runtime.
+   *
+   * three folds the shadow map's type into a program's compile key but does not
+   * list it among the things that make a material need a new program - so
+   * setting it and re-rendering gives back a pixel-identical frame. Every
+   * material has to be told itself. Once per switch, which is a stall you can
+   * see once and not a cost you pay per frame.
+   *
+   * PCF rather than Basic for the hard rung. Both give the same SHAPE; the
+   * difference is one shadow-map texel, about 5 mm on the floor here - PCF
+   * spreads it into a line, Basic steps it into a staircase. A line is what you
+   * would have drawn.
+   */
+  useLayoutEffect(() => {
+    const wanted = hardShadows ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+    if (gl.shadowMap.type === wanted) return;
+    gl.shadowMap.type = wanted;
+    gl.shadowMap.needsUpdate = true;
+    scene.traverse((node) => {
+      const material = (node as THREE.Mesh).material;
+      if (!material) return;
+      for (const one of Array.isArray(material) ? material : [material]) one.needsUpdate = true;
+    });
+  }, [hardShadows, gl, scene]);
+
   const bgColor = inkMode
-    ? '#f7f4ef'
+    ? paperHex()
     : `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})`;
 
   /**
@@ -332,12 +380,12 @@ const SceneContent = () => {
    * the pen is specified in pixels of the finished sheet and has to be said in
    * radians for a shader that has never heard of the sheet.
    */
-  useEffect(() => {
+  useLayoutEffect(() => {
     const { halfYaw } = fieldOf(fov, size.width, size.height);
     setInkScale(halfYaw, size.width);
   }, [fov, size.width, size.height]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const [x, y, z] = sunPosition(sun.azimuth, sun.elevation);
     setInkLight(x, y, z);
   }, [sun.azimuth, sun.elevation]);
@@ -395,7 +443,7 @@ const SceneContent = () => {
       <Fill />
 
       {/* Four walls and a ceiling round the origin. */}
-      {showRoom && <Room dark={isDark} />}
+      {roomLevel > 0 && <Room level={roomLevel} dark={isDark} inked={inkMode} />}
 
       <group>
         {boxes.map((box) => (
@@ -420,29 +468,45 @@ const SceneContent = () => {
         * of small lie that costs half an hour.
         */}
       {(gridX || gridZ) && (
-        <GroundGrid cell={cellSize} dark={isDark} inked={inkMode} along={{ x: gridX, z: gridZ }} />
+        <GroundGrid
+          cell={cellSize}
+          dark={isDark}
+          ink={inkMode ? inkHex() : undefined}
+          along={{ x: gridX, z: gridZ }}
+        />
       )}
 
       {/* The floor catches the sun's shadows and nothing else. It is far wider
           than it needs to be for the shadows themselves: a 200 m plane has an
           edge, and a 210 degree lens can see it.
 
-          Not in ink. A cast shadow is a tone, and its boundary is soft - PCF,
-          then resampled by the reprojection, then resampled again by the
-          export - so on a sheet you are about to trace there is no telling
-          which line is an edge of the object and which is an edge of its
-          shadow. The object still does not float: the ground ruling running
-          behind a foot and reappearing the other side pins it better than a
-          blur does, and says where on the floor as well. */}
-      {sunShadows && !inkMode && (
+          In ink, only when the shadow is hard. The objection was never to
+          shadows - it was to soft boundaries: a penumbra is resampled by the
+          reprojection and again by the export, so on a sheet you are about to
+          trace there is no telling which line is an edge of the object and
+          which is an edge of its shadow. A hard shadow has no penumbra to
+          confuse. It is a shape, and a shape is a thing you can lay a pen
+          round and fill.
+
+          Light, when it is ink. The object's own contour is a full-ink line,
+          and a fill anywhere near that value would put two drawings on the
+          page; at about 1.4:1 against the paper it reads unambiguously as a
+          plane and can never be mistaken for a line. It fades out as the sheet
+          darkens - on a blackboard you draw the lit parts, and the shadow is
+          bare board. */}
+      {shadowKind !== 'off' && (!inkMode || hardShadows) && (
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} raycast={() => null}>
           <planeGeometry args={[2000, 2000]} />
-          <shadowMaterial transparent opacity={isDark ? 0.55 : 0.42} />
+          <shadowMaterial
+            transparent
+            color={inkMode ? inkHex() : '#000000'}
+            opacity={inkMode ? inkShadowAlpha(backgroundGray) : isDark ? 0.55 : 0.42}
+          />
         </mesh>
       )}
 
       {/* With the sun's shadows off, boxes need something to sit on. */}
-      {!sunShadows && !inkMode && (
+      {shadowKind === 'off' && !inkMode && (
         <ContactShadows
           position={[0, 0, 0]}
           opacity={isDark ? 0.8 : 0.6}
@@ -513,7 +577,14 @@ export const Scene = () => {
       }}
       // Percentage-closer soft shadows: the edge of a cube's shadow should
       // read as an edge, not as a staircase.
-      shadows={{ type: THREE.PCFSoftShadowMap }}
+      // Read once, at creation: a returning viewer who left it hard should not
+      // get one soft frame and a whole-scene recompile before it corrects.
+      shadows={{
+        type:
+          useStore.getState().sun.shadows === 'hard'
+            ? THREE.PCFShadowMap
+            : THREE.PCFSoftShadowMap,
+      }}
       className="transition-colors duration-500"
       style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
     >

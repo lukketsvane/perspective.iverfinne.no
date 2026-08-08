@@ -130,8 +130,8 @@ const ROOM_RATE = 0.06; // metres per pixel, both ways
 export const useRoomControl = () => {
   const room = useStore((state) => state.room);
   const setRoom = useStore((state) => state.setRoom);
-  const toggleRoom = useStore((state) => state.toggleRoom);
-  const showRoom = useStore((state) => state.showRoom);
+  const cycleRoom = useStore((state) => state.cycleRoom);
+  const roomLevel = useStore((state) => state.roomLevel);
   const drag = useRef<{ id: number; x: number; y: number; from: RoomSize; moved: boolean } | null>(null);
   const [sizing, setSizing] = React.useState(false);
 
@@ -153,7 +153,10 @@ export const useRoomControl = () => {
           held.moved = true;
           setSizing(true);
           // Sizing a room you cannot see is a control with no feedback.
-          if (!showRoom) toggleRoom();
+          // Sizing a room you cannot see is sizing nothing. A drag from off
+          // raises the LINES rather than the walls: it is what you need to see
+          // to size it, and it is the rung nobody would otherwise find.
+          if (roomLevel === 0) useStore.setState({ roomLevel: 1 });
         }
         setRoom({
           width: held.from.width + up * ROOM_RATE,
@@ -164,7 +167,7 @@ export const useRoomControl = () => {
         const held = drag.current;
         drag.current = null;
         setSizing(false);
-        if (held?.id === event.pointerId && !held.moved) toggleRoom();
+        if (held?.id === event.pointerId && !held.moved) cycleRoom();
       },
       onPointerCancel: () => {
         drag.current = null;

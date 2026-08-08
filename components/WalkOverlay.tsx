@@ -155,7 +155,7 @@ export const WalkOverlay: React.FC<{
   const railVisible = useRail();
   const sceneSurface = useStore((s) => s.surface);
   const cycleSurface = useStore((s) => s.cycleSurface);
-  const showRoom = useStore((s) => s.showRoom);
+  const roomLevel = useStore((s) => s.roomLevel);
   const room = useStore((s) => s.room);
   const roomControl = useRoomControl();
   const models = useStore((s) => s.models);
@@ -672,9 +672,9 @@ export const WalkOverlay: React.FC<{
             <button
               {...roomControl.handlers}
               aria-label={`Room, ${room.width.toFixed(1)} by ${room.depth.toFixed(1)} metres`}
-              className={`${button} touch-none ${showRoom ? ACTIVE : ''}`}
+              className={`${button} touch-none ${roomLevel > 0 ? ACTIVE : ''}`}
             >
-              <Icon path={I.room} className="w-5 h-5" />
+              <Icon path={roomLevel === 2 ? I.roomWalls : I.room} className="w-5 h-5" />
             </button>
             {roomControl.sizing && (
               <div
