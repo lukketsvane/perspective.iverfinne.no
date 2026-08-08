@@ -268,6 +268,9 @@ export interface Pinch {
 
 /** How far a gesture has to go before it is read as a turn, or as a resize. */
 const TURN_DEAD = 0.06; // radians, about 3.5 degrees
+
+/** Fifteen degrees: what a two-point construction is built out of. */
+const TURN_STEP = Math.PI / 12;
 const SIZE_DEAD = 0.08; // 8 per cent of the starting gap
 
 const offset = (value: number, dead: number) =>
@@ -294,7 +297,20 @@ export const pinchOn = (ax: number, ay: number, bx: number, by: number): Pinch |
       commit();
       const snap = snapper();
       const gap = Math.max(Math.hypot(nbx - nax, nby - nay), 1);
-      const turned = offset(Math.atan2(nby - nay, nbx - nax) - startAngle, TURN_DEAD);
+      /*
+       * The turn snaps when the drag does.
+       *
+       * Position has always snapped and rotation never did, so forty-five
+       * degrees - the two-point setup - was unhittable by hand on every device,
+       * and squaring something back up after a nudge was a matter of eye. It
+       * lands on fifteen-degree steps, which is what a two-point construction
+       * is built out of; snap off and it is free, as everything else is.
+       */
+      const swung = offset(Math.atan2(nby - nay, nbx - nax) - startAngle, TURN_DEAD);
+      const turned =
+        useStore.getState().snapStep > 0
+          ? Math.round(swung / TURN_STEP) * TURN_STEP
+          : swung;
       const grown = 1 + offset(gap / startGap - 1, SIZE_DEAD);
 
       const centreX = (nax + nbx) / 2;

@@ -163,6 +163,17 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
    */
   const handleColor = inked ? constructionInk(true, isDark) : edgeColor;
 
+  /*
+   * The construction is the PAGE's, not this box's.
+   *
+   * It took its colour from `edgeColor`, which is the box's own rung - so a
+   * wire box standing on an ink sheet ruled its footprint and diagonals in
+   * saturated red on paper, and that went into the export. Mixing rungs is a
+   * documented feature, so it was reachable. The twelve edges stay on
+   * edgeColor, where they belong: those are the box.
+   */
+  const guideColor = constructionInk(sceneSurface === 'ink', isDark);
+
   return (
     <group userData={{ selectableType: 'box', selectableId: data.id }}>
       {/* The same four marks a mesh gets, for the same job, on the same switch.
@@ -181,31 +192,37 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
           <Line
             raycast={() => null}
             points={[[-hx, 0, -hz], [hx, 0, -hz], [hx, 0, hz], [-hx, 0, hz], [-hx, 0, -hz]]}
-            color={edgeColor}
+            color={guideColor}
             lineWidth={1}
             transparent
+            depthTest={false}
+            renderOrder={998}
             opacity={0.6}
           />
           <Line
             raycast={() => null}
             points={[[-hx, 0, -hz], [hx, 0, hz]]}
-            color={edgeColor}
+            color={guideColor}
             lineWidth={1}
             transparent
+            depthTest={false}
+            renderOrder={998}
             opacity={0.34}
           />
           <Line
             raycast={() => null}
             points={[[hx, 0, -hz], [-hx, 0, hz]]}
-            color={edgeColor}
+            color={guideColor}
             lineWidth={1}
             transparent
+            depthTest={false}
+            renderOrder={998}
             opacity={0.34}
           />
           {/* The true centre of the footprint, in perspective. */}
           <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
             <circleGeometry args={[Math.max(0.02, Math.min(hx, hz) * 0.06), 16]} />
-            <meshBasicMaterial color={edgeColor} transparent opacity={0.75} depthWrite={false} toneMapped={false} />
+            <meshBasicMaterial color={guideColor} transparent opacity={0.75} depthWrite={false} toneMapped={false} />
           </mesh>
           {/* The plumb, for reading its height off the grid. A flat two metres
               past the top made a half-metre box carry a mark five times its
@@ -213,9 +230,11 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
           <Line
             raycast={() => null}
             points={[[0, 0, 0], [0, data.position[1] + data.scale[1] * 0.65, 0]]}
-            color={edgeColor}
+            color={guideColor}
             lineWidth={1}
             transparent
+            depthTest={false}
+            renderOrder={998}
             opacity={0.45}
           />
         </group>

@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Scene } from './components/Scene';
 import { WalkOverlay } from './components/WalkOverlay';
 import { VanishingPoints } from './components/VanishingPoints';
-import { SelectionBar } from './components/SelectionBar';
 import { MeshSheet } from './components/MeshSheet';
 import { SceneSheet } from './components/SceneSheet';
 import { LightSheet } from './components/LightSheet';
@@ -302,7 +301,6 @@ export default function App() {
           busy={busy !== null}
         />
       )}
-      <SelectionBar raised={sheet !== null} />
     </div>
   );
 }
