@@ -135,15 +135,9 @@ export const WalkOverlay: React.FC<{
   onModels: () => void;
   onScenes: () => void;
   onLights: () => void;
-  /**
-   * Back to the scene the tool opened with. Not the store's `resetScene` on its
-   * own: that clears the floor, and standing the opening object back up on it
-   * needs a load, which is App's business rather than the store's.
-   */
-  onReset: () => void;
   /** True while a sheet is up: the dock belongs under it, not beside it. */
   covered?: boolean;
-}> = ({ onModels, onScenes, onLights, onReset, covered = false }) => {
+}> = ({ onModels, onScenes, onLights, covered = false }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -184,8 +178,6 @@ export const WalkOverlay: React.FC<{
   const toggleGridZ = useStore((s) => s.toggleGridZ);
   const snapStep = useStore((s) => s.snapStep);
   const cycleSnap = useStore((s) => s.cycleSnap);
-  const showCone = useStore((s) => s.showCone);
-  const toggleCone = useStore((s) => s.toggleCone);
   const showConstruction = useStore((s) => s.showConstruction);
   const toggleConstruction = useStore((s) => s.toggleConstruction);
   const showVanishing = useStore((s) => s.showVanishing);
@@ -656,9 +648,6 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={SNAP_ICON[SNAP_STEPS.indexOf(snapStep as (typeof SNAP_STEPS)[number])] ?? I.snapFree} className="w-5 h-5" />
           </button>
-          <button onClick={toggleCone} aria-label="Cone of vision" className={`${button} ${showCone ? ACTIVE : ''}`}>
-            <Icon path={I.cone} className="w-5 h-5" />
-          </button>
           <button
             onClick={toggleConstruction}
             aria-label="Construction around each object"
@@ -715,9 +704,6 @@ export const WalkOverlay: React.FC<{
           </button>
           <button onClick={redo} aria-label="Redo" className={`${button} ${canRedo ? '' : 'opacity-30'}`}>
             <Icon path={I.redo} className="w-5 h-5" />
-          </button>
-          <button onClick={() => { setShowTools(false); onReset(); }} aria-label="Back to the opening scene" className={button}>
-            <Icon path={I.reset} className="w-5 h-5" />
           </button>
           <button
             onClick={() => whileWorking(() => captureView(captureFileName(cameraHeight, fov)))}

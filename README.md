@@ -29,9 +29,14 @@ and the file goes with it unless a saved scene still stands on it.
 ## Opening
 
 The car is standing on the grid when the tool opens, framed for its size, on a
-180° five-point sheet. The reset control comes back to exactly this, rather than
-to an empty floor — it clears the scene in one undoable step and stands the car
-back up, so one undo returns the whole composition.
+180° five-point sheet.
+
+**Nothing in the tool erases the scene.** There was a control that came back to
+exactly this opening, and it sat a thumb-width from the ones you reach for
+constantly, with a single undo between a mis-tap and a morning's work. A tool
+you draw from for an hour should not carry a button that empties it. Reloading
+the page is the way back to the opening, and it is a deliberate enough act to
+be the only one.
 
 It is always the car and never one of the chairs. A chair is a box with legs;
 the car is curved where a box is flat, six metres long so its far end is visibly
@@ -64,8 +69,6 @@ the floor seen from above.
 - **Resize a box** — drag one of the dots at the centre of a face
 - **Turn, size and slide at once** — two fingers on the selection: twist to turn
   it, spread to size it, slide to move it
-- **Turn** — the arrows in the selection bar: a tap steps 15°, a drag turns
-  continuously
 - **The sun** — three fingers anywhere: across for its bearing, up and down for
   its height
 - **Undo** — ⌘Z / Ctrl-Z; **redo** ⇧⌘Z, or the two arrows in the tools row
@@ -105,17 +108,16 @@ The controls:
 
 - **Cube** — the mesh library: a 1 m reference cube, then the objects and figures
 - **Frames** — the scene library (below)
-- **Cone** — field of view; drag for any value, tap to step through presets, the
-  last of which stands back far enough to see the whole sheet
+- **Field of view** — drag for any value, tap to step through presets, the last
+  of which stands back far enough to see the whole sheet
 - **Horizon** — eye level, from 0.2 m to 12 m
-- **Projection** — steps through the four systems (below)
+- **Projection** — steps through the three systems (below)
 - **Sun / moon** — tap for light and dark, drag through all 256 greys,
   double-tap for the procedural sky
 - **Sliders** — everything else: the room's guides, the floor's two rulings, snap,
-  the field of view, the construction around each object, the selection's own
-  vanishing points, view lock, the room (tap to toggle, drag to size), the
-  surface of everything, the lights, de-duplicate, undo, redo, back to the
-  opening scene, and save the view as a PNG
+  the construction around each object, the selection's own vanishing points,
+  view lock, the room (tap to toggle, drag to size), the surface of everything,
+  the lights, de-duplicate, undo, redo, and save the view as a PNG
 
 ### Projections
 
@@ -211,7 +213,7 @@ whole panoramic band, top edge, bottom edge and both ends.
 ### The selection's own points
 
 Select anything and its own vanishing points are drawn, with its edges carried
-out to them — in every one of the four systems, not only the flat one. **On its
+out to them — in every one of the three systems, not only the flat one. **On its
 own switch**, not a rung of the guides: the guides are the construction of the
 *room* — the horizon, the floor, the sheet — and are wanted or not wanted for a
 whole session, while this is the construction of the one thing in your hand, and
@@ -241,26 +243,26 @@ landscape frame reaches about 65° up and the zenith is at 90°.
 
 ### The field of view
 
-Drawn in all four systems, and not the same shape in any two of them, because
-that is what each projection does to the same solid angle.
+The control on the dock is one number — how much of the world the sheet holds,
+from a long lens to past a full turn — and the frame decides the shape of it.
+`fieldOf` splits that spread across the frame's own proportions, so a landscape
+frame is wider than it is tall in degrees as well as in pixels, and turning a
+phone sideways changes what is in the picture rather than how it is squeezed.
 
-It is **an oval, not a circle**. "The sixty degree cone" is a cone, and a cone
-would have to come from one eye at the middle of a face. Two eyes are side by
-side in a head with brows over them and cheeks under them, so what they share is
-a wide, slightly low oval — something over 200° across, about 130° from top to
-bottom, and more of that below the line of sight than above it. That is why you
-notice movement beside you and not above you, and it is the shape everything you
-have ever seen arrived in.
+There used to be an oval ruled over the view at the 60° mark, the "cone of
+vision" of the drawing convention drawn as the oval it actually is: two eyes
+side by side under brows and over cheeks share something over 200° across and
+about 130° top to bottom, more of it below the line of sight than above. It is
+a true and useful fact and it made a poor overlay — a permanent ring across the
+middle of the thing you are trying to draw, in a tool whose entire argument is
+that the view should be the only thing on screen. The fact is in this file now,
+which is where a fact belongs; the sheet is left clear.
 
-So it keeps the 60° across, which is the number the drawing convention is about
-and the one worth knowing, and takes its height and its offset from the eyes. It
-is asked of the projection in front of you rather than worked out from a focal
-length.
-
-It matters most on a curved sheet, where it is the line between the two systems:
-inside it a rectilinear projection matches what an eye sees and you can rule
-with a straight edge; outside it squares stretch and spheres go oval, and the
-bend is not a stylisation but the only truthful answer.
+What it marked is still there to see without being drawn. On a curved sheet the
+60° region is where a rectilinear projection matches what an eye sees and a
+straight edge is honest; outside it squares stretch and spheres go oval, and the
+bend is not a stylisation but the only truthful answer. Sweep the field control
+and you watch that boundary move.
 
 ### Lights
 
@@ -304,9 +306,12 @@ Dragging lands on free, 5 cm, 25 cm or 1 m, and **the ground grid is ruled at
 whatever is chosen** — so what you snap to is what you can see to line things
 up against. Eye level sets to the centimetre.
 
-Selecting something replaces the dock with what you can do to it: turn, size,
+Selecting something replaces the dock with what you can do to it: size,
 **lock the size**, lift it off the floor, change its surface, duplicate, export
-the mesh at the size you settled on, delete. A copy lands beside its original with about six
+the mesh at the size you settled on, delete. Turning is not on the bar — it is
+two fingers on the thing itself, which is where it is looked for first, and a
+pair of arrows that step a thing round by a fixed amount is a worse version of
+that gesture rather than a second way to reach it. A copy lands beside its original with about six
 centimetres of air, so duplicating along a line builds a row rather than a
 scattering. Readings are in metres — the grid is ruled in metres, so the unit is
 never written down.
@@ -396,8 +401,8 @@ undoable move.
 ## Undo
 
 Everything that changes the scene can be taken back and put again — placing,
-sliding, lifting, turning, sizing, duplicating, deleting, clearing, and opening
-a saved composition over your work. A gesture is one step however many frames it
+sliding, lifting, turning, sizing, duplicating, deleting, and opening a saved
+composition over your work. A gesture is one step however many frames it
 took, and taking hold of something and letting go without moving it is not a
 step at all. Twenty-five deep, and going forward is closed off by the next
 change, as everywhere else.
@@ -417,8 +422,8 @@ so the geometry's edges are resolved rather than stepped; and carrying mipmaps
 with trilinear minification, so where the projection squeezes the source — which
 it does hard towards the edge of a wide field — the picture is filtered down
 instead of point-sampled into sparkle. Then the overlays are re-rendered from
-their own markup at the same scale and composited on top, so the cone and the
-points come with it.
+their own markup at the same scale and composited on top, so the vanishing
+points and the lines ruled towards them come with it.
 
 None of those compromises are worth making for a picture that is drawn once.
 
