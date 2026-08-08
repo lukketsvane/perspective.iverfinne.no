@@ -78,12 +78,11 @@ export const captureView = async (fileName: string): Promise<boolean> => {
   if (!canvas) return false;
 
   const frame = { width: window.innerWidth, height: window.innerHeight };
-  const scale = Math.min(
-    EXPORT_SCALE,
-    EXPORT_LIMIT / Math.max(frame.width, frame.height),
-    // Never smaller than what is already on the glass.
-    Math.max(EXPORT_SCALE, canvas.width / Math.max(frame.width, 1))
-  );
+  // The third clause used to be a max against EXPORT_SCALE, which inside a min
+  // against EXPORT_SCALE can never change the answer - so "never smaller than
+  // what is already on the glass" was doing nothing at all. It is true anyway:
+  // the canvas is capped at a pixel ratio of about 2 and the export is 3.
+  const scale = Math.min(EXPORT_SCALE, EXPORT_LIMIT / Math.max(frame.width, frame.height));
   const width = Math.round(frame.width * scale);
   const height = Math.round(frame.height * scale);
 
@@ -120,9 +119,17 @@ export const captureView = async (fileName: string): Promise<boolean> => {
 };
 
 /** perspective-eye1.90m-210deg-2026-07-28.png */
-export const captureFileName = (eyeHeight: number, fov: number): string => {
+/**
+ * What the file is called.
+ *
+ * Eye height, field, and which of the three sheets it was drawn on. The last of
+ * those was missing, and it is the one you must know before putting a pencil on
+ * the picture: an equidistant 180 and a stereographic 180 are different
+ * drawings of the same room, and nothing in the pixels says which.
+ */
+export const captureFileName = (eyeHeight: number, fov: number, mode: string): string => {
   const date = new Date().toISOString().slice(0, 10);
-  return `perspective-eye${eyeHeight.toFixed(2)}m-${Math.round(fov)}deg-${date}.png`;
+  return `perspective-eye${eyeHeight.toFixed(2)}m-${Math.round(fov)}deg-${mode}-${date}.png`;
 };
 
 /** How wide a saved scene's thumbnail is. Two across on the narrowest phone. */

@@ -8,7 +8,7 @@ import { KimBox } from './KimBox';
 import { Room } from './Room';
 import { SceneModels } from './SceneModels';
 import { WalkControls } from './WalkControls';
-import { updateFocus, focusPoint } from '../lib/focus';
+import { updateFocus, focusPoint, setSelectionRange } from '../lib/focus';
 import { updateVanishing, clearVanishing, updateRoomPoints } from '../lib/vanishing';
 import { markSceneBuilt, sceneRevision } from '../lib/sceneRevision';
 import { Panorama } from './Panorama';
@@ -54,6 +54,14 @@ const VanishingTracker = () => {
   const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
 
   useFrame(() => {
+    // How far away the thing in your hands is, measured on the floor.
+    const standing = box?.position ?? model?.position;
+    setSelectionRange(
+      standing
+        ? Math.hypot(standing[0] - camera.position.x, standing[2] - camera.position.z)
+        : 0
+    );
+
     // The room's five, wherever the sheet cannot reach them. Independent of the
     // selection: they belong to the world, and they are the first rung of the
     // guides rather than anything to do with what you are holding.

@@ -63,3 +63,24 @@ export const updateFocus = (camera: THREE.Camera) => {
   focusPoint.x = hit.x;
   focusPoint.z = hit.z;
 };
+
+/**
+ * How far away the selection is, on the floor.
+ *
+ * Perspective is a relation between three numbers - how big a thing is, how far
+ * away it is, and how high your eye is - and the tool stated two of them and
+ * computed the third silently. The bar says the height and the dock says the
+ * eye level; this is the one that was missing.
+ *
+ * Written from the frame loop that already holds the camera and the selection,
+ * and read by the bar, so nothing has to be threaded through the store or
+ * re-derived. `nonce` is what tells the bar it has changed, the same way the
+ * vanishing overlay knows to redraw.
+ */
+export const selectionRange = { metres: 0, nonce: 0 };
+
+export const setSelectionRange = (metres: number) => {
+  if (Math.abs(metres - selectionRange.metres) < 0.01) return;
+  selectionRange.metres = metres;
+  selectionRange.nonce += 1;
+};
