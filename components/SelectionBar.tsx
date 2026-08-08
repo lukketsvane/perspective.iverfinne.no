@@ -1,10 +1,11 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { Icon, I } from './icons';
 import { chrome, readout, snugIconButton } from './ui';
 import { exportScaledModel } from '../lib/exportModel';
 import { SURFACE_ICON } from './icons';
 import { useRail } from '../lib/rail';
+import { selectionRange } from '../lib/focus';
 import { BOX_SURFACES, MESH_SURFACES, nearestSurface } from '../types';
 
 /** Everything sizes to the centimetre. Below that is not a drawing decision. */
@@ -135,6 +136,35 @@ const useLift = (value: number, onChange: (v: number) => void) => {
 };
 
 /**
+ * How far away the selection is, redrawn only when the number moves.
+ *
+ * The frame loop writes it; polling the animation frame and comparing is what
+ * the vanishing overlay already does, and it keeps a number that changes on
+ * every step of a walk out of the store, where every write is a repaint of
+ * everything subscribed to it.
+ */
+const useRange = () => {
+  const [, redraw] = useState(0);
+  const seen = useRef(-1);
+  useEffect(() => {
+    let running = true;
+    const tick = () => {
+      if (!running) return;
+      if (selectionRange.nonce !== seen.current) {
+        seen.current = selectionRange.nonce;
+        redraw((n) => n + 1);
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    return () => {
+      running = false;
+    };
+  }, []);
+  return selectionRange.metres;
+};
+
+/**
  * What you can do to the thing you just tapped: size it, lift it off the floor,
  * change how solidly it is drawn, copy it, delete it - and, for a mesh, take it
  * away at the size you settled on.
@@ -170,6 +200,7 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
 
   const [activeAxis, setActiveAxis] = useState<0 | 1 | 2>(1);
   const [exporting, setExporting] = useState(false);
+  const range = useRange();
 
   const updateModel = useStore((s) => s.updateModel);
 
@@ -286,6 +317,18 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
           raised || !railVisible ? 'pointer-events-none' : 'pointer-events-auto'
         } ${chrome(isDark)}`}
       >
+        {/* How far away it is. Not a control - the one number in the relation
+            between size, distance and eye height that the tool computed and
+            never said. No unit, like every other number here. */}
+        <div
+          className={`${readout(isDark)} cursor-default select-none`}
+          aria-label={`${metres(range)} metres away`}
+        >
+          <span className="text-[13px] font-bold tabular-nums tracking-wide opacity-45">
+            {range < 100 ? metres(range) : Math.round(range)}
+          </span>
+        </div>
+
         {model ? (
           <>
             <button

@@ -112,7 +112,7 @@ const CURSOR: Record<string, string> = {
 };
 
 /** How far the mouse has to travel before the scene is asked about it again. */
-const HOVER_SLOP = 5;
+const HOVER_SLOP = 10;
 
 /**
  * How long a finger may rest before lifting it stops counting as a tap.
@@ -150,6 +150,7 @@ export const WalkOverlay: React.FC<{
   const sun = useStore((s) => s.sun);
   const setSun = useStore((s) => s.setSun);
   const sunEnvironment = useStore((s) => s.sunEnvironment);
+  const backgroundGray = useStore((s) => s.backgroundGray);
   const toggleSunEnvironment = useStore((s) => s.toggleSunEnvironment);
   const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
   const [showTools, setShowTools] = useState(false);
@@ -341,11 +342,27 @@ export const WalkOverlay: React.FC<{
   };
 
   /** Say what the arrow is over, on a machine that has an arrow. */
+  /**
+   * What the cursor should be, at most once a frame.
+   *
+   * Working out what is under the pointer is a raycast over the whole scene on
+   * the main thread - measured at 34 ms with one of the studies standing, and
+   * it was fired every five pixels of travel, so crossing the window cost forty
+   * of them. Coalescing to one per animation frame caps it at one however fast
+   * the mouse moves, and asks about where the pointer ENDED rather than where
+   * it was when the frame was booked.
+   */
+  const hoverPending = useRef(0);
   const trackHover = (e: React.PointerEvent) => {
     if (e.pointerType !== 'mouse' || e.buttons !== 0) return;
     if (Math.hypot(e.clientX - hovered.current.x, e.clientY - hovered.current.y) < HOVER_SLOP) return;
     hovered.current = { x: e.clientX, y: e.clientY };
-    setCursor(CURSOR[hoverAt(e.clientX, e.clientY)] ?? 'default');
+    if (hoverPending.current) return;
+    hoverPending.current = requestAnimationFrame(() => {
+      hoverPending.current = 0;
+      const { x, y } = hovered.current;
+      setCursor(CURSOR[hoverAt(x, y)] ?? 'default');
+    });
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -691,10 +708,18 @@ export const WalkOverlay: React.FC<{
 
         {/* Secondary tools. Wrapping, because ten 44 px targets do not fit
             across a phone in one line and a scroller here would be a trap. */}
-        <div className={`flex flex-wrap justify-center max-w-[22rem] gap-1 p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showTools && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}>
+        <div
+          /* Out of the tab order while it is out of sight - what
+             pointer-events-none already does for the pointer. A keyboard
+             user's very first Tab landed in the collapsed row, and Enter there
+             changed the construction guides with nothing on screen moving. */
+          {...(showTools && dockVisible ? {} : { inert: '' })}
+          className={`flex flex-wrap justify-center max-w-[22rem] gap-1 p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showTools && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
+        >
           <button
             onClick={cycleGuides}
             aria-label={`Construction guides, level ${guides} of 2`}
+            aria-pressed={guides > 0}
             className={`${button} ${guides ? ACTIVE : ''}`}
           >
             <Icon path={GUIDE_ICON[guides]} className="w-5 h-5" />
@@ -703,6 +728,7 @@ export const WalkOverlay: React.FC<{
           <button
             onClick={toggleGridZ}
             aria-label="Floor lines running away"
+            aria-pressed={gridZ}
             className={`${button} ${gridZ ? ACTIVE : ''}`}
           >
             <Icon path={I.gridAway} className="w-5 h-5" />
@@ -710,6 +736,7 @@ export const WalkOverlay: React.FC<{
           <button
             onClick={toggleGridX}
             aria-label="Floor lines running across"
+            aria-pressed={gridX}
             className={`${button} ${gridX ? ACTIVE : ''}`}
           >
             <Icon path={I.gridAcross} className="w-5 h-5" />
@@ -717,6 +744,7 @@ export const WalkOverlay: React.FC<{
           <button
             onClick={cycleSnap}
             aria-label={snapStep ? `Snap to ${snapStep} m` : 'Snap off'}
+            aria-pressed={snapStep > 0}
             className={`${button} ${snapStep ? ACTIVE : ''}`}
           >
             <Icon path={SNAP_ICON[SNAP_STEPS.indexOf(snapStep as (typeof SNAP_STEPS)[number])] ?? I.snapFree} className="w-5 h-5" />
@@ -724,6 +752,7 @@ export const WalkOverlay: React.FC<{
           <button
             onClick={toggleConstruction}
             aria-label="Construction around each object"
+            aria-pressed={showConstruction}
             className={`${button} ${showConstruction ? ACTIVE : ''}`}
           >
             <Icon path={I.cage} className="w-5 h-5" />
@@ -731,11 +760,12 @@ export const WalkOverlay: React.FC<{
           <button
             onClick={toggleVanishing}
             aria-label="The selection's own vanishing points"
+            aria-pressed={showVanishing}
             className={`${button} ${showVanishing ? ACTIVE : ''}`}
           >
             <Icon path={I.vanishing} className="w-5 h-5" />
           </button>
-          <button onClick={toggleViewLock} aria-label="Lock view" className={`${button} ${viewLocked ? '!text-amber-400' : ''}`}>
+          <button onClick={toggleViewLock} aria-label="Lock view" aria-pressed={viewLocked} className={`${button} ${viewLocked ? '!text-amber-400' : ''}`}>
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="4" y="10.5" width="16" height="10" rx="2" />
               {viewLocked ? <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /> : <path d="M8 10.5V7a4 4 0 0 1 7.5-2" />}
@@ -745,6 +775,7 @@ export const WalkOverlay: React.FC<{
             <button
               {...roomControl.handlers}
               aria-label={`Room, ${room.width.toFixed(1)} by ${room.depth.toFixed(1)} metres`}
+              aria-pressed={roomLevel > 0}
               className={`${button} touch-none ${roomLevel > 0 ? ACTIVE : ''}`}
             >
               <Icon path={roomLevel === 2 ? I.roomWalls : I.room} className="w-5 h-5" />
@@ -776,7 +807,7 @@ export const WalkOverlay: React.FC<{
             <Icon path={I.redo} className="w-5 h-5" />
           </button>
           <button
-            onClick={() => whileWorking(() => captureView(captureFileName(cameraHeight, fov)))}
+            onClick={() => whileWorking(() => captureView(captureFileName(cameraHeight, fov, perspectiveMode)))}
             aria-label="Save the view as a picture"
             className={button}
           >
@@ -789,7 +820,10 @@ export const WalkOverlay: React.FC<{
             to the view. */}
         <SelectionBar raised={covered} />
 
-        <div className={`flex items-center p-1.5 gap-1 rounded-full border shadow-2xl ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}>
+        <div
+          {...(dockVisible ? {} : { inert: '' })}
+          className={`flex items-center p-1.5 gap-1 rounded-full border shadow-2xl ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
+        >
           <button onClick={onModels} aria-label="Add model" className={button}>
             <Icon path={I.cube} className="w-5 h-5" />
           </button>
@@ -832,14 +866,15 @@ export const WalkOverlay: React.FC<{
               const at = PROJECTION_ORDER.indexOf(perspectiveMode);
               setPerspectiveMode(PROJECTION_ORDER[(at + 1) % PROJECTION_ORDER.length]);
             }}
-            aria-label="Projection"
+            aria-label={`Projection: ${perspectiveMode}`}
             className={`${button} ${ACTIVE}`}
           >
             <Icon path={PROJECTION_ICON[perspectiveMode]} className="w-5 h-5" />
           </button>
           <button
             {...grayThemeControl}
-            aria-label="Theme"
+            aria-label={`Paper tone, ${backgroundGray} of 255 - drag to change`}
+            aria-pressed={sunEnvironment}
             className={`${button} touch-none ${sunEnvironment ? ACTIVE : ''}`}
           >
             <Icon path={sunEnvironment ? I.sky : isDark ? I.dark : I.light} className="w-5 h-5" />
@@ -847,6 +882,7 @@ export const WalkOverlay: React.FC<{
           <button
             onClick={() => setShowTools((open) => !open)}
             aria-label="Tools"
+            aria-expanded={showTools}
             className={`${button} ${showTools ? 'bg-black/10 dark:bg-white/10' : ''}`}
           >
             <Icon path={I.sliders} className="w-5 h-5" />
