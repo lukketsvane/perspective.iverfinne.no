@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { fieldOf } from '../lib/projection';
+import { fieldOf, stereographicAngle } from '../lib/projection';
 import { registerFrameRenderer } from '../lib/capture';
 import { sceneRevision } from '../lib/sceneRevision';
 import type { PerspectiveMode } from '../types';
@@ -26,10 +26,10 @@ import type { PerspectiveMode } from '../types';
  * construction Kim Jung Gi rules a page with before he draws a room.
  */
 /** What each projection is, to the shader. Equidistant is zero. */
-const PROJECTION_MODES: Partial<Record<PerspectiveMode, number>> = {
+const PROJECTION_MODES: Record<PerspectiveMode, number> = {
   equidistant: 0,
   cylindrical: 2,
-  '5-point': 4,
+  stereographic: 6,
 };
 
 const HALF_PI = Math.PI / 2;
@@ -71,7 +71,7 @@ type Sheet =
  * sums, asked for a bigger frame, with the cap lifted because it happens once.
  */
 const sheetFor = (
-  mode: Exclude<PerspectiveMode, 'linear'>,
+  mode: PerspectiveMode,
   spread: number,
   cssWidth: number,
   cssHeight: number,
@@ -86,7 +86,9 @@ const sheetFor = (
       ? Math.acos(
           Math.max(-1, Math.min(1, Math.cos(Math.min(halfYaw, Math.PI)) * Math.cos(Math.min(halfPitch, HALF_PI))))
         )
-      : Math.hypot(halfYaw, halfPitch);
+      : mode === 'stereographic'
+        ? stereographicAngle(Math.hypot(halfYaw, halfPitch), Math.max(halfYaw, halfPitch))
+        : Math.hypot(halfYaw, halfPitch);
 
   if (corner > FLAT_LIMIT) {
     // The picture is read off the cube by angle, so what matters is how many
@@ -107,7 +109,8 @@ const sheetFor = (
    * the extents are the frame's own half-angles, scaled by however much the
    * tangent has run ahead of the angle by the time it gets there.
    */
-  const stretch = Math.tan(corner) / Math.max(corner, 1e-6);
+  const cornerRadius = mode === 'cylindrical' ? 0 : Math.hypot(halfYaw, halfPitch);
+  const stretch = Math.tan(corner) / Math.max(cornerRadius || corner, 1e-6);
   const tanX = (mode === 'cylindrical' ? Math.tan(halfYaw) : halfYaw * stretch) * MARGIN;
   const tanY =
     (mode === 'cylindrical' ? Math.tan(halfPitch) / Math.cos(halfYaw) : halfPitch * stretch) * MARGIN;
@@ -133,7 +136,7 @@ const sheetFor = (
 
 export const Panorama: React.FC<{
   spread: number;
-  mode: Exclude<PerspectiveMode, 'linear'>;
+  mode: PerspectiveMode;
   /** The construction grid's colour, and 0 strength to leave it off. */
   gridColor: THREE.Color;
   gridStrength: number;
@@ -289,7 +292,28 @@ export const Panorama: React.FC<{
              */
             vec2 radial = vec2(clip.x * halfYaw, clip.y * halfPitch);
             float radius = length(radial);
+
+            /*
+             * Both radial systems differ in exactly one line: how far off the
+             * axis a given distance from the middle of the frame is.
+             *
+             * Equidistant reads that distance as the angle itself, which is
+             * what makes it a ruler. Stereographic reads it as the tangent of
+             * the half angle, which is what makes it conformal - every angle in
+             * the world is the same angle on the page, at the rim as much as at
+             * the centre - and which never reaches half a turn however far out
+             * the pixel is, so a stereographic frame has no dead paper in its
+             * corners at all.
+             */
             float theta = radius;
+            if (projectionMode == 6) {
+              // Not named "half": that is a reserved word in GLSL ES, and a
+              // shader that will not compile draws nothing at all rather than
+              // drawing something wrong.
+              float field = max(halfYaw, halfPitch);
+              float halfField = min(field, 3.1) * 0.5;
+              theta = 2.0 * atan(tan(halfField) / max(field, 1e-6) * radius);
+            }
             offSheet = theta > PI;
 
             if (radius > 1e-5) {

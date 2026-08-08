@@ -3,7 +3,6 @@ import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { ContactShadows, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore, DEFAULT_CAMERA_HEIGHT } from '../store';
-import { ARSession } from './ARSession';
 import { GroundGrid } from './GroundGrid';
 import { KimBox } from './KimBox';
 import { HorizonLine } from './Reference';
@@ -260,11 +259,12 @@ const SceneContent = () => {
   const fov = useStore((state) => state.fov);
   const perspectiveMode = useStore((state) => state.perspectiveMode);
   const guides = useStore((state) => state.guides);
+  const gridX = useStore((state) => state.gridX);
+  const gridZ = useStore((state) => state.gridZ);
   const snapStep = useStore((state) => state.snapStep);
   const theme = useStore((state) => state.theme);
   const backgroundGray = useStore((state) => state.backgroundGray);
   const sunShadows = useStore((state) => state.sun.shadows);
-  const inAR = useStore((state) => state.arRequested);
   const showRoom = useStore((state) => state.showRoom);
   const sunEnvironment = useStore((state) => state.sunEnvironment);
 
@@ -293,10 +293,6 @@ const SceneContent = () => {
   const isDark = theme === 'dark';
   const bgColor = `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})`;
   const horizonColor = isDark ? '#5cc8ff' : '#1f6feb';
-
-  // Curvilinear is a mode, not an amount: at a blend of zero it is still a
-  // panorama, just the equirectangular one.
-  const curvilinear = perspectiveMode !== 'linear';
 
   /** One metre, or whatever finer step is being snapped to. */
   const cellSize = Math.max(0.05, snapStep || 1);
@@ -332,8 +328,7 @@ const SceneContent = () => {
 
   return (
     <>
-      {/* Left off in AR: the camera feed is the background there. */}
-      {!inAR && <color attach="background" args={[sunEnvironment ? '#000000' : bgColor]} />}
+      <color attach="background" args={[sunEnvironment ? '#000000' : bgColor]} />
       {sunEnvironment && <SunEnvironment />}
       {/* One sun, and nothing else.
 
@@ -345,9 +340,8 @@ const SceneContent = () => {
       <Sun />
       <Fill />
 
-      {/* Four walls and a ceiling round the origin. Never in AR: you are
-          already standing in a room there, and it is a better one. */}
-      {showRoom && !inAR && <Room dark={isDark} />}
+      {/* Four walls and a ceiling round the origin. */}
+      {showRoom && <Room dark={isDark} />}
 
       <group>
         {boxes.map((box) => (
@@ -368,7 +362,7 @@ const SceneContent = () => {
         * and lining an object up against a line it cannot land on is the sort
         * of small lie that costs half an hour.
         */}
-      {guides >= 2 && <GroundGrid cell={cellSize} dark={isDark} />}
+      {(gridX || gridZ) && <GroundGrid cell={cellSize} dark={isDark} along={{ x: gridX, z: gridZ }} />}
 
       {/* The floor catches the sun's shadows and nothing else. It is far wider
           than it needs to be for the shadows themselves: a 200 m plane has an
@@ -392,20 +386,19 @@ const SceneContent = () => {
         />
       )}
 
-      {/* The curvilinear view is a different projection, not a filter over the
-          flat one, so it takes the frame over entirely while it is on. */}
-      {curvilinear && !inAR && (
+      {/* The curvilinear frame is a different projection, not a filter over the
+          flat one, so it takes the frame over entirely. */}
+      {(
         <Panorama
           spread={fov}
           mode={perspectiveMode}
           gridColor={gridColor}
-          gridStrength={guides >= 3 ? 1 : 0}
+          gridStrength={guides >= 2 ? 1 : 0}
           surround={surround}
         />
       )}
 
       <WalkControls />
-      <ARSession />
 
       <FocusTracker />
       <VanishingTracker />

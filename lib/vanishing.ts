@@ -153,7 +153,8 @@ export const updateVanishing = (camera: THREE.Camera, mode: PerspectiveMode, box
   drawnFor.key = key;
 
   camera.getWorldDirection(forward);
-  const curved = mode !== 'linear';
+  // Every system on offer is curved now; the flat one went with the room.
+  const curved = true;
 
   const cos = Math.cos(box.rotationY);
   const sin = Math.sin(box.rotationY);

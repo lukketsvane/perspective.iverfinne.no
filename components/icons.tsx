@@ -31,10 +31,18 @@ export const I = {
   cylindrical: (<><path d="M5 4h14v16H5z" /><path d="M5 8c2.2-1.3 4.5-2 7-2s4.8.7 7 2M5 16c2.2-1.3 4.5-2 7-2s4.8.7 7 2" strokeOpacity="0.45" /><line x1="12" y1="4" x2="12" y2="20" /></>),
 
   /**
-   * Five point: the four around the horizon and the one you are looking at,
-   * with the sphere they sit on.
+   * Stereographic: the conformal sheet. Circles stay circles and angles stay
+   * angles, so it is drawn as circles crossing squarely - the one thing this
+   * projection promises and the others do not.
    */
-  fivePoint: (<><circle cx="12" cy="12" r="8.6" /><path d="M3.4 12h17.2M12 3.4v17.2" strokeOpacity="0.4" /><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="3.4" cy="12" r="1.2" fill="currentColor" stroke="none" /><circle cx="20.6" cy="12" r="1.2" fill="currentColor" stroke="none" /><circle cx="12" cy="3.4" r="1.2" fill="currentColor" stroke="none" /><circle cx="12" cy="20.6" r="1.2" fill="currentColor" stroke="none" /></>),
+  stereographic: (<><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.4" strokeOpacity="0.55" /><circle cx="12" cy="12" r="1.4" strokeOpacity="0.4" /><path d="M12 3v18M3 12h18" strokeOpacity="0.35" /><circle cx="12" cy="12" r="7" strokeOpacity="0.25" /></>),
+
+  /**
+   * The ground's two rulings, one switch each: the lines that run away from you
+   * to their point, and the lines that cross them.
+   */
+  gridAway: (<><path d="M2.5 21 11 8M21.5 21 13 8" /><path d="M6.6 21 11.6 8M17.4 21 12.4 8" strokeOpacity="0.4" /><line x1="2" y1="6.5" x2="22" y2="6.5" strokeOpacity="0.3" /></>),
+  gridAcross: (<><path d="M2.5 20.5c5-2.2 14-2.2 19 0M4.2 15.6c4-1.4 11.6-1.4 15.6 0M5.6 11.6c3.2-.9 9.6-.9 12.8 0M6.7 8.6c2.6-.6 8-.6 10.6 0" /><line x1="2" y1="6.5" x2="22" y2="6.5" strokeOpacity="0.3" /></>),
 
   /** A one-metre reference cube: the unit everything else is read against. */
   cube: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" /></>),
@@ -65,8 +73,7 @@ export const I = {
    */
   guides0: (<><path d="M3 12h3M10.5 12h3M18 12h3" strokeOpacity="0.4" /></>),
   guides1: (<><line x1="2" y1="12" x2="22" y2="12" /></>),
-  guides2: (<><line x1="2" y1="12" x2="22" y2="12" /><path d="M4 21l6.5-9M20 21l-6.5-9M2.5 16.5h19" strokeOpacity="0.5" /></>),
-  guides3: (<><line x1="2" y1="12" x2="22" y2="12" /><path d="M4 21l6.5-9M20 21l-6.5-9M2.5 16.5h19" strokeOpacity="0.5" /><path d="M3.2 7.5c4-2.4 13.6-2.4 17.6 0M6.5 3.4c2-.8 9-.8 11 0" strokeOpacity="0.75" /></>),
+  guides2: (<><line x1="2" y1="12" x2="22" y2="12" /><path d="M3.2 7.5c4-2.4 13.6-2.4 17.6 0M6.5 3.4c2-.8 9-.8 11 0M3.2 16.5c4 2.4 13.6 2.4 17.6 0" strokeOpacity="0.7" /></>),
 
   /**
    * What dragging lands on: free, then three rulers of increasing coarseness.

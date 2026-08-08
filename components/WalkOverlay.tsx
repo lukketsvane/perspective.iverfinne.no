@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
-import { walkInput, enableDeviceOrientation } from '../lib/walkInput';
-import { arSupported } from '../lib/xr';
+import { walkInput } from '../lib/walkInput';
 import { Icon, I, SURFACE_ICON } from './icons';
 import { Scrub, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
@@ -28,19 +27,17 @@ import { SNAP_STEPS, type GuideLevel, type PerspectiveMode } from '../types';
  * the phone's own rectilinear lens, and bending that would be drawing a
  * perspective over a perspective.
  */
-const PROJECTION_ORDER: PerspectiveMode[] = ['cylindrical', 'equidistant', '5-point'];
+const PROJECTION_ORDER: PerspectiveMode[] = ['cylindrical', 'equidistant', 'stereographic'];
 const PROJECTION_ICON: Record<PerspectiveMode, React.ReactNode> = {
-  linear: I.straight,
   cylindrical: I.cylindrical,
   equidistant: I.curved,
-  '5-point': I.fivePoint,
+  stereographic: I.stereographic,
 };
 
 const GUIDE_ICON: Record<GuideLevel, React.ReactNode> = {
   0: I.guides0,
   1: I.guides1,
   2: I.guides2,
-  3: I.guides3,
 };
 
 /** In the order of SNAP_STEPS: free, 5 cm, 25 cm, 1 m. */
@@ -75,15 +72,10 @@ const LOOK_GAIN = 1.4;
  * setting is vertical, so it is opened out to the horizontal by the frame's
  * shape.
  */
-const lookRadiansPerPixel = (
-  curvilinear: boolean,
-  fovDegrees: number,
-  width: number,
-  height: number
-) => {
-  const horizontal = curvilinear
-    ? (fovDegrees * Math.PI) / 180
-    : 2 * Math.atan(Math.tan((fovDegrees * Math.PI) / 360) * (width / Math.max(height, 1)));
+const lookRadiansPerPixel = (fovDegrees: number, width: number, height: number) => {
+  // Every system on offer states its field as the angle across the frame, so
+  // the sum is the same for all of them: how much world one pixel is worth.
+  const horizontal = ((fovDegrees * Math.PI) / 180) * (width / Math.max(width, height, 1));
   return (horizontal / Math.max(width, 1)) * LOOK_GAIN;
 };
 
@@ -166,7 +158,6 @@ export const WalkOverlay: React.FC<{
   const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
   const [showTools, setShowTools] = useState(false);
   const [railVisible, setRailVisible] = useState(true);
-  const [arSensor, setArSensor] = useState(false);
   const railTimer = useRef<number | undefined>(undefined);
   const sceneSurface = useStore((s) => s.surface);
   const cycleSurface = useStore((s) => s.cycleSurface);
@@ -182,14 +173,15 @@ export const WalkOverlay: React.FC<{
   const selectedModelId = useStore((s) => s.selectedModelId);
   const selectedId = useStore((s) => s.selectedId);
   const isSelected = selectedModelId !== null || selectedId !== null;
-  const setAr = useStore((s) => s.setAr);
-  const arActive = useStore((s) => s.arRequested);
-  const arMode = arActive || arSensor;
   const hasDuplicates = models.length !== new Set(models.map((m) => m.fileUrl)).size;
 
   const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
   const guides = useStore((s) => s.guides);
   const cycleGuides = useStore((s) => s.cycleGuides);
+  const gridX = useStore((s) => s.gridX);
+  const gridZ = useStore((s) => s.gridZ);
+  const toggleGridX = useStore((s) => s.toggleGridX);
+  const toggleGridZ = useStore((s) => s.toggleGridZ);
   const snapStep = useStore((s) => s.snapStep);
   const cycleSnap = useStore((s) => s.cycleSnap);
   const showCone = useStore((s) => s.showCone);
@@ -219,8 +211,7 @@ export const WalkOverlay: React.FC<{
     const measure = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      const curvilinear = perspectiveMode !== 'linear';
-      lookRate.current = lookRadiansPerPixel(curvilinear, fov, width, height);
+      lookRate.current = lookRadiansPerPixel(fov, width, height);
       setWholeSheet(wholeSheetField(width, height));
     };
     measure();
@@ -610,32 +601,6 @@ export const WalkOverlay: React.FC<{
     setRailVisible(true);
   }, [showTools, showRail]);
 
-  /**
-   * Into the room, or back out of it.
-   *
-   * A real session is asked for first - that is the one that tracks where the
-   * phone is and stands the scene on the actual floor. On a device with no
-   * WebXR at all there is still the orientation sensor, which turns the view
-   * with the phone but cannot know where it is: half the thing, and clearly
-   * marked as such by the scene staying where it was.
-   */
-  const toggleArMode = useCallback(async () => {
-    if (arMode) {
-      setAr(false);
-      setArSensor(false);
-      return;
-    }
-    if (await arSupported()) {
-      setAr(true);
-      return;
-    }
-    const granted = await enableDeviceOrientation();
-    if (granted) {
-      walkInput.lookYaw = 0;
-      walkInput.lookPitch = 0;
-      setArSensor(true);
-    }
-  }, [arMode, setAr]);
 
   const button = iconButton(isDark);
   const dockVisible = railVisible && !isSelected && !covered;
@@ -677,15 +642,27 @@ export const WalkOverlay: React.FC<{
         {/* Secondary tools. Wrapping, because ten 44 px targets do not fit
             across a phone in one line and a scroller here would be a trap. */}
         <div className={`flex flex-wrap justify-center max-w-[22rem] gap-1 p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showTools && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}>
-          <button onClick={toggleArMode} aria-label="AR camera mode" className={`${button} ${arMode ? '!text-green-500' : ''}`}>
-             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" /><circle cx="12" cy="12" r="3" /></svg>
-          </button>
           <button
             onClick={cycleGuides}
-            aria-label={`Construction guides, level ${guides} of 3`}
+            aria-label={`Construction guides, level ${guides} of 2`}
             className={`${button} ${guides ? ACTIVE : ''}`}
           >
             <Icon path={GUIDE_ICON[guides]} className="w-5 h-5" />
+          </button>
+          {/* The floor's two rulings, one switch each. */}
+          <button
+            onClick={toggleGridZ}
+            aria-label="Floor lines running away"
+            className={`${button} ${gridZ ? ACTIVE : ''}`}
+          >
+            <Icon path={I.gridAway} className="w-5 h-5" />
+          </button>
+          <button
+            onClick={toggleGridX}
+            aria-label="Floor lines running across"
+            className={`${button} ${gridX ? ACTIVE : ''}`}
+          >
+            <Icon path={I.gridAcross} className="w-5 h-5" />
           </button>
           <button
             onClick={cycleSnap}
@@ -811,7 +788,7 @@ export const WalkOverlay: React.FC<{
               setPerspectiveMode(PROJECTION_ORDER[(at + 1) % PROJECTION_ORDER.length]);
             }}
             aria-label="Projection"
-            className={`${button} ${perspectiveMode !== 'linear' ? ACTIVE : ''}`}
+            className={`${button} ${ACTIVE}`}
           >
             <Icon path={PROJECTION_ICON[perspectiveMode]} className="w-5 h-5" />
           </button>
