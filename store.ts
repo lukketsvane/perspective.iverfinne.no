@@ -7,6 +7,7 @@ import {
   GuideLevel,
   MESH_SURFACES,
   nearestSurface,
+  PerspectiveMode,
   ROOM_LIMITS,
   RoomSize,
   SavedScene,
@@ -117,7 +118,8 @@ export const DEFAULT_ROOM: RoomSize = { width: 10, depth: 10, height: 3 };
  * the tool opens should be one place, not one place with the room and another
  * without.
  */
-export const standingRoom = (room: RoomSize) => Math.max(1.6, room.depth / 2 - 1.2);
+export const standingRoom = (room: RoomSize) =>
+  Math.max(1.6, (Number.isFinite(room.depth) ? room.depth : DEFAULT_ROOM.depth) / 2 - 1.2);
 
 /** Snap a spawned cube to the centre of a 1 m grid cell, so stacks line up. */
 const snapToCell = (v: number) => Math.floor(v) + 0.5;
@@ -159,16 +161,55 @@ const SETTING_KEYS = [
 
 type PersistedSettings = Pick<SceneState, (typeof SETTING_KEYS)[number]>;
 
+/**
+ * What each remembered setting has to look like to be taken back.
+ *
+ * The allow-list on the key alone was half the job: it kept fields from removed
+ * features out, and let a field whose *shape* had changed straight back in - a
+ * room written as one square number, read by a version that wants two, and every
+ * sum downstream holding a NaN. Nothing throws on a NaN. The camera simply goes
+ * to a place that is not a place and the frame comes up empty.
+ *
+ * So the key has to be known and the value has to be the right kind of thing.
+ * Anything else is dropped and the default stands, which is a setting lost -
+ * the smallest possible price, and the only one that cannot take the tool down
+ * with it.
+ */
+const number = (value: unknown) => typeof value === 'number' && Number.isFinite(value);
+const boolean = (value: unknown) => typeof value === 'boolean';
+const object = (value: unknown) => typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => boolean> = {
+  theme: (v) => v === 'light' || v === 'dark',
+  backgroundGray: number,
+  cameraHeight: number,
+  guides: number,
+  gridX: boolean,
+  gridZ: boolean,
+  showCone: boolean,
+  showConstruction: boolean,
+  showRoom: boolean,
+  room: object,
+  showVanishing: boolean,
+  fov: number,
+  snapStep: number,
+  surface: (v) => SURFACES.includes(v as Surface),
+  sunEnvironment: boolean,
+  sun: object,
+  fill: object,
+};
+
 const loadSettings = (): Partial<PersistedSettings> => {
   if (typeof localStorage === 'undefined') return {};
   try {
     const stored = localStorage.getItem(SETTINGS_KEY);
     if (!stored) return {};
     const parsed = JSON.parse(stored) as Record<string, unknown>;
-    // Copy only current settings. Older records may contain removed camera-mode
-    // fields; an allow-list prevents those values from leaking back into state.
+    if (!object(parsed)) return {};
     return Object.fromEntries(
-      SETTING_KEYS.filter((key) => Object.prototype.hasOwnProperty.call(parsed, key)).map((key) => [key, parsed[key]])
+      SETTING_KEYS.filter(
+        (key) => Object.prototype.hasOwnProperty.call(parsed, key) && SETTING_SHAPE[key](parsed[key])
+      ).map((key) => [key, parsed[key]])
     ) as Partial<PersistedSettings>;
   } catch {
     return {};
@@ -204,11 +245,43 @@ const legacy = (() => {
     return JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') as {
       showGuides?: boolean;
       modelMaterial?: Surface;
+      /** Written by the version whose room floor was one square number. */
+      room?: { floor?: number };
     };
   } catch {
     return {};
   }
 })();
+
+/**
+ * A room read back out of storage, whatever shape it was written in.
+ *
+ * The floor was one number for a square room before it was two, and a stored
+ * `{ floor, height }` came back through the allow-list intact - which left the
+ * room with no width and no depth at all, and every sum that touched it holding
+ * a NaN. The one that mattered was where to stand: a NaN reached the walker,
+ * and a camera at NaN draws an empty frame. Nothing threw and nothing logged;
+ * the app simply came up white for anybody who had used the previous version.
+ *
+ * Which is why this is not a `??` in a spread but a function that starts from
+ * the defaults and only takes numbers.
+ */
+const readRoom = (stored: Partial<RoomSize> | undefined): RoomSize => {
+  const square = legacy.room?.floor;
+  const take = (value: unknown, fallback: number) =>
+    typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+  return {
+    width: take(stored?.width, take(square, DEFAULT_ROOM.width)),
+    depth: take(stored?.depth, take(square, DEFAULT_ROOM.depth)),
+    height: take(stored?.height, DEFAULT_ROOM.height),
+  };
+};
+
+/** The same for the projection: two of them are not on offer any more. */
+const readMode = (stored: unknown): PerspectiveMode =>
+  stored === 'cylindrical' || stored === 'equidistant' || stored === 'stereographic'
+    ? stored
+    : 'equidistant';
 
 const remembered = {
   ...loadedSettings,
@@ -227,6 +300,8 @@ const remembered = {
   // ...and before the surface was a property of each thing rather than one
   // switch over every mesh in the scene.
   surface: loadedSettings.surface ?? legacy.modelMaterial ?? 'original',
+  // ...and before the room's floor was two numbers rather than one.
+  room: readRoom(loadedSettings.room),
 };
 
 /** How many steps back you can take. */
@@ -329,7 +404,7 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
   return {
     cameraHeight: view.cameraHeight,
     fov: view.fov,
-    perspectiveMode: view.perspectiveMode,
+    perspectiveMode: readMode(view.perspectiveMode),
     backgroundGray: view.backgroundGray,
     theme: view.theme,
     sun: { ...DEFAULT_SUN, ...view.sun },
@@ -341,7 +416,7 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
     showCone: view.showCone,
     surface: view.surface ?? view.modelMaterial ?? 'original',
     showRoom: view.showRoom ?? false,
-    room: { ...DEFAULT_ROOM, ...(view.room ?? {}) },
+    room: readRoom(view.room),
     showVanishing: view.showVanishing ?? true,
     snapStep: view.snapStep ?? 0.25,
   };

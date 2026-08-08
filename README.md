@@ -401,6 +401,23 @@ points come with it.
 
 None of those compromises are worth making for a picture that is drawn once.
 
+## Coming back to it
+
+The setup is kept in this browser and read back on the next visit, which means
+every field in it is a promise to a version of the tool that does not exist yet.
+When the room's floor went from one square number to two, that promise was
+broken in the quietest possible way: the stored `{ floor, height }` came back
+through the allow-list intact, the room had no width and no depth, and every sum
+downstream held a NaN. Nothing threw. The camera went to a place that is not a
+place and the frame came up **white** — for everybody who had used the previous
+version, and for nobody testing in a fresh browser.
+
+So a setting is now taken back only if the key is known *and* the value is the
+right kind of thing, and the room and the projection are read through functions
+that start from the defaults and only accept what they understand. A setting
+that cannot be read is a setting lost, which is the smallest price there is and
+the only one that cannot take the tool down with it.
+
 ## While it is working
 
 There is one mark for it, along the top edge of the frame: a hairline running
