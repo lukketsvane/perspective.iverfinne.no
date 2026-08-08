@@ -51,6 +51,17 @@ const HEIGHT = 3;
 const half = { x: WIDTH / 2, z: DEPTH / 2 };
 
 /**
+ * The furthest back anything should stand the viewer from the origin.
+ *
+ * A metre and a bit inside the wall, so a framing worked out from an object's
+ * size cannot put you through it. The room is off by default and this holds
+ * anyway: where the tool opens should be one place, not one place with the room
+ * and another without, and there is no view of a six-metre car worth having
+ * from outside the room it is standing in.
+ */
+export const ROOM_STANDING_ROOM = DEPTH / 2 - 1.2;
+
+/**
  * One flat, ruled surface.
  *
  * The two axes it is ruled along are passed in as world directions, so the

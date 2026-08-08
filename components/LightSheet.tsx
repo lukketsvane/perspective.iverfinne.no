@@ -94,10 +94,13 @@ export const LightSheet: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const setFill = useStore((s) => s.setFill);
 
   return (
-    <Sheet onClose={onClose}>
-      {/* The reading floats above whichever knob is being dragged, and the
-          sheet clips what leaves it - so the top row needs room over it. */}
-      <div className="flex flex-col gap-2 px-3 pb-4 pt-10">
+    // Hugging: this is ten knobs in two rows and nothing else, so the panel is
+    // ten knobs wide. It used to be a full-width sheet with the controls
+    // huddled in the middle of it and forty pixels of nothing overhead, held
+    // clear so a reading would not be clipped - which is a lot of the view to
+    // cover up in order to move the sun.
+    <Sheet onClose={onClose} hug>
+      <div className="flex flex-col gap-1 px-2 pb-3">
         <Lamp light={sun} dark={dark} onChange={setSun} shadows />
 
         <div className={`h-px mx-6 ${dark ? 'bg-white/15' : 'bg-black/10'}`} />
