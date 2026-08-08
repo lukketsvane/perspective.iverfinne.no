@@ -4,6 +4,7 @@ import { Line } from '@react-three/drei';
 import { useStore } from '../store';
 import { constructionInk, paperHex } from '../lib/inkMaterial';
 import type { RoomLevel } from '../types';
+import { usePen } from '../lib/pen';
 
 /**
  * Four walls and a ceiling, ruled, standing round the origin.
@@ -183,6 +184,11 @@ export const Room: React.FC<{ level: RoomLevel; dark: boolean; inked: boolean }>
   inked,
 }) => {
   const { width, depth, height } = useStore((state) => state.room);
+  // One weight on the finished sheet, whatever the field is doing - see
+  // lib/pen.ts. Lighter than an object's, deliberately: the room is what the
+  // drawing stands in, not what it is of, and it is already the largest set of
+  // lines on the page by a long way.
+  const pen = usePen(1.5);
   const faces = useMemo(() => facesFor(width, depth, height), [width, depth, height]);
 
   const materials = useMemo(() => {
@@ -260,15 +266,15 @@ export const Room: React.FC<{ level: RoomLevel; dark: boolean; inked: boolean }>
         </mesh>
       ))}
 
-      <Line raycast={() => null} points={loop(0)} color={edge} lineWidth={1.5} transparent opacity={0.85} />
-      <Line raycast={() => null} points={loop(height)} color={edge} lineWidth={1.5} transparent opacity={0.7} />
+      <Line raycast={() => null} points={loop(0)} color={edge} lineWidth={pen} transparent opacity={0.85} />
+      <Line raycast={() => null} points={loop(height)} color={edge} lineWidth={pen} transparent opacity={0.7} />
       {corners.map(([x, z]) => (
         <Line
           key={`${x},${z}`}
           raycast={() => null}
           points={[[x, 0, z], [x, height, z]]}
           color={edge}
-          lineWidth={1.5}
+          lineWidth={pen}
           transparent
           opacity={0.7}
         />
