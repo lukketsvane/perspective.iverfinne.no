@@ -123,13 +123,17 @@ export const readSceneFile = async (file: File): Promise<ImportedScene> => {
   const skipped: string[] = [];
 
   for (const record of data.instances) {
-    if (record.fileUrl.startsWith('blob:')) {
-      // Written by a version that referred to imports by blob URL, which mean
-      // nothing in a new page.
-      skipped.push(`${record.name} (imported mesh from an older file)`);
-      continue;
-    }
+    // Inside the try, all of it. A record with no fileUrl at all threw on the
+    // `.startsWith` from outside it, and took down the whole import - the
+    // boxes, the viewpoint and every mesh that was perfectly fine - rather
+    // than losing the one entry that was broken.
     try {
+      if (record.fileUrl?.startsWith('blob:')) {
+        // Written by a version that referred to imports by blob URL, which mean
+        // nothing in a new page.
+        skipped.push(`${record.name} (imported mesh from an older file)`);
+        continue;
+      }
       const { model } = await loadModelFromUrl(record.fileUrl, record.name, [
         record.position[0],
         record.position[2],

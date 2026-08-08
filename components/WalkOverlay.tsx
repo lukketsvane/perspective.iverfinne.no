@@ -159,7 +159,6 @@ export const WalkOverlay: React.FC<{
   const room = useStore((s) => s.room);
   const roomControl = useRoomControl();
   const models = useStore((s) => s.models);
-  const deduplicateModels = useStore((s) => s.deduplicateModels);
   const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
   const canUndo = useStore((s) => s.undoStack.length > 0);
@@ -167,7 +166,6 @@ export const WalkOverlay: React.FC<{
   const selectedModelId = useStore((s) => s.selectedModelId);
   const selectedId = useStore((s) => s.selectedId);
   const isSelected = selectedModelId !== null || selectedId !== null;
-  const hasDuplicates = models.length !== new Set(models.map((m) => m.fileUrl)).size;
 
   const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
   const guides = useStore((s) => s.guides);
@@ -535,7 +533,10 @@ export const WalkOverlay: React.FC<{
         return;
       }
 
-      if (key === 'delete' || key === 'backspace') {
+      // Not through an open sheet. Backspace is also the reflex "go back"
+      // key, and it was deleting the selection behind a library nobody could
+      // see past - silently, with the sheet still up.
+      if (!covered && (key === 'delete' || key === 'backspace')) {
         const state = useStore.getState();
         if (!state.selectedId && !state.selectedModelId) return;
         e.preventDefault();
@@ -547,12 +548,18 @@ export const WalkOverlay: React.FC<{
       // A shortcut is not a step: holding command and pressing D should not
       // leave the walker strafing once the shortcut has been handled.
       if (command || e.altKey) return;
+      // Nor is walking, under an open sheet. The sheet swallows pointers and
+      // not keys, so holding W while reading the library walked you out of the
+      // room you were choosing a chair for.
+      if (covered) return;
 
       keys.add(key);
       apply();
     };
 
     const up = (e: KeyboardEvent) => { keys.delete(e.key.toLowerCase()); apply(); };
+    // A sheet opening mid-stride must not leave the walker running.
+    if (covered) drop();
     const hidden = () => { if (document.hidden) drop(); };
 
     window.addEventListener('keydown', down);
@@ -695,9 +702,6 @@ export const WalkOverlay: React.FC<{
           </button>
           <button onClick={() => { setShowTools(false); onLights(); }} aria-label="Lights" className={button}>
             <Icon path={I.strength} className="w-5 h-5" />
-          </button>
-          <button onClick={deduplicateModels} aria-label="Remove duplicate meshes" className={`${button} ${!hasDuplicates ? 'opacity-30' : ''}`}>
-            <Icon path={I.dedup} className="w-5 h-5" />
           </button>
           <button onClick={undo} aria-label="Undo" className={`${button} ${canUndo ? '' : 'opacity-30'}`}>
             <Icon path={I.undo} className="w-5 h-5" />

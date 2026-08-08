@@ -213,6 +213,22 @@ export const Panorama: React.FC<{
         projectionMode: { value: 0 },
         gridColor: { value: new THREE.Color() },
         /** The eye level and the points: the first rung of the guides. */
+        /**
+         * Whether to encode the frame for display on the way out.
+         *
+         * three forces a render target's output colour space to linear for
+         * anything that is not an XR target, so the colourspace include below
+         * is a no-op on the export path and only on the export path: the live
+         * frame goes to the canvas and is converted, the exported one goes to a
+         * target and is not. Every PNG this tool has ever written has been in
+         * linear light - midtones crushed, ink mass roughly tripled, a muddier
+         * and heavier picture than the one on screen.
+         *
+         * Done here rather than after the readback so the eight-bit
+         * quantisation still happens in display space; a lookup table applied
+         * to the bytes afterwards would band the darks.
+         */
+        encodeOutput: { value: 0 },
         pointStrength: { value: 0 },
         /** The ruled sphere behind them: the second. */
         sheetStrength: { value: 0 },
@@ -235,6 +251,7 @@ export const Panorama: React.FC<{
         uniform mat3 orientation;
         uniform int projectionMode;
         uniform vec3 gridColor;
+        uniform float encodeOutput;
         uniform float pointStrength;
         uniform float sheetStrength;
         uniform vec3 surround;
@@ -441,6 +458,25 @@ export const Panorama: React.FC<{
             );
             gl_FragColor.rgb = mix(gl_FragColor.rgb, gridColor, ink);
           }
+
+          /*
+           * Off on the way to the glass, which converts for itself; on for the
+           * export, whose target does not.
+           *
+           * The real sRGB transfer, not a plain 1/2.2 power. The curve has a
+           * short linear foot before the exponent and a scale and offset after
+           * it, and leaving those out is worth nothing at the ends and seven or
+           * eight levels through the middle - which is precisely where a
+           * drawing's tone lives.
+           */
+          if (encodeOutput > 0.5) {
+            vec3 c = max(gl_FragColor.rgb, vec3(0.0));
+            gl_FragColor.rgb = mix(
+              c * 12.92,
+              1.055 * pow(c, vec3(0.41666)) - 0.055,
+              step(vec3(0.0031308), c)
+            );
+          }
         }
       `,
       depthTest: false,
@@ -509,7 +545,14 @@ export const Panorama: React.FC<{
     uniforms.halfPitch.value = halfPitch;
     uniforms.orientation.value.setFromMatrix4(camera.matrixWorld);
     uniforms.projectionMode.value = PROJECTION_MODES[mode] ?? 0;
-    uniforms.gridColor.value.copy(gridColor);
+    /*
+     * Converted, because it is mixed in AFTER the colourspace include above.
+     * A three.Color's components are linear; painted straight into a buffer
+     * that is already in display space, #8c8378 came out as about #423B2F -
+     * roughly twice the weight its own hex says, and the reason the horizon
+     * always read hotter than the number suggested.
+     */
+    uniforms.gridColor.value.copy(gridColor).convertLinearToSRGB();
     uniforms.pointStrength.value = pointStrength;
     uniforms.sheetStrength.value = sheetStrength;
     uniforms.surround.value.copy(surround);
@@ -596,6 +639,7 @@ export const Panorama: React.FC<{
 
       let source: THREE.WebGLRenderTarget | THREE.WebGLCubeRenderTarget | null = null;
       try {
+        material.uniforms.encodeOutput.value = 1;
         if (plan.source === 'cube') {
           const cubeTarget = new THREE.WebGLCubeRenderTarget(plan.faceSize, {
             generateMipmaps: true,
@@ -671,6 +715,7 @@ export const Panorama: React.FC<{
         material.uniforms.flatMap.value = held.flatMap;
         material.uniforms.useFlat.value = held.useFlat;
         material.uniforms.flatTan.value.copy(held.flatTan);
+        material.uniforms.encodeOutput.value = 0;
       }
     });
     return () => registerFrameRenderer(null);

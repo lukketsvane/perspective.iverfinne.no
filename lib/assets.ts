@@ -238,11 +238,22 @@ export const putPreview = async (url: string, dataUrl: string): Promise<void> =>
 // Saved scenes
 // ---------------------------------------------------------------------------
 
-/** Every saved scene, newest first. */
-export const readScenes = async (): Promise<SavedScene[]> => {
+/**
+ * Every saved scene, newest first - and whether that list can be trusted.
+ *
+ * The difference matters more than it looks. `pruneAssets` deletes every
+ * imported mesh no live scene refers to, and the list of live scenes is built
+ * from this. A failed read returning an empty array is indistinguishable from
+ * a viewer with no saved scenes, so one storage hiccup plus one tap of "take
+ * this off the shelf" used to delete every mesh they had ever imported - while
+ * the scenes that referred to them were still sitting on disk. Silent in the
+ * session, because the parsed geometry was still in memory; found the next day.
+ */
+export const readScenes = async (): Promise<{ scenes: SavedScene[]; trusted: boolean }> => {
   const stored = await transact<SavedScene[]>(SCENES, 'readonly', (store) => store.getAll());
+  const trusted = stored !== null && stored !== undefined;
   const scenes = stored ?? Array.from(memoryScenes.values());
-  return [...scenes].sort((a, b) => b.updatedAt - a.updatedAt);
+  return { scenes: [...scenes].sort((a, b) => b.updatedAt - a.updatedAt), trusted };
 };
 
 export const writeScene = async (scene: SavedScene): Promise<void> => {
