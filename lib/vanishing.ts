@@ -46,12 +46,66 @@ export interface VanishingPoint {
 /** One edge of the box, carried out to the points, in CSS pixels. */
 export type Curve = [number, number][];
 
+/** Whether a projected point landed on the page at all. */
+const onSheet = (at: { x: number; y: number }) =>
+  at.x >= 0 && at.y >= 0 && at.x <= window.innerWidth && at.y <= window.innerHeight;
+
 export const vanishing: {
   /** Bumped whenever the numbers change, so the overlay knows to redraw. */
   nonce: number;
   points: VanishingPoint[];
   curves: Curve[];
-} = { nonce: 0, points: [], curves: [] };
+  /**
+   * The room's own five, wherever they are off the sheet.
+   *
+   * The panorama draws these per-pixel, and structurally cannot draw one that
+   * is not on its sheet - so at the ninety-degree field the tool now opens on,
+   * the guides' first rung showed a horizon and one ring at dead centre, the
+   * one point in the picture you never rule towards. The lateral pair needs a
+   * 180 degree field to touch the frame edge and the zenith needs about 277.
+   *
+   * The overlay already knows how to pin a point it cannot show, and does it
+   * for the selection's. These are the same kind of thing.
+   */
+  room: VanishingPoint[];
+} = { nonce: 0, points: [], curves: [], room: [] };
+
+/** The six directions a room's edges run along. */
+const ROOM_AXES = [
+  new THREE.Vector3(0, 0, -1),
+  new THREE.Vector3(0, 0, 1),
+  new THREE.Vector3(-1, 0, 0),
+  new THREE.Vector3(1, 0, 0),
+  new THREE.Vector3(0, 1, 0),
+  new THREE.Vector3(0, -1, 0),
+];
+
+const towards = new THREE.Vector3();
+
+/**
+ * Where the room's five points land, kept only where the sheet cannot show them.
+ *
+ * Two constructions meaning the same thing, one of them pinned and one of them
+ * dropped, was the state before this.
+ */
+export const updateRoomPoints = (camera: THREE.Camera, wanted: boolean) => {
+  const found: VanishingPoint[] = [];
+  if (wanted) {
+    for (const axis of ROOM_AXES) {
+      const at = project(towards.copy(camera.position).add(axis));
+      // On the sheet is the shader's business; it draws a truer ring than an
+      // overlay can, per pixel and in the right place.
+      if (at && !onSheet(at)) found.push({ x: at.x, y: at.y, facing: true });
+    }
+  }
+  if (found.length === vanishing.room.length && found.every((p, i) =>
+    Math.abs(p.x - vanishing.room[i].x) < 0.5 && Math.abs(p.y - vanishing.room[i].y) < 0.5
+  )) {
+    return;
+  }
+  vanishing.room = found;
+  vanishing.nonce += 1;
+};
 
 export interface VanishingBox {
   centre: THREE.Vector3;
@@ -94,10 +148,6 @@ export const clearVanishing = () => {
   vanishing.curves = [];
   vanishing.nonce += 1;
 };
-
-/** Whether a projected point landed on the page at all. */
-const onSheet = (at: { x: number; y: number }) =>
-  at.x >= 0 && at.y >= 0 && at.x <= window.innerWidth && at.y <= window.innerHeight;
 
 /**
  * One edge, carried from its back end out to the point it runs to.

@@ -56,8 +56,8 @@ export const VanishingPoints: React.FC<{ color: string }> = ({ color }) => {
     return () => { running = false; };
   }, []);
 
-  const { points, curves } = vanishing;
-  if (points.length === 0) return null;
+  const { points, curves, room } = vanishing;
+  if (points.length === 0 && room.length === 0) return null;
 
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -105,6 +105,33 @@ export const VanishingPoints: React.FC<{ color: string }> = ({ color }) => {
           );
         })
       )}
+
+      {/*
+        * The room's own points, pinned where the sheet runs out.
+        *
+        * Lighter than the selection's and without a ring, so the two never read
+        * as one family: these say where the world's axes go, and the ones with
+        * rings say where the thing in your hands does.
+        */}
+      {room.map((vp, index) => {
+        const x = Math.min(width - margin, Math.max(margin, vp.x));
+        const y = Math.min(height - margin, Math.max(margin, vp.y));
+        if (Math.abs(vp.x - x) > width || Math.abs(vp.y - y) > height) return null;
+        return (
+          <g key={`r${index}`} opacity={0.4}>
+            <circle cx={x} cy={y} r={2.4} fill={color} />
+            <line
+              x1={x - 7}
+              y1={y}
+              x2={x + 7}
+              y2={y}
+              stroke={color}
+              strokeWidth={1}
+              opacity={0.55}
+            />
+          </g>
+        );
+      })}
 
       {points.map((vp, index) => {
         const pinnedX = Math.min(width - margin, Math.max(margin, vp.x));
