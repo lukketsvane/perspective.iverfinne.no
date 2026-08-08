@@ -139,6 +139,35 @@ With the construction guides on, **all five vanishing points are marked** on the
 sphere. They are fixed to the room, not to the frame, so they slide as you turn
 and stay where the geometry says they are.
 
+### What the picture is read off
+
+A curvilinear frame is rendered rather than warped: the scene goes onto a
+source, and one full-screen pass asks, for every pixel, what is along this ray.
+There are two sources and each is right for exactly one half of the range.
+
+A **cube** — six faces of world — is the right shape for a wide field, because a
+360° frame needs a picture in every direction and a cube has one. It is a poor
+shape for a narrow field: a face spans 90° whatever the lens is doing, so a 35°
+frame is a third of one face stretched across the whole screen. On a phone that
+worked out at **0.63 pixels of source behind every pixel of glass** — the
+picture was magnified, which is what put stair steps on every silhouette the
+moment anyone zoomed in. Bigger faces are not the answer: six of them at 4096 is
+400 MB of video memory, and most of it is behind you.
+
+So a narrow field is read off **one flat render** instead, wide enough to cover
+every direction the frame asks for and denser than the screen — 1.9× on the same
+phone, three times the source and over the line from magnified to supersampled,
+which is the difference between stair steps and none. It is also one render
+rather than six.
+
+The usual objection to warping a flat render is that a flat frame has no picture
+past its own edge to bend into view, and that stretching one magnifies every
+jagged edge in it. Neither is true when the frame is narrower than the source
+and the source is denser than the screen — which is the whole condition, and
+also exactly where the changeover sits: at about 60° out from the axis at the
+corner of the frame, past which a flat frustum stops being a sensible thing to
+render and the cube has face to spare.
+
 ### Standing back from the sheet
 
 The field goes past a full turn, and the last stop on it is the one that matters:
@@ -396,12 +425,14 @@ event, so react-three-fiber's own picking never sees one. The scene registers
 what it is drawing with; `lib/manipulate.ts` turns a pointer into a grab.
 
 In a dev build the store, the walk input and the picker are on `window.__store`,
-`window.__walk` and `window.__pick`, and `window.__forceMesh` pins which object
-opens — that is how the scene can be read and driven from a browser test, since
-nearly all of it is otherwise only pixels on a canvas. The picker is published
-by the running app rather than imported by the test on purpose: a dev server
-that has hot-reloaded the file hands out a second copy of it, with nothing
-registered in it.
+`window.__walk` and `window.__pick`; `window.__forceMesh` pins which object
+opens; and `window.__panorama` says which source the frame is being read off and
+how big it is. That is how the scene can be read and driven from a browser test,
+since nearly all of it is otherwise only pixels on a canvas — and in the
+panorama's case, because a test cannot tell a sharp frame from a soft one by
+looking, but it can ask. The picker is published by the running app rather than
+imported by the test on purpose: a dev server that has hot-reloaded the file
+hands out a second copy of it, with nothing registered in it.
 
 Every mesh ships simplified and quantized (`gltf-transform optimize --compress
 quantize --simplify-ratio 0.12 --texture-compress webp --texture-size 1024`),
