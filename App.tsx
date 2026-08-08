@@ -12,6 +12,7 @@ import { MESH_LIBRARY, openingMesh } from './lib/meshLibrary';
 import { focusPoint } from './lib/focus';
 import { walkInput } from './lib/walkInput';
 import { fieldOf } from './lib/projection';
+import { constructionInk } from './lib/inkMaterial';
 import { holdPreviews, resumePreviews } from './lib/meshPreview';
 import { downloadSceneFile, readSceneFile, toSceneFile } from './lib/sceneJson';
 import { beginActivity, reportFailure } from './lib/activity';
@@ -24,6 +25,7 @@ export default function App() {
   const backgroundGray = useStore((s) => s.backgroundGray);
   const fov = useStore((s) => s.fov);
   const perspectiveMode = useStore((s) => s.perspectiveMode);
+  const surface = useStore((s) => s.surface);
   const addModel = useStore((s) => s.addModel);
   const standObject = useStore((s) => s.standObject);
   const applyScene = useStore((s) => s.applyScene);
@@ -275,7 +277,7 @@ export default function App() {
     >
       <Scene />
       <Activity />
-      <VanishingPoints color={isDark ? '#ff6a5e' : '#e0342a'} />
+      <VanishingPoints color={constructionInk(surface === 'ink', isDark)} />
       <WalkOverlay
         onModels={() => setSheet('meshes')}
         onScenes={() => setSheet('scenes')}

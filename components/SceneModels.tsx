@@ -20,24 +20,6 @@ const MATTE = new THREE.MeshStandardMaterial({
 });
 
 /**
- * The same, seen through.
- *
- * Both sides, because the inside of a form you can see into is part of what you
- * are looking at; and no depth written, so the far side of the mesh comes
- * through the near side rather than being sorted away behind it. That is the
- * same drawing-through a glass box does, on something that is not a box.
- */
-const GLASS = new THREE.MeshStandardMaterial({
-  color: 0xf2f2f0,
-  roughness: 0.92,
-  metalness: 0,
-  transparent: true,
-  opacity: 0.26,
-  depthWrite: false,
-  side: THREE.DoubleSide,
-});
-
-/**
  * An uploaded model standing in the scene.
  *
  * Uploaded models are placed rather than resized: they arrive at their real
@@ -91,19 +73,16 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       if (!mesh.isMesh) return;
 
       // A figure standing in the sun has to throw a shadow like everything
-      // else, or it reads as a sticker on the floor - unless you can see
-      // through it, in which case a solid black shadow is the one thing on
-      // screen still insisting it is solid. Ink throws none either: a cast
+      // else, or it reads as a sticker on the floor. Ink throws none: a cast
       // shadow is a tone, and on a sheet you are going to trace, its soft
       // boundary is indistinguishable from an edge of the object.
-      mesh.castShadow = surface !== 'glass' && surface !== 'ink';
+      mesh.castShadow = surface !== 'ink';
       mesh.receiveShadow = mesh.castShadow;
 
       // Read the authored materials before swapping, so the first swap is what
       // records them rather than what loses them.
       const own = authoredMaterial(mesh);
-      mesh.material =
-        surface === 'matte' ? MATTE : surface === 'ink' ? INK : surface === 'glass' ? GLASS : own;
+      mesh.material = surface === 'matte' ? MATTE : surface === 'ink' ? INK : own;
     });
   }, [surface, model.object]);
 
@@ -161,50 +140,61 @@ const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }>
         <Edges raycast={() => null} threshold={15} color={color} />
       </mesh>
 
-      {/* Where it stands, and the diagonals that find the middle of that. */}
+      {/* Where it stands, and the diagonals that find the middle of that.
+
+          None of it dashed. The dash was borrowed from a drafting convention
+          where it means a hidden edge - and here every mark was dashed, so it
+          distinguished nothing from nothing. Worse, drei dashes in world units
+          along the line, so identical settings give a half-metre cube two
+          dashes and a six-metre car dozens, and then the panorama resamples the
+          pattern per pixel and bunches it unevenly across the frame. Weight
+          says "construction" more quietly and more honestly. */}
       <Line
         raycast={() => null}
         points={[[-x, 0, -z], [x, 0, -z], [x, 0, z], [-x, 0, z], [-x, 0, -z]]}
         color={color}
         lineWidth={1}
         transparent
-        opacity={weight * 0.8}
+        opacity={weight * 0.7}
       />
       <Line
         raycast={() => null}
         points={[[-x, 0, -z], [x, 0, z]]}
         color={color}
         lineWidth={1}
-        dashed
-        dashScale={3}
-        gapSize={0.4}
         transparent
-        opacity={weight * 0.55}
+        opacity={weight * 0.4}
       />
       <Line
         raycast={() => null}
         points={[[x, 0, -z], [-x, 0, z]]}
         color={color}
         lineWidth={1}
-        dashed
-        dashScale={3}
-        gapSize={0.4}
         transparent
-        opacity={weight * 0.55}
+        opacity={weight * 0.4}
       />
 
-      {/* The plumb line: up through the middle, and on past the top, which is
-          what you read a figure's height and balance against. */}
+      {/* The answer those two diagonals compute.
+
+          Every other mark here confirms geometry you already have. The
+          diagonals derive geometry you do not: the true centre of a receding
+          rectangle, which is not the middle of the drawn one and is how a row
+          is halved and doubled without measuring. Ruling the working and
+          leaving the crossing for the eye to find is stopping one step short. */}
+      <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+        <circleGeometry args={[Math.max(0.02, Math.min(x, z) * 0.06), 16]} />
+        <meshBasicMaterial color={color} transparent opacity={weight} depthWrite={false} toneMapped={false} />
+      </mesh>
+
+      {/* The plumb line: up through the middle, and a little past the top,
+          which is what you read a figure's height and balance against. */}
       <Line
         raycast={() => null}
-        points={[[0, 0, 0], [0, height * 1.25, 0]]}
+        points={[[0, 0, 0], [0, height * 1.15, 0]]}
         color={color}
         lineWidth={1}
-        dashed
-        dashScale={4}
-        gapSize={0.5}
         transparent
-        opacity={weight * 0.5}
+        opacity={weight * 0.45}
       />
     </group>
   );

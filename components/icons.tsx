@@ -101,9 +101,8 @@ export const I = {
 
   /**
    * How solidly a thing is drawn, as that thing: the same cube filled, then
-   * painted plain, then seen through, then taken away and left as its own
-   * construction. The three hidden edges appear at the rung where you can
-   * actually see them, which is the point of that rung.
+   * painted plain, then drawn as line, then taken away and left as its own
+   * construction.
    */
   /**
    * The selection's own points: a box with its edges carried off to a pair of
@@ -113,7 +112,6 @@ export const I = {
 
   surfaceSolid: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" fill="currentColor" fillOpacity="0.7" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" strokeOpacity="0.3" /></>),
   matte: (<path d="M12 3s6 6.4 6 10a6 6 0 0 1-12 0c0-3.6 6-10 6-10z" />),
-  surfaceGlass: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" fill="currentColor" fillOpacity="0.16" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" /><path d="M12 11.5V3M12 11.5l8 5.3M12 11.5l-8 5.3" strokeOpacity="0.4" strokeDasharray="2 2" /></>),
   surfaceWire: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" strokeOpacity="0.75" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" strokeOpacity="0.75" /><path d="M12 11.5V3M12 11.5l8 5.3M12 11.5l-8 5.3" strokeOpacity="0.75" /></>),
 
   /**
@@ -170,6 +168,5 @@ export const SURFACE_ICON: Record<Surface, React.ReactNode> = {
   original: I.surfaceSolid,
   matte: I.matte,
   ink: I.ink,
-  glass: I.surfaceGlass,
   wire: I.surfaceWire,
 };

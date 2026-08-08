@@ -12,7 +12,7 @@
  * ends have them already.
  */
 
-import { BoxData, SceneInstance, SceneModel, SceneView } from '../types';
+import { BoxData, readSurface, SceneInstance, SceneModel, SceneView } from '../types';
 import { loadModelFromUrl } from './loadModel';
 import { gatherMeshes, isBundle, packBundle, readBundle } from './sceneBundle';
 
@@ -141,7 +141,7 @@ export const readSceneFile = async (file: File): Promise<ImportedScene> => {
         scale: record.scale,
         baseScale: record.baseScale,
         size: [...record.size] as [number, number, number],
-        surface: record.surface,
+        surface: record.surface === undefined ? undefined : readSurface(record.surface),
         kind: record.kind,
         lockedScale: record.lockedScale,
       });

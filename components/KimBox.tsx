@@ -109,16 +109,22 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
   const theme = useStore((state) => state.theme);
   const sceneSurface = useStore((state) => state.surface);
 
+  const showConstruction = useStore((state) => state.showConstruction);
+
   const isSelected = selectedId === data.id;
   const isDark = theme === 'dark';
+
+  /** Half the footprint, which every mark below is placed off. */
+  const hx = data.scale[0] / 2;
+  const hz = data.scale[2] / 2;
 
   /*
    * How solid this one is drawn.
    *
    * Opaque by default - a box you cannot see past is a box, and it is what the
-   * sun models. The other two rungs are the ones a study reaches for: glass to
-   * draw through it and check the corner you cannot see, wire to keep the
-   * construction and take the object away.
+   * sun models. The other two rungs are the ones a study reaches for: ink for
+   * the twelve edges over paper, and wire to keep the construction and take the
+   * object away, which is also how you check the corner you cannot see.
    */
   const surface = nearestSurface(data.surface ?? sceneSurface, BOX_SURFACES);
   const solid = surface === 'original';
@@ -145,35 +151,72 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
       ? isSelected ? '#ff5555' : '#ffffff'
       : isSelected ? '#ff3b30' : '#0a0a0a';
 
+  /*
+   * What you can take hold of, which is not a mark you would draw.
+   *
+   * In every other mode this is the same red as the construction and reads as
+   * "grab here" against a lit grey scene. In ink it inherited the ink and
+   * became three solid black discs - the heaviest marks on a page whose whole
+   * argument is that every mark on it is one you could put a pen on. A handle
+   * is furniture; it goes quieter than the drawing, not louder.
+   */
+  const handleColor = inked ? '#b3aca1' : edgeColor;
+
   return (
     <group userData={{ selectableType: 'box', selectableId: data.id }}>
-      {/* Helper lines, drawn only around the selection. */}
-      {isSelected && (
-        <group>
-          {/* The vertical through it, for reading its height off the grid. */}
+      {/* The same four marks a mesh gets, for the same job, on the same switch.
+
+          It used to draw two of its own regardless of that switch, and one of
+          them was a tinted plane rather than a line - a tone, which is the one
+          thing a line drawing cannot carry and the one thing you cannot trace.
+          It was also 40 cm wider than the box in both directions, so lining it
+          up against the grid lined up the wrong rectangle. */}
+      {showConstruction && isSelected && (
+        <group
+          raycast={() => null}
+          position={[data.position[0], 0, data.position[2]]}
+          rotation={[0, data.rotation[1], 0]}
+        >
           <Line
             raycast={() => null}
-            points={[
-              [data.position[0], 0, data.position[2]],
-              [data.position[0], data.position[1] + data.scale[1] / 2 + 2, data.position[2]],
-            ]}
+            points={[[-hx, 0, -hz], [hx, 0, -hz], [hx, 0, hz], [-hx, 0, hz], [-hx, 0, -hz]]}
             color={edgeColor}
             lineWidth={1}
-            dashed
-            dashScale={2}
-            gapSize={0.5}
-            opacity={0.5}
             transparent
+            opacity={0.6}
           />
-          {/* Where it stands. */}
-          <mesh
+          <Line
             raycast={() => null}
-            position={[data.position[0], 0.02, data.position[2]]}
-            rotation={[-Math.PI / 2, 0, data.rotation[1]]}
-          >
-            <planeGeometry args={[data.scale[0] + 0.4, data.scale[2] + 0.4]} />
-            <meshBasicMaterial color={edgeColor} transparent opacity={0.1} />
+            points={[[-hx, 0, -hz], [hx, 0, hz]]}
+            color={edgeColor}
+            lineWidth={1}
+            transparent
+            opacity={0.34}
+          />
+          <Line
+            raycast={() => null}
+            points={[[hx, 0, -hz], [-hx, 0, hz]]}
+            color={edgeColor}
+            lineWidth={1}
+            transparent
+            opacity={0.34}
+          />
+          {/* The true centre of the footprint, in perspective. */}
+          <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+            <circleGeometry args={[Math.max(0.02, Math.min(hx, hz) * 0.06), 16]} />
+            <meshBasicMaterial color={edgeColor} transparent opacity={0.75} depthWrite={false} toneMapped={false} />
           </mesh>
+          {/* The plumb, for reading its height off the grid. A flat two metres
+              past the top made a half-metre box carry a mark five times its
+              own height; a share of the box is a mark that belongs to it. */}
+          <Line
+            raycast={() => null}
+            points={[[0, 0, 0], [0, data.position[1] + data.scale[1] * 0.65, 0]]}
+            color={edgeColor}
+            lineWidth={1}
+            transparent
+            opacity={0.45}
+          />
         </group>
       )}
 
@@ -187,20 +230,18 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
         castShadow={solid}
         receiveShadow={solid}
       >
-
         <boxGeometry args={[1, 1, 1]} />
-        {/* Every rung is the same material with its faces turned down, so the
-            twelve edges below are the one constant: what changes is how much
-            of the box is in front of them. Writing no depth is what puts the
-            far three edges back on the page - that is the whole of drawing
-            through, and it is one flag.
+        {/* The twelve edges below are the one constant: what changes across the
+            rungs is how much of the box stands in front of them. At wire the
+            faces go to nothing and write no depth, which is what puts the far
+            three edges back on the page - drawing through, in one flag.
 
             Keyed on the rung, so stepping to the next one builds a new
             material rather than editing the live one. Whether a material is
             transparent decides which pass it is drawn in and which shader is
             compiled for it, and neither of those is re-decided by assigning to
             the flag: the box went on rendering solid while the store said
-            glass. A fresh material is re-decided by definition. */}
+            otherwise. A fresh material is re-decided by definition. */}
         {inked ? (
           <primitive object={INK_BOX} attach="material" />
         ) : (
@@ -208,7 +249,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
             key={surface}
             color={boxColor}
             transparent={!solid}
-            opacity={surface === 'wire' ? 0 : surface === 'glass' ? 0.22 : 1}
+            opacity={surface === 'wire' ? 0 : 1}
             depthWrite={solid}
             roughness={0.8}
             metalness={0.1}
@@ -219,7 +260,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
         <Edges raycast={() => null} scale={1} threshold={15} color={edgeColor} />
       </mesh>
 
-      {isSelected && <FaceHandles data={data} color={edgeColor} />}
+      {isSelected && <FaceHandles data={data} color={handleColor} />}
     </group>
   );
 };
