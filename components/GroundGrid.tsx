@@ -29,7 +29,16 @@ export const GroundGrid: React.FC<{
   /** Metres between the finest lines - whatever dragging currently snaps to. */
   cell: number;
   dark: boolean;
-}> = ({ cell, dark }) => {
+  /**
+   * Which of the two families to rule.
+   *
+   * A grid is two rulings crossed, and drawing a floor is not one gesture: you
+   * lay the lines running away from you to their point, and then you cross them.
+   * Being able to see one family without the other is the difference between a
+   * ruler and a tablecloth.
+   */
+  along: { x: boolean; z: boolean };
+}> = ({ cell, dark, along }) => {
   const mesh = useRef<THREE.Mesh>(null);
 
   const material = useMemo(
@@ -45,6 +54,7 @@ export const GroundGrid: React.FC<{
           axisX: { value: new THREE.Color('#e0342a') },
           axisZ: { value: new THREE.Color('#2e9e4f') },
           strength: { value: 1 },
+          families: { value: new THREE.Vector2(1, 1) },
         },
         vertexShader: `
           varying vec3 vWorld;
@@ -60,6 +70,8 @@ export const GroundGrid: React.FC<{
           uniform vec3 axisX;
           uniform vec3 axisZ;
           uniform float strength;
+          /** Which families are ruled: x for the lines along X, y for along Z. */
+          uniform vec2 families;
           varying vec3 vWorld;
 
           /**
@@ -73,7 +85,18 @@ export const GroundGrid: React.FC<{
           float ruled(vec2 p, float spacing, float width) {
             vec2 f = p / spacing;
             vec2 d = abs(fract(f - 0.5) - 0.5) / max(fwidth(f), vec2(1e-5));
-            return 1.0 - smoothstep(0.0, width, min(d.x, d.y));
+            /*
+             * The two families, kept apart.
+             *
+             * A line of constant X is a member of the family running *along* Z,
+             * and the other way about - so the switch for the lines that run
+             * away from you is the one measured across X. Taking the smaller
+             * distance of the two, as this used to, welds them into a single
+             * grid that can only be had whole.
+             */
+            float alongX = families.x > 0.5 ? 1.0 - smoothstep(0.0, width, d.y) : 0.0;
+            float alongZ = families.y > 0.5 ? 1.0 - smoothstep(0.0, width, d.x) : 0.0;
+            return max(alongX, alongZ);
           }
 
           /** The same, for a single line along one axis. */
@@ -93,8 +116,10 @@ export const GroundGrid: React.FC<{
             // pile of three lines drawn on top of one another.
             float grey = max(fine, max(metre, section));
 
-            float alongX = axisLine(p.y, 1.0, 1.3);
-            float alongZ = axisLine(p.x, 1.0, 1.3);
+            // The two coloured axes belong to the same families as the ruling
+            // they lead, and go with them.
+            float alongX = families.x > 0.5 ? axisLine(p.y, 1.0, 1.3) : 0.0;
+            float alongZ = families.y > 0.5 ? axisLine(p.x, 1.0, 1.3) : 0.0;
 
             vec3 colour = ink;
             float amount = grey;
@@ -125,6 +150,7 @@ export const GroundGrid: React.FC<{
   material.uniforms.axisX.value.set(dark ? '#ff6a5e' : '#e0342a');
   material.uniforms.axisZ.value.set(dark ? '#5fd08a' : '#2e9e4f');
   material.uniforms.strength.value = dark ? 0.75 : 1;
+  material.uniforms.families.value.set(along.x ? 1 : 0, along.z ? 1 : 0);
 
   /**
    * The sheet follows the viewer, snapped to its own coarsest ruler.

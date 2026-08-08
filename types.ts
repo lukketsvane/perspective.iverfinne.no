@@ -14,22 +14,22 @@ export interface BoxData {
 export type ThemeMode = 'light' | 'dark';
 
 /**
- * How the scene is projected. Three systems to draw in, and one to stand in.
+ * How the scene is projected. Three systems, all of them ones you can draw in.
  *
- * - 'linear': straight-line rectilinear perspective. Not offered any more - it
- *   is honest inside the cone of vision and smears everything outside it, which
- *   is most of the frame in a tool built for the wide field. It stays for AR,
- *   where the picture is the phone's own rectilinear camera and bending it
- *   would be drawing a perspective over a perspective.
  * - 'cylindrical': four-point. Verticals stay straight and vertical; horizontals
  *   bow. The panoramic system, and the one to rule a long wall with.
  * - 'equidistant': five-point, and the default. Angle from the centre of the
  *   frame is distance from the centre, evenly, in every direction - which is
  *   what makes a ruled sphere of it and what Kim Jung Gi draws on.
- * - '5-point': the same projection taken to the full hemisphere, so the zenith
- *   and nadir points are both in frame with the four around them.
+ * - 'stereographic': the conformal one. See `lib/projection.ts`.
+ *
+ * There used to be two more. 'linear' was straight-line perspective, kept only
+ * for a session standing in a real room, and that went with the room. '5-point'
+ * was the equidistant sheet opened past the hemisphere - which, once the sheet
+ * was cut properly at its own edge, turned out to be the equidistant sheet
+ * exactly. Two names for one mapping is one name too many.
  */
-export type PerspectiveMode = 'linear' | 'cylindrical' | 'equidistant' | '5-point';
+export type PerspectiveMode = 'cylindrical' | 'equidistant' | 'stereographic';
 
 /**
  * How solidly one thing in the scene is drawn.
@@ -80,14 +80,19 @@ export const nearestSurface = (surface: Surface, rungs: Surface[]): Surface =>
   rungs.includes(surface) ? surface : surface === 'matte' ? 'original' : 'glass';
 
 /**
- * How much construction is drawn over the world.
+ * How much of the *room's* construction is drawn over the world.
  *
- * 0 nothing, 1 the eye-level line, 2 the ground grid with it, 3 the curvilinear
- * great circles as well - the sheet a curved perspective is ruled on before
- * anything is drawn. It steps down from everything rather than toggling to
- * nothing, because the useful state is usually "slightly less than this".
+ * 0 nothing, 1 the eye-level line, 2 the curvilinear great circles with it -
+ * the sheet a curved perspective is ruled on before anything is drawn. It steps
+ * down from everything rather than toggling to nothing, because the useful
+ * state is usually "slightly less than this".
+ *
+ * The ground grid used to be a rung of this. It is two switches of its own now,
+ * one per direction: ruling only the lines running away from you, or only the
+ * ones running across, is how a floor is actually drawn, and a ladder cannot say
+ * it.
  */
-export type GuideLevel = 0 | 1 | 2 | 3;
+export type GuideLevel = 0 | 1 | 2;
 
 /**
  * How big the room is, in metres.
@@ -219,8 +224,10 @@ export interface SceneView {
   fill?: FillState;
   sunEnvironment: boolean;
   guides: GuideLevel;
-  /** Written by a version that had one guides switch instead of four levels. */
+  /** Written by a version that had one guides switch instead of levels. */
   showGuides?: boolean;
+  gridX?: boolean;
+  gridZ?: boolean;
   showCone: boolean;
   /** The default surface for anything placed after the scene comes back. */
   surface?: Surface;
@@ -256,8 +263,18 @@ export interface SceneState {
   perspectiveMode: PerspectiveMode;
   /** Camera height above the ground plane, in metres. This is the horizon line. */
   cameraHeight: number;
-  /** How much construction is drawn: horizon, grid, curvilinear circles. */
+  /** How much of the room's construction is drawn: horizon, curvilinear circles. */
   guides: GuideLevel;
+  /**
+   * The two families of the ground's ruling, each on its own switch.
+   *
+   * `gridX` is the lines running along X - the ones that cross your view - and
+   * `gridZ` the ones running away from you. Ruling one family at a time is how
+   * a floor is drawn: you lay the receding lines to their point, then cross
+   * them. Both together is a grid; either alone is the step before it.
+   */
+  gridX: boolean;
+  gridZ: boolean;
   /** The 60 degree cone of vision, drawn over the view. */
   showCone: boolean;
   /**
@@ -313,14 +330,6 @@ export interface SceneState {
   fill: FillState;
   /** Freeze the walk camera so a framed view stops moving. */
   viewLocked: boolean;
-  /**
-   * True while the scene should be standing in the real room.
-   *
-   * Set by the button, cleared by the session ending - including when the
-   * device turns out not to do AR at all, so the control never sits lit over a
-   * mode that is not running.
-   */
-  arRequested: boolean;
   /** Scenes to step back through. Newest last. */
   undoStack: { boxes: BoxData[]; models: SceneModel[] }[];
   /** Scenes stepped back out of, to go forward into again. Newest last. */
@@ -348,8 +357,11 @@ export interface SceneState {
   setLens: (fov: number) => void;
   setPerspectiveMode: (mode: PerspectiveMode) => void;
   setCameraHeight: (height: number) => void;
-  /** Step down through the construction: everything, less, less, none, round. */
+  /** Step down through the room's construction: everything, less, none, round. */
   cycleGuides: () => void;
+  /** One family of the ground's ruling, or the other. */
+  toggleGridX: () => void;
+  toggleGridZ: () => void;
   toggleCone: () => void;
   toggleConstruction: () => void;
   toggleRoom: () => void;
@@ -387,7 +399,6 @@ export interface SceneState {
   /** The same, for the fill. */
   setFill: (fill: Partial<FillState>) => void;
   toggleViewLock: () => void;
-  setAr: (on: boolean) => void;
   /**
    * Draw the line under everything about to change.
    *

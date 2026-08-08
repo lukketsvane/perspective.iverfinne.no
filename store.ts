@@ -142,6 +142,8 @@ const SETTING_KEYS = [
   'backgroundGray',
   'cameraHeight',
   'guides',
+  'gridX',
+  'gridZ',
   'showCone',
   'showConstruction',
   'showRoom',
@@ -212,8 +214,16 @@ const remembered = {
   ...loadedSettings,
   // Migrate settings written before the continuous background control existed.
   backgroundGray: loadedSettings.backgroundGray ?? (loadedSettings.theme === 'dark' ? 0 : 243),
-  // ...and before the guides were four levels rather than on and off.
-  guides: loadedSettings.guides ?? ((legacy.showGuides ?? true) ? 3 : 0),
+  /*
+   * ...and before the guides were levels rather than on and off - and again
+   * before the ground grid came out of the ladder and onto two switches of its
+   * own. Anything written by the four-rung version says "grid" at 2 and above,
+   * so that is where the switches come from, and every rung above the grid
+   * slides down one.
+   */
+  guides: (Math.min(2, loadedSettings.guides ?? ((legacy.showGuides ?? true) ? 3 : 0)) as GuideLevel),
+  gridX: loadedSettings.gridX ?? (loadedSettings.guides ?? 3) >= 2,
+  gridZ: loadedSettings.gridZ ?? (loadedSettings.guides ?? 3) >= 2,
   // ...and before the surface was a property of each thing rather than one
   // switch over every mesh in the scene.
   surface: loadedSettings.surface ?? legacy.modelMaterial ?? 'original',
@@ -282,6 +292,8 @@ export const currentView = (state: SceneState): SceneView => ({
   fill: { ...state.fill },
   sunEnvironment: state.sunEnvironment,
   guides: state.guides,
+  gridX: state.gridX,
+  gridZ: state.gridZ,
   showCone: state.showCone,
   surface: state.surface,
   showRoom: state.showRoom,
@@ -323,7 +335,9 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
     sun: { ...DEFAULT_SUN, ...view.sun },
     fill: { ...DEFAULT_FILL, ...(view.fill ?? {}) },
     sunEnvironment: view.sunEnvironment,
-    guides: view.guides ?? ((view.showGuides ?? true) ? 3 : 0),
+    guides: (Math.min(2, view.guides ?? ((view.showGuides ?? true) ? 3 : 0)) as GuideLevel),
+    gridX: view.gridX ?? (view.guides ?? 3) >= 2,
+    gridZ: view.gridZ ?? (view.guides ?? 3) >= 2,
     showCone: view.showCone,
     surface: view.surface ?? view.modelMaterial ?? 'original',
     showRoom: view.showRoom ?? false,
@@ -345,7 +359,9 @@ export const useStore = create<SceneState>((set, get) => ({
   fov: DEFAULT_FOV,
   perspectiveMode: 'equidistant',
   cameraHeight: DEFAULT_CAMERA_HEIGHT,
-  guides: 3,
+  guides: 2,
+  gridX: true,
+  gridZ: true,
   showCone: false,
   showConstruction: true,
   showRoom: false,
@@ -357,7 +373,6 @@ export const useStore = create<SceneState>((set, get) => ({
   surface: 'original',
   sunEnvironment: false,
   viewLocked: false,
-  arRequested: false,
   undoStack: [],
   redoStack: [],
   theme: 'light',
@@ -517,12 +532,15 @@ export const useStore = create<SceneState>((set, get) => ({
        * sit exactly on the edge of the frame, and the fifth is dead centre.
        * Sixty is the ordinary cone of vision to come back to on the flat side.
        */
-      fov: mode === 'linear' ? Math.min(state.fov, 75) : state.fov < 100 ? DEFAULT_FOV : Math.min(state.fov, MAX_FIELD),
+      fov: state.fov < 100 ? DEFAULT_FOV : Math.min(state.fov, MAX_FIELD),
     })),
 
   setCameraHeight: (height) => set({ cameraHeight: Math.max(0.2, Math.min(12, height)) }),
 
-  cycleGuides: () => set((state) => ({ guides: (((state.guides + 3) % 4) as GuideLevel) })),
+  cycleGuides: () => set((state) => ({ guides: (((state.guides + 2) % 3) as GuideLevel) })),
+
+  toggleGridX: () => set((state) => ({ gridX: !state.gridX })),
+  toggleGridZ: () => set((state) => ({ gridZ: !state.gridZ })),
 
   cycleSnap: () =>
     set((state) => {
@@ -707,15 +725,6 @@ export const useStore = create<SceneState>((set, get) => ({
   setFill: (fill) => set((state) => ({ fill: { ...state.fill, ...fill } })),
 
   toggleViewLock: () => set((state) => ({ viewLocked: !state.viewLocked })),
-
-  /**
-   * Going into the room, and coming back.
-   *
-   * The projection goes flat on the way in: the frame is a photograph of the
-   * room now, taken through the phone's own rectilinear lens, and bending it
-   * would be drawing a perspective over a perspective.
-   */
-  setAr: (on) => set((state) => ({ arRequested: on, perspectiveMode: on ? 'linear' : state.perspectiveMode })),
 
   /**
    * Step back one scene, and forward again.

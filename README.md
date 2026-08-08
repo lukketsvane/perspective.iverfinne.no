@@ -103,11 +103,11 @@ Along the bottom, fading out while you draw and back on the first touch:
 - **Projection** — steps through the four systems (below)
 - **Sun / moon** — tap for light and dark, drag through all 256 greys,
   double-tap for the procedural sky
-- **Sliders** — everything else: AR, guides, snap, the field of view, the
-  construction around each object, view lock, the room (tap to toggle, drag to
-  size), the surface of everything, the lights, de-duplicate, undo, redo, back
-  to the opening scene, the selection's own vanishing points, and save the view
-  as a PNG
+- **Sliders** — everything else: the room's guides, the floor's two rulings, snap,
+  the field of view, the construction around each object, the selection's own
+  vanishing points, view lock, the room (tap to toggle, drag to size), the
+  surface of everything, the lights, de-duplicate, undo, redo, back to the
+  opening scene, and save the view as a PNG
 
 ### Projections
 
@@ -119,19 +119,33 @@ Three systems, all of them ones you can draw in, cycled with one button:
   frame is distance from the centre, evenly, in every direction. That even
   mapping is what makes it a ruled sphere, and it is the sheet Kim Jung Gi
   draws on.
-- **Five point** — the same projection taken past the hemisphere, so the zenith
-  and nadir points are both on the page with the four around them.
+- **Stereographic** — the conformal one (below).
 
-Straight-line perspective is not among them. It is honest inside the cone of
-vision and nowhere else, and this is a tool whose whole subject is the wide
-field — so opening the lens in it did not open the view out, it smeared the
-edges of the frame into something no drawing could be made from. The three above
-answer the same question at forty degrees as at three hundred, and at forty they
-*are* the flat one to within the width of a pencil line.
+Every projection here is one function: the angle away from the view axis, mapped
+to a distance from the middle of the frame. Equidistant is the identity — the
+angle *is* the distance — which is why it rules so evenly and why it is the
+sheet to measure on. Stereographic is the tangent of the half angle, and that
+one change buys the property no other azimuthal projection has: **angles are
+preserved everywhere**. A small square anywhere on the page is still a square, a
+sphere is still drawn as a circle, and two lines crossing at sixty degrees in
+the world cross at sixty degrees on the paper — at the rim of a full-turn field
+as much as at the centre. Measured on a right-angled cross 70° off the axis:
+stereographic gives 90.4° with arms 1.007× apart, equidistant 0.77×.
 
-It is still there for one thing: a session standing in the real room is drawn
-through the phone's own rectilinear lens, and bending that would be drawing a
-perspective over a perspective.
+What it costs is scale. The periphery is expanded enormously, which is exactly
+the "little planet" picture, and at a full turn the point directly behind you is
+at infinity and can never be drawn: the sphere minus one point onto the whole
+plane, which is the map that makes the Riemann sphere a sphere and the one the
+Poincaré disk is built from. It is the closest thing to a straight edge that
+survives a curved sheet — what stays true is not the length of anything but the
+angle between everything.
+
+Straight-line perspective is not among them. It is honest inside the field of
+view and nowhere else, and this is a tool whose whole subject is the wide field —
+so opening the lens in it did not open the view out, it smeared the edges of the
+frame into something no drawing could be made from. The three above answer the
+same question at forty degrees as at three hundred, and at forty they *are* the
+flat one to within the width of a pencil line.
 
 The tool opens at **180°**, which is the number that matters for a curvilinear
 study: the four horizon points land exactly on the edge of the frame and the
@@ -258,11 +272,17 @@ A **second light** lives under it, off until asked for: shadowless, cooler and
 weaker by default, the way a studio or an overcast sky answers the problem of
 one light leaving half of everything black.
 
-### Guides
+### Guides, and the floor's two rulings
 
-The guides control steps down through four levels rather than switching on and
-off: the curvilinear construction circles, the ground grid, the eye-level line,
-nothing. The useful state is usually one less than what you have.
+The guides control steps down through three levels rather than switching on and
+off: the curvilinear construction circles, the eye-level line, nothing. The
+useful state is usually one less than what you have.
+
+**The ground grid is two switches, one per direction** — the lines running away
+from you, and the lines running across. It used to be a rung of the ladder,
+which could only ever offer the whole grid, and a floor is not drawn that way:
+you lay the receding lines to their point and then you cross them. Either family
+alone is the step before a grid; both is a grid; neither is bare ground.
 
 The ground is ruled as a tape measure is: three rulers at once — the step you
 snap to, the metre, and the five — each heavier than the last, so distance can

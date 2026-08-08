@@ -60,3 +60,45 @@ export const wholeSheetField = (width: number, height: number) => {
   const short = Math.max(Math.min(width, height), 1);
   return Math.min(MAX_FIELD, Math.ceil((360 * long) / short / 10) * 10);
 };
+
+/**
+ * The stereographic sheet.
+ *
+ * Every projection here maps an angle away from the view axis to a distance
+ * from the middle of the frame, and the whole character of a system is that one
+ * function. Equidistant is the identity - the angle *is* the distance - which is
+ * why it rules so evenly and why it is the sheet to measure on. Stereographic is
+ * the tangent of the half angle, and that one change buys the property no other
+ * azimuthal projection has: it is **conformal**. Angles are preserved
+ * everywhere. A small square anywhere on the page is still a square, a sphere is
+ * still drawn as a circle, and two lines that cross at sixty degrees in the
+ * world cross at sixty degrees on the paper - at the very edge of a full-turn
+ * field as much as at the centre.
+ *
+ * That is bought by giving up on scale: the periphery is expanded enormously,
+ * which is exactly the "little planet" picture, and at a full turn the point
+ * directly behind you is at infinity and can never be drawn. The sphere minus
+ * one point onto the whole plane - which is the map that makes the Riemann
+ * sphere a sphere, and the same one the Poincare disk is built from. It is the
+ * closest thing to a straight edge that survives a curved sheet: what stays
+ * true is not the length of anything but the angle between everything.
+ *
+ * Normalised so the frame's own edge still sits at the field it says it does -
+ * `at(A, A) === A` - so the number on the lens control means the same thing in
+ * every system.
+ */
+
+/** As far as the tangent may be pushed before it runs away entirely. */
+const STEREO_LIMIT = 3.1; // radians, a shade under half a turn
+
+/** Angle away from the axis, given a distance from the middle of the frame. */
+export const stereographicAngle = (radius: number, field: number) => {
+  const half = Math.min(field, STEREO_LIMIT) / 2;
+  return 2 * Math.atan((Math.tan(half) / Math.max(field, 1e-6)) * radius);
+};
+
+/** And back: distance from the middle, given an angle away from the axis. */
+export const stereographicRadius = (angle: number, field: number) => {
+  const half = Math.min(field, STEREO_LIMIT) / 2;
+  return (Math.tan(angle / 2) / Math.tan(half)) * Math.max(field, 1e-6);
+};

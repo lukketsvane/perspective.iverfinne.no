@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { fieldOf } from './projection';
+import { fieldOf, stereographicAngle, stereographicRadius } from './projection';
 import type { PerspectiveMode } from '../types';
 
 /**
@@ -15,12 +15,12 @@ import type { PerspectiveMode } from '../types';
  * the glass, so react-three-fiber's own picking never sees a single one; the
  * scene registers what it is drawing with, and the overlay asks from out here.
  *
- * The projection is the whole difficulty. In straight-line perspective the ray
- * is the camera's own, and three does it. In the curvilinear modes the picture
- * on the screen was not made by that camera at all - it was read off a cube map
- * by angle - so the flat ray points somewhere the viewer is not looking, which
- * is why meshes plainly in view used to be untappable. The mapping below is the
- * same equidistant one the panorama shader uses, inverted.
+ * The projection is the whole difficulty. The picture on the screen was not made
+ * by the camera three thinks it has - it was read off a cube map, or off one
+ * flat pass, by angle - so a flat ray through the pixel points somewhere the
+ * viewer is not looking, which is why meshes plainly in view used to be
+ * untappable. The mappings below are the same ones the panorama shader uses,
+ * inverted.
  */
 
 export interface SceneHit {
@@ -66,7 +66,6 @@ export const forgetView = () => {
 };
 
 const raycaster = new THREE.Raycaster();
-const ndc = new THREE.Vector2();
 const direction = new THREE.Vector3();
 const local = new THREE.Vector3();
 const inverse = new THREE.Quaternion();
@@ -88,11 +87,6 @@ const aim = (clientX: number, clientY: number): boolean => {
 
   raycaster.camera = view.camera;
 
-  if (view.mode === 'linear') {
-    raycaster.setFromCamera(ndc.set(x, y), view.camera);
-    return true;
-  }
-
   const { halfYaw, halfPitch } = fieldOf(view.fov, view.width, view.height);
   const rx = x * halfYaw;
   const ry = y * halfPitch;
@@ -112,13 +106,23 @@ const aim = (clientX: number, clientY: number): boolean => {
   }
 
   const radius = Math.hypot(rx, ry);
-  if (radius > Math.PI) return false;
 
-  // Equidistant: distance from the centre of the frame is the angle away from
-  // where you are looking, evenly, in every direction.
-  const spread = radius > 1e-5 ? Math.sin(radius) / radius : 1;
+  /*
+   * Both radial systems, which differ in one line: how far off the axis a given
+   * distance from the middle of the frame is.
+   *
+   * Equidistant reads the distance as the angle itself. Stereographic reads it
+   * as the tangent of the half angle, which never reaches half a turn however
+   * far out the pixel is - so a stereographic frame has no dead paper in its
+   * corners, where an equidistant one past the hemisphere does.
+   */
+  const field = Math.max(halfYaw, halfPitch);
+  const theta = view.mode === 'stereographic' ? stereographicAngle(radius, field) : radius;
+  if (theta > Math.PI) return false;
+
+  const spread = radius > 1e-5 ? Math.sin(theta) / radius : 1;
   direction
-    .set(rx * spread, ry * spread, -Math.cos(radius))
+    .set(rx * spread, ry * spread, -Math.cos(theta))
     .applyQuaternion(view.camera.quaternion)
     .normalize();
   raycaster.set(view.camera.position, direction);
@@ -249,12 +253,6 @@ export const project = (point: THREE.Vector3): { x: number; y: number } | null =
     y: rect.top + ((1 - ndcY) / 2) * rect.height,
   });
 
-  if (view.mode === 'linear') {
-    local.copy(point).project(view.camera);
-    if (local.z > 1) return null;
-    return toClient(local.x, local.y);
-  }
-
   local.copy(point).sub(view.camera.position);
   if (local.lengthSq() < 1e-12) return null;
   local.applyQuaternion(inverse.copy(view.camera.quaternion).invert()).normalize();
@@ -272,9 +270,12 @@ export const project = (point: THREE.Vector3): { x: number; y: number } | null =
   // measured against that; the direction out from the centre of the frame is
   // whatever is left in the other two.
   const theta = Math.acos(THREE.MathUtils.clamp(-local.z, -1, 1));
+  const field = Math.max(halfYaw, halfPitch);
+  const radius = view.mode === 'stereographic' ? stereographicRadius(theta, field) : theta;
+
   const outward = Math.hypot(local.x, local.y);
-  const rx = outward > 1e-6 ? (local.x / outward) * theta : 0;
-  const ry = outward > 1e-6 ? (local.y / outward) * theta : 0;
+  const rx = outward > 1e-6 ? (local.x / outward) * radius : 0;
+  const ry = outward > 1e-6 ? (local.y / outward) * radius : 0;
 
   return toClient(rx / halfYaw, ry / halfPitch);
 };

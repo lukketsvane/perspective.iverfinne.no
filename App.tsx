@@ -76,11 +76,8 @@ export default function App() {
    * to be knelt to, or it is a thing on the floor seen from above.
    */
   const frame = (size: [number, number, number]) => {
-    const { cameraHeight, fov, perspectiveMode, room, setCameraHeight } = useStore.getState();
-    const vertical =
-      perspectiveMode === 'linear'
-        ? (fov * Math.PI) / 180
-        : fieldOf(fov, window.innerWidth, window.innerHeight).halfPitch * 2;
+    const { cameraHeight, fov, room, setCameraHeight } = useStore.getState();
+    const vertical = fieldOf(fov, window.innerWidth, window.innerHeight).halfPitch * 2;
 
     const longest = Math.max(size[0], size[1], size[2]);
     const wanted = Math.min(Math.PI * 0.8, vertical * OPENING_SIZE);

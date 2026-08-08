@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { useStore } from './store';
 import { walkInput } from './lib/walkInput';
-import { pickGround, pickObject, project } from './lib/pick';
+import { pickGround, pickObject, project, projectView } from './lib/pick';
 import './index.css';
 
 const rootElement = document.getElementById('root');
@@ -25,11 +25,16 @@ if (import.meta.env.DEV) {
   const debug = window as unknown as {
     __store: typeof useStore;
     __walk: typeof walkInput;
-    __pick: { project: typeof project; pickObject: typeof pickObject; pickGround: typeof pickGround };
+    __pick: {
+      project: typeof project;
+      projectView: typeof projectView;
+      pickObject: typeof pickObject;
+      pickGround: typeof pickGround;
+    };
   };
   debug.__store = useStore;
   debug.__walk = walkInput;
-  debug.__pick = { project, pickObject, pickGround };
+  debug.__pick = { project, projectView, pickObject, pickGround };
 }
 
 const root = ReactDOM.createRoot(rootElement);
