@@ -22,16 +22,45 @@ export interface LibraryMesh {
   url: string;
   /**
    * The real height of the thing, in metres. Absent for anything authored at
-   * its true size, which is placed exactly as it comes - which is all three of
-   * these.
+   * its true size, which is placed exactly as it comes.
    */
   height?: number;
+  /**
+   * A room rather than an object.
+   *
+   * The difference is not size, it is what you do with it. An object is
+   * something you stand a known distance from and draw; a scene is something
+   * you walk into and draw from inside. So a scene lands on the origin instead
+   * of beside whatever is already there, and carries no construction cage and
+   * no vanishing points of its own - one box round fifteen figures, a desk and
+   * a wolf answers nothing, and its three axes are the world's, which the
+   * construction sheet already marks.
+   */
+  kind?: 'object' | 'scene';
 }
 
 export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'ekstrem', name: 'Ekstrem', url: '/meshes/ekstrem.glb' },
   { id: 'balans-variabel', name: 'Balans Variabel', url: '/meshes/balans-variabel.glb' },
   { id: 'il-tempo-gigante', name: 'Il Tempo Gigante', url: '/meshes/il-tempo-gigante.glb' },
+
+  /*
+   * Three rooms, reconstructed from Kim Jung Gi pages.
+   *
+   * Each is a single sculpted mesh - fifteen figures, the furniture they are
+   * on, and the animals among them, welded into one - so there is nothing in
+   * them to take apart and nothing to select inside. That is the point: they
+   * are not a kit, they are a room to stand in and draw, at the density of
+   * incident he actually drew at.
+   *
+   * Placed exactly as authored, like everything else here, because measuring
+   * them says they already are life size: stood at scale 1 with the eye at
+   * 1.9 m, the tallest figure's head sits on the horizon, which is what a
+   * 1.9 m thing does at any distance. Nothing to correct.
+   */
+  { id: 'kjg-18', name: 'Study 18', url: '/meshes/kjg-18.glb', kind: 'scene' },
+  { id: 'kjg-25', name: 'Study 25', url: '/meshes/kjg-25.glb', kind: 'scene' },
+  { id: 'kjg-27', name: 'Study 27', url: '/meshes/kjg-27.glb', kind: 'scene' },
 ];
 
 /**

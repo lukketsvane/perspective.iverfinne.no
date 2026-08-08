@@ -5,7 +5,6 @@ import * as THREE from 'three';
 import { useStore, DEFAULT_CAMERA_HEIGHT } from '../store';
 import { GroundGrid } from './GroundGrid';
 import { KimBox } from './KimBox';
-import { HorizonLine } from './Reference';
 import { Room } from './Room';
 import { SceneModels } from './SceneModels';
 import { WalkControls } from './WalkControls';
@@ -14,6 +13,8 @@ import { updateVanishing, clearVanishing } from '../lib/vanishing';
 import { markSceneBuilt, sceneRevision } from '../lib/sceneRevision';
 import { Panorama } from './Panorama';
 import { forgetView, registerView } from '../lib/pick';
+import { fieldOf } from '../lib/projection';
+import { setInkLight, setInkScale } from '../lib/inkMaterial';
 
 /** Keeps the "put one here" point under the middle of the view. */
 const FocusTracker = () => {
@@ -44,7 +45,11 @@ const VanishingTracker = () => {
   const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
 
   useFrame(() => {
-    if (!showVanishing || (!box && !model)) {
+    // A scene has no points of its own worth drawing: its box is the room's box
+    // and its three axes are the world's, which the construction sheet already
+    // marks. Ruling them again round the whole room is fifteen figures' worth
+    // of red over the drawing, saying what the horizon said.
+    if (!showVanishing || (!box && !model) || model?.kind === 'scene') {
       clearVanishing();
       return;
     }
@@ -267,6 +272,17 @@ const SceneContent = () => {
   const sunShadows = useStore((state) => state.sun.shadows);
   const showRoom = useStore((state) => state.showRoom);
   const sunEnvironment = useStore((state) => state.sunEnvironment);
+  const sun = useStore((state) => state.sun);
+  /**
+   * Whether the whole scene is being drawn as a line drawing.
+   *
+   * The surface is per object, but a cast shadow and a background are not: they
+   * belong to the page. So the page follows the scene-wide setting, which is
+   * also the one the control on the dock sets - and that control stamps every
+   * object as it goes, so the two only disagree while somebody is deliberately
+   * mixing rungs.
+   */
+  const inkMode = useStore((state) => state.surface) === 'ink';
 
   /*
    * Hand the walk layer what it needs to aim with.
@@ -291,16 +307,50 @@ const SceneContent = () => {
   }, [camera, gl, scene, size.width, size.height, fov, perspectiveMode]);
 
   const isDark = theme === 'dark';
-  const bgColor = `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})`;
-  const horizonColor = isDark ? '#5cc8ff' : '#1f6feb';
+  /*
+   * Ink is on paper in both themes, and that is not an oversight.
+   *
+   * The theme is for the chrome, which sits in the room you are in. This is the
+   * drawing, and the drawing is what the export writes out at three times the
+   * frame to be printed or dropped into a tablet layer and traced over. A white
+   * line on a black field cannot be used that way, and a study you cannot put a
+   * sheet of paper beside is not what the mode is for.
+   */
+  const bgColor = inkMode
+    ? '#f7f4ef'
+    : `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})`;
+
+  /**
+   * How wide a line is, and which way the light comes from.
+   *
+   * Not in a frame loop: neither changes per frame, and the panorama already
+   * redraws its source when the scene revision moves. The field is here because
+   * the pen is specified in pixels of the finished sheet and has to be said in
+   * radians for a shader that has never heard of the sheet.
+   */
+  useEffect(() => {
+    const { halfYaw } = fieldOf(fov, size.width, size.height);
+    setInkScale(halfYaw, size.width);
+  }, [fov, size.width, size.height]);
+
+  useEffect(() => {
+    const [x, y, z] = sunPosition(sun.azimuth, sun.elevation);
+    setInkLight(x, y, z);
+  }, [sun.azimuth, sun.elevation]);
 
   /** One metre, or whatever finer step is being snapped to. */
   const cellSize = Math.max(0.05, snapStep || 1);
 
-  /** The construction sheet is ruled in red, on paper and here. */
+  /**
+   * What the construction is ruled in.
+   *
+   * Red on the clay, where it has to carry across a lit grey scene. In ink it
+   * is a lighter weight of the same ink the drawing is in - a builder rules his
+   * sheet in one pencil and presses harder for the lines that matter.
+   */
   const gridColor = useMemo(
-    () => new THREE.Color(isDark ? '#ff6a5e' : '#e0342a'),
-    [isDark]
+    () => new THREE.Color(inkMode ? '#8c8378' : isDark ? '#ff6a5e' : '#e0342a'),
+    [inkMode, isDark]
   );
 
   /*
@@ -352,8 +402,11 @@ const SceneContent = () => {
       {/* Uploaded models, standing at their real size */}
       <SceneModels />
 
-      {/* Eye level / horizon line - every horizontal VP in the scene sits on it */}
-      {guides >= 1 && <HorizonLine color={horizonColor} />}
+      {/* The eye level is not drawn here. It is drawn by the panorama shader,
+          per pixel, on the sphere - which is a truer place for it: this was a
+          500 m circle of geometry that went into the cube source and got
+          resampled by the reprojection on the way out, so it was the one line
+          on the sheet whose weight depended on where it landed. */}
 
       {/*
         * The ground, ruled at whatever dragging snaps to.
@@ -362,12 +415,22 @@ const SceneContent = () => {
         * and lining an object up against a line it cannot land on is the sort
         * of small lie that costs half an hour.
         */}
-      {(gridX || gridZ) && <GroundGrid cell={cellSize} dark={isDark} along={{ x: gridX, z: gridZ }} />}
+      {(gridX || gridZ) && (
+        <GroundGrid cell={cellSize} dark={isDark} inked={inkMode} along={{ x: gridX, z: gridZ }} />
+      )}
 
       {/* The floor catches the sun's shadows and nothing else. It is far wider
           than it needs to be for the shadows themselves: a 200 m plane has an
-          edge, and a 210 degree lens can see it. */}
-      {sunShadows && (
+          edge, and a 210 degree lens can see it.
+
+          Not in ink. A cast shadow is a tone, and its boundary is soft - PCF,
+          then resampled by the reprojection, then resampled again by the
+          export - so on a sheet you are about to trace there is no telling
+          which line is an edge of the object and which is an edge of its
+          shadow. The object still does not float: the ground ruling running
+          behind a foot and reappearing the other side pins it better than a
+          blur does, and says where on the floor as well. */}
+      {sunShadows && !inkMode && (
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} raycast={() => null}>
           <planeGeometry args={[2000, 2000]} />
           <shadowMaterial transparent opacity={isDark ? 0.55 : 0.42} />
@@ -375,7 +438,7 @@ const SceneContent = () => {
       )}
 
       {/* With the sun's shadows off, boxes need something to sit on. */}
-      {!sunShadows && (
+      {!sunShadows && !inkMode && (
         <ContactShadows
           position={[0, 0, 0]}
           opacity={isDark ? 0.8 : 0.6}
@@ -393,7 +456,8 @@ const SceneContent = () => {
           spread={fov}
           mode={perspectiveMode}
           gridColor={gridColor}
-          gridStrength={guides >= 2 ? 1 : 0}
+          pointStrength={guides >= 1 ? 1 : 0}
+          sheetStrength={guides >= 2 ? 1 : 0}
           surround={surround}
         />
       )}

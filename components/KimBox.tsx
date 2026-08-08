@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { BOX_SURFACES, BoxData, nearestSurface } from '../types';
 import { useStore } from '../store';
 import { faceIsReachable, faceOutward } from '../lib/manipulate';
+import { INK_BOX } from '../lib/inkMaterial';
 import { pixelsPerMetreAt } from '../lib/pick';
 
 /**
@@ -121,10 +122,28 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
    */
   const surface = nearestSurface(data.surface ?? sceneSurface, BOX_SURFACES);
   const solid = surface === 'original';
+  /**
+   * A box in ink is the one rung that needs no shader of its own.
+   *
+   * Its faces are flat, so the facing ratio is constant across each and its
+   * derivative is nothing - there is no contour to find and none is wanted. A
+   * box's lines are its twelve edges, which it already carries as geometry.
+   * Ink only lays the paper under them and turns the sun off.
+   */
+  const inked = surface === 'ink';
 
   // Black boxes on a black ground: the edges and the sun do the describing.
-  const boxColor = isDark ? (isSelected ? '#101010' : '#000000') : (isSelected ? '#ffefef' : '#ffffff');
-  const edgeColor = isDark ? (isSelected ? '#ff5555' : '#ffffff') : (isSelected ? '#ff3b30' : '#0a0a0a');
+  // In ink the page decides both, in both themes.
+  const boxColor = inked
+    ? '#f7f4ef'
+    : isDark
+      ? isSelected ? '#101010' : '#000000'
+      : isSelected ? '#ffefef' : '#ffffff';
+  const edgeColor = inked
+    ? '#16130f'
+    : isDark
+      ? isSelected ? '#ff5555' : '#ffffff'
+      : isSelected ? '#ff3b30' : '#0a0a0a';
 
   return (
     <group userData={{ selectableType: 'box', selectableId: data.id }}>
@@ -168,6 +187,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
         castShadow={solid}
         receiveShadow={solid}
       >
+
         <boxGeometry args={[1, 1, 1]} />
         {/* Every rung is the same material with its faces turned down, so the
             twelve edges below are the one constant: what changes is how much
@@ -181,17 +201,21 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
             compiled for it, and neither of those is re-decided by assigning to
             the flag: the box went on rendering solid while the store said
             glass. A fresh material is re-decided by definition. */}
-        <meshStandardMaterial
-          key={surface}
-          color={boxColor}
-          transparent={!solid}
-          opacity={surface === 'wire' ? 0 : surface === 'glass' ? 0.22 : 1}
-          depthWrite={solid}
-          roughness={0.8}
-          metalness={0.1}
-          polygonOffset
-          polygonOffsetFactor={1}
-        />
+        {inked ? (
+          <primitive object={INK_BOX} attach="material" />
+        ) : (
+          <meshStandardMaterial
+            key={surface}
+            color={boxColor}
+            transparent={!solid}
+            opacity={surface === 'wire' ? 0 : surface === 'glass' ? 0.22 : 1}
+            depthWrite={solid}
+            roughness={0.8}
+            metalness={0.1}
+            polygonOffset
+            polygonOffsetFactor={1}
+          />
+        )}
         <Edges raycast={() => null} scale={1} threshold={15} color={edgeColor} />
       </mesh>
 

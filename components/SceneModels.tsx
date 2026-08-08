@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { useStore } from '../store';
 import { MESH_SURFACES, nearestSurface, SceneModel } from '../types';
 import { authoredMaterial } from '../lib/modelMaterials';
+import { INK } from '../lib/inkMaterial';
 import { Edges, Line } from '@react-three/drei';
 
 /**
@@ -58,17 +59,24 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
   const dark = theme === 'dark';
 
   const surface = nearestSurface(model.surface ?? sceneSurface, MESH_SURFACES);
+  const inked = surface === 'ink';
 
   /*
-   * Red for the construction, green for the one in your hands.
+   * The cage goes round the one in your hands, and only that one.
    *
-   * The cage is not a selection highlight - it is the box the thing blocks into,
-   * which is the first mark anyone makes when they draw a figure, and it is
-   * wanted around everything standing in the scene rather than around whichever
-   * one was last tapped. So it is drawn in the construction red like the rest of
-   * the sheet, and goes green only to say which one a drag would move.
+   * It is the box the thing blocks into, which is the first mark anyone makes
+   * when they draw a figure - and the argument for drawing it round everything
+   * standing in the scene was that you block in the whole scene before you
+   * block in one object of it. True, and it does not survive contact with a
+   * scene that has fifteen things in it: fifteen cages, fifteen footprints,
+   * thirty dashed diagonals and fifteen plumb lines, over the drawing. It is
+   * the red in the dark screenshot and it answers nothing, because a box round
+   * everything at once is a box round nothing in particular.
+   *
+   * So it is the selection's, which is the moment you actually want it - and it
+   * follows the page: green against the clay, ink against the ink.
    */
-  const cageColor = isSelected ? (dark ? '#4ade80' : '#16a34a') : dark ? '#ff5555' : '#ff3b30';
+  const cageColor = inked ? '#16130f' : dark ? '#4ade80' : '#16a34a';
 
   /**
    * Swap materials in place, keeping each mesh's own on the side so the switch
@@ -85,14 +93,17 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       // A figure standing in the sun has to throw a shadow like everything
       // else, or it reads as a sticker on the floor - unless you can see
       // through it, in which case a solid black shadow is the one thing on
-      // screen still insisting it is solid.
-      mesh.castShadow = surface !== 'glass';
-      mesh.receiveShadow = surface !== 'glass';
+      // screen still insisting it is solid. Ink throws none either: a cast
+      // shadow is a tone, and on a sheet you are going to trace, its soft
+      // boundary is indistinguishable from an edge of the object.
+      mesh.castShadow = surface !== 'glass' && surface !== 'ink';
+      mesh.receiveShadow = mesh.castShadow;
 
       // Read the authored materials before swapping, so the first swap is what
       // records them rather than what loses them.
       const own = authoredMaterial(mesh);
-      mesh.material = surface === 'matte' ? MATTE : surface === 'glass' ? GLASS : own;
+      mesh.material =
+        surface === 'matte' ? MATTE : surface === 'ink' ? INK : surface === 'glass' ? GLASS : own;
     });
   }, [surface, model.object]);
 
@@ -106,7 +117,9 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       scale={model.scale}
     >
       <primitive object={model.object} />
-      {showConstruction && <Construction model={model} color={cageColor} lit={isSelected} />}
+      {showConstruction && isSelected && model.kind !== 'scene' && (
+        <Construction model={model} color={cageColor} lit />
+      )}
     </group>
   );
 };

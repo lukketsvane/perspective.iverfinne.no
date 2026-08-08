@@ -129,6 +129,12 @@ export const I = {
   lockSize: (<><rect x="4" y="11" width="16" height="9.5" rx="2" /><path d="M8 11V7.6a4 4 0 0 1 8 0V11" /><path d="M8.8 15.8h6.4" strokeOpacity="0.75" /><path d="M10.5 14.2 8.8 15.8l1.7 1.6M13.5 14.2l1.7 1.6-1.7 1.6" strokeOpacity="0.75" /></>),
   unlockSize: (<><rect x="4" y="11" width="16" height="9.5" rx="2" /><path d="M8 11V7.6a4 4 0 0 1 7.4-2.1" /><path d="M8.8 15.8h6.4" strokeOpacity="0.75" /><path d="M10.5 14.2 8.8 15.8l1.7 1.6M13.5 14.2l1.7 1.6-1.7 1.6" strokeOpacity="0.75" /></>),
 
+  /**
+   * The line drawing: a form given by its outline and two lines wrapping round
+   * it. Not a shaded ball and not a wireframe - the two marks the mode makes.
+   */
+  ink: (<><circle cx="12" cy="12" r="9" /><path d="M5.6 8.4a9 9 0 0 0 12.8 0" strokeOpacity="0.7" /><path d="M7.6 15.6a9 9 0 0 0 8.8 0" strokeOpacity="0.45" /></>),
+
   /** Step back or forward one move. */
   undo: (<><polyline points="9 5 3.5 10.5 9 16" /><path d="M3.5 10.5H14a6.5 6.5 0 0 1 0 13H8" /></>),
   redo: (<><polyline points="15 5 20.5 10.5 15 16" /><path d="M20.5 10.5H10a6.5 6.5 0 0 0 0 13h6" /></>),
@@ -163,6 +169,7 @@ export const I = {
 export const SURFACE_ICON: Record<Surface, React.ReactNode> = {
   original: I.surfaceSolid,
   matte: I.matte,
+  ink: I.ink,
   glass: I.surfaceGlass,
   wire: I.surfaceWire,
 };

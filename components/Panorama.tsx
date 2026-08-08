@@ -137,12 +137,22 @@ const sheetFor = (
 export const Panorama: React.FC<{
   spread: number;
   mode: PerspectiveMode;
-  /** The construction grid's colour, and 0 strength to leave it off. */
+  /** The construction's colour. One ink for the whole of it. */
   gridColor: THREE.Color;
-  gridStrength: number;
+  /**
+   * The two rungs, separately.
+   *
+   * The eye level and the six points are what you set a drawing up with and
+   * are wanted nearly always; the ruled sphere behind them is a lesson in what
+   * the projection is doing and is wanted while you learn it. They used to be
+   * one switch, which is why the level between them was empty and nobody
+   * stopped there.
+   */
+  pointStrength: number;
+  sheetStrength: number;
   /** The paper the sheet is drawn on, for wherever the sheet is not. */
   surround: THREE.Color;
-}> = ({ spread, mode, gridColor, gridStrength, surround }) => {
+}> = ({ spread, mode, gridColor, pointStrength, sheetStrength, surround }) => {
   const { gl, scene, camera, size, viewport } = useThree();
 
   /**
@@ -202,7 +212,10 @@ export const Panorama: React.FC<{
         orientation: { value: new THREE.Matrix3() },
         projectionMode: { value: 0 },
         gridColor: { value: new THREE.Color() },
-        gridStrength: { value: 0 },
+        /** The eye level and the points: the first rung of the guides. */
+        pointStrength: { value: 0 },
+        /** The ruled sphere behind them: the second. */
+        sheetStrength: { value: 0 },
         surround: { value: new THREE.Color() },
       },
       vertexShader: `
@@ -222,7 +235,8 @@ export const Panorama: React.FC<{
         uniform mat3 orientation;
         uniform int projectionMode;
         uniform vec3 gridColor;
-        uniform float gridStrength;
+        uniform float pointStrength;
+        uniform float sheetStrength;
         uniform vec3 surround;
         varying vec2 vUv;
 
@@ -347,22 +361,37 @@ export const Panorama: React.FC<{
 
           // The construction sheet, drawn where it belongs - on the sphere,
           // per pixel, rather than sampled into a polyline on top.
-          if (!offSheet && gridStrength > 0.001) {
+          if (!offSheet && max(pointStrength, sheetStrength) > 0.001) {
             float worldYaw = atan(world.x, -world.z);
             float worldPitch = asin(clamp(world.y, -1.0, 1.0));
-            float worldSide = atan(world.y, world.x); // X-axis looking
 
-            // Y-meridians (verticals, meeting at zenith/nadir)
-            float polarY = 1.0 - smoothstep(0.82, 0.995, abs(world.y));
-            float meridiansY = ruled(worldYaw, 1.0) * polarY * 0.42;
-
-            // X-meridians (depth lines, meeting at left/right vanishing points)
-            float polarX = 1.0 - smoothstep(0.82, 0.995, abs(world.x));
-            float meridiansX = ruled(worldPitch, 1.0) * polarX * 0.42;
-
-            // Z-meridians (front lines, meeting at center vanishing point)
-            float polarZ = 1.0 - smoothstep(0.82, 0.995, abs(world.z));
-            float meridiansZ = ruled(worldSide, 1.0) * polarZ * 0.42;
+            /*
+             * One family of meridians, and only one.
+             *
+             * There used to be three, in three colours, all at once: these,
+             * plus a set ruled on latitude, plus another set of great circles
+             * about the Z axis. Forty-seven curves in red, green and blue over
+             * the thing you are trying to draw.
+             *
+             * The latitude family was not a family of meridians at all -
+             * constant latitude gives parallels, concentric rings that converge
+             * on nothing, so they were not the image of any set of parallel
+             * lines in the world and there was nothing to rule towards. The Z
+             * family was honest, but plus and minus Z is whichever way the file
+             * happened to be authored, and once you have turned your head it is
+             * not an axis of anything you are drawing.
+             *
+             * These are the ones that survive both tests. Every upright edge in
+             * the world runs along one of them, they meet overhead and
+             * underfoot, and that meeting is the fifth point - which is the
+             * whole thing the sheet is here to show.
+             *
+             * The pole fade that used to be on all three is gone too: it erased
+             * the family over a thirty-five degree disc centred on the pole,
+             * which is to say it deleted the crowding that IS the vanishing
+             * point and kept the noise everywhere else.
+             */
+            float verticals = ruled(worldYaw, 1.0) * 0.30;
 
             // The eye-level ring is the one that matters most
             float horizon =
@@ -397,27 +426,20 @@ export const Panorama: React.FC<{
               vp = max(vp, 1.0 - smoothstep(0.0, 1.0, away / max(fwidth(away) * 2.2, 1e-5)));
             }
 
-            float ink = max(horizon, max(meridiansY, max(meridiansX, meridiansZ))) * gridStrength;
-            
-            // Color code the lines for clarity
-            vec3 c_vert = vec3(0.0, 0.6, 1.0);  // Blue for vertical (Y)
-            vec3 c_depth = vec3(1.0, 0.2, 0.2); // Red for depth (X)
-            vec3 c_front = vec3(0.2, 0.8, 0.2); // Green for front (Z)
-            
-            vec3 overlayColor = gridColor;
-            if (horizon > max(meridiansY, max(meridiansX, meridiansZ))) {
-              overlayColor = gridColor;
-            } else if (meridiansY > max(meridiansX, meridiansZ)) {
-              overlayColor = mix(gridColor, c_vert, 0.75);
-            } else if (meridiansX > meridiansZ) {
-              overlayColor = mix(gridColor, c_depth, 0.75);
-            } else {
-              overlayColor = mix(gridColor, c_front, 0.75);
-            }
-
-            gl_FragColor.rgb = mix(gl_FragColor.rgb, overlayColor, ink);
-            // The points sit over everything, in the construction red.
-            gl_FragColor.rgb = mix(gl_FragColor.rgb, gridColor, vp * gridStrength * 0.9);
+            /*
+             * One ink, for all of it.
+             *
+             * The three colours were meant to say which family a curve belonged
+             * to. With one family left there is nothing to tell apart, and a
+             * construction drawn in three saturated hues over a drawing in
+             * black competes with the drawing instead of supporting it. A
+             * builder rules his sheet in one pencil.
+             */
+            float ink = max(
+              max(horizon, vp * 0.9) * pointStrength,
+              verticals * sheetStrength
+            );
+            gl_FragColor.rgb = mix(gl_FragColor.rgb, gridColor, ink);
           }
         }
       `,
@@ -488,7 +510,8 @@ export const Panorama: React.FC<{
     uniforms.orientation.value.setFromMatrix4(camera.matrixWorld);
     uniforms.projectionMode.value = PROJECTION_MODES[mode] ?? 0;
     uniforms.gridColor.value.copy(gridColor);
-    uniforms.gridStrength.value = gridStrength;
+    uniforms.pointStrength.value = pointStrength;
+    uniforms.sheetStrength.value = sheetStrength;
     uniforms.surround.value.copy(surround);
     uniforms.useFlat.value = !!flatSheet;
     uniforms.panorama.value = cube?.target.texture ?? null;

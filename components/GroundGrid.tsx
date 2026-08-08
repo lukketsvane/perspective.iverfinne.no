@@ -22,13 +22,28 @@ import * as THREE from 'three';
  * out before they can interfere.
  */
 
-/** How far the sheet reaches. Beyond this the lines are gone entirely. */
-const REACH = 90;
+/**
+ * How far the sheet reaches. Beyond this the lines are gone entirely.
+ *
+ * Fifty rather than ninety: past about thirty metres the metre ruling is
+ * sub-pixel too, and a floor that fades out before it interferes reads as a
+ * floor going away from you rather than as a grey haze at the horizon.
+ */
+const REACH = 50;
 
 export const GroundGrid: React.FC<{
   /** Metres between the finest lines - whatever dragging currently snaps to. */
   cell: number;
   dark: boolean;
+  /**
+   * Whether the scene is being drawn as a line drawing.
+   *
+   * With the construction sheet cut to one ink, the two coloured axes on the
+   * floor are the only hue left on the page. In a line drawing they go to the
+   * same ink as everything else: a red line and a green line running through a
+   * pen drawing are two things you did not draw.
+   */
+  inked?: boolean;
   /**
    * Which of the two families to rule.
    *
@@ -38,7 +53,7 @@ export const GroundGrid: React.FC<{
    * ruler and a tablecloth.
    */
   along: { x: boolean; z: boolean };
-}> = ({ cell, dark, along }) => {
+}> = ({ cell, dark, along, inked = false }) => {
   const mesh = useRef<THREE.Mesh>(null);
 
   const material = useMemo(
@@ -107,8 +122,21 @@ export const GroundGrid: React.FC<{
 
           void main() {
             vec2 p = vWorld.xz;
+            float distance = length(p - cameraPosition.xz);
 
-            float fine = ruled(p, cell, 1.0) * 0.20;
+            /*
+             * The finest ruler is a near ruler.
+             *
+             * It is spaced at whatever dragging snaps to - a quarter of a metre
+             * by default - and at twelve metres out that spacing has fallen
+             * below a pixel. Past there it is not a ruler at all, it is a band
+             * of interference, and it was the densest thing on the screen after
+             * the construction sheet. You measure with it at your feet; from
+             * across the room the metre and the five do the work.
+             */
+            float near = 1.0 - smoothstep(4.0, 12.0, distance);
+
+            float fine = ruled(p, cell, 1.0) * 0.20 * near;
             float metre = ruled(p, 1.0, 1.0) * 0.34;
             float section = ruled(p, 5.0, 1.15) * 0.55;
 
@@ -131,7 +159,6 @@ export const GroundGrid: React.FC<{
 
             // Out of range, and edge-on. Both ends of the fade matter: without
             // the second, the sheet turns to a solid wash at the horizon.
-            float distance = length(p - cameraPosition.xz);
             float far = 1.0 - smoothstep(reach * 0.35, reach, distance);
             float grazing = smoothstep(0.0, 0.16, abs(normalize(cameraPosition - vWorld).y));
 
@@ -146,10 +173,10 @@ export const GroundGrid: React.FC<{
   );
 
   material.uniforms.cell.value = cell;
-  material.uniforms.ink.value.set(dark ? '#c8c8c8' : '#111111');
-  material.uniforms.axisX.value.set(dark ? '#ff6a5e' : '#e0342a');
-  material.uniforms.axisZ.value.set(dark ? '#5fd08a' : '#2e9e4f');
-  material.uniforms.strength.value = dark ? 0.75 : 1;
+  material.uniforms.ink.value.set(inked ? '#16130f' : dark ? '#c8c8c8' : '#111111');
+  material.uniforms.axisX.value.set(inked ? '#16130f' : dark ? '#ff6a5e' : '#e0342a');
+  material.uniforms.axisZ.value.set(inked ? '#16130f' : dark ? '#5fd08a' : '#2e9e4f');
+  material.uniforms.strength.value = inked ? 0.62 : dark ? 0.75 : 1;
   material.uniforms.families.value.set(along.x ? 1 : 0, along.z ? 1 : 0);
 
   /**
