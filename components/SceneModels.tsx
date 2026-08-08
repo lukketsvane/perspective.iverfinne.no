@@ -151,6 +151,14 @@ const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }>
 
       {/* Where it stands, and the diagonals that find the middle of that.
 
+          Drawn OVER the object, never through it. Depth-tested at the floor
+          they were buried by anything opaque standing on them - which on a
+          mesh is always, a mesh having no wire rung to fall back on - so the
+          diagonals, the one mark here that derives geometry rather than
+          confirming it, were permanently invisible on the chairs and the car.
+          A construction line on a real sheet is drawn over the drawing; that
+          is what makes it construction.
+
           None of it dashed. The dash was borrowed from a drafting convention
           where it means a hidden edge - and here every mark was dashed, so it
           distinguished nothing from nothing. Worse, drei dashes in world units
@@ -164,6 +172,8 @@ const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }>
         color={color}
         lineWidth={1}
         transparent
+        depthTest={false}
+        renderOrder={998}
         opacity={weight * 0.7}
       />
       <Line
@@ -172,6 +182,8 @@ const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }>
         color={color}
         lineWidth={1}
         transparent
+        depthTest={false}
+        renderOrder={998}
         opacity={weight * 0.4}
       />
       <Line
@@ -180,6 +192,8 @@ const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }>
         color={color}
         lineWidth={1}
         transparent
+        depthTest={false}
+        renderOrder={998}
         opacity={weight * 0.4}
       />
 
@@ -190,9 +204,9 @@ const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }>
           rectangle, which is not the middle of the drawn one and is how a row
           is halved and doubled without measuring. Ruling the working and
           leaving the crossing for the eye to find is stopping one step short. */}
-      <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+      <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null} renderOrder={999}>
         <circleGeometry args={[Math.max(0.02, Math.min(x, z) * 0.06), 16]} />
-        <meshBasicMaterial color={color} transparent opacity={weight} depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial color={color} transparent opacity={weight} depthTest={false} depthWrite={false} toneMapped={false} />
       </mesh>
 
       {/* The plumb line: up through the middle, and a little past the top,
@@ -203,6 +217,8 @@ const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }>
         color={color}
         lineWidth={1}
         transparent
+        depthTest={false}
+        renderOrder={998}
         opacity={weight * 0.45}
       />
     </group>

@@ -45,22 +45,26 @@ export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'il-tempo-gigante', name: 'Il Tempo Gigante', url: '/meshes/il-tempo-gigante.glb' },
 
   /*
-   * Three rooms, reconstructed from Kim Jung Gi pages.
+   * Three studies, reconstructed from Kim Jung Gi pages.
    *
-   * Each is a single sculpted mesh - fifteen figures, the furniture they are
-   * on, and the animals among them, welded into one - so there is nothing in
-   * them to take apart and nothing to select inside. That is the point: they
-   * are not a kit, they are a room to stand in and draw, at the density of
-   * incident he actually drew at.
+   * Each is a single sculpted mesh - the figures, the furniture they are on and
+   * the animals among them, welded into one - so there is nothing in them to
+   * take apart and nothing to select inside. That is the point: they are not a
+   * kit, they are a piece of a room at the density of incident he actually
+   * drew at.
    *
-   * Placed exactly as authored, like everything else here, because measuring
-   * them says they already are life size: stood at scale 1 with the eye at
-   * 1.9 m, the tallest figure's head sits on the horizon, which is what a
-   * 1.9 m thing does at any distance. Nothing to correct.
+   * Placed exactly as authored, like everything else here. Measured, they are
+   * 1.77 x 1.69 x 1.68, 3.00 x 2.22 x 3.01 and 1.70 x 1.05 x 1.33 metres - so
+   * they are objects by this library's own definition, things you stand a known
+   * distance from and draw, and they carry the cage and their own vanishing
+   * points like anything else. A group of figures at arm's length is the best
+   * subject here for a blocking box, a footprint and a pair of points; marking
+   * them as rooms was telling the only figures in the tool that the tool's own
+   * construction did not apply to them.
    */
-  { id: 'kjg-18', name: 'Study 18', url: '/meshes/kjg-18.glb', kind: 'scene' },
-  { id: 'kjg-25', name: 'Study 25', url: '/meshes/kjg-25.glb', kind: 'scene' },
-  { id: 'kjg-27', name: 'Study 27', url: '/meshes/kjg-27.glb', kind: 'scene' },
+  { id: 'kjg-18', name: 'Study 18', url: '/meshes/kjg-18.glb' },
+  { id: 'kjg-25', name: 'Study 25', url: '/meshes/kjg-25.glb' },
+  { id: 'kjg-27', name: 'Study 27', url: '/meshes/kjg-27.glb' },
 ];
 
 /**

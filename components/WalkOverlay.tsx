@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
 import { walkInput } from '../lib/walkInput';
 import { holdRail, showRail, useRail } from '../lib/rail';
+import { SelectionBar } from './SelectionBar';
 import { Icon, I, SURFACE_ICON } from './icons';
 import { Scrub, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
@@ -264,6 +265,11 @@ export const WalkOverlay: React.FC<{
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
+    // Whether this touch is the one that brought the chrome back. A tap on
+    // nothing is normally a decision to put the selection down - but not when
+    // the only reason for the tap was that the bar holding that selection had
+    // faded out from under it. See `endPointer`.
+    woke.current = !railVisible;
     showRail();
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     // The event's own clock, not the handler's. A tap that lands while the
@@ -405,12 +411,22 @@ export const WalkOverlay: React.FC<{
    * the same projection-correct ray the drags use, and a tap that meets nothing
    * clears what was selected.
    */
+  const woke = useRef(false);
+
   const tapScene = (clientX: number, clientY: number) => {
     const hit = pickObject(clientX, clientY);
     const { selectBox, selectModel } = useStore.getState();
-    if (!hit) selectBox(null);
-    else if (hit.type === 'box') selectBox(hit.id);
+    // A touch whose only job was to wake the chrome may still pick something
+    // up; it may not put anything down. Otherwise the workflow the tool is for
+    // - place it, look at it for a while, then adjust it - was self-defeating:
+    // the looking is what made the bar fade, and the tap to bring it back was
+    // read as "nothing here", so the thing you wanted to adjust was deselected
+    // by the very gesture that went looking for its controls.
+    if (!hit) {
+      if (!woke.current) selectBox(null);
+    } else if (hit.type === 'box') selectBox(hit.id);
     else selectModel(hit.id);
+    woke.current = false;
   };
 
   const endPointer = (e: React.PointerEvent) => {
@@ -545,6 +561,39 @@ export const WalkOverlay: React.FC<{
         return;
       }
 
+      /*
+       * Turning, from a desk.
+       *
+       * Two fingers on the thing itself is the gesture, and a mouse has one -
+       * so on a laptop nothing in the scene could be turned at all, and the
+       * lesson the selection's own vanishing points exist to teach (square to
+       * the grid the pair is the scene's; turned off it the pair moves) was
+       * unreachable on the machine most people would open this on.
+       *
+       * Fifteen degrees a press, which is the step a two-point setup is built
+       * out of; shift for one, for settling. Held down it repeats, so the undo
+       * step is taken once at the start of the run rather than thirty times
+       * through it.
+       */
+      if (key === '[' || key === ']') {
+        e.preventDefault();
+        const step = ((e.shiftKey ? 1 : 15) * Math.PI) / 180 * (key === ']' ? 1 : -1);
+        const state = useStore.getState();
+        if (!e.repeat) state.beginChange();
+        if (state.selectedModelId) {
+          const mesh = state.models.find((m) => m.id === state.selectedModelId);
+          if (mesh) state.updateModel(mesh.id, { rotationY: mesh.rotationY + step });
+        } else if (state.selectedId) {
+          const box = state.boxes.find((b) => b.id === state.selectedId);
+          if (box) {
+            state.updateBox(box.id, {
+              rotation: [box.rotation[0], box.rotation[1] + step, box.rotation[2]],
+            });
+          }
+        }
+        return;
+      }
+
       // A shortcut is not a step: holding command and pressing D should not
       // leave the walker strafing once the shortcut has been handled.
       if (command || e.altKey) return;
@@ -587,7 +636,24 @@ export const WalkOverlay: React.FC<{
 
 
   const button = iconButton(isDark);
-  const dockVisible = railVisible && !isSelected && !covered;
+  /*
+   * The dock stays up when something is selected.
+   *
+   * It used to hide - and three of the controls it hides do nothing EXCEPT
+   * when something is selected: the cage, the selection's own vanishing
+   * points, and the export that would carry them into a picture. So the tool's
+   * best feature was reachable only by a deselect-reselect dance nobody would
+   * discover. Worse, the panel went pointer-events-none instantly while fading
+   * over a second and a half, so for that whole time there was a fully visible
+   * dock in which every button was dead - and the dead tap fell through to the
+   * gesture layer and was read as a tap on nothing, so pressing "save the
+   * picture" gave you no picture AND cost you the arrangement.
+   *
+   * The selection bar stacks above it instead of replacing it. Seventy pixels
+   * of an 844-pixel frame, and only while something is selected; the tools row
+   * already takes a hundred and six in the same column.
+   */
+  const dockVisible = railVisible && !covered;
 
   return (
     <>
@@ -719,6 +785,10 @@ export const WalkOverlay: React.FC<{
         </div>
 
         {/* Primary Dock */}
+        {/* What you can do to the thing you are holding, above what you can do
+            to the view. */}
+        <SelectionBar raised={covered} />
+
         <div className={`flex items-center p-1.5 gap-1 rounded-full border shadow-2xl ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}>
           <button onClick={onModels} aria-label="Add model" className={button}>
             <Icon path={I.cube} className="w-5 h-5" />

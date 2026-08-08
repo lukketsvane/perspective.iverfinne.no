@@ -271,12 +271,11 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
 
   return (
     <div
-      className={`fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none transition-all ${
-        raised
-          ? 'opacity-0 scale-95 duration-300'
-          : railVisible
-            ? 'opacity-100 scale-100 bottom-safe-panel duration-300'
-            : 'opacity-0 scale-100 bottom-safe-panel duration-[1500ms]'
+      /* Inside the dock's own column now, so the column carries the fade and
+         the position. All this decides is whether the bar is in the stack at
+         all - two fades over one element only ever fight. */
+      className={`flex justify-center max-w-full px-2 pointer-events-none transition-all duration-300 ${
+        raised ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
       }`}
     >
       {/* Narrower gaps than the dock has, and it scrolls rather than spills.
