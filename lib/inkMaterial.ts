@@ -349,9 +349,22 @@ const contrast = (a: THREE.Color, b: THREE.Color) => {
  */
 export const inkFor = (paper: THREE.Color): THREE.Color => {
   const hsl = { h: 0, s: 0, l: 0 };
-  paper.getHSL(hsl);
-  const pen = new THREE.Color().setHSL(hsl.h, Math.min(0.6, hsl.s * 1.5 + 0.06), 0.045);
-  const chalk = new THREE.Color().setHSL(hsl.h, Math.min(0.08, hsl.s * 0.3), 0.95);
+  // Asked and answered in display terms. three's default working space is
+  // linear, where a lightness of 0.045 is a mid grey rather than the near-black
+  // it reads as - which drew the whole tool in pencil instead of ink.
+  paper.getHSL(hsl, THREE.SRGBColorSpace);
+  const pen = new THREE.Color().setHSL(
+    hsl.h,
+    Math.min(0.6, hsl.s * 1.5 + 0.06),
+    0.06,
+    THREE.SRGBColorSpace
+  );
+  const chalk = new THREE.Color().setHSL(
+    hsl.h,
+    Math.min(0.08, hsl.s * 0.3),
+    0.93,
+    THREE.SRGBColorSpace
+  );
   return contrast(paper, pen) >= contrast(paper, chalk) ? pen : chalk;
 };
 

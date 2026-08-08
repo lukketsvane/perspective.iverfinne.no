@@ -182,6 +182,20 @@ export const ROOM_LIMITS = {
 export const SNAP_STEPS = [0, 0.05, 0.25, 1] as const;
 
 /**
+ * One step of history.
+ *
+ * The scene-wide surface is part of it because `cycleSurface` stamps every box
+ * and mesh in one move - so without it, one step back put every object's rung
+ * where it was and left the control saying something else, and the next object
+ * placed arrived on a rung nothing else was on.
+ */
+export interface HistoryStep {
+  boxes: BoxData[];
+  models: SceneModel[];
+  surface?: Surface;
+}
+
+/**
  * A model dropped into the scene from a file.
  *
  * `object` is the loaded three.js object, or null when the file cannot be read
@@ -447,9 +461,9 @@ export interface SceneState {
   /** Freeze the walk camera so a framed view stops moving. */
   viewLocked: boolean;
   /** Scenes to step back through. Newest last. */
-  undoStack: { boxes: BoxData[]; models: SceneModel[] }[];
+  undoStack: HistoryStep[];
   /** Scenes stepped back out of, to go forward into again. Newest last. */
-  redoStack: { boxes: BoxData[]; models: SceneModel[] }[];
+  redoStack: HistoryStep[];
   theme: ThemeMode;
   /** Neutral environment/background value, from black (0) to white (255). */
   backgroundGray: number;
@@ -536,6 +550,4 @@ export interface SceneState {
   loadSceneHistory: () => Promise<void>;
   /** Replace the live scene wholesale - used by the JSON importer. */
   applyScene: (scene: { boxes: BoxData[]; models: Omit<SceneModel, 'id'>[]; view?: SceneView }) => void;
-  /** Remove every placed model whose fileUrl already appears earlier in the list. */
-  deduplicateModels: () => void;
 }

@@ -148,7 +148,10 @@ export const useRoomControl = () => {
         if (held?.id !== event.pointerId) return;
         const across = event.clientX - held.x;
         const up = held.y - event.clientY;
-        if (!held.moved && Math.hypot(across, up) < 4) return;
+        // Nine pixels, the same as a tap on the scene. A four-pixel threshold
+        // meant a wobble on a tap intended to put the room away instead kept
+        // it up, forced it on if it was off, and resized it.
+        if (!held.moved && Math.hypot(across, up) < 9) return;
         if (!held.moved) {
           held.moved = true;
           setSizing(true);

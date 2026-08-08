@@ -196,7 +196,7 @@ const object = (value: unknown) => typeof value === 'object' && value !== null &
 
 const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => boolean> = {
   theme: (v) => v === 'light' || v === 'dark',
-  backgroundGray: number,
+  backgroundGray: (v: unknown) => number(v) && (v as number) >= 0 && (v as number) <= 255,
   cameraHeight: number,
   guides: number,
   gridX: boolean,
@@ -231,10 +231,31 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
  * else in the setup is touched: the theme, the room, the sun, the fill, the eye
  * level and the snap are all still yours.
  */
-const VIEW_GENERATION = 2;
+const VIEW_GENERATION = 3;
 
 /** The keys the reset above drops. Everything else survives it. */
-const VIEW_KEYS = ['fov', 'guides', 'showConstruction', 'surface'] as const;
+const VIEW_KEYS = ['fov', 'guides', 'showConstruction', 'surface', 'roomLevel'] as const;
+
+/**
+ * Whether the stored setup predates the current opening view.
+ *
+ * Read once and shared, because the drop below is only half the job: the
+ * migrations further down reach past `loadedSettings` into a second raw parse
+ * of the same blob, and a legacy alias that the reset never saw would hand back
+ * exactly the value the reset had just dropped. Which is what happened - the
+ * ink rung and the trimmed guide level reached nobody who had used the tool
+ * before, because both have a legacy alias and `fov` does not.
+ */
+const staleView = (() => {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    const stored = localStorage.getItem(SETTINGS_KEY);
+    if (!stored) return false;
+    return (JSON.parse(stored) as Record<string, unknown>).viewGeneration !== VIEW_GENERATION;
+  } catch {
+    return false;
+  }
+})();
 
 const loadSettings = (): Partial<PersistedSettings> => {
   if (typeof localStorage === 'undefined') return {};
@@ -372,19 +393,36 @@ const remembered = kept({
    * migration and a bad default: it meant a first visitor was migrated from a
    * setting they had never had, and the store's own value never applied.
    */
-  guides: (loadedSettings.guides ?? legacy.showGuides) === undefined
+  guides: (loadedSettings.guides ?? (staleView ? undefined : legacy.showGuides)) === undefined
     ? undefined
     : (Math.min(2, loadedSettings.guides ?? (legacy.showGuides ? 3 : 0)) as GuideLevel),
   gridX: loadedSettings.gridX ?? (loadedSettings.guides ?? 3) >= 2,
   gridZ: loadedSettings.gridZ ?? (loadedSettings.guides ?? 3) >= 2,
   // ...and before the surface was a property of each thing rather than one
   // switch over every mesh in the scene.
-  surface: loadedSettings.surface ?? legacy.modelMaterial ?? 'ink',
+  surface: loadedSettings.surface ?? (staleView ? undefined : legacy.modelMaterial),
   // ...and before the room was a ladder rather than a switch.
-  roomLevel: loadedSettings.roomLevel ?? (legacy.showRoom ? 2 : undefined),
+  roomLevel: loadedSettings.roomLevel ?? (staleView || !legacy.showRoom ? undefined : 2),
   // ...and before the room's floor was two numbers rather than one.
   room: readRoom(loadedSettings.room),
 });
+
+/**
+ * Whether the scene history in the store is the real one.
+ *
+ * Pruning deletes every imported mesh no scene refers to, so it has to be sure
+ * it knows every scene. It cannot be, if the read that filled the history
+ * failed - so it does not prune at all until one has succeeded. Deleting
+ * nothing is a cost measured in bytes; deleting a viewer's meshes is measured
+ * in their work.
+ */
+const historyTrusted = { value: false };
+
+/** Prune, but only ever against a list that is known to be complete. */
+const pruneSafely = async (keep: Iterable<string>) => {
+  if (!historyTrusted.value) return;
+  await pruneAssets(keep);
+};
 
 /** How many steps back you can take. */
 const UNDO_DEPTH = 25;
@@ -423,8 +461,28 @@ const releaseUnreferenced = (
 };
 
 /** The scene as it stands, pushed onto the undo stack. */
-const snapshot = (state: Pick<SceneState, 'boxes' | 'models' | 'undoStack'>) =>
-  [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH);
+const snapshot = (state: Pick<SceneState, 'boxes' | 'models' | 'surface' | 'undoStack'>) =>
+  [...state.undoStack, { boxes: state.boxes, models: state.models, surface: state.surface }].slice(
+    -UNDO_DEPTH
+  );
+
+/** One step's worth of scene, for the stack going the other way. */
+const snapshotOf = (state: SceneState) => ({
+  boxes: state.boxes,
+  models: state.models,
+  surface: state.surface,
+});
+
+/** The selection, if what it names is still standing after the step. */
+const heldOn = (
+  step: { boxes: BoxData[]; models: SceneModel[] },
+  state: SceneState
+) => ({
+  selectedId: step.boxes.some((b) => b.id === state.selectedId) ? state.selectedId : null,
+  selectedModelId: step.models.some((m) => m.id === state.selectedModelId)
+    ? state.selectedModelId
+    : null,
+});
 
 /**
  * A move worth being able to take back.
@@ -433,7 +491,7 @@ const snapshot = (state: Pick<SceneState, 'boxes' | 'models' | 'undoStack'>) =>
  * dead end the moment a new one is made - which is what everything that has
  * ever had an undo does, and the only behaviour that cannot surprise anyone.
  */
-const remember = (state: Pick<SceneState, 'boxes' | 'models' | 'undoStack'>) => ({
+const remember = (state: Pick<SceneState, 'boxes' | 'models' | 'surface' | 'undoStack'>) => ({
   undoStack: snapshot(state),
   redoStack: [] as SceneState['redoStack'],
 });
@@ -471,11 +529,30 @@ export const currentView = (state: SceneState): SceneView => ({
  * walker as well as the settings - otherwise a scene comes back correct and
  * seen from the wrong side of the room.
  */
+/**
+ * A number out of a file, clamped to what the control that sets it allows.
+ *
+ * Every one of these has a setter that already clamps - the eye level to
+ * 0.2..12, the field to 10..MAX_FIELD, the page to 0..255 - and a scene file
+ * walked straight past all three. `JSON.stringify` writes `null` for a NaN, so
+ * one composition saved from a session that had already gone wrong is enough:
+ * the view comes back holding null, something downstream calls `.toFixed` on
+ * it, React unmounts the whole tree, and everything unsaved goes with it. Then
+ * the store holds the null and the next save writes another poisoned file.
+ */
+const take = (value: unknown, low: number, high: number, fallback: number) =>
+  typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(low, Math.min(high, value))
+    : fallback;
+
 const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
   if (!view) return {};
-  walkInput.position.set(view.camera.x, 0, view.camera.z);
-  walkInput.yaw = view.camera.yaw;
-  walkInput.pitch = view.camera.pitch;
+  // A file with no camera at all used to throw here, inside the updater, which
+  // took the import down with it rather than losing one field.
+  const at = view.camera ?? { x: 0, z: 0, yaw: 0, pitch: 0 };
+  walkInput.position.set(take(at.x, -500, 500, 0), 0, take(at.z, -500, 500, 0));
+  walkInput.yaw = take(at.yaw, -100, 100, 0);
+  walkInput.pitch = take(at.pitch, -Math.PI, Math.PI, 0);
   walkInput.lookYaw = 0;
   walkInput.lookPitch = 0;
   walkInput.forward = 0;
@@ -483,10 +560,10 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
   walkInput.seeded = true;
 
   return {
-    cameraHeight: view.cameraHeight,
-    fov: view.fov,
+    cameraHeight: take(view.cameraHeight, 0.2, 12, DEFAULT_CAMERA_HEIGHT),
+    fov: take(view.fov, 10, MAX_FIELD, DEFAULT_FOV),
     perspectiveMode: readMode(view.perspectiveMode),
-    backgroundGray: view.backgroundGray,
+    backgroundGray: take(view.backgroundGray, 0, 255, 243),
     theme: view.theme,
     sun: readSun(view.sun),
     fill: { ...DEFAULT_FILL, ...(view.fill ?? {}) },
@@ -704,17 +781,17 @@ export const useStore = create<SceneState>((set, get) => ({
     set((state) => ({
       perspectiveMode: mode,
       /*
-       * The lens number is a focal length in one system and the width of the
-       * sheet in the other, so carrying one value across would give a
-       * curvilinear view as narrow as a portrait lens, or a flat one turned
-       * inside out.
+       * The field is kept.
        *
-       * A hundred and eighty is the number that matters for a curvilinear
-       * study: it is the whole hemisphere, the four points around the horizon
-       * sit exactly on the edge of the frame, and the fifth is dead centre.
-       * Sixty is the ordinary cone of vision to come back to on the flat side.
+       * It used to be thrown away below a hundred degrees and reset to the
+       * default, on the reasoning that a field means a focal length in one
+       * system and the width of the sheet in another. That was true when one of
+       * the systems was flat, and that system is gone: all three now state the
+       * field as the angle across the frame, so the number means the same thing
+       * in each. Comparing the same view through all three IS what the button
+       * is for, and it was impossible anywhere in the ordinary working range.
        */
-      fov: state.fov < 100 ? DEFAULT_FOV : Math.min(state.fov, MAX_FIELD),
+      fov: Math.min(state.fov, MAX_FIELD),
     })),
 
   setCameraHeight: (height) => set({ cameraHeight: Math.max(0.2, Math.min(12, height)) }),
@@ -761,7 +838,7 @@ export const useStore = create<SceneState>((set, get) => ({
     // The bytes go too, unless a scene or the scene on screen still stands on
     // them - which is the same question `deleteScene` asks.
     const after = get();
-    await pruneAssets(referenced(after));
+    await pruneSafely(referenced(after));
   },
 
   /**
@@ -774,7 +851,11 @@ export const useStore = create<SceneState>((set, get) => ({
    */
   duplicateSelection: () =>
     set((state) => {
-      const undoStack = snapshot(state);
+      // Through `remember`, like every other change to the scene. It took the
+      // raw snapshot, which leaves the redo branch alive: add, add, undo,
+      // duplicate - and one press of redo threw away the copy you had just
+      // made and put back the box you had abandoned.
+      const { undoStack, redoStack } = remember(state);
 
       if (state.selectedModelId) {
         const original = state.models.find((m) => m.id === state.selectedModelId);
@@ -792,7 +873,7 @@ export const useStore = create<SceneState>((set, get) => ({
           object: cloneModel(original.object),
           position: [x, original.position[1], z] as [number, number, number],
         };
-        return { undoStack, models: [...state.models, copy], selectedModelId: copy.id };
+        return { undoStack, redoStack, models: [...state.models, copy], selectedModelId: copy.id };
       }
 
       if (state.selectedId) {
@@ -804,7 +885,7 @@ export const useStore = create<SceneState>((set, get) => ({
           id: uuidv4(),
           position: [original.position[0] + step, original.position[1], original.position[2]],
         };
-        return { undoStack, boxes: [...state.boxes, copy], selectedId: copy.id };
+        return { undoStack, redoStack, boxes: [...state.boxes, copy], selectedId: copy.id };
       }
 
       return {};
@@ -918,6 +999,15 @@ export const useStore = create<SceneState>((set, get) => ({
    * delete and then redoing it has to be able to put the same mesh back on
    * screen, and the geometry it shares is only handed to the GPU once.
    */
+  /*
+   * Keeping hold of what you were holding.
+   *
+   * Both of these used to put the selection down. Undo is what you press in the
+   * middle of adjusting something - a size dragged too far, a lift overshot -
+   * and having to find the thing again afterwards is the tool taking a second
+   * thing away for one mistake. The selection only goes when the object it
+   * names is genuinely no longer there.
+   */
   undo: () =>
     set((state) => {
       const previous = state.undoStack[state.undoStack.length - 1];
@@ -925,10 +1015,10 @@ export const useStore = create<SceneState>((set, get) => ({
       const next = {
         boxes: previous.boxes,
         models: previous.models,
+        surface: previous.surface ?? state.surface,
         undoStack: state.undoStack.slice(0, -1),
-        redoStack: [...state.redoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
-        selectedId: null,
-        selectedModelId: null,
+        redoStack: [...state.redoStack, snapshotOf(state)].slice(-UNDO_DEPTH),
+        ...heldOn(previous, state),
       };
       releaseUnreferenced(next);
       return next;
@@ -941,21 +1031,36 @@ export const useStore = create<SceneState>((set, get) => ({
       const next = {
         boxes: ahead.boxes,
         models: ahead.models,
-        undoStack: [...state.undoStack, { boxes: state.boxes, models: state.models }].slice(-UNDO_DEPTH),
+        surface: ahead.surface ?? state.surface,
+        undoStack: [...state.undoStack, snapshotOf(state)].slice(-UNDO_DEPTH),
         redoStack: state.redoStack.slice(0, -1),
-        selectedId: null,
-        selectedModelId: null,
+        ...heldOn(ahead, state),
       };
       releaseUnreferenced(next);
       return next;
     }),
 
+  /*
+   * Over to the other side of the page, keeping the tone you dialled.
+   *
+   * It used to snap to 0 or 243, so one tap on the control you set the tone
+   * WITH threw the tone away - unrecoverable except by dragging it back by
+   * eye, and not even undoable. It matters more now that number is the paper.
+   *
+   * The tone carried across is its mirror, which keeps how far off the extreme
+   * you were: a sheet dialled ten units down from white comes back ten units
+   * up from black. Then it lands on whichever side of the crossing it is
+   * actually on, so the answer is never a light page under dark chrome.
+   */
   toggleTheme: () =>
     set((state) => {
-      const dark = state.theme === 'light';
-      // Back to the paper the tool opens on, not to pure white: 243 is the tone
-      // every other light-mode default is set against.
-      return { theme: dark ? 'dark' : 'light', backgroundGray: dark ? 0 : 243 };
+      const wanted = state.theme === 'light' ? 'dark' : 'light';
+      const mirrored = 255 - state.backgroundGray;
+      const isLight =
+        state.surface === 'ink' ? luminance(paperFor(mirrored)) >= 0.18 : mirrored >= 128;
+      return isLight === (wanted === 'light')
+        ? { theme: wanted, backgroundGray: mirrored }
+        : { theme: wanted, backgroundGray: wanted === 'dark' ? 0 : 243 };
     }),
 
   /*
@@ -1088,12 +1193,16 @@ export const useStore = create<SceneState>((set, get) => ({
     // An imported file is only worth keeping while something still stands on
     // it: a saved scene, the scene on screen, or a step back through the undo
     // stack that would put it there again.
-    await pruneAssets(referenced(get()));
+    await pruneSafely(referenced(get()));
   },
 
   loadSceneHistory: async () => {
-    const scenes = await readScenes();
+    const { scenes, trusted } = await readScenes();
     if (scenes.length) set({ sceneHistory: scenes });
+    // Whether the shelf can be pruned against turns on whether this read
+    // actually reached storage. An empty list from a failed read looks exactly
+    // like an empty list from a viewer who has saved nothing.
+    historyTrusted.value = trusted;
   },
 
   applyScene: ({ boxes, models, view }) =>
@@ -1119,30 +1228,4 @@ export const useStore = create<SceneState>((set, get) => ({
       return next;
     }),
 
-  /**
-   * Remove extra copies of the same mesh.
-   *
-   * Every placement shares the same source by URL, so two "artisan" figures are
-   * two entries with the same fileUrl. This keeps the first occurrence of each
-   * URL and discards the rest, then releases any GPU resources that were only
-   * held by the removed instances.
-   */
-  deduplicateModels: () =>
-    set((state) => {
-      const seen = new Set<string>();
-      const unique = state.models.filter((m) => {
-        if (seen.has(m.fileUrl)) return false;
-        seen.add(m.fileUrl);
-        return true;
-      });
-      if (unique.length === state.models.length) return {};
-      const next = {
-        ...remember(state),
-        models: unique,
-        selectedModelId:
-          state.selectedModelId && unique.some((m) => m.id === state.selectedModelId) ? state.selectedModelId : null,
-      };
-      releaseUnreferenced(next);
-      return next;
-    }),
 }));
