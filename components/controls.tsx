@@ -40,10 +40,18 @@ interface DraggableNumber {
   cycle?: number[];
   /** True for an angle, where the top of the range meets the bottom. */
   wrap?: boolean;
+  /**
+   * How far the finger travels to cross the whole range, in pixels.
+   *
+   * A control whose range grows and whose sweep does not gets coarser, which is
+   * a bad trade when the extra range is at one end and everything anyone does
+   * lives at the other. Pointer capture means a sweep longer than the screen is
+   * not a sweep you cannot make - it is two.
+   */
+  sweep?: number;
   onChange: (v: number) => void;
 }
 
-/** How far the finger travels to cross the whole range. */
 const SWEEP = 220;
 
 /**
@@ -100,7 +108,7 @@ export const useGrayThemeControl = (onDoubleTap?: () => void) => {
 };
 
 const useScrub = (
-  { value, min, max, step, cycle, wrap, onChange }: DraggableNumber,
+  { value, min, max, step, cycle, wrap, sweep = SWEEP, onChange }: DraggableNumber,
   axis: 'x' | 'both'
 ) => {
   const drag = useRef<{ id: number; x: number; y: number; from: number; moved: boolean } | null>(null);
@@ -127,7 +135,7 @@ const useScrub = (
         axis === 'x' ? e.clientX - held.x : e.clientX - held.x + (held.y - e.clientY);
       if (Math.abs(travel) > 3) held.moved = true;
       if (!held.moved) return;
-      onChange(settle(held.from + (travel / SWEEP) * (max - min)));
+      onChange(settle(held.from + (travel / sweep) * (max - min)));
     },
     onPointerUp: (e: React.PointerEvent) => {
       const held = drag.current;

@@ -37,7 +37,9 @@ export const Panorama: React.FC<{
   /** The construction grid's colour, and 0 strength to leave it off. */
   gridColor: THREE.Color;
   gridStrength: number;
-}> = ({ spread, mode, gridColor, gridStrength }) => {
+  /** The paper the sheet is drawn on, for wherever the sheet is not. */
+  surround: THREE.Color;
+}> = ({ spread, mode, gridColor, gridStrength, surround }) => {
   const { gl, scene, camera, size, viewport } = useThree();
 
   /**
@@ -79,6 +81,7 @@ export const Panorama: React.FC<{
         projectionMode: { value: 0 },
         gridColor: { value: new THREE.Color() },
         gridStrength: { value: 0 },
+        surround: { value: new THREE.Color() },
       },
       vertexShader: `
         varying vec2 vUv;
@@ -95,6 +98,7 @@ export const Panorama: React.FC<{
         uniform int projectionMode;
         uniform vec3 gridColor;
         uniform float gridStrength;
+        uniform vec3 surround;
         varying vec2 vUv;
 
         const float PI = 3.14159265359;
@@ -121,32 +125,50 @@ export const Panorama: React.FC<{
           vec2 clip = vUv * 2.0 - 1.0;
           vec3 direction = vec3(0.0, 0.0, -1.0);
 
+          /*
+           * Off the sheet.
+           *
+           * Every one of these projections covers a bounded piece of the world -
+           * a sphere, or a band between the zenith and the nadir - and past its
+           * edge there is no direction to ask about at all. That edge used to be
+           * off the frame in every field the tool would accept, so what happened
+           * beyond it never showed: the radial modes painted flat black and the
+           * cylindrical one folded the sky back over itself. Now that the field
+           * opens wide enough to bring the whole sheet onto the page, the edge
+           * is the most important line in the picture, and what is outside it is
+           * paper.
+           *
+           * The paper goes down the same path as everything else rather than
+           * returning early, so it gets the same conversion out of the working
+           * space on the way to the screen. Written straight it came out a shade
+           * off the background it was supposed to be continuous with - which is
+           * the one thing a surround must never be.
+           */
+          bool offSheet = false;
+
           if (projectionMode == 2) { // cylindrical
             float yaw = clip.x * halfYaw;
             float pitch = clip.y * halfPitch;
+            // A band has a top and a bottom: past the zenith is not more sky.
+            offSheet = abs(pitch) > HALF_PI || abs(yaw) > PI;
             direction = vec3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch));
           } else {
+            /*
+             * Equidistant, and the five-point sheet, which is the same mapping
+             * opened out to the whole hemisphere and beyond: nothing is clipped
+             * away at 180, so the zenith and the nadir are both on the page
+             * along with the four points around the horizon.
+             *
+             * Half a turn from the middle of the frame is the far pole, and the
+             * whole world is inside it. Five point is cut there too now: it was
+             * the one mode left uncut, and past the pole the mapping folds the
+             * sphere back through itself, which drew the corners of a wide
+             * frame as a mirror of its middle.
+             */
             vec2 radial = vec2(clip.x * halfYaw, clip.y * halfPitch);
             float radius = length(radial);
-            float theta = radius; // 0 or 4 = equidistant / 5-point
-
-            if (projectionMode == 4) {
-              /*
-               * Five point.
-               *
-               * The same equidistant mapping, opened out to the whole
-               * hemisphere and beyond: nothing is clipped away at 180, so the
-               * zenith and the nadir are both on the page along with the four
-               * points around the horizon. This is the sheet a curvilinear
-               * study is ruled on before a line of it is drawn.
-               */
-              theta = radius;
-            }
-
-            if (theta > PI && projectionMode != 4) {
-              gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-              return;
-            }
+            float theta = radius;
+            offSheet = theta > PI;
 
             if (radius > 1e-5) {
               direction = vec3(radial * (sin(theta) / radius), -cos(theta));
@@ -154,12 +176,13 @@ export const Panorama: React.FC<{
           }
 
           vec3 world = orientation * normalize(direction);
-          gl_FragColor = textureCube(panorama, world);
+          vec4 sampled = textureCube(panorama, world);
+          gl_FragColor = offSheet ? vec4(surround, 1.0) : sampled;
           #include <colorspace_fragment>
 
           // The construction sheet, drawn where it belongs - on the sphere,
           // per pixel, rather than sampled into a polyline on top.
-          if (gridStrength > 0.001) {
+          if (!offSheet && gridStrength > 0.001) {
             float worldYaw = atan(world.x, -world.z);
             float worldPitch = asin(clamp(world.y, -1.0, 1.0));
             float worldSide = atan(world.y, world.x); // X-axis looking
@@ -271,6 +294,7 @@ export const Panorama: React.FC<{
     rig.material.uniforms.projectionMode.value = PROJECTION_MODES[mode] ?? 0;
     rig.material.uniforms.gridColor.value.copy(gridColor);
     rig.material.uniforms.gridStrength.value = gridStrength;
+    rig.material.uniforms.surround.value.copy(surround);
 
     const was = drawnAt.current;
     const moved =

@@ -20,6 +20,7 @@ import { releaseSource, cachedSourceUrls, modelRadius, findFreeSpot, loadModelFr
 import { cloneModel } from './lib/modelMaterials';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
+import { MAX_FIELD } from './lib/projection';
 import { walkInput } from './lib/walkInput';
 
 // ---------------------------------------------------------------------------
@@ -458,11 +459,13 @@ export const useStore = create<SceneState>((set, get) => ({
       models: state.models.map((m) => (m.id === id ? { ...m, ...updates } : m)),
     })),
 
-  // The setting goes all the way round. A straight-line camera cannot - Scene
-  // clamps the actual lens just short of 180, where a rectilinear projection
-  // stops meaning anything - but the curvilinear pass can, and that is the mode
-  // you want a 360 degree field in.
-  setLens: (fov) => set({ fov: Math.max(10, Math.min(720, fov)) }),
+  // The setting goes all the way round, and then past it: a full turn is
+  // everything there is to see, and more than a full turn is that whole sphere
+  // shrunk onto the page with paper round it, which is the sheet itself. A
+  // straight-line camera can do neither - Scene clamps the actual lens just
+  // short of 180, where a rectilinear projection stops meaning anything - but
+  // the curvilinear pass can.
+  setLens: (fov) => set({ fov: Math.max(10, Math.min(MAX_FIELD, fov)) }),
 
   setPerspectiveMode: (mode) =>
     set((state) => ({
@@ -478,7 +481,7 @@ export const useStore = create<SceneState>((set, get) => ({
        * sit exactly on the edge of the frame, and the fifth is dead centre.
        * Sixty is the ordinary cone of vision to come back to on the flat side.
        */
-      fov: mode === 'linear' ? Math.min(state.fov, 75) : state.fov < 100 ? DEFAULT_FOV : Math.min(state.fov, 360),
+      fov: mode === 'linear' ? Math.min(state.fov, 75) : state.fov < 100 ? DEFAULT_FOV : Math.min(state.fov, MAX_FIELD),
     })),
 
   setCameraHeight: (height) => set({ cameraHeight: Math.max(0.2, Math.min(12, height)) }),

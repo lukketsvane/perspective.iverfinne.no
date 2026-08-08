@@ -305,6 +305,18 @@ const SceneContent = () => {
     [isDark]
   );
 
+  /*
+   * What is outside the sheet, once the field is wide enough to see round it.
+   *
+   * The same colour the frame is cleared to, so the disc sits on the page
+   * rather than in a hole cut out of it. In sky mode that is black, which is
+   * what the scene's own background is set to there.
+   */
+  const surround = useMemo(
+    () => new THREE.Color(sunEnvironment ? '#000000' : bgColor),
+    [sunEnvironment, bgColor]
+  );
+
   // Sync FOV with the store.
   useEffect(() => {
     if (camera instanceof THREE.PerspectiveCamera) {
@@ -381,7 +393,13 @@ const SceneContent = () => {
       {/* The curvilinear view is a different projection, not a filter over the
           flat one, so it takes the frame over entirely while it is on. */}
       {curvilinear && !inAR && (
-        <Panorama spread={fov} mode={perspectiveMode} gridColor={gridColor} gridStrength={guides >= 3 ? 1 : 0} />
+        <Panorama
+          spread={fov}
+          mode={perspectiveMode}
+          gridColor={gridColor}
+          gridStrength={guides >= 3 ? 1 : 0}
+          surround={surround}
+        />
       )}
 
       <WalkControls />

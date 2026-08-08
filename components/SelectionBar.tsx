@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { Icon, I } from './icons';
-import { chrome, iconButton, readout } from './ui';
+import { chrome, readout, snugIconButton } from './ui';
 import { exportScaledModel } from '../lib/exportModel';
 import { SURFACE_ICON } from './icons';
 import { BOX_SURFACES, MESH_SURFACES, nearestSurface } from '../types';
@@ -24,6 +24,19 @@ const MAX_BOX_DIM = 200;
 
 /** How fast a horizontal drag grows the reading: about 0.6 % per pixel. */
 const SCRUB_RATE = 1.006;
+
+/**
+ * How far a lift drag raises the selection: a centimetre per pixel.
+ *
+ * Linear, unlike everything else on this bar, and it has to be. The others
+ * scrub by proportion, which is right for a size - ten per cent of a chair and
+ * ten per cent of a building are both the same decision - and useless for a
+ * height that starts at zero, where every proportion of nothing is nothing.
+ */
+const LIFT_RATE = 0.01;
+
+/** As high as anything is worth putting. */
+const MAX_LIFT = 50;
 
 const clampTo = (metres: number, min: number, max: number) =>
   Math.min(max, Math.max(min, Math.round(metres / CM) * CM));
@@ -124,8 +137,55 @@ const useScrub = (value: number, onChange: (v: number) => void) => {
 };
 
 /**
- * What you can do to the thing you just tapped: turn it, size it, copy it,
- * delete it - and, for a mesh, take it away at the size you settled on.
+ * A reading you drag by the metre rather than by proportion.
+ *
+ * Same shape as `useScrub`, and separate from it on purpose: the two do
+ * genuinely different arithmetic, and folding them together behind a flag would
+ * hide that a lift and a size are not the same kind of number.
+ */
+const useLift = (value: number, onChange: (v: number) => void) => {
+  const held = useRef<{ id: number; x: number; from: number; changed: boolean } | null>(null);
+  const beginChange = useStore((s) => s.beginChange);
+  // Every other control on this bar is a number you drag, so it says what it is
+  // set to by existing. This one is an icon, so it has to be told to.
+  const [dragging, setDragging] = useState(false);
+
+  return {
+    dragging,
+    handlers: {
+      onPointerDown: (e: React.PointerEvent) => {
+        try {
+          (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        } catch {
+          /* not capturable; the element still sees the moves */
+        }
+        held.current = { id: e.pointerId, x: e.clientX, from: value, changed: false };
+        setDragging(true);
+      },
+      onPointerMove: (e: React.PointerEvent) => {
+        if (held.current?.id !== e.pointerId) return;
+        if (!held.current.changed) {
+          held.current.changed = true;
+          beginChange();
+        }
+        onChange(held.current.from + (e.clientX - held.current.x) * LIFT_RATE);
+      },
+      onPointerUp: (e: React.PointerEvent) => {
+        if (held.current?.id === e.pointerId) held.current = null;
+        setDragging(false);
+      },
+      onPointerCancel: () => {
+        held.current = null;
+        setDragging(false);
+      },
+    },
+  };
+};
+
+/**
+ * What you can do to the thing you just tapped: turn it, size it, lift it off
+ * the floor, change how solidly it is drawn, copy it, delete it - and, for a
+ * mesh, take it away at the size you settled on.
  *
  * For models the reading is the height. For boxes one pill shows one axis at a
  * time; tap the letter to move to the next.
@@ -150,6 +210,8 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   const [activeAxis, setActiveAxis] = useState<0 | 1 | 2>(1);
   const [exporting, setExporting] = useState(false);
 
+  const updateModel = useStore((s) => s.updateModel);
+
   const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
   const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
 
@@ -163,6 +225,28 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
     [model, scaleModel]
   );
 
+  /**
+   * How far off the floor the selection is standing.
+   *
+   * A model's position is its footprint, so that number is the lift outright. A
+   * box's is its centre, so the lift is what is under it.
+   */
+  const lift = model ? model.position[1] : box ? box.position[1] - box.scale[1] / 2 : 0;
+
+  const setLift = useCallback(
+    (metres: number) => {
+      const risen = clampTo(metres, 0, MAX_LIFT);
+      if (model) {
+        updateModel(model.id, { position: [model.position[0], risen, model.position[2]] });
+      } else if (box) {
+        updateBox(box.id, {
+          position: [box.position[0], risen + box.scale[1] / 2, box.position[2]],
+        });
+      }
+    },
+    [box, model, updateBox, updateModel]
+  );
+
   const setBoxDim = useCallback(
     (axis: 0 | 1 | 2, metres: number) => {
       if (!box) return;
@@ -170,8 +254,10 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
       const scale = [...box.scale] as [number, number, number];
       scale[axis] = snapped;
       const position = [...box.position] as [number, number, number];
-      // Growing a box upwards keeps it standing on the ground.
-      if (axis === 1) position[1] = snapped / 2;
+      // Growing a box upwards keeps it standing on whatever it stands on -
+      // which is the floor unless it has been lifted off it, and used to be the
+      // floor either way, so resizing a raised box dropped it.
+      if (axis === 1) position[1] = box.position[1] - box.scale[1] / 2 + snapped / 2;
       updateBox(box.id, { scale, position });
     },
     [box, updateBox]
@@ -180,6 +266,7 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   const activeDim = box ? box.scale[activeAxis] : 0;
   const modelScrub = useScrub(height, setHeight);
   const boxScrub = useScrub(activeDim, (v) => setBoxDim(activeAxis, v));
+  const liftScrub = useLift(lift, setLift);
   const turnLeft = useTurn(rotateSelection, -STEP);
   const turnRight = useTurn(rotateSelection, STEP);
 
@@ -198,7 +285,7 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
     : nearestSurface(box!.surface ?? sceneSurface, BOX_SURFACES);
 
   const isDark = theme === 'dark';
-  const button = `${iconButton(isDark)} border border-transparent`;
+  const button = `${snugIconButton(isDark)} border border-transparent`;
 
   const remove = () => {
     if (model) removeModel(model.id);
@@ -222,12 +309,15 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
 
   return (
     <div
-      className={`fixed inset-x-0 z-40 flex justify-center pointer-events-none transition-all duration-300 ${
+      className={`fixed inset-x-0 z-40 flex justify-center px-2 pointer-events-none transition-all duration-300 ${
         raised ? 'opacity-0 scale-95' : 'opacity-100 scale-100 bottom-safe-panel'
       }`}
     >
+      {/* Narrower gaps than the dock has, and it scrolls rather than spills.
+          This bar grows with what you can do to a thing, and a control pushed
+          off the edge of a phone is not a smaller control, it is a missing one. */}
       <div
-        className={`flex items-center pointer-events-auto p-1.5 gap-1 rounded-full border shadow-2xl ${chrome(isDark)}`}
+        className={`flex items-center pointer-events-auto max-w-full overflow-x-auto scrollbar-none p-1 sm:p-1.5 gap-0.5 sm:gap-1 rounded-full border shadow-2xl ${chrome(isDark)}`}
       >
         <button {...turnLeft} className={`${button} touch-none`} aria-label="Turn left">
           <Icon path={I.turnLeft} className="w-5 h-5" />
@@ -277,6 +367,31 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
           </div>
         )}
 
+        {/* Off the floor. Dragging is the fine control; a double tap puts it
+            back down, which is where nearly everything belongs and is the one
+            value you cannot find reliably by hand. */}
+        <div className="relative flex items-center">
+          <button
+            {...liftScrub.handlers}
+            onDoubleClick={() => {
+              beginChange();
+              setLift(0);
+            }}
+            className={`${button} touch-none cursor-ew-resize ${lift > 0.001 ? '!text-amber-500' : ''}`}
+            aria-label={`Height off the floor: ${metres(lift)} m`}
+          >
+            <Icon path={I.lift} className="w-5 h-5" />
+          </button>
+          {liftScrub.dragging && (
+            <div
+              className={`absolute left-1/2 -translate-x-1/2 -top-12 px-3 py-1 rounded-full text-xs font-bold tabular-nums border shadow-xl pointer-events-none ${
+                isDark ? 'bg-neutral-950/95 text-white border-white/20' : 'bg-white/95 text-black border-black/10'
+              }`}
+            >
+              {metres(lift)}
+            </div>
+          )}
+        </div>
         <button
           onClick={cycleSelectionSurface}
           className={button}
