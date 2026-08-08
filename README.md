@@ -91,7 +91,8 @@ Along the bottom, fading out while you draw and back on the first touch:
 
 - **Cube** — the mesh library: a 1 m reference cube, then the objects and figures
 - **Frames** — the scene library (below)
-- **Cone** — field of view; drag for any value, tap to step through presets
+- **Cone** — field of view; drag for any value, tap to step through presets, the
+  last of which stands back far enough to see the whole sheet
 - **Horizon** — eye level, from 0.2 m to 12 m
 - **Projection** — steps through the four systems (below)
 - **Sun / moon** — tap for light and dark, drag through all 256 greys,
@@ -132,6 +133,22 @@ fifth is dead centre — the five-point sheet itself, not an approximation of it
 With the construction guides on, **all five vanishing points are marked** on the
 sphere. They are fixed to the room, not to the frame, so they slide as you turn
 and stay where the geometry says they are.
+
+### Standing back from the sheet
+
+The field goes past a full turn, and the last stop on it is the one that matters:
+**the whole sphere drawn small enough to see all the way round**, a ruled disc
+sitting on the page with paper about it. That is the sheet itself — everything
+there is to see, at once, with its edge visible — rather than something you are
+inside and cropped by.
+
+The scale follows the longest edge of the frame, so at 360° the sphere spans
+that edge exactly and the shorter one cuts the top and bottom off it. How much
+wider you have to go to bring the disc inside depends entirely on the shape of
+the window — about 500° on a laptop, nearer 800° on a phone held upright — so
+the tool works it out and puts it at the top of the control and last in the
+tap-through. Cylindrical does the same thing and comes out as a rectangle: the
+whole panoramic band, top edge, bottom edge and both ends.
 
 ### The selection's own points
 
@@ -202,10 +219,19 @@ whatever is chosen** — so what you snap to is what you can see to line things
 up against. Eye level sets to the centimetre.
 
 Selecting something replaces the dock with what you can do to it: turn, size,
-change its surface, duplicate, export the mesh at the size you settled on,
-delete. A copy lands beside its original with about six centimetres of air, so
-duplicating along a line builds a row rather than a scattering. Readings are in
-metres — the grid is ruled in metres, so the unit is never written down.
+lift it off the floor, change its surface, duplicate, export the mesh at the
+size you settled on, delete. A copy lands beside its original with about six
+centimetres of air, so duplicating along a line builds a row rather than a
+scattering. Readings are in metres — the grid is ruled in metres, so the unit is
+never written down.
+
+**Lift** drags by the metre rather than by proportion, unlike everything else on
+that bar: scrubbing by percentage is right for a size and useless for a height
+that starts at zero, where every proportion of nothing is nothing. A centimetre
+per pixel, a double tap to put it back on the floor, and the icon stays amber
+while it is up — a thing floating a few centimetres off the ground for no reason
+is hard to see and easy to do. Sizing something that has been lifted keeps it at
+the height it was left at rather than dropping it.
 
 ## The room
 

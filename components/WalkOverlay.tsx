@@ -8,6 +8,7 @@ import { captureFileName, captureView } from '../lib/capture';
 import { ACTIVE, chrome, iconButton } from './ui';
 import { pickObject } from '../lib/pick';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
+import { wholeSheetField } from '../lib/projection';
 import { SNAP_STEPS, type GuideLevel, type PerspectiveMode } from '../types';
 
 /**
@@ -197,6 +198,17 @@ export const WalkOverlay: React.FC<{
   const isDark = theme === 'dark';
   const surface = chrome(isDark);
 
+  /**
+   * The field that brings the whole sheet inside the frame.
+   *
+   * It depends on the shape of the window and on nothing else, so it is
+   * measured rather than chosen - and re-measured when the window changes,
+   * since a phone turned on its side needs a different number.
+   */
+  const [wholeSheet, setWholeSheet] = useState(() =>
+    typeof window === 'undefined' ? 540 : wholeSheetField(window.innerWidth, window.innerHeight)
+  );
+
   // --------------------------------------------------------------- gestures
   const lookRate = useRef(0.002);
   useEffect(() => {
@@ -205,6 +217,7 @@ export const WalkOverlay: React.FC<{
       const height = window.innerHeight;
       const curvilinear = perspectiveMode !== 'linear';
       lookRate.current = lookRadiansPerPixel(curvilinear, fov, width, height);
+      setWholeSheet(wholeSheetField(width, height));
     };
     measure();
     window.addEventListener('resize', measure);
@@ -742,11 +755,16 @@ export const WalkOverlay: React.FC<{
             reading={`${Math.round(fov)}°`}
             value={fov}
             min={25}
-            max={360}
+            max={wholeSheet}
             step={1}
+            // Twice the sweep, because the range is now twice what it was and
+            // everything anyone does is still down at the narrow end.
+            sweep={440}
             // The fields worth landing on exactly: a long lens, the 60 degree
-            // cone, a wide flat frame, the hemisphere, and the full sphere.
-            cycle={[35, 60, 90, 120, 180, 270, 360]}
+            // cone, a wide flat frame, the hemisphere, the full sphere - and
+            // the whole sphere drawn small enough to see all the way round it,
+            // which is a different number in every window.
+            cycle={[35, 60, 90, 120, 180, 270, 360, wholeSheet]}
             onChange={setLens}
           />
           <Scrub

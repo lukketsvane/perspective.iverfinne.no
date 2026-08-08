@@ -48,6 +48,12 @@ export const I = {
   axisHeight: (<><path d="M7.5 5h9v14h-9z" strokeOpacity="0.35" /><path d="M3 4v16" /><path d="M1.2 6.4 3 4l1.8 2.4M1.2 17.6 3 20l1.8-2.4" /></>),
   axisDepth: (<><path d="M8 8h11v11H8z" strokeOpacity="0.35" /><path d="M5.5 16.5 16.5 5.5" /><path d="M5.5 12.6v3.9h3.9M16.5 9.4V5.5h-3.9" /></>),
 
+  /**
+   * How far off the ground a thing is standing: the floor, the thing up above
+   * it, and the gap between them with an arrow in it.
+   */
+  lift: (<><path d="M3 21h18" /><rect x="7.5" y="3" width="9" height="6.5" rx="0.8" /><path d="M12 18.5v-6M9.6 14.9 12 12.5l2.4 2.4" strokeOpacity="0.65" /></>),
+
   /** Horizon line and cone of vision. */
   horizon: (<><line x1="2" y1="12" x2="22" y2="12" /><path d="M4 19l7-5M20 19l-7-5" strokeOpacity="0.45" /></>),
   cone: (<><path d="M12 3L4 20h16z" /><path d="M6.5 14h11" strokeOpacity="0.45" /></>),
