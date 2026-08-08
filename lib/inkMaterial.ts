@@ -91,17 +91,29 @@ export const inkUniforms = {
   radPerSheetPixel: { value: 0.0007 },
 
   /** Weights, in CSS pixels of the finished frame. */
-  contourPx: { value: 1.5 },
+  contourPx: { value: 2 },
   formPx: { value: 0.9 },
-  terminatorPx: { value: 1.1 },
+  terminatorPx: { value: 1.3 },
 
-  /** How many form lines between edge-on and face-on, and how dark. */
-  formCount: { value: 3 },
-  formStrength: { value: 0.34 },
+  /**
+   * How many form lines between edge-on and face-on, and how dark.
+   *
+   * Two, faintly. At three the steps land a few pixels inside the silhouette on
+   * a curved form, so what you get is a second lighter line hugging the contour
+   * and every edge reads as a tube; at five it is frank mush. Measured, the
+   * family was adding a fifth of the ink on the page for that.
+   */
+  formCount: { value: 2 },
+  formStrength: { value: 0.18 },
   /** The same, ruled on the light instead of on the eye. */
   lightCount: { value: 0 },
   lightStrength: { value: 0.3 },
-  terminatorStrength: { value: 0.8 },
+  /**
+   * The terminator earns its place where the form lines do not: it is the one
+   * mark that says which way the light comes from, and it survives the sun
+   * being swung right round.
+   */
+  terminatorStrength: { value: 1 },
 
   /**
    * The smallest gradient the width correction will believe.
@@ -249,7 +261,24 @@ const FRAGMENT = `
 
     float pen = clamp(max(max(contour, form), max(terminator, wrap)), 0.0, 1.0);
 
-    gl_FragColor = vec4(mix(ground, ink, pen), 1.0);
+    /*
+     * Composited the way a pen works, not the way a photograph does.
+     *
+     * Both colours are linear here, and mixing them linearly is what a camera
+     * would record of a half-covered pixel. It is not what ink does to paper,
+     * and it is not what any drawing tool does: a line at forty per cent
+     * coverage came out a 22 per cent grey rather than the 36 per cent the
+     * number reads as, so every stroke landed a third lighter than asked for.
+     *
+     * Physically the linear blend is the correct one. This is a sheet that
+     * exists to be traced, and the punchier line is the one worth having.
+     */
+    vec3 sheet = mix(
+      pow(max(ground, vec3(0.0)), vec3(0.4545)),
+      pow(max(ink, vec3(0.0)), vec3(0.4545)),
+      pen
+    );
+    gl_FragColor = vec4(pow(sheet, vec3(2.2)), 1.0);
     #include <colorspace_fragment>
   }
 `;

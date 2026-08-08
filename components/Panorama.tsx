@@ -94,11 +94,27 @@ const sheetFor = (
     // The picture is read off the cube by angle, so what matters is how many
     // pixels of source there are per degree of view against how many pixels of
     // screen there are to fill.
-    const wanted = (90 / Math.max(spread, 20)) * (cssWidth * density.cube);
-    const capped = Math.min(faceCap, Math.max(512, wanted));
-    // Round up to a power of two: cube faces prefer it, and it stops the target
-    // being rebuilt for every degree the field changes by.
-    return { source: 'cube', faceSize: 2 ** Math.ceil(Math.log2(capped)) };
+    /*
+     * Off the LONGEST edge, because that is the edge the field follows.
+     *
+     * It measured the width. On a portrait phone that is short by the aspect
+     * ratio - more than a factor of two on a 390 by 844 frame - and the floor
+     * below then swallowed the difference, so a phone at a hundred and twenty
+     * degrees was drawing about half a source pixel per screen pixel. The
+     * picture was being MAGNIFIED, which is the exact failure the flat pass was
+     * added to cure, and it started at the field just past where the flat pass
+     * hands over.
+     *
+     * Rounded UP to a power of two, and the floor applied after the rounding
+     * rather than before it. Applying it first made the density non-monotonic
+     * in the field - as `wanted` crossed 512 the rounding landed on the other
+     * side of the floor - so dragging the lens made the picture sharper, then
+     * blurrier, then sharper again.
+     */
+    const wanted =
+      (90 / Math.max(spread, 20)) * Math.max(cssWidth, cssHeight) * density.cube * SHARPEN;
+    const stepped = 2 ** Math.ceil(Math.log2(Math.max(1, wanted)));
+    return { source: 'cube', faceSize: Math.min(faceCap, Math.max(512, stepped)) };
   }
 
   /*
@@ -494,9 +510,21 @@ export const Panorama: React.FC<{
   /** Six faces of world, for a field too wide for one flat frustum. */
   const cube = useMemo(() => {
     if (!wideSheet) return null;
+    /*
+     * Mipmapped, like the export's.
+     *
+     * The reprojection squeezes the source hard towards the rim of a wide field
+     * - equidistant compresses tangentially by sin(theta)/theta, so a 512 face
+     * at a full turn is minified about sevenfold out there - and bilinear only
+     * ever averages two pixels by two. What comes back is sparkle, and on the
+     * ground it reads as a smoky aliased dome rather than a set of lines.
+     *
+     * It costs a third more memory and one mip generation per cube update, and
+     * the cube is only rebuilt when you MOVE, so looking around pays nothing.
+     */
     const target = new THREE.WebGLCubeRenderTarget(wideSheet.faceSize, {
-      generateMipmaps: false,
-      minFilter: THREE.LinearFilter,
+      generateMipmaps: true,
+      minFilter: THREE.LinearMipmapLinearFilter,
       magFilter: THREE.LinearFilter,
     });
     return { target, camera: new THREE.CubeCamera(0.05, 2000, target) };
@@ -511,6 +539,10 @@ export const Panorama: React.FC<{
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
       depthBuffer: true,
+      // The same four samples the export takes. This is the path the default
+      // ninety-degree field uses, so it is where most people spend most of
+      // their time, and it is what takes the staircase off a box's edge.
+      samples: 4,
     });
     const camera = new THREE.PerspectiveCamera(
       (2 * Math.atan(flatSheet.tanY) * 180) / Math.PI,

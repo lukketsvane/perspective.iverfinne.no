@@ -9,7 +9,7 @@ import { Room } from './Room';
 import { SceneModels } from './SceneModels';
 import { WalkControls } from './WalkControls';
 import { updateFocus, focusPoint } from '../lib/focus';
-import { updateVanishing, clearVanishing } from '../lib/vanishing';
+import { updateVanishing, clearVanishing, updateRoomPoints } from '../lib/vanishing';
 import { markSceneBuilt, sceneRevision } from '../lib/sceneRevision';
 import { Panorama } from './Panorama';
 import { forgetView, registerView } from '../lib/pick';
@@ -48,11 +48,17 @@ const VanishingTracker = () => {
   // Its own switch, not a rung of the guides: the room's construction and the
   // selection's construction are wanted at different moments.
   const showVanishing = useStore((state) => state.showVanishing);
+  const guides = useStore((state) => state.guides);
 
   const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
   const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
 
   useFrame(() => {
+    // The room's five, wherever the sheet cannot reach them. Independent of the
+    // selection: they belong to the world, and they are the first rung of the
+    // guides rather than anything to do with what you are holding.
+    updateRoomPoints(camera, guides >= 1);
+
     // A scene has no points of its own worth drawing: its box is the room's box
     // and its three axes are the world's, which the construction sheet already
     // marks. Ruling them again round the whole room is fifteen figures' worth
