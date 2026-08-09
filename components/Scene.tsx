@@ -39,7 +39,7 @@ const FocusTracker = () => {
  * the horizon, but never off it.
  */
 const VanishingTracker = () => {
-  const { camera, size } = useThree();
+  const { camera } = useThree();
   const boxes = useStore((state) => state.boxes);
   const models = useStore((state) => state.models);
   const selectedId = useStore((state) => state.selectedId);

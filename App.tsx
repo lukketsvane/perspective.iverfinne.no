@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Scene } from './components/Scene';
 import { WalkOverlay } from './components/WalkOverlay';
 import { VanishingPoints } from './components/VanishingPoints';
@@ -22,8 +22,6 @@ import type { SceneModel } from './types';
 export default function App() {
   const theme = useStore((s) => s.theme);
   const backgroundGray = useStore((s) => s.backgroundGray);
-  const fov = useStore((s) => s.fov);
-  const perspectiveMode = useStore((s) => s.perspectiveMode);
   const surface = useStore((s) => s.surface);
   const addModel = useStore((s) => s.addModel);
   const standObject = useStore((s) => s.standObject);

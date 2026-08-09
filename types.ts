@@ -126,6 +126,18 @@ export const readSurface = (stored: unknown): Surface =>
 export type GuideLevel = 0 | 1 | 2;
 
 /**
+ * Whose things get their construction drawn: nobody's, the selection's, or
+ * everybody's.
+ *
+ * The middle rung is the working default - the cage answers questions about
+ * the thing in your hands. The top rung is the scene blocked in whole, which
+ * is how a page is actually started: every object boxed before any object is
+ * drawn. It is loud, which is why it is a rung you step onto and not a side
+ * effect of selecting things.
+ */
+export type ConstructionLevel = 0 | 1 | 2;
+
+/**
  * How much of the room is drawn.
  *
  * 0 nothing, 1 the ruling alone - lines hanging in the air where the walls
@@ -415,7 +427,7 @@ export interface SceneState {
    * horizon, the floor and the sheet. This is the construction of the things
    * standing in it, and the two are wanted at different times.
    */
-  showConstruction: boolean;
+  construction: ConstructionLevel;
   /**
    * Four walls and a ceiling, standing round the origin.
    *
@@ -492,7 +504,7 @@ export interface SceneState {
   /** One family of the ground's ruling, or the other. */
   toggleGridX: () => void;
   toggleGridZ: () => void;
-  toggleConstruction: () => void;
+  cycleConstruction: () => void;
   cycleRoom: () => void;
   /** Change the floor's two axes, or the ceiling. Clamped to what a room can be. */
   setRoom: (room: Partial<RoomSize>) => void;

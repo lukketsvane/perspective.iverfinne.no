@@ -19,14 +19,8 @@ export const Icon: React.FC<{ path: React.ReactNode; className?: string }> = ({
 
 export const I = {
   close: (<><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>),
-  check: (<polyline points="4 12.5 9.5 18 20 6.5" />),
 
-  /**
-   * A road running to a vanishing point on the horizon, ruled straight; and the
-   * same road with its edges bowed, which is the whole of the difference
-   * between the two projections.
-   */
-  straight: (<><line x1="2" y1="10" x2="22" y2="10" strokeOpacity="0.45" /><path d="M2 21L12 10M22 21L12 10" /><circle cx="12" cy="10" r="1.3" fill="currentColor" stroke="none" /></>),
+  /** A road running to a vanishing point on the horizon, its edges bowed. */
   curved: (<><path d="M2 12c4-1.6 16-1.6 20 0" strokeOpacity="0.45" /><path d="M2 21C5 15 8 12 12 10.7M22 21c-3-6-6-9-10-10.3" /><circle cx="12" cy="10.5" r="1.3" fill="currentColor" stroke="none" /></>),
   cylindrical: (<><path d="M5 4h14v16H5z" /><path d="M5 8c2.2-1.3 4.5-2 7-2s4.8.7 7 2M5 16c2.2-1.3 4.5-2 7-2s4.8.7 7 2" strokeOpacity="0.45" /><line x1="12" y1="4" x2="12" y2="20" /></>),
 
@@ -100,6 +94,8 @@ export const I = {
    * construction drawn around every object rather than around the room.
    */
   cage: (<><path d="M8 7.5l8-3.5 4 2v9l-8 3.5-4-2z" strokeOpacity="0.9" /><path d="M8 7.5l4 2 8-3.5M12 9.5v9" strokeOpacity="0.5" /><path d="M3 20.5l6-2.6 5 2.2-6 2.6z" strokeOpacity="0.45" /></>),
+  /** The same cage on everything at once: the scene blocked in whole. */
+  cages: (<><path d="M10 4.5l6-2.5 4 1.8v6.5l-6 2.5-4-1.8z" strokeOpacity="0.9" /><path d="M10 4.5l4 1.8 6-2.5M14 6.3v6.5" strokeOpacity="0.5" /><path d="M3 13.5l5-2.2 3.5 1.6v5.6l-5 2.2-3.5-1.6z" strokeOpacity="0.9" /><path d="M3 13.5l3.5 1.6 5-2.2M6.5 15.1v5.6" strokeOpacity="0.5" /></>),
 
   /**
    * How solidly a thing is drawn, as that thing: the same cube filled, then
