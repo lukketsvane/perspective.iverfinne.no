@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
 import { disableDeviceOrientation, enableDeviceOrientation, walkInput } from '../lib/walkInput';
+import { beginMeasure, clearMeasures, endMeasure, updateMeasure } from '../lib/measure';
 import { holdRail, releaseRail, showRail, useRail } from '../lib/rail';
 import { SelectionBar } from './SelectionBar';
 import { LightPanel } from './LightPanel';
@@ -9,7 +10,7 @@ import { Scrub, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
 import { whileWorking } from '../lib/activity';
 import { ACTIVE, chrome, iconButton } from './ui';
-import { pickObject } from '../lib/pick';
+import { directionAt, pickObject } from '../lib/pick';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
 import { MAX_FIELD, wholeSheetField } from '../lib/projection';
 import { SNAP_STEPS, type GuideLevel, type PerspectiveMode } from '../types';
@@ -175,6 +176,18 @@ export const WalkOverlay: React.FC<{
    * if no reading arrives within a moment it switches itself back off.
    */
   const [arLook, setArLook] = useState(false);
+  /*
+   * Whether drags are measuring instead of looking.
+   *
+   * The pencil at arm's length: while this is up, a drag on the scene lays a
+   * measure - two directions from the eye and the angle between them - and
+   * nothing else a drag normally does happens. It is a mode, which this tool
+   * avoids, and it earns the exception the way a real pencil does: you pick
+   * the instrument up, take your readings, and put it down. Putting it down
+   * clears the sheet.
+   */
+  const [measuring, setMeasuring] = useState(false);
+  const measurePointer = useRef<number | null>(null);
   const railVisible = useRail();
   const sceneSurface = useStore((s) => s.surface);
   const cycleSurface = useStore((s) => s.cycleSurface);
@@ -285,6 +298,27 @@ export const WalkOverlay: React.FC<{
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
+    // The pencil first: while measuring, the first finger lays a measure and
+    // the drag belongs to it entirely - no look, no walk, no select. The
+    // chrome still wakes, though - the way OUT of the mode is a button, and a
+    // mode that lets the only exit fade away is a trap.
+    if (measuring) {
+      showRail();
+      if (measurePointer.current === null) {
+        const dir = directionAt(e.clientX, e.clientY);
+        if (dir) {
+          // Captured, or a mouse released over the chrome never reports the
+          // release here and the instrument wedges with a live measure that
+          // chases the bare cursor.
+          try {
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          } catch { /* the element still sees the moves */ }
+          measurePointer.current = e.pointerId;
+          beginMeasure(dir);
+        }
+      }
+      return;
+    }
     // Whether this touch is the one that brought the chrome back. A tap on
     // nothing is normally a decision to put the selection down - but not when
     // the only reason for the tap was that the bar holding that selection had
@@ -385,6 +419,21 @@ export const WalkOverlay: React.FC<{
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    if (measuring) {
+      if (measurePointer.current === e.pointerId) {
+        // A mouse that comes back over the glass unpressed lost its release
+        // somewhere else: the measure ends where it was, not under a cursor
+        // that is no longer drawing it.
+        if (e.pointerType === 'mouse' && e.buttons === 0) {
+          measurePointer.current = null;
+          endMeasure();
+          return;
+        }
+        const dir = directionAt(e.clientX, e.clientY);
+        if (dir) updateMeasure(dir);
+      }
+      return;
+    }
     const tap = tapStarts.current.get(e.pointerId);
     if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 9) tap.cancelled = true;
     if (pointers.current.has(e.pointerId)) {
@@ -467,6 +516,13 @@ export const WalkOverlay: React.FC<{
   };
 
   const endPointer = (e: React.PointerEvent) => {
+    if (measuring) {
+      if (measurePointer.current === e.pointerId) {
+        measurePointer.current = null;
+        endMeasure();
+      }
+      return;
+    }
     const tap = tapStarts.current.get(e.pointerId);
     const wasSinglePointer = pointers.current.size === 1;
     pointers.current.delete(e.pointerId);
@@ -497,6 +553,13 @@ export const WalkOverlay: React.FC<{
   };
 
   const cancelPointer = (e: React.PointerEvent) => {
+    if (measuring) {
+      if (measurePointer.current === e.pointerId) {
+        measurePointer.current = null;
+        endMeasure();
+      }
+      return;
+    }
     const tap = tapStarts.current.get(e.pointerId);
     if (tap) tap.cancelled = true;
     endPointer(e);
@@ -580,8 +643,13 @@ export const WalkOverlay: React.FC<{
 
       if (e.key === 'Escape') {
         // A sheet closes itself on escape; backing out of one is not also a
-        // reason to drop what was selected before it was opened.
-        if (showLights) setShowLights(false);
+        // reason to drop what was selected before it was opened. The pencil
+        // goes down first: a mode whose exit is hard to reach is a trap.
+        if (measuring) {
+          clearMeasures();
+          measurePointer.current = null;
+          setMeasuring(false);
+        } else if (showLights) setShowLights(false);
         else if (showTools) setShowTools(false);
         else if (!covered) useStore.getState().selectBox(null);
         return;
@@ -671,7 +739,7 @@ export const WalkOverlay: React.FC<{
       walkInput.forward = 0;
       walkInput.strafe = 0;
     };
-  }, [showTools, showLights, undo, redo, covered]);
+  }, [showTools, showLights, measuring, undo, redo, covered]);
 
   // Opening the second row is a statement that the chrome is wanted. It used to
   // fade out from under an open panel six seconds later, leaving twelve
@@ -707,7 +775,7 @@ export const WalkOverlay: React.FC<{
     <>
       <div
         className="fixed inset-0 z-30 touch-none"
-        style={{ cursor }}
+        style={{ cursor: measuring ? 'crosshair' : cursor }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endPointer}
@@ -849,6 +917,23 @@ export const WalkOverlay: React.FC<{
             className={`${button} ${arLook ? ACTIVE : ''}`}
           >
             <Icon path={I.arLook} className="w-5 h-5" />
+          </button>
+          {/* The pencil at arm's length: while it is up, a drag on the scene
+              lays a measure in degrees of visual angle instead of turning the
+              view. Putting the instrument down clears the sheet - a
+              measurement is a reading, not a mark of the composition. */}
+          <button
+            onClick={() => {
+              if (measuring) clearMeasures();
+              measurePointer.current = null;
+              setMeasuring((on) => !on);
+              setShowTools(false);
+            }}
+            aria-label="Measure visual angles"
+            aria-pressed={measuring}
+            className={`${button} ${measuring ? ACTIVE : ''}`}
+          >
+            <Icon path={I.measure} className="w-5 h-5" />
           </button>
           <button onClick={toggleViewLock} aria-label="Lock view" aria-pressed={viewLocked} className={`${button} ${viewLocked ? '!text-amber-400' : ''}`}>
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">

@@ -303,6 +303,9 @@ const LampBar: React.FC<{ lamp: LampData; raised: boolean }> = ({ lamp, raised }
         >
           <Icon path={I.power} className="w-5 h-5" />
         </button>
+        <button onClick={useStore.getState().stampRow} className={button} aria-label="Stamp a row of these">
+          <Icon path={I.row} className="w-5 h-5" />
+        </button>
         <button onClick={() => removeLamp(lamp.id)} className={`${button} !text-red-500`} aria-label="Delete">
           <Icon path={I.trash} className="w-5 h-5" />
         </button>
@@ -318,6 +321,7 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   const selectedId = useStore((s) => s.selectedId);
   const selectedModelId = useStore((s) => s.selectedModelId);
   const duplicateSelection = useStore((s) => s.duplicateSelection);
+  const stampRow = useStore((s) => s.stampRow);
   const beginChange = useStore((s) => s.beginChange);
   const scaleModel = useStore((s) => s.scaleModel);
   const updateBox = useStore((s) => s.updateBox);
@@ -553,6 +557,12 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
         </button>
         <button onClick={duplicateSelection} className={button} aria-label="Duplicate">
           <Icon path={I.duplicate} className="w-5 h-5" />
+        </button>
+        {/* The diminution lesson in one press: four more, marching along the
+            selection's own facing towards their shared point. Turn the thing
+            to aim the row. */}
+        <button onClick={stampRow} className={button} aria-label="Stamp a row of these">
+          <Icon path={I.row} className="w-5 h-5" />
         </button>
         {model?.object && (
           <button

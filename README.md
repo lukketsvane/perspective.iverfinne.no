@@ -50,6 +50,15 @@ The bytes are filed under a hash of themselves, so importing the same file twice
 is one entry. The small mark on a tile takes it off the shelf, twice to confirm,
 and the file goes with it unless a saved scene still stands on it.
 
+The library also mints a **cylinder** — the ellipse lesson. A circle in
+perspective is an ellipse whose openness follows how far it stands from the
+eye line: the drum's bottom rim sits further below your eye than its top, so
+the bottom ellipse is always the opener of the two, and raising or kneeling
+sweeps both live. Lathed with a small chamfer rather than cut sharp, because
+the ink draws lines where a surface turns edge-on - a razor rim never does,
+and the ellipse, the entire point of the object, went missing until the rim
+was rounded the way every real drum's is.
+
 ## Opening
 
 The car is standing on the grid when the tool opens, framed for its size, drawn
@@ -484,6 +493,38 @@ has fallen below a pixel. Past there it is not a ruler, it is a band of
 interference, and it was the densest thing on screen after the sheet. It fades
 out between four and twelve metres; you measure with it at your feet, and from
 across the room the metre and the five do the work.
+
+### The measure
+
+The pencil at arm's length, as an instrument. Every artist measures the world
+the same way — pencil up, one eye shut, thumb slid down the shaft — and what
+that gesture actually reads is **visual angle**, the one measure sight has.
+"The car is three of its own heights long" is a statement about angles, and
+taking it by eye is the skill under every other perspective skill.
+
+Pick the divider up in the tools row and a drag on the scene lays a measure:
+two directions from the eye, the angle in degrees written at the line.
+Measures pin to the world, so you can lay several and turn to compare them;
+they go into an exported picture; putting the instrument down clears the sheet
+— a measurement is a reading of the view, never part of the composition.
+
+Each measure is drawn twice, and the gap between the drawings is a lesson no
+telling teaches: the **geodesic**, solid — the image of the straight line in
+the world between the two marks, which bows on a curved sheet because that is
+what straight things genuinely look like across a wide field — and the
+**chord**, faint — the ruler-straight line your flat-page schooling insists
+on. Near the middle of a narrow view they lie on top of each other, which is
+why the belief survives; open the field and watch them part company.
+
+### The row
+
+One press on the selection bar stamps four more of the held thing, marching
+along its own facing — the diminution lesson as a gesture. Equal steps on the
+ground are shrinking steps on the page, and the rate they shrink at *is* the
+perspective; the construction's crossed diagonals are how that spacing is
+derived by hand, and the row lays out the answer to check a derivation
+against. Turn the thing to aim the row: the avenue, the fence, the queue, the
+street of lamps.
 
 ### Snap
 

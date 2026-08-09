@@ -64,6 +64,9 @@ export const I = {
   fieldSphere: (<><circle cx="12" cy="12" r="8.6" /><line x1="2" y1="12" x2="22" y2="12" strokeOpacity="0.4" /><path d="M12 3.4a13 13 0 0 0 0 17.2M12 3.4a13 13 0 0 1 0 17.2" strokeOpacity="0.5" /></>),
   fieldEndless: (<><path d="M12 12c-2-2.8-3.4-4.2-5.2-4.2a4.2 4.2 0 0 0 0 8.4C8.6 16.2 10 14.8 12 12zM12 12c2-2.8 3.4-4.2 5.2-4.2a4.2 4.2 0 0 1 0 8.4C15.4 16.2 14 14.8 12 12z" /></>),
 
+  /** A row of the same thing, marching away: the diminution lesson. */
+  row: (<><rect x="3" y="7" width="4.6" height="12" rx="0.6" /><rect x="10.5" y="8.8" width="3.4" height="8.6" rx="0.5" strokeOpacity="0.75" /><rect x="16.2" y="10" width="2.5" height="6" rx="0.4" strokeOpacity="0.55" /><rect x="20.3" y="10.9" width="1.8" height="4.2" rx="0.3" strokeOpacity="0.4" /></>),
+
   /**
    * The lamps: a bulb hanging from its plumb, a spot with its cone, and the
    * switch. The bulb doubles as the "add a light" tile.
@@ -71,6 +74,9 @@ export const I = {
   lampBulb: (<><path d="M12 2.5v3" strokeOpacity="0.5" /><circle cx="12" cy="10.5" r="4.6" /><path d="M10.2 17.4h3.6M10.7 19.8h2.6" /><path d="M5.6 5.6l1.6 1.6M18.4 5.6l-1.6 1.6M4 10.5h2.2M17.8 10.5H20" strokeOpacity="0.5" /></>),
   lampSpot: (<><path d="M12 2.5v2.6" strokeOpacity="0.5" /><path d="M8.6 6.4h6.8l1.4 4.4H7.2z" /><path d="M8.2 12.6L5 20.5M15.8 12.6L19 20.5M12 12.6V21" strokeOpacity="0.5" /></>),
   power: (<><path d="M12 3.5v7" /><path d="M7.2 6.8a7 7 0 1 0 9.6 0" /></>),
+
+  /** The drafting divider, legs open over the arc it spans. */
+  measure: (<><path d="M12 3.5L5.5 20M12 3.5L18.5 20" /><circle cx="12" cy="4.6" r="1.5" /><path d="M6.8 16.6a11.5 11.5 0 0 1 10.4 0" strokeOpacity="0.55" /></>),
 
   /** A phone held up, and the turn that steers the view. */
   arLook: (<><rect x="8.5" y="4.5" width="7" height="13" rx="1.4" /><path d="M12 21.8a9.5 9.5 0 0 0 7.8-4M12 21.8l2.6-.4M12 21.8l-.9-2.4" strokeOpacity="0.7" /><circle cx="12" cy="15.3" r="0.8" fill="currentColor" stroke="none" /></>),

@@ -558,6 +558,8 @@ export interface SceneState {
   toggleGridX: () => void;
   toggleGridZ: () => void;
   cycleConstruction: () => void;
+  /** Four more of the selection, marching along its own facing. */
+  stampRow: () => void;
   cycleFieldRange: () => void;
   cycleRoom: () => void;
   /** Change the floor's two axes, or the ceiling. Clamped to what a room can be. */

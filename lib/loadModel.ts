@@ -283,7 +283,55 @@ export const loadModelFile = async (file: File, dropAt: [number, number]): Promi
 };
 
 /** Read a source back, whether it is a bundled mesh or an earlier import. */
+/**
+ * The primitives the library can mint without a file.
+ *
+ * A cylinder is the ellipse lesson: a circle in perspective is an ellipse
+ * whose degree follows how far it sits from the eye line, and no box can say
+ * that. Generated here rather than shipped as a file - a metre-round drum has
+ * nothing in it worth three hundred kilobytes of GLB - and addressed by a
+ * primitive: URL so a saved scene re-mints it exactly like it re-fetches a
+ * mesh.
+ */
+export const primitiveSource = (url: string): ParsedSource | null => {
+  if (url !== 'primitive:cylinder') return null;
+  /*
+   * Lathed, not CylinderGeometry, and the difference is the drawing. A sharp
+   * rim is a crease, and a crease never turns edge-on to the eye - the facing
+   * ratio jumps across it without passing zero, so the ink shader has nothing
+   * to draw and the top ellipse, the entire lesson, went missing. A small
+   * chamfer is how every real drum answers: the rim is a fast-curving surface,
+   * somewhere on it the normal is always square to the ray, and the ellipse
+   * inks all the way round - exactly why the car's edges draw.
+   */
+  const bevel = 0.045;
+  // Bottom to top, and the ORDER is load-bearing: LatheGeometry winds its
+  // triangles and points its normals off the profile's direction of travel,
+  // and the first cut of this ran top-down - a drum whose every face looked
+  // inward, exterior culled, taps landing on the inside of the far wall.
+  const points: THREE.Vector2[] = [new THREE.Vector2(0.001, 0)];
+  const arc = (cx: number, cy: number, from: number, to: number) => {
+    for (let i = 0; i <= 6; i++) {
+      const a = from + ((to - from) * i) / 6;
+      points.push(new THREE.Vector2(cx + Math.cos(a) * bevel, cy + Math.sin(a) * bevel));
+    }
+  };
+  arc(0.5 - bevel, bevel, -Math.PI / 2, 0);
+  points.push(new THREE.Vector2(0.5, bevel), new THREE.Vector2(0.5, 1 - bevel));
+  arc(0.5 - bevel, 1 - bevel, 0, Math.PI / 2);
+  points.push(new THREE.Vector2(0.001, 1));
+  const drum = new THREE.Mesh(
+    new THREE.LatheGeometry(points, 56),
+    new THREE.MeshStandardMaterial({ color: 0xf2f2f0, roughness: 0.92, metalness: 0 })
+  );
+  const group = new THREE.Group();
+  group.add(drum);
+  return { object: group, isUsdz: false };
+};
+
 const fetchSource = async (url: string): Promise<ParsedSource> => {
+  const primitive = primitiveSource(url);
+  if (primitive) return primitive;
   if (isAssetRef(url)) {
     const asset = await getAsset(url);
     if (!asset) throw new Error('the imported file is no longer in this browser');
