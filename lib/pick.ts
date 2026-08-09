@@ -236,6 +236,29 @@ export const projectView = (x: number, y: number, z: number): { x: number; y: nu
   return project(heading);
 };
 
+const sight = new THREE.Vector3();
+
+/**
+ * The direction out through a point on the glass, in world space.
+ *
+ * The measure's whole arithmetic: a mark on the sheet IS a direction from the
+ * eye, and the span between two marks is the angle between their directions -
+ * which is what an artist is estimating every time a pencil goes up at arm's
+ * length. Null off the sheet, exactly where `aim` refuses to pick.
+ */
+export const directionAt = (clientX: number, clientY: number): [number, number, number] | null => {
+  if (!aim(clientX, clientY)) return null;
+  const d = raycaster.ray.direction;
+  return [d.x, d.y, d.z];
+};
+
+/** Where a world DIRECTION from the eye lands on the glass, in client pixels. */
+export const projectDirection = (dir: [number, number, number]): { x: number; y: number } | null => {
+  if (!view) return null;
+  sight.set(dir[0], dir[1], dir[2]).add(view.camera.position);
+  return project(sight);
+};
+
 const across = new THREE.Vector3();
 
 /**

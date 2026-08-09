@@ -40,6 +40,14 @@ export interface LibraryMesh {
 }
 
 export const MESH_LIBRARY: LibraryMesh[] = [
+  /*
+   * The ellipse lesson. A circle in perspective is an ellipse, its openness
+   * set by how far it stands from the eye line - the fact every wheel, cup
+   * and arch is drawn with, and the one thing a scene of boxes cannot show.
+   * A metre round and a metre tall, so both of its circles read against the
+   * grid.
+   */
+  { id: 'cylinder', name: 'Cylinder', url: 'primitive:cylinder' },
   { id: 'ekstrem', name: 'Ekstrem', url: '/meshes/ekstrem.glb' },
   { id: 'balans-variabel', name: 'Balans Variabel', url: '/meshes/balans-variabel.glb' },
   { id: 'il-tempo-gigante', name: 'Il Tempo Gigante', url: '/meshes/il-tempo-gigante.glb' },

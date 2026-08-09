@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Scene } from './components/Scene';
 import { WalkOverlay } from './components/WalkOverlay';
 import { VanishingPoints } from './components/VanishingPoints';
+import { Measures } from './components/Measures';
 import { MeshSheet } from './components/MeshSheet';
 import { SceneSheet } from './components/SceneSheet';
 import { useStore, saveSettings, currentView, standingRoom } from './store';
@@ -301,6 +302,7 @@ export default function App() {
       <Scene />
       <Activity />
       <VanishingPoints color={constructionInk(surface === 'ink' || surface === 'brush', isDark)} />
+      <Measures />
       <WalkOverlay
         onModels={() => setSheet('meshes')}
         onScenes={() => setSheet('scenes')}

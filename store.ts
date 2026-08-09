@@ -1002,6 +1002,83 @@ export const useStore = create<SceneState>((set, get) => ({
     }),
 
   /**
+   * Stamp the selection into a row, marching along its own facing.
+   *
+   * The diminution lesson in one press: four more of the same thing at the
+   * same spacing, running towards their shared vanishing point - a colonnade
+   * where there was a column. Equal spacing in DEPTH is the exercise every
+   * perspective course sets first, because equal steps on the ground are
+   * shrinking steps on the page, and the rate they shrink at IS the
+   * perspective. The construction's crossed diagonals are how you derive it
+   * by hand; this lays out the answer to check the derivation against.
+   *
+   * Along the selection's own depth axis, so turning the object aims the
+   * row, and one gesture composes the avenue, the fence, the queue, the
+   * street of lamps.
+   */
+  stampRow: () =>
+    set((state) => {
+      const copies = 4;
+
+      if (state.selectedModelId) {
+        const original = state.models.find((m) => m.id === state.selectedModelId);
+        if (!original?.object) return {};
+        const gap = Math.max(0.6, original.size[2] * original.scale * 1.35);
+        const dx = Math.sin(original.rotationY) * gap;
+        const dz = Math.cos(original.rotationY) * gap;
+        const row = Array.from({ length: copies }, (_, i) => ({
+          ...original,
+          id: newId(),
+          object: cloneModel(original.object!),
+          position: [
+            original.position[0] + dx * (i + 1),
+            original.position[1],
+            original.position[2] + dz * (i + 1),
+          ] as [number, number, number],
+        }));
+        return { ...remember(state), models: [...state.models, ...row] };
+      }
+
+      if (state.selectedId) {
+        const original = state.boxes.find((b) => b.id === state.selectedId);
+        if (!original) return {};
+        const gap = Math.max(0.6, original.scale[2] * 1.35);
+        const dx = Math.sin(original.rotation[1]) * gap;
+        const dz = Math.cos(original.rotation[1]) * gap;
+        const row = Array.from({ length: copies }, (_, i) => ({
+          ...original,
+          id: newId(),
+          position: [
+            original.position[0] + dx * (i + 1),
+            original.position[1],
+            original.position[2] + dz * (i + 1),
+          ] as [number, number, number],
+        }));
+        return { ...remember(state), boxes: [...state.boxes, ...row] };
+      }
+
+      if (state.selectedLampId) {
+        const original = state.lamps.find((l) => l.id === state.selectedLampId);
+        if (!original) return {};
+        // A street of lamps: along the aim, three metres apart.
+        const dx = Math.sin(original.aim) * 3;
+        const dz = -Math.cos(original.aim) * 3;
+        const row = Array.from({ length: copies }, (_, i) => ({
+          ...original,
+          id: newId(),
+          position: [
+            original.position[0] + dx * (i + 1),
+            original.position[1],
+            original.position[2] + dz * (i + 1),
+          ] as [number, number, number],
+        }));
+        return { ...remember(state), lamps: [...state.lamps, ...row] };
+      }
+
+      return {};
+    }),
+
+  /**
    * The whole scene to the next rung.
    *
    * This both moves the default - so what is placed next matches what is

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { primitiveSource } from './loadModel';
 import { getAsset, getPreview, isAssetRef, putPreview } from './assets';
 
 /**
@@ -125,6 +126,9 @@ export const generateMeshPreview = (url: string): Promise<string> => {
  * sits in the library as a glyph.
  */
 const loadForPreview = async (url: string): Promise<THREE.Object3D> => {
+  // A minted primitive has no file to fetch - it is its own source.
+  const primitive = primitiveSource(url);
+  if (primitive?.object) return primitive.object;
   if (!isAssetRef(url)) return (await new GLTFLoader().loadAsync(url)).scene;
   const asset = await getAsset(url);
   if (!asset) throw new Error('the imported file is no longer in this browser');
