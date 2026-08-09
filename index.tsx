@@ -37,6 +37,18 @@ if (import.meta.env.DEV) {
   debug.__pick = { project, projectView, pickObject, pickGround };
 }
 
+// The page saved to a phone's home screen should open like an app: instantly,
+// and without asking the network first. The rules live in public/sw.js. Not in
+// dev - a worker caching hashed assets over a server that rewrites them on
+// every save would be a bug factory.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // A browser that refuses (private mode does) gets the plain page.
+    });
+  });
+}
+
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>

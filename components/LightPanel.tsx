@@ -1,7 +1,6 @@
 import React from 'react';
 import { useStore } from '../store';
 import { Icon, I } from './icons';
-import { Sheet } from './Sheet';
 import { Scrub } from './controls';
 import { ACTIVE, iconButton } from './ui';
 import { SHADOW_KINDS, type SunState } from '../types';
@@ -27,7 +26,9 @@ const Lamp: React.FC<{
 }> = ({ light, dark, onChange, shadows = false }) => {
   const skin = { dark, touch: true };
   return (
-    <div className="flex items-center justify-center gap-1">
+    // Wrapping: five knobs at their smallest are a whisker over a 320 px
+    // screen, and a knob pushed off the edge is not a knob.
+    <div className="flex flex-wrap items-center justify-center gap-1">
       <Scrub
         skin={skin}
         icon={I.bearing}
@@ -90,7 +91,17 @@ const Lamp: React.FC<{
   );
 };
 
-export const LightSheet: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+/**
+ * Ten knobs in two rows, and nothing else.
+ *
+ * This used to be a modal sheet, which closed the dock and the tools row to
+ * open - so moving the sun meant losing the field-of-view and eye-height
+ * controls it is most often adjusted against. It is chrome now, not a modal:
+ * the overlay stands it in the tools row's own place above the dock, the dock
+ * stays live under it, and you can keep walking while a thumb is on a knob -
+ * which is the whole point of a light you adjust by eye.
+ */
+export const LightPanel: React.FC = () => {
   const dark = useStore((s) => s.theme) === 'dark';
   const sun = useStore((s) => s.sun);
   const setSun = useStore((s) => s.setSun);
@@ -98,30 +109,24 @@ export const LightSheet: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const setFill = useStore((s) => s.setFill);
 
   return (
-    // Hugging: this is ten knobs in two rows and nothing else, so the panel is
-    // ten knobs wide. It used to be a full-width sheet with the controls
-    // huddled in the middle of it and forty pixels of nothing overhead, held
-    // clear so a reading would not be clipped - which is a lot of the view to
-    // cover up in order to move the sun.
-    <Sheet onClose={onClose} hug>
-      <div className="flex flex-col gap-1 px-2 pb-3">
-        <Lamp light={sun} dark={dark} onChange={setSun} shadows />
+    <div className="flex flex-col gap-1">
+      <Lamp light={sun} dark={dark} onChange={setSun} shadows />
 
-        <div className={`h-px mx-6 ${dark ? 'bg-white/15' : 'bg-black/10'}`} />
+      <div className={`h-px mx-6 ${dark ? 'bg-white/15' : 'bg-black/10'}`} />
 
-        <div className="flex items-center justify-center gap-1">
-          <button
-            onClick={() => setFill({ enabled: !fill.enabled })}
-            aria-label="Second light"
-            className={`${iconButton(dark)} ${fill.enabled ? ACTIVE : 'opacity-40'}`}
-          >
-            <Icon path={I.fill} className="w-5 h-5" />
-          </button>
-          <div className={fill.enabled ? '' : 'opacity-30 pointer-events-none'}>
-            <Lamp light={fill} dark={dark} onChange={setFill} />
-          </div>
+      <div className="flex flex-wrap items-center justify-center gap-1">
+        <button
+          onClick={() => setFill({ enabled: !fill.enabled })}
+          aria-label="Second light"
+          aria-pressed={fill.enabled}
+          className={`${iconButton(dark)} ${fill.enabled ? ACTIVE : 'opacity-40'}`}
+        >
+          <Icon path={I.fill} className="w-5 h-5" />
+        </button>
+        <div className={fill.enabled ? '' : 'opacity-30 pointer-events-none'}>
+          <Lamp light={fill} dark={dark} onChange={setFill} />
         </div>
       </div>
-    </Sheet>
+    </div>
   );
 };
