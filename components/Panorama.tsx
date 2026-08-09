@@ -189,6 +189,14 @@ export const penScale = (
 export const Panorama: React.FC<{
   spread: number;
   mode: PerspectiveMode;
+  /**
+   * Let the cylindrical band repeat past a full turn instead of running out
+   * into paper - the same room again and again along one endless frieze. Only
+   * the cylinder can promise this: yaw is periodic by construction, so the
+   * copies join without a seam. The radial systems keep their edge, which is
+   * the whole sphere on the page.
+   */
+  repeat?: boolean;
   /** The construction's colour. One ink for the whole of it. */
   gridColor: THREE.Color;
   /**
@@ -204,7 +212,7 @@ export const Panorama: React.FC<{
   sheetStrength: number;
   /** The paper the sheet is drawn on, for wherever the sheet is not. */
   surround: THREE.Color;
-}> = ({ spread, mode, gridColor, pointStrength, sheetStrength, surround }) => {
+}> = ({ spread, mode, gridColor, pointStrength, sheetStrength, surround, repeat = false }) => {
   const { gl, scene, camera, size, viewport } = useThree();
 
   /**
@@ -263,6 +271,7 @@ export const Panorama: React.FC<{
         halfPitch: { value: 1 },
         orientation: { value: new THREE.Matrix3() },
         projectionMode: { value: 0 },
+        repeatYaw: { value: 0 },
         gridColor: { value: new THREE.Color() },
         /** The eye level and the points: the first rung of the guides. */
         /**
@@ -302,6 +311,7 @@ export const Panorama: React.FC<{
         uniform float halfPitch;
         uniform mat3 orientation;
         uniform int projectionMode;
+        uniform float repeatYaw;
         uniform vec3 gridColor;
         uniform float encodeOutput;
         uniform float pointStrength;
@@ -358,7 +368,9 @@ export const Panorama: React.FC<{
             float yaw = clip.x * halfYaw;
             float pitch = clip.y * halfPitch;
             // A band has a top and a bottom: past the zenith is not more sky.
-            offSheet = abs(pitch) > HALF_PI || abs(yaw) > PI;
+            // Sideways is different - yaw is periodic, so with the endless
+            // range on, past a full turn is simply the room again.
+            offSheet = abs(pitch) > HALF_PI || (repeatYaw < 0.5 && abs(yaw) > PI);
             direction = vec3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch));
           } else {
             /*
@@ -613,6 +625,7 @@ export const Panorama: React.FC<{
     uniforms.halfPitch.value = halfPitch;
     uniforms.orientation.value.setFromMatrix4(camera.matrixWorld);
     uniforms.projectionMode.value = PROJECTION_MODES[mode] ?? 0;
+    uniforms.repeatYaw.value = repeat ? 1 : 0;
     /*
      * Converted, because it is mixed in AFTER the colourspace include above.
      * A three.Color's components are linear; painted straight into a buffer

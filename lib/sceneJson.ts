@@ -12,7 +12,7 @@
  * ends have them already.
  */
 
-import { BoxData, readSurface, SceneInstance, SceneModel, SceneView } from '../types';
+import { BoxData, LampData, readSurface, SceneInstance, SceneModel, SceneView } from '../types';
 import { loadModelFromUrl } from './loadModel';
 import { gatherMeshes, isBundle, packBundle, readBundle } from './sceneBundle';
 
@@ -21,6 +21,8 @@ export interface SceneFile {
   exportedAt: string;
   name?: string;
   boxes: BoxData[];
+  /** Absent in files written before lamps existed. */
+  lamps?: LampData[];
   instances: SceneInstance[];
   view?: SceneView;
 }
@@ -34,6 +36,7 @@ interface SceneFileV1 {
 export const toSceneFile = (
   boxes: BoxData[],
   models: SceneModel[],
+  lamps: LampData[],
   view?: SceneView,
   name?: string
 ): SceneFile => ({
@@ -41,6 +44,7 @@ export const toSceneFile = (
   exportedAt: new Date().toISOString(),
   name,
   boxes: boxes.map((box) => ({ ...box })),
+  lamps: lamps.map((lamp) => ({ ...lamp })),
   instances: models.map((m) => ({
     name: m.name,
     fileUrl: m.fileUrl,
@@ -88,6 +92,7 @@ const isSceneFile = (data: unknown): data is SceneFile | SceneFileV1 =>
 export interface ImportedScene {
   boxes: BoxData[];
   models: Omit<SceneModel, 'id'>[];
+  lamps: LampData[];
   view?: SceneView;
   /** Anything named in the file that could not be loaded here. */
   skipped: string[];
@@ -157,7 +162,34 @@ export const readSceneFile = async (file: File): Promise<ImportedScene> => {
   return {
     boxes: data.version === 2 ? (data.boxes ?? []) : [],
     models,
+    lamps: data.version === 2 ? readLamps((data as { lamps?: unknown }).lamps) : [],
     view: data.version === 2 ? data.view : undefined,
     skipped,
   };
+};
+
+/** Lamps out of a file: each field the right kind of thing, or the default. */
+const readLamps = (stored: unknown): LampData[] => {
+  if (!Array.isArray(stored)) return [];
+  const take = (value: unknown, low: number, high: number, fallback: number) =>
+    typeof value === 'number' && Number.isFinite(value)
+      ? Math.min(high, Math.max(low, value))
+      : fallback;
+  return stored.map((entry) => {
+    const lamp = (entry ?? {}) as Partial<LampData> & { position?: unknown };
+    const at = Array.isArray(lamp.position) ? lamp.position : [];
+    return {
+      id: 'placeholder',
+      position: [take(at[0], -500, 500, 0), take(at[1], 0.1, 50, 2.2), take(at[2], -500, 500, 0)] as [
+        number,
+        number,
+        number,
+      ],
+      kind: lamp.kind === 'spot' ? ('spot' as const) : ('bulb' as const),
+      aim: take(lamp.aim, -100, 100, 0),
+      intensity: take(lamp.intensity, 0.2, 60, 8),
+      temperature: take(lamp.temperature, 1800, 12000, 3600),
+      enabled: lamp.enabled !== false,
+    };
+  });
 };

@@ -24,7 +24,7 @@ import type { PerspectiveMode } from '../types';
  */
 
 export interface SceneHit {
-  type: 'box' | 'model';
+  type: 'box' | 'model' | 'lamp';
   id: string;
   /**
    * Set when the thing taken hold of was one of a selected box's face handles:
@@ -161,7 +161,7 @@ export const pickObject = (clientX: number, clientY: number): SceneHit | null =>
     if (!node) continue;
 
     return {
-      type: node.userData.selectableType as 'box' | 'model',
+      type: node.userData.selectableType as 'box' | 'model' | 'lamp',
       id: node.userData.selectableId as string,
       handle,
       point: hit.point.clone(),

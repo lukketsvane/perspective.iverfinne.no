@@ -47,6 +47,11 @@ export type PerspectiveMode = 'cylindrical' | 'equidistant' | 'stereographic';
  *   other rung answers "what is this made of", which is a question a perspective
  *   study never asks. This one answers "where would the pen go", and it is the
  *   only rung whose output you can put a sheet of paper beside.
+ * - 'brush': the same drawing with its blacks spotted in. Everything turned
+ *   from the sun is filled solid ink, the pen's own lines run in paper through
+ *   the fill, and the cast shadow goes down as a shape rather than a wash -
+ *   the finished-page look of a brush-and-ink spread, where 'ink' is the
+ *   pen-only underdrawing of it.
  * - 'wire': the twelve edges and nothing else. The construction with the object
  *   taken away.
  *
@@ -63,7 +68,7 @@ export type PerspectiveMode = 'cylindrical' | 'equidistant' | 'stereographic';
  * car standing inside a wire box on a floor of inked ones - which is exactly the
  * arrangement a study wants and what a single scene-wide setting could never say.
  */
-export type Surface = 'original' | 'matte' | 'ink' | 'wire';
+export type Surface = 'original' | 'matte' | 'ink' | 'brush' | 'wire';
 
 /**
  * The whole ladder, in order. What the scene-wide control steps through.
@@ -72,16 +77,16 @@ export type Surface = 'original' | 'matte' | 'ink' | 'wire';
  * texture gone, then the light gone too and only the line left, then the object
  * itself.
  */
-export const SURFACES: Surface[] = ['original', 'matte', 'ink', 'wire'];
+export const SURFACES: Surface[] = ['original', 'matte', 'ink', 'brush', 'wire'];
 
 /** What a box steps through: it has no authored material to strip. */
-export const BOX_SURFACES: Surface[] = ['original', 'ink', 'wire'];
+export const BOX_SURFACES: Surface[] = ['original', 'ink', 'brush', 'wire'];
 
 /**
  * What a mesh steps through: it has no cage to fall back on, so taking its
  * surface away entirely would leave nothing on screen to take hold of again.
  */
-export const MESH_SURFACES: Surface[] = ['original', 'matte', 'ink'];
+export const MESH_SURFACES: Surface[] = ['original', 'matte', 'ink', 'brush'];
 
 /**
  * The nearest rung a given kind of thing can actually draw.
@@ -136,6 +141,20 @@ export type GuideLevel = 0 | 1 | 2;
  * effect of selecting things.
  */
 export type ConstructionLevel = 0 | 1 | 2;
+
+/**
+ * How far round the lens is allowed to open.
+ *
+ * 'human' stops at 210 degrees - about what two eyes actually cover - so the
+ * drag never wanders past what a standing person could see and the whole range
+ * of the control is spent where sight is. 'sphere' is the tool's usual reach:
+ * out to the field where the entire sphere sits on the page with paper round
+ * it. 'endless' unlocks three full turns, and in the cylindrical system the
+ * sheet REPEATS instead of running out - the same room again and again along
+ * one endless band, so a study can be set out on a frieze that never ends.
+ */
+export type FieldRange = 'human' | 'sphere' | 'endless';
+export const FIELD_RANGES: FieldRange[] = ['human', 'sphere', 'endless'];
 
 /**
  * How much of the room is drawn.
@@ -204,7 +223,31 @@ export const SNAP_STEPS = [0, 0.05, 0.25, 1] as const;
 export interface HistoryStep {
   boxes: BoxData[];
   models: SceneModel[];
+  lamps: LampData[];
   surface?: Surface;
+}
+
+/**
+ * A lamp standing in the composition.
+ *
+ * The sun says where the big light comes from; these say where the small ones
+ * hang. They are scene objects like the boxes - placed, selected, slid, saved
+ * with the composition and taken back by undo - not settings, which is what
+ * separates a light EDITOR from a light panel.
+ */
+export interface LampData {
+  id: string;
+  /** Where it hangs. The second number is its height off the floor. */
+  position: [number, number, number];
+  /** A bulb shines every way at once; a spot throws a cone along its aim. */
+  kind: 'bulb' | 'spot';
+  /** Which way a spot faces, in radians about the vertical axis. */
+  aim: number;
+  intensity: number;
+  /** Colour temperature in kelvin, on the same scale as the sun's. */
+  temperature: number;
+  /** A lamp you can switch off without losing where it stands. */
+  enabled: boolean;
 }
 
 /**
@@ -393,6 +436,8 @@ export interface SavedScene {
   name: string;
   createdAt: number;
   updatedAt: number;
+  /** Absent in scenes saved before lamps existed. */
+  lamps?: LampData[];
   boxes: BoxData[];
   models: SceneInstance[];
   view: SceneView;
@@ -428,6 +473,7 @@ export interface SceneState {
    * standing in it, and the two are wanted at different times.
    */
   construction: ConstructionLevel;
+  fieldRange: FieldRange;
   /**
    * Four walls and a ceiling, standing round the origin.
    *
@@ -484,6 +530,13 @@ export interface SceneState {
   sceneHistory: SavedScene[];
   /** Meshes the viewer has imported and kept, listed beside the built-in three. */
   ownMeshes: OwnMesh[];
+  lamps: LampData[];
+  selectedLampId: string | null;
+  /** Hang a lamp near where the viewer is looking. */
+  addLamp: (position: [number, number]) => void;
+  updateLamp: (id: string, updates: Partial<LampData>) => void;
+  removeLamp: (id: string) => void;
+  selectLamp: (id: string | null) => void;
   /** Place the toolbar's canonical one-metre reference cube. */
   addCube: (position: [number, number, number]) => void;
   updateBox: (id: string, updates: Partial<BoxData>) => void;
@@ -505,6 +558,7 @@ export interface SceneState {
   toggleGridX: () => void;
   toggleGridZ: () => void;
   cycleConstruction: () => void;
+  cycleFieldRange: () => void;
   cycleRoom: () => void;
   /** Change the floor's two axes, or the ceiling. Clamped to what a room can be. */
   setRoom: (room: Partial<RoomSize>) => void;
@@ -561,5 +615,5 @@ export interface SceneState {
   /** Read the saved scenes back out of the browser on start-up. */
   loadSceneHistory: () => Promise<void>;
   /** Replace the live scene wholesale - used by the JSON importer. */
-  applyScene: (scene: { boxes: BoxData[]; models: Omit<SceneModel, 'id'>[]; view?: SceneView }) => void;
+  applyScene: (scene: { boxes: BoxData[]; models: Omit<SceneModel, 'id'>[]; lamps?: LampData[]; view?: SceneView }) => void;
 }

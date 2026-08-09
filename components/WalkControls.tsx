@@ -29,6 +29,8 @@ export const WalkControls = () => {
       spin: new THREE.Quaternion(),
       up: new THREE.Vector3(0, 1, 0),
       side: new THREE.Vector3(1, 0, 0),
+      aim: new THREE.Vector3(),
+      wasSensor: false,
     }),
     []
   );
@@ -61,6 +63,18 @@ export const WalkControls = () => {
 
     // Cap the step so a backgrounded tab does not fire the walker across the map.
     const delta = Math.min(rawDelta, 0.1);
+
+    // Stepping off the sensor must not snap the view back to wherever the
+    // last drag left it: the heading the sensor reached becomes the drag's
+    // starting point, and the world holds still under the switch.
+    if (temp.wasSensor && !walkInput.useDeviceOrientation) {
+      camera.getWorldDirection(temp.aim);
+      walkInput.yaw = Math.atan2(-temp.aim.x, -temp.aim.z);
+      walkInput.pitch = Math.asin(THREE.MathUtils.clamp(temp.aim.y, -1, 1));
+      walkInput.lookYaw = 0;
+      walkInput.lookPitch = 0;
+    }
+    temp.wasSensor = walkInput.useDeviceOrientation;
 
     if (walkInput.useDeviceOrientation) {
       // Raw sensor readings jitter by a degree or so at rest, which reads as a

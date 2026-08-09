@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { useStore } from '../store';
 import { MESH_SURFACES, nearestSurface, SceneModel } from '../types';
 import { authoredMaterial } from '../lib/modelMaterials';
-import { constructionInk, INK } from '../lib/inkMaterial';
+import { BRUSH, constructionInk, INK } from '../lib/inkMaterial';
 import { Line } from '@react-three/drei';
 import { BOX_EDGES, usePen } from '../lib/pen';
 
@@ -42,7 +42,7 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
   const dark = theme === 'dark';
 
   const surface = nearestSurface(model.surface ?? sceneSurface, MESH_SURFACES);
-  const inked = surface === 'ink';
+  const inked = surface === 'ink' || surface === 'brush';
   const hardShadows = useStore((state) => state.sun.shadows) === 'hard';
 
   /*
@@ -87,12 +87,13 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
        * not with a wash laid over the form.
        */
       mesh.castShadow = surface !== 'ink' || hardShadows;
-      mesh.receiveShadow = surface !== 'ink';
+      mesh.receiveShadow = surface === 'original' || surface === 'matte';
 
       // Read the authored materials before swapping, so the first swap is what
       // records them rather than what loses them.
       const own = authoredMaterial(mesh);
-      mesh.material = surface === 'matte' ? MATTE : surface === 'ink' ? INK : own;
+      mesh.material =
+        surface === 'matte' ? MATTE : surface === 'ink' ? INK : surface === 'brush' ? BRUSH : own;
     });
   }, [surface, hardShadows, model.object]);
 

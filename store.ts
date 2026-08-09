@@ -3,6 +3,9 @@ import {
   BOX_SURFACES,
   BoxData,
   ConstructionLevel,
+  LampData,
+  FIELD_RANGES,
+  FieldRange,
   FillState,
   GuideLevel,
   MESH_SURFACES,
@@ -27,7 +30,7 @@ import { releaseSource, cachedSourceUrls, modelRadius, findFreeSpot, loadModelFr
 import { cloneModel } from './lib/modelMaterials';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
-import { MAX_FIELD } from './lib/projection';
+import { MAX_FIELD, wholeSheetField } from './lib/projection';
 import { luminance, paperFor } from './lib/inkMaterial';
 import { walkInput } from './lib/walkInput';
 
@@ -179,6 +182,7 @@ const SETTING_KEYS = [
   'gridX',
   'gridZ',
   'construction',
+  'fieldRange',
   'roomLevel',
   'room',
   'showVanishing',
@@ -218,6 +222,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   gridX: boolean,
   gridZ: boolean,
   construction: (v) => v === 0 || v === 1 || v === 2,
+  fieldRange: (v) => FIELD_RANGES.includes(v as FieldRange),
   roomLevel: number,
   room: object,
   showVanishing: boolean,
@@ -487,26 +492,31 @@ const releaseUnreferenced = (
 };
 
 /** The scene as it stands, pushed onto the undo stack. */
-const snapshot = (state: Pick<SceneState, 'boxes' | 'models' | 'surface' | 'undoStack'>) =>
-  [...state.undoStack, { boxes: state.boxes, models: state.models, surface: state.surface }].slice(
-    -UNDO_DEPTH
-  );
+const snapshot = (state: Pick<SceneState, 'boxes' | 'models' | 'lamps' | 'surface' | 'undoStack'>) =>
+  [
+    ...state.undoStack,
+    { boxes: state.boxes, models: state.models, lamps: state.lamps, surface: state.surface },
+  ].slice(-UNDO_DEPTH);
 
 /** One step's worth of scene, for the stack going the other way. */
 const snapshotOf = (state: SceneState) => ({
   boxes: state.boxes,
   models: state.models,
+  lamps: state.lamps,
   surface: state.surface,
 });
 
 /** The selection, if what it names is still standing after the step. */
 const heldOn = (
-  step: { boxes: BoxData[]; models: SceneModel[] },
+  step: { boxes: BoxData[]; models: SceneModel[]; lamps: LampData[] },
   state: SceneState
 ) => ({
   selectedId: step.boxes.some((b) => b.id === state.selectedId) ? state.selectedId : null,
   selectedModelId: step.models.some((m) => m.id === state.selectedModelId)
     ? state.selectedModelId
+    : null,
+  selectedLampId: step.lamps.some((l) => l.id === state.selectedLampId)
+    ? state.selectedLampId
     : null,
 });
 
@@ -517,7 +527,7 @@ const heldOn = (
  * dead end the moment a new one is made - which is what everything that has
  * ever had an undo does, and the only behaviour that cannot surprise anyone.
  */
-const remember = (state: Pick<SceneState, 'boxes' | 'models' | 'surface' | 'undoStack'>) => ({
+const remember = (state: Pick<SceneState, 'boxes' | 'models' | 'lamps' | 'surface' | 'undoStack'>) => ({
   undoStack: snapshot(state),
   redoStack: [] as SceneState['redoStack'],
 });
@@ -571,7 +581,16 @@ const take = (value: unknown, low: number, high: number, fallback: number) =>
     ? Math.max(low, Math.min(high, value))
     : fallback;
 
-const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
+/** The narrowest rung a given field still fits inside. */
+const rangeFor = (range: FieldRange, fov: number): FieldRange => {
+  if (fov <= 210) return range;
+  const sheet =
+    typeof window === 'undefined' ? 540 : wholeSheetField(window.innerWidth, window.innerHeight);
+  if (fov <= sheet) return range === 'human' ? 'sphere' : range;
+  return 'endless';
+};
+
+const restoreView = (view: SceneView | undefined, range: FieldRange): Partial<SceneState> => {
   if (!view) return {};
   // A file with no camera at all used to throw here, inside the updater, which
   // took the import down with it rather than losing one field.
@@ -588,6 +607,9 @@ const restoreView = (view: SceneView | undefined): Partial<SceneState> => {
   return {
     cameraHeight: take(view.cameraHeight, 0.2, 12, DEFAULT_CAMERA_HEIGHT),
     fov: take(view.fov, 10, MAX_FIELD, DEFAULT_FOV),
+    // A saved scene is a viewpoint; a viewpoint wider than the current reach
+    // opens the reach rather than being clipped by it.
+    fieldRange: rangeFor(range, take(view.fov, 10, MAX_FIELD, DEFAULT_FOV)),
     perspectiveMode: readMode(view.perspectiveMode),
     backgroundGray: take(view.backgroundGray, 0, 255, 243),
     theme: view.theme,
@@ -623,12 +645,15 @@ export const useStore = create<SceneState>((set, get) => ({
   gridX: true,
   gridZ: true,
   construction: 0,
+  fieldRange: 'sphere',
   roomLevel: 0,
   room: DEFAULT_ROOM,
   showVanishing: true,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   models: [],
   selectedModelId: null,
+  lamps: [],
+  selectedLampId: null,
   // The tool opens on the drawing, not on a lighting study of it.
   surface: 'ink',
   sunEnvironment: false,
@@ -713,8 +738,10 @@ export const useStore = create<SceneState>((set, get) => ({
         ...remember(state),
         boxes: [],
         models: [],
+        lamps: [],
         selectedId: null,
         selectedModelId: null,
+        selectedLampId: null,
         currentSceneId: null,
       };
       releaseUnreferenced(next);
@@ -733,7 +760,52 @@ export const useStore = create<SceneState>((set, get) => ({
   standObject: (model) =>
     set((state) => ({ models: [...state.models, { id: newId(), surface: state.surface, ...model }] })),
 
-  selectBox: (id) => set({ selectedId: id, selectedModelId: null }),
+  selectBox: (id) => set({ selectedId: id, selectedModelId: null, selectedLampId: null }),
+
+  selectLamp: (id) => set({ selectedLampId: id, selectedId: null, selectedModelId: null }),
+
+  /**
+   * Hang a lamp where the viewer is looking.
+   *
+   * At head height and a touch above: low enough to read against the room,
+   * high enough to light a figure from above, which is what a lamp is for.
+   * A spot from the start would demand an aim before it did anything visible;
+   * a bulb simply glows, so the first tap always shows something working.
+   */
+  addLamp: ([x, z]) =>
+    set((state) => ({
+      ...remember(state),
+      lamps: [
+        ...state.lamps,
+        {
+          id: newId(),
+          position: [x, 2.2, z] as [number, number, number],
+          kind: 'bulb' as const,
+          aim: 0,
+          intensity: 8,
+          temperature: 3600,
+          enabled: true,
+        },
+      ],
+      selectedLampId: null,
+      selectedId: null,
+      selectedModelId: null,
+    })),
+
+  // Like updateBox: the undo step is the caller's business (beginChange, or
+  // the grab's own first-move commit), so a drag is one step however many
+  // frames it wrote.
+  updateLamp: (id, updates) =>
+    set((state) => ({
+      lamps: state.lamps.map((lamp) => (lamp.id === id ? { ...lamp, ...updates } : lamp)),
+    })),
+
+  removeLamp: (id) =>
+    set((state) => ({
+      ...remember(state),
+      lamps: state.lamps.filter((lamp) => lamp.id !== id),
+      selectedLampId: state.selectedLampId === id ? null : state.selectedLampId,
+    })),
 
   addModel: (model) =>
     set((state) => {
@@ -781,7 +853,7 @@ export const useStore = create<SceneState>((set, get) => ({
       return next;
     }),
 
-  selectModel: (id) => set({ selectedModelId: id, selectedId: null }),
+  selectModel: (id) => set({ selectedModelId: id, selectedId: null, selectedLampId: null }),
 
   updateModel: (id, updates) =>
     set((state) => ({
@@ -835,6 +907,17 @@ export const useStore = create<SceneState>((set, get) => ({
 
   cycleConstruction: () =>
     set((state) => ({ construction: ((state.construction + 1) % 3) as ConstructionLevel })),
+
+  /**
+   * Step the lens's reach. Stepping DOWN pulls an open lens back inside the
+   * new range, so the control never reads one thing while the view does
+   * another.
+   */
+  cycleFieldRange: () =>
+    set((state) => {
+      const range = FIELD_RANGES[(FIELD_RANGES.indexOf(state.fieldRange) + 1) % FIELD_RANGES.length];
+      return { fieldRange: range, fov: range === 'human' ? Math.min(state.fov, 210) : state.fov };
+    }),
 
   // -------------------------------------------------------------------------
   // The viewer's own shelf
@@ -1042,6 +1125,7 @@ export const useStore = create<SceneState>((set, get) => ({
       const next = {
         boxes: previous.boxes,
         models: previous.models,
+        lamps: previous.lamps ?? state.lamps,
         surface: previous.surface ?? state.surface,
         undoStack: state.undoStack.slice(0, -1),
         redoStack: [...state.redoStack, snapshotOf(state)].slice(-UNDO_DEPTH),
@@ -1058,6 +1142,7 @@ export const useStore = create<SceneState>((set, get) => ({
       const next = {
         boxes: ahead.boxes,
         models: ahead.models,
+        lamps: ahead.lamps ?? state.lamps,
         surface: ahead.surface ?? state.surface,
         undoStack: [...state.undoStack, snapshotOf(state)].slice(-UNDO_DEPTH),
         redoStack: state.redoStack.slice(0, -1),
@@ -1084,7 +1169,9 @@ export const useStore = create<SceneState>((set, get) => ({
       const wanted = state.theme === 'light' ? 'dark' : 'light';
       const mirrored = 255 - state.backgroundGray;
       const isLight =
-        state.surface === 'ink' ? luminance(paperFor(mirrored)) >= 0.18 : mirrored >= 128;
+        state.surface === 'ink' || state.surface === 'brush'
+          ? luminance(paperFor(mirrored)) >= 0.18
+          : mirrored >= 128;
       return isLight === (wanted === 'light')
         ? { theme: wanted, backgroundGray: mirrored }
         : { theme: wanted, backgroundGray: wanted === 'dark' ? 0 : 243 };
@@ -1105,7 +1192,9 @@ export const useStore = create<SceneState>((set, get) => ({
     set((state) => {
       const gray = Math.max(0, Math.min(255, Math.round(value)));
       const light =
-        state.surface === 'ink' ? luminance(paperFor(gray)) >= 0.18 : gray >= 128;
+        state.surface === 'ink' || state.surface === 'brush'
+          ? luminance(paperFor(gray)) >= 0.18
+          : gray >= 128;
       return { backgroundGray: gray, theme: light ? 'light' : 'dark' };
     }),
 
@@ -1131,6 +1220,7 @@ export const useStore = create<SceneState>((set, get) => ({
       createdAt: saved,
       updatedAt: saved,
       boxes: state.boxes.map((box) => ({ ...box })),
+      lamps: state.lamps.map((lamp) => ({ ...lamp })),
       models: state.models.map((model) => ({
         name: model.name,
         fileUrl: model.fileUrl,
@@ -1199,10 +1289,12 @@ export const useStore = create<SceneState>((set, get) => ({
         ...remember(state),
         boxes: scene.boxes.map((box) => ({ ...box, id: newId() })),
         models: restored,
+        lamps: (scene.lamps ?? []).map((lamp) => ({ ...lamp, id: newId() })),
         selectedId: null,
         selectedModelId: null,
+        selectedLampId: null,
         currentSceneId: scene.id,
-        ...restoreView(scene.view),
+        ...restoreView(scene.view, state.fieldRange),
       };
       releaseUnreferenced(next);
       return next;
@@ -1232,7 +1324,7 @@ export const useStore = create<SceneState>((set, get) => ({
     historyTrusted.value = trusted;
   },
 
-  applyScene: ({ boxes, models, view }) =>
+  applyScene: ({ boxes, models, lamps, view }) =>
     set((state) => {
       const next = {
         ...remember(state),
@@ -1246,10 +1338,12 @@ export const useStore = create<SceneState>((set, get) => ({
           id: newId(),
           surface: model.surface === undefined ? undefined : readSurface(model.surface),
         })),
+        lamps: (lamps ?? []).map((lamp) => ({ ...lamp, id: newId() })),
         selectedId: null,
         selectedModelId: null,
+        selectedLampId: null,
         currentSceneId: null,
-        ...restoreView(view),
+        ...restoreView(view, state.fieldRange),
       };
       releaseUnreferenced(next);
       return next;

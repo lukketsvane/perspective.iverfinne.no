@@ -7,6 +7,7 @@ import { SURFACE_ICON } from './icons';
 import { useRail } from '../lib/rail';
 import { selectionRange } from '../lib/focus';
 import { BOX_SURFACES, MESH_SURFACES, nearestSurface } from '../types';
+import type { LampData } from '../types';
 
 /** Everything sizes to the centimetre. Below that is not a drawing decision. */
 const CM = 0.01;
@@ -177,6 +178,139 @@ const useRange = () => {
  * For models the reading is the height. For boxes one pill shows one axis at a
  * time; tap the letter to move to the next.
  */
+/**
+ * What you can do to a lamp: raise it, brighten it, warm it, aim it, switch
+ * it, and take it away. The same bar in the same place - a lamp is a scene
+ * object, so holding one offers what holding anything offers, in its own
+ * vocabulary.
+ */
+const LampBar: React.FC<{ lamp: LampData; raised: boolean }> = ({ lamp, raised }) => {
+  const theme = useStore((s) => s.theme);
+  const updateLamp = useStore((s) => s.updateLamp);
+  const removeLamp = useStore((s) => s.removeLamp);
+  const beginChange = useStore((s) => s.beginChange);
+  const railVisible = useRail();
+  const isDark = theme === 'dark';
+  const button = `${snugIconButton(isDark)} border border-transparent`;
+
+  const liftScrub = useLift(lamp.position[1], (metres) =>
+    updateLamp(lamp.id, {
+      position: [lamp.position[0], Math.min(MAX_LIFT, Math.max(0.1, metres)), lamp.position[2]],
+    })
+  );
+  const brightScrub = useScrub(lamp.intensity, (value) =>
+    updateLamp(lamp.id, { intensity: Math.min(60, Math.max(0.2, Math.round(value * 10) / 10)) })
+  );
+  // Linear, like the lift: a temperature is a position on a scale, not a size.
+  const warmth = useRef<{ id: number; x: number; from: number; changed: boolean } | null>(null);
+  const warmthScrub = {
+    onPointerDown: (e: React.PointerEvent) => {
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      } catch { /* still sees the moves */ }
+      warmth.current = { id: e.pointerId, x: e.clientX, from: lamp.temperature, changed: false };
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      if (warmth.current?.id !== e.pointerId) return;
+      if (!warmth.current.changed) {
+        warmth.current.changed = true;
+        beginChange();
+      }
+      const kelvin = warmth.current.from + (e.clientX - warmth.current.x) * 25;
+      updateLamp(lamp.id, {
+        temperature: Math.round(Math.min(12000, Math.max(1800, kelvin)) / 50) * 50,
+      });
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      if (warmth.current?.id === e.pointerId) warmth.current = null;
+    },
+    onPointerCancel: () => {
+      warmth.current = null;
+    },
+  };
+  const aimHold = useRef<{ id: number; x: number; from: number; changed: boolean } | null>(null);
+  const aimScrub = {
+    onPointerDown: (e: React.PointerEvent) => {
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      } catch { /* still sees the moves */ }
+      aimHold.current = { id: e.pointerId, x: e.clientX, from: lamp.aim, changed: false };
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      if (aimHold.current?.id !== e.pointerId) return;
+      if (!aimHold.current.changed) {
+        aimHold.current.changed = true;
+        beginChange();
+      }
+      updateLamp(lamp.id, { aim: aimHold.current.from + (e.clientX - aimHold.current.x) * 0.02 });
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      if (aimHold.current?.id === e.pointerId) aimHold.current = null;
+    },
+    onPointerCancel: () => {
+      aimHold.current = null;
+    },
+  };
+
+  const reading = (value: string, label: string, scrub: object, wide = false) => (
+    <button
+      {...scrub}
+      aria-label={label}
+      className={`${readout(isDark)} touch-none ${wide ? '' : '!min-w-[3.4rem]'}`}
+    >
+      <span className="text-[13px] font-bold tabular-nums tracking-wide">{value}</span>
+    </button>
+  );
+
+  return (
+    <div
+      className={`flex justify-center max-w-full px-2 pointer-events-none transition-all duration-300 ${
+        raised ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+      }`}
+    >
+      <div
+        className={`flex items-center max-w-full overflow-x-auto scrollbar-none p-1 sm:p-1.5 gap-0.5 sm:gap-1 rounded-full border shadow-2xl ${
+          raised || !railVisible ? 'pointer-events-none' : 'pointer-events-auto'
+        } ${chrome(isDark)}`}
+      >
+        {reading(metres(lamp.position[1]), 'Height off the floor - drag to change', liftScrub.handlers)}
+        {reading(lamp.intensity.toFixed(1), 'Brightness - drag to change', brightScrub)}
+        {reading(`${lamp.temperature}K`, 'Colour temperature - drag to change', warmthScrub, true)}
+        {lamp.kind === 'spot' &&
+          reading(
+            `${Math.round((((lamp.aim * 180) / Math.PI) % 360 + 360) % 360)}°`,
+            'Aim - drag to swing the spot',
+            aimScrub
+          )}
+        <button
+          onClick={() => {
+            beginChange();
+            updateLamp(lamp.id, { kind: lamp.kind === 'bulb' ? 'spot' : 'bulb' });
+          }}
+          aria-label={`Lamp kind: ${lamp.kind}`}
+          className={button}
+        >
+          <Icon path={lamp.kind === 'bulb' ? I.lampBulb : I.lampSpot} className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => {
+            beginChange();
+            updateLamp(lamp.id, { enabled: !lamp.enabled });
+          }}
+          aria-label="Lamp on"
+          aria-pressed={lamp.enabled}
+          className={`${button} ${lamp.enabled ? '!text-sky-500' : 'opacity-40'}`}
+        >
+          <Icon path={I.power} className="w-5 h-5" />
+        </button>
+        <button onClick={() => removeLamp(lamp.id)} className={`${button} !text-red-500`} aria-label="Delete">
+          <Icon path={I.trash} className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false }) => {
   const theme = useStore((s) => s.theme);
   const boxes = useStore((s) => s.boxes);
@@ -206,6 +340,9 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
 
   const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
   const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
+  const lamps = useStore((s) => s.lamps);
+  const selectedLampId = useStore((s) => s.selectedLampId);
+  const lamp = selectedLampId ? lamps.find((l) => l.id === selectedLampId) : null;
 
   const height = model ? model.size[1] * model.scale : 0;
 
@@ -263,6 +400,7 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   const boxScrub = useScrub(activeDim, (v) => setBoxDim(activeAxis, v));
   const liftScrub = useLift(lift, setLift);
 
+  if (lamp) return <LampBar lamp={lamp} raised={raised} />;
   if (!box && !model) return null;
 
   /*

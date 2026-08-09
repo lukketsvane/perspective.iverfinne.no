@@ -110,6 +110,15 @@ the floor seen from above.
   it, spread to size it, slide to move it. The turn lands on 15° steps whenever
   the snap is on, so 45° — the two-point setup — is hittable by hand
 - **Turn from a keyboard** — `[` and `]`, fifteen degrees a press, shift for one.
+- **Look by turning the phone** — a toggle in the tools row hands the view's
+  heading to the phone's own orientation sensors, smoothed, with drag-to-look
+  layered on top for the turn your chair will not make. Hold the phone up and
+  your body's turn is the camera's, which is the nearest thing to standing
+  inside the scene a browser can offer — position stays on the sticks, since
+  no web API tracks where you walk. iOS asks permission on the first tap, as
+  it insists on doing; a desktop with no sensor offers the toggle and then
+  honestly declines it. Switching off keeps the heading you reached rather
+  than snapping back to wherever the last drag left it.
   Two fingers is the gesture and a mouse has one, so on a laptop nothing in the
   scene could be turned at all — which put the lesson the selection's own
   vanishing points exist to teach out of reach on the machine most people will
@@ -353,6 +362,19 @@ you place it and faintest out where it would otherwise cross the drawing.
 
 The control on the dock is one number — how much of the world the sheet holds,
 from a long lens to past a full turn — and the frame decides the shape of it.
+
+How far that number may open is a ladder of its own, in the tools row: **human
+sight** stops the drag at 210°, about what two eyes cover, so the whole throw
+of the control is spent inside what a standing person could actually see;
+**the sphere** is the tool's usual reach, out to where the entire sphere sits
+on the page with paper round it; and **endless** unlocks three full turns — in
+the cylindrical system the band then *repeats* instead of running out, the
+same room again and again along one seam-free frieze, so a study can be set
+out on a strip that never ends. Only the cylinder can promise that: its yaw is
+periodic by construction. The radial systems keep their edge, which is the
+whole sphere on the page. Stepping down onto human sight pulls an open lens
+back inside the new range, so the control never reads one thing while the view
+does another.
 `fieldOf` splits that spread across the frame's own proportions, so a landscape
 frame is wider than it is tall in degrees as well as in pixels, and turning a
 phone sideways changes what is in the picture rather than how it is squeezed.
@@ -389,6 +411,25 @@ while you drag it.
 A **second light** lives under it, off until asked for: shadowless, cooler and
 weaker by default, the way a studio or an overcast sky answers the problem of
 one light leaving half of everything black.
+
+### Placed lamps
+
+The sun and the fill say where the big light comes from. **Lamps** say where
+the small ones hang, and they are scene objects, not settings — placed from the
+model library (the tile left of the cube), selected with a tap, slid along
+their own level, lifted, duplicated by another placement, saved with the
+composition, exported in the scene file and taken back by undo, exactly like a
+box. That is what separates a light *editor* from a light panel.
+
+Held, one offers its own bar: height off the floor, brightness, colour
+temperature, its kind, its switch, and the way out. A **bulb** shines every way
+at once; a **spot** throws a cone along an aim you drag, and casts its own
+shadow. Falloff is physical, so near things are genuinely brighter — which is
+the whole lesson a placed light teaches and the thing the sun, at infinity,
+cannot show. The mark stays when the light is off or the page is in ink — a
+lamp you cannot see is a lamp you cannot move — hanging from a plumb line with
+a tick on the floor, so its height reads against the grid like every other
+height here.
 
 ### Guides, and the floor's two rulings
 
@@ -553,6 +594,13 @@ ordered by how much has been taken away:
   value only, which is what it is doing in a scene full of white boxes
 - **ink** — the light gone too, and only the line left. This is the one the tool
   opens on; it has its own section below
+- **brush** — the same drawing with its blacks spotted in. Everything turned
+  from the sun floods solid ink, the pen's own lines run in *paper* through the
+  fill — drawn around, not painted over — and the cast shadow goes down as a
+  near-solid shape. Where ink is the pen underdrawing, this is the finished
+  brush page: line and flat black and nothing between, which is the page a
+  brush-and-ink spread actually is. Swing the sun and the blacks sweep with it,
+  live
 - **wire** — the twelve edges and nothing else: the construction with the object
   taken away
 

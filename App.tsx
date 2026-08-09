@@ -56,7 +56,7 @@ export default function App() {
     // is set by a layout effect inside the canvas's own reconciler, which
     // flushes on a schedule of its own - reading it from here raced, and lost.
     const tone =
-      surface === 'ink'
+      surface === 'ink' || surface === 'brush'
         ? `#${paperFor(backgroundGray).getHexString()}`
         : `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})`;
     document
@@ -260,7 +260,7 @@ export default function App() {
     const done = beginActivity();
     try {
       const state = useStore.getState();
-      await downloadSceneFile(toSceneFile(state.boxes, state.models, currentView(state)));
+      await downloadSceneFile(toSceneFile(state.boxes, state.models, state.lamps, currentView(state)));
     } catch (error) {
       console.error('Could not write the scene file:', error);
       reportFailure();
@@ -274,8 +274,8 @@ export default function App() {
     setBusy('import');
     const done = beginActivity();
     try {
-      const { boxes, models, view, skipped } = await readSceneFile(file);
-      applyScene({ boxes, models, view });
+      const { boxes, models, lamps, view, skipped } = await readSceneFile(file);
+      applyScene({ boxes, models, lamps, view });
       if (skipped.length > 0) {
         console.warn(`Some meshes were skipped on import:\n${skipped.join('\n')}`);
         // Part of a scene arriving is not a success, and the file it came from
@@ -300,7 +300,7 @@ export default function App() {
     >
       <Scene />
       <Activity />
-      <VanishingPoints color={constructionInk(surface === 'ink', isDark)} />
+      <VanishingPoints color={constructionInk(surface === 'ink' || surface === 'brush', isDark)} />
       <WalkOverlay
         onModels={() => setSheet('meshes')}
         onScenes={() => setSheet('scenes')}

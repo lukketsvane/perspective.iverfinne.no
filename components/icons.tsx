@@ -56,6 +56,25 @@ export const I = {
    */
   lift: (<><path d="M3 21h18" /><rect x="7.5" y="3" width="9" height="6.5" rx="0.8" /><path d="M12 18.5v-6M9.6 14.9 12 12.5l2.4 2.4" strokeOpacity="0.65" /></>),
 
+  /**
+   * How far round the lens may open: the cone sight actually covers, the
+   * whole sphere on the page, and the band that repeats without end.
+   */
+  fieldHuman: (<><path d="M12 20V11" strokeOpacity="0.5" /><path d="M12 11L4 3M12 11l8-8" /><path d="M5.2 7.6a9.4 9.4 0 0 1 13.6 0" strokeOpacity="0.6" /></>),
+  fieldSphere: (<><circle cx="12" cy="12" r="8.6" /><line x1="2" y1="12" x2="22" y2="12" strokeOpacity="0.4" /><path d="M12 3.4a13 13 0 0 0 0 17.2M12 3.4a13 13 0 0 1 0 17.2" strokeOpacity="0.5" /></>),
+  fieldEndless: (<><path d="M12 12c-2-2.8-3.4-4.2-5.2-4.2a4.2 4.2 0 0 0 0 8.4C8.6 16.2 10 14.8 12 12zM12 12c2-2.8 3.4-4.2 5.2-4.2a4.2 4.2 0 0 1 0 8.4C15.4 16.2 14 14.8 12 12z" /></>),
+
+  /**
+   * The lamps: a bulb hanging from its plumb, a spot with its cone, and the
+   * switch. The bulb doubles as the "add a light" tile.
+   */
+  lampBulb: (<><path d="M12 2.5v3" strokeOpacity="0.5" /><circle cx="12" cy="10.5" r="4.6" /><path d="M10.2 17.4h3.6M10.7 19.8h2.6" /><path d="M5.6 5.6l1.6 1.6M18.4 5.6l-1.6 1.6M4 10.5h2.2M17.8 10.5H20" strokeOpacity="0.5" /></>),
+  lampSpot: (<><path d="M12 2.5v2.6" strokeOpacity="0.5" /><path d="M8.6 6.4h6.8l1.4 4.4H7.2z" /><path d="M8.2 12.6L5 20.5M15.8 12.6L19 20.5M12 12.6V21" strokeOpacity="0.5" /></>),
+  power: (<><path d="M12 3.5v7" /><path d="M7.2 6.8a7 7 0 1 0 9.6 0" /></>),
+
+  /** A phone held up, and the turn that steers the view. */
+  arLook: (<><rect x="8.5" y="4.5" width="7" height="13" rx="1.4" /><path d="M12 21.8a9.5 9.5 0 0 0 7.8-4M12 21.8l2.6-.4M12 21.8l-.9-2.4" strokeOpacity="0.7" /><circle cx="12" cy="15.3" r="0.8" fill="currentColor" stroke="none" /></>),
+
   /** Horizon line, and the field of view, which is the lens control's mark. */
   horizon: (<><line x1="2" y1="12" x2="22" y2="12" /><path d="M4 19l7-5M20 19l-7-5" strokeOpacity="0.45" /></>),
   cone: (<><path d="M12 3L4 20h16z" /><path d="M6.5 14h11" strokeOpacity="0.45" /></>),
@@ -132,6 +151,8 @@ export const I = {
    * it. Not a shaded ball and not a wireframe - the two marks the mode makes.
    */
   ink: (<><circle cx="12" cy="12" r="9" /><path d="M5.6 8.4a9 9 0 0 0 12.8 0" strokeOpacity="0.7" /><path d="M7.6 15.6a9 9 0 0 0 8.8 0" strokeOpacity="0.45" /></>),
+  /** The same sphere with its dark half spotted solid: the brush page. */
+  brush: (<><circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 0 0 18 14 14 0 0 1-4.6-9A14 14 0 0 1 12 3z" fill="currentColor" stroke="none" /></>),
 
   /** Step back or forward one move. */
   undo: (<><polyline points="9 5 3.5 10.5 9 16" /><path d="M3.5 10.5H14a6.5 6.5 0 0 1 0 13H8" /></>),
@@ -166,5 +187,6 @@ export const SURFACE_ICON: Record<Surface, React.ReactNode> = {
   original: I.surfaceSolid,
   matte: I.matte,
   ink: I.ink,
+  brush: I.brush,
   wire: I.surfaceWire,
 };
