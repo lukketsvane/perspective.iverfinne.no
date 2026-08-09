@@ -17,6 +17,42 @@ import { focusPoint } from '../lib/focus';
  * spends its first seconds fetching rows nobody has scrolled to, and the mesh
  * you tapped waits behind them. The glyph stands in until then.
  */
+/**
+ * The forms a real place is blocked out of, as width, height, depth in
+ * metres. Ordered by height, which is the number each one teaches.
+ */
+const FORMS: { label: string; scale: [number, number, number] }[] = [
+  { label: 'seat', scale: [0.45, 0.45, 0.45] },
+  { label: 'bed', scale: [1.6, 0.55, 2.0] },
+  { label: 'table', scale: [1.4, 0.75, 0.8] },
+  { label: 'counter', scale: [1.8, 0.9, 0.6] },
+  { label: 'person', scale: [0.5, 1.75, 0.35] },
+  { label: 'door', scale: [1.0, 2.1, 0.12] },
+];
+
+/**
+ * A box drawn in the form's own proportions: a simple two-point sketch of it,
+ * fitted into the tile. The proportion IS the label.
+ */
+const formGlyph = ({ 0: w, 1: h, 2: d }: [number, number, number]) => {
+  const longest = Math.max(w, h, d);
+  const sw = (w / longest) * 26;
+  const sh = (h / longest) * 30;
+  const sd = (d / longest) * 12;
+  const x0 = 24 - (sw + sd * 0.8) / 2;
+  const y0 = 40 - sh;
+  const front = `M${x0} ${y0}h${sw}v${sh}h${-sw}z`;
+  const top = `M${x0} ${y0}l${sd * 0.8} ${-sd * 0.55}h${sw}l${-sd * 0.8} ${sd * 0.55}z`;
+  const side = `M${x0 + sw} ${y0}l${sd * 0.8} ${-sd * 0.55}v${sh}l${-sd * 0.8} ${sd * 0.55}z`;
+  return (
+    <>
+      <path d={front} />
+      <path d={top} strokeOpacity="0.55" />
+      <path d={side} strokeOpacity="0.55" />
+    </>
+  );
+};
+
 const MeshTile: React.FC<{
   url: string;
   name: string;
@@ -139,6 +175,12 @@ export const MeshSheet: React.FC<{
     onClose();
   };
 
+  const standForm = useStore((s) => s.standForm);
+  const handleForm = (scale: [number, number, number]) => {
+    standForm(scale, [focusPoint.x, focusPoint.z]);
+    onClose();
+  };
+
   return (
     <Sheet onClose={onClose}>
       <div
@@ -163,6 +205,32 @@ export const MeshSheet: React.FC<{
         >
           <Icon path={I.cube} className="w-8 h-8 opacity-80" />
         </button>
+
+        {/*
+          * The known forms: the dozen numbers a real place is blocked out of.
+          *
+          * Doors are 2.1, tables 0.75, seats 0.45, a standing figure 1.75, a
+          * counter 0.9, a bed 0.55 - own those and every form in a room can
+          * be estimated off them. Each tile is one tap: the box lands at the
+          * gaze point at its true size, named by its number, and placing them
+          * is how the numbers are learned. The glyph is the form's own
+          * proportion; the number is its height, which is the dimension a
+          * standing eye reads everything against.
+          */}
+        {FORMS.map((form) => (
+          <button
+            key={form.label}
+            onClick={() => handleForm(form.scale)}
+            disabled={busy}
+            aria-label={`Stand a ${form.label}, ${form.scale[1]} metres tall`}
+            className={`relative w-full aspect-square rounded-2xl flex flex-col items-center justify-center gap-1 transition-all active:scale-95 disabled:opacity-40 ${tile(dark)}`}
+          >
+            <svg viewBox="0 0 48 48" className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" opacity={0.8}>
+              {formGlyph(form.scale)}
+            </svg>
+            <span className="text-[11px] font-bold tabular-nums opacity-50">{form.scale[1].toFixed(2)}</span>
+          </button>
+        ))}
 
         {/* Your own files, right beside the cube: the way anything that is not
             one of the three gets into the tool at all. */}

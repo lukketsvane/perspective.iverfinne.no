@@ -10,7 +10,8 @@ import { Scrub, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
 import { whileWorking } from '../lib/activity';
 import { ACTIVE, chrome, iconButton } from './ui';
-import { directionAt, pickObject } from '../lib/pick';
+import { directionAt, pickGround, pickObject, pixelsPerMetreAt } from '../lib/pick';
+import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
 import { MAX_FIELD, wholeSheetField } from '../lib/projection';
 import { SNAP_STEPS, type GuideLevel, type PerspectiveMode } from '../types';
@@ -188,6 +189,24 @@ export const WalkOverlay: React.FC<{
    */
   const [measuring, setMeasuring] = useState(false);
   const measurePointer = useRef<number | null>(null);
+  /*
+   * Whether drags are DRAWING BOXES instead of looking.
+   *
+   * The block-out gesture, and the fastest way from standing in a real place
+   * to a scene of its forms: drag a footprint on the ground where the table
+   * is, release, pull its height up, release - a box, sized by eye, in two
+   * strokes. The mode stays armed so a room is blocked out in a run of
+   * strokes, and every box lands selected with the snap applied, so refining
+   * is the same handles as always. One undo step per box.
+   */
+  const [blocking, setBlocking] = useState(false);
+  const block = useRef<
+    | { stage: 'foot'; pointer: number; id: string; anchor: { x: number; z: number } }
+    | { stage: 'pull'; pointer: number | null; id: string; startY: number; h0: number; perMetre: number }
+    | null
+  >(null);
+  /** The reading beside the finger while a box is being drawn. */
+  const [blockReadout, setBlockReadout] = useState<{ x: number; y: number; text: string } | null>(null);
   const railVisible = useRail();
   const sceneSurface = useStore((s) => s.surface);
   const cycleSurface = useStore((s) => s.cycleSurface);
@@ -302,6 +321,51 @@ export const WalkOverlay: React.FC<{
     // the drag belongs to it entirely - no look, no walk, no select. The
     // chrome still wakes, though - the way OUT of the mode is a button, and a
     // mode that lets the only exit fade away is a trap.
+    if (blocking) {
+      showRail();
+      // A right press is a menu, not a stroke.
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      let held = block.current;
+      // The ghost can vanish mid-gesture - undo and delete are both still
+      // reachable - and a machine pointing at a dead box would eat the next
+      // stroke whole. Start fresh instead.
+      if (held && !useStore.getState().boxes.some((b) => b.id === held!.id)) {
+        block.current = null;
+        held = null;
+        setBlockReadout(null);
+      }
+      if (held === null) {
+        // The first stroke: anchor the footprint where the finger meets the
+        // floor. Off the floor - sky, past the sheet - nothing starts.
+        const at = pickGround(e.clientX, e.clientY, 0);
+        if (at) {
+          try {
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          } catch { /* the element still sees the moves */ }
+          const state = useStore.getState();
+          state.beginBlock([at.x, at.z]);
+          block.current = {
+            stage: 'foot',
+            pointer: e.pointerId,
+            id: useStore.getState().selectedId!,
+            anchor: { x: at.x, z: at.z },
+          };
+        }
+      } else if (held.stage === 'pull' && held.pointer === null) {
+        // The second stroke: wherever it lands, its vertical travel is the
+        // height. Captured for the same reason the first one is - and the
+        // baseline re-read from the box, because a cancelled pull leaves the
+        // box standing at a height the old baseline never heard of.
+        try {
+          (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        } catch { /* the element still sees the moves */ }
+        const box = useStore.getState().boxes.find((b) => b.id === held!.id);
+        held.pointer = e.pointerId;
+        held.startY = e.clientY;
+        held.h0 = box ? box.scale[1] : held.h0;
+      }
+      return;
+    }
     if (measuring) {
       showRail();
       if (measurePointer.current === null) {
@@ -419,6 +483,51 @@ export const WalkOverlay: React.FC<{
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    if (blocking) {
+      const held = block.current;
+      if (!held || held.pointer !== e.pointerId) return;
+      // A mouse back over the glass unpressed lost its release somewhere
+      // else: the stroke ends where it was, not under a wandering cursor.
+      if (e.pointerType === 'mouse' && e.buttons === 0) {
+        if (held.stage === 'foot') {
+          endPointer(e);
+        } else {
+          block.current = null;
+          setBlockReadout(null);
+        }
+        return;
+      }
+      const state = useStore.getState();
+      const step = state.snapStep;
+      const snap = (v: number) => (step > 0 ? Math.round(v / step) * step : v);
+      if (held.stage === 'foot') {
+        const at = pickGround(e.clientX, e.clientY, 0);
+        if (!at) return;
+        const w = Math.max(0.1, Math.abs(snap(at.x) - snap(held.anchor.x)));
+        const d = Math.max(0.1, Math.abs(snap(at.z) - snap(held.anchor.z)));
+        const box = state.boxes.find((b) => b.id === held.id);
+        const h = box ? box.scale[1] : 0.1;
+        state.updateBox(held.id, {
+          scale: [w, h, d],
+          position: [
+            (snap(at.x) + snap(held.anchor.x)) / 2,
+            h / 2,
+            (snap(at.z) + snap(held.anchor.z)) / 2,
+          ],
+        });
+        setBlockReadout({ x: e.clientX, y: e.clientY, text: `${w.toFixed(2)} × ${d.toFixed(2)}` });
+      } else {
+        const box = state.boxes.find((b) => b.id === held.id);
+        if (!box) return;
+        const h = Math.max(0.1, snap(held.h0 + (held.startY - e.clientY) / held.perMetre));
+        state.updateBox(held.id, {
+          scale: [box.scale[0], h, box.scale[2]],
+          position: [box.position[0], h / 2, box.position[2]],
+        });
+        setBlockReadout({ x: e.clientX, y: e.clientY, text: h.toFixed(2) });
+      }
+      return;
+    }
     if (measuring) {
       if (measurePointer.current === e.pointerId) {
         // A mouse that comes back over the glass unpressed lost its release
@@ -516,6 +625,36 @@ export const WalkOverlay: React.FC<{
   };
 
   const endPointer = (e: React.PointerEvent) => {
+    if (blocking) {
+      const held = block.current;
+      if (held && held.pointer === e.pointerId) {
+        if (held.stage === 'foot') {
+          // The footprint is down; the same box now waits for its height.
+          const state = useStore.getState();
+          const box = state.boxes.find((b) => b.id === held.id);
+          block.current = box
+            ? {
+                stage: 'pull',
+                pointer: null,
+                id: held.id,
+                startY: 0,
+                h0: box.scale[1],
+                perMetre: Math.max(
+                  40,
+                  pixelsPerMetreAt(new THREE.Vector3(...box.position))
+                ),
+              }
+            : null;
+          if (!box) setBlockReadout(null);
+        } else {
+          // The height is set: the box is done, and the mode stays armed for
+          // the next one.
+          block.current = null;
+          setBlockReadout(null);
+        }
+      }
+      return;
+    }
     if (measuring) {
       if (measurePointer.current === e.pointerId) {
         measurePointer.current = null;
@@ -553,6 +692,15 @@ export const WalkOverlay: React.FC<{
   };
 
   const cancelPointer = (e: React.PointerEvent) => {
+    if (blocking) {
+      const held = block.current;
+      if (held && held.pointer === e.pointerId) {
+        if (held.stage === 'foot') block.current = null;
+        else held.pointer = null;
+        setBlockReadout(null);
+      }
+      return;
+    }
     if (measuring) {
       if (measurePointer.current === e.pointerId) {
         measurePointer.current = null;
@@ -645,7 +793,11 @@ export const WalkOverlay: React.FC<{
         // A sheet closes itself on escape; backing out of one is not also a
         // reason to drop what was selected before it was opened. The pencil
         // goes down first: a mode whose exit is hard to reach is a trap.
-        if (measuring) {
+        if (blocking) {
+          block.current = null;
+          setBlockReadout(null);
+          setBlocking(false);
+        } else if (measuring) {
           clearMeasures();
           measurePointer.current = null;
           setMeasuring(false);
@@ -739,7 +891,7 @@ export const WalkOverlay: React.FC<{
       walkInput.forward = 0;
       walkInput.strafe = 0;
     };
-  }, [showTools, showLights, measuring, undo, redo, covered]);
+  }, [showTools, showLights, measuring, blocking, undo, redo, covered]);
 
   // Opening the second row is a statement that the chrome is wanted. It used to
   // fade out from under an open panel six seconds later, leaving twelve
@@ -775,13 +927,24 @@ export const WalkOverlay: React.FC<{
     <>
       <div
         className="fixed inset-0 z-30 touch-none"
-        style={{ cursor: measuring ? 'crosshair' : cursor }}
+        style={{ cursor: measuring || blocking ? 'crosshair' : cursor }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endPointer}
         onPointerCancel={cancelPointer}
         onPointerLeave={() => setCursor('default')}
       />
+
+      {blockReadout && (
+        <div
+          className={`fixed z-40 px-3 py-1 rounded-full text-xs font-bold tabular-nums border shadow-xl pointer-events-none whitespace-nowrap ${
+            isDark ? 'bg-neutral-950/95 text-white border-white/20' : 'bg-white/95 text-black border-black/10'
+          }`}
+          style={{ left: blockReadout.x + 14, top: blockReadout.y - 40 }}
+        >
+          {blockReadout.text}
+        </div>
+      )}
 
       {(showTools || showLights) && (
         <div
@@ -918,6 +1081,27 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.arLook} className="w-5 h-5" />
           </button>
+          {/* The block-out pencil: while it is up, a drag on the ground draws
+              a footprint and the next drag pulls its height - a box, sized by
+              eye, in two strokes, and the mode stays armed for the next one.
+              The fastest road from standing in a real place to a scene of its
+              forms. */}
+          <button
+            onClick={() => {
+              block.current = null;
+              setBlockReadout(null);
+              setBlocking((on) => !on);
+              if (measuring) clearMeasures();
+              measurePointer.current = null;
+              setMeasuring(false);
+              setShowTools(false);
+            }}
+            aria-label="Draw boxes on the ground"
+            aria-pressed={blocking}
+            className={`${button} ${blocking ? ACTIVE : ''}`}
+          >
+            <Icon path={I.block} className="w-5 h-5" />
+          </button>
           {/* The pencil at arm's length: while it is up, a drag on the scene
               lays a measure in degrees of visual angle instead of turning the
               view. Putting the instrument down clears the sheet - a
@@ -927,6 +1111,9 @@ export const WalkOverlay: React.FC<{
               if (measuring) clearMeasures();
               measurePointer.current = null;
               setMeasuring((on) => !on);
+              setBlocking(false);
+              block.current = null;
+              setBlockReadout(null);
               setShowTools(false);
             }}
             aria-label="Measure visual angles"
