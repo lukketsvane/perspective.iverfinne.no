@@ -3,6 +3,7 @@ import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { ContactShadows, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore, DEFAULT_CAMERA_HEIGHT } from '../store';
+import { Lamps } from './Lamps';
 import { GroundGrid } from './GroundGrid';
 import { KimBox } from './KimBox';
 import { Room } from './Room';
@@ -309,7 +310,12 @@ const SceneContent = () => {
    * object as it goes, so the two only disagree while somebody is deliberately
    * mixing rungs.
    */
-  const inkMode = useStore((state) => state.surface) === 'ink';
+  const sceneSurface = useStore((state) => state.surface);
+  const fieldRange = useStore((state) => state.fieldRange);
+  // Both sketch rungs draw on the paper; brush also spots its blacks in, so
+  // its cast shadow goes down as a near-solid shape rather than a wash.
+  const inkMode = sceneSurface === 'ink' || sceneSurface === 'brush';
+  const brushMode = sceneSurface === 'brush';
 
   /*
    * Hand the walk layer what it needs to aim with.
@@ -467,6 +473,7 @@ const SceneContent = () => {
 
       {/* Uploaded models, standing at their real size */}
       <SceneModels />
+      <Lamps />
 
       {/* The eye level is not drawn here. It is drawn by the panorama shader,
           per pixel, on the sphere - which is a truer place for it: this was a
@@ -508,13 +515,13 @@ const SceneContent = () => {
           plane and can never be mistaken for a line. It fades out as the sheet
           darkens - on a blackboard you draw the lit parts, and the shadow is
           bare board. */}
-      {shadowKind !== 'off' && (!inkMode || hardShadows) && (
+      {shadowKind !== 'off' && (!inkMode || hardShadows || brushMode) && (
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} raycast={() => null}>
           <planeGeometry args={[2000, 2000]} />
           <shadowMaterial
             transparent
             color={inkMode ? inkHex() : '#000000'}
-            opacity={inkMode ? inkShadowAlpha(backgroundGray) : isDark ? 0.55 : 0.42}
+            opacity={brushMode ? 0.82 : inkMode ? inkShadowAlpha(backgroundGray) : isDark ? 0.55 : 0.42}
           />
         </mesh>
       )}
@@ -537,6 +544,7 @@ const SceneContent = () => {
         <Panorama
           spread={fov}
           mode={perspectiveMode}
+          repeat={fieldRange === 'endless'}
           gridColor={gridColor}
           pointStrength={guides >= 1 ? 1 : 0}
           sheetStrength={guides >= 2 ? 1 : 0}

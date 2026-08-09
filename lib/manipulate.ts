@@ -203,8 +203,8 @@ const pushFace = (
  * a step, exactly as it did before.
  */
 export const grabAt = (clientX: number, clientY: number): Grab | null => {
-  const { selectedId, selectedModelId } = useStore.getState();
-  if (!selectedId && !selectedModelId) return null;
+  const { selectedId, selectedModelId, selectedLampId } = useStore.getState();
+  if (!selectedId && !selectedModelId && !selectedLampId) return null;
 
   const hit = pickObject(clientX, clientY);
   if (!hit) return null;
@@ -227,6 +227,23 @@ export const grabAt = (clientX: number, clientY: number): Grab | null => {
         return box ? { position: [...box.position] as [number, number, number], floor: box.scale[1] / 2 } : null;
       },
       (position) => useStore.getState().updateBox(hit.id, { position })
+    );
+  }
+
+  if (hit.type === 'lamp') {
+    if (hit.id !== selectedLampId) return null;
+    return carry(
+      clientX,
+      clientY,
+      () => {
+        const lamp = useStore.getState().lamps.find((l) => l.id === hit.id);
+        // A lamp slides in its own horizontal plane and lifts like anything
+        // else - but never into the floor, where a light is a mistake.
+        return lamp
+          ? { position: [...lamp.position] as [number, number, number], floor: 0.1 }
+          : null;
+      },
+      (position) => useStore.getState().updateLamp(hit.id, { position })
     );
   }
 
@@ -369,5 +386,6 @@ export const hoverAt = (clientX: number, clientY: number): Hovering => {
       : 'move';
   }
   if (hit.type === 'model' && hit.id === selectedModelId) return 'move';
+  if (hit.type === 'lamp' && hit.id === useStore.getState().selectedLampId) return 'move';
   return 'select';
 };

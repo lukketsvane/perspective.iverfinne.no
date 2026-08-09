@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
-import { walkInput } from '../lib/walkInput';
+import { disableDeviceOrientation, enableDeviceOrientation, walkInput } from '../lib/walkInput';
 import { holdRail, releaseRail, showRail, useRail } from '../lib/rail';
 import { SelectionBar } from './SelectionBar';
 import { LightPanel } from './LightPanel';
@@ -11,7 +11,7 @@ import { whileWorking } from '../lib/activity';
 import { ACTIVE, chrome, iconButton } from './ui';
 import { pickObject } from '../lib/pick';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
-import { wholeSheetField } from '../lib/projection';
+import { MAX_FIELD, wholeSheetField } from '../lib/projection';
 import { SNAP_STEPS, type GuideLevel, type PerspectiveMode } from '../types';
 
 /**
@@ -164,6 +164,17 @@ export const WalkOverlay: React.FC<{
    * panel, Tools swaps it back.
    */
   const [showLights, setShowLights] = useState(false);
+  /*
+   * Whether the phone's own orientation is driving the view.
+   *
+   * Hold the phone up and turn - your body's turn is the camera's, which is
+   * the nearest thing to standing inside the scene a browser can offer:
+   * position stays on the sticks (no web API tracks where you walk), but
+   * which way you are FACING is the phone's own sensors, smoothed. On a
+   * desktop with no sensor the toggle offers itself and honestly declines:
+   * if no reading arrives within a moment it switches itself back off.
+   */
+  const [arLook, setArLook] = useState(false);
   const railVisible = useRail();
   const sceneSurface = useStore((s) => s.surface);
   const cycleSurface = useStore((s) => s.cycleSurface);
@@ -186,6 +197,8 @@ export const WalkOverlay: React.FC<{
   const cycleSnap = useStore((s) => s.cycleSnap);
   const construction = useStore((s) => s.construction);
   const cycleConstruction = useStore((s) => s.cycleConstruction);
+  const fieldRange = useStore((s) => s.fieldRange);
+  const cycleFieldRange = useStore((s) => s.cycleFieldRange);
   const showVanishing = useStore((s) => s.showVanishing);
   const toggleVanishing = useStore((s) => s.toggleVanishing);
 
@@ -438,7 +451,7 @@ export const WalkOverlay: React.FC<{
 
   const tapScene = (clientX: number, clientY: number) => {
     const hit = pickObject(clientX, clientY);
-    const { selectBox, selectModel } = useStore.getState();
+    const { selectBox, selectModel, selectLamp } = useStore.getState();
     // A touch whose only job was to wake the chrome may still pick something
     // up; it may not put anything down. Otherwise the workflow the tool is for
     // - place it, look at it for a while, then adjust it - was self-defeating:
@@ -448,6 +461,7 @@ export const WalkOverlay: React.FC<{
     if (!hit) {
       if (!woke.current) selectBox(null);
     } else if (hit.type === 'box') selectBox(hit.id);
+    else if (hit.type === 'lamp') selectLamp(hit.id);
     else selectModel(hit.id);
     woke.current = false;
   };
@@ -578,10 +592,11 @@ export const WalkOverlay: React.FC<{
       // see past - silently, with the sheet still up.
       if (!covered && (key === 'delete' || key === 'backspace')) {
         const state = useStore.getState();
-        if (!state.selectedId && !state.selectedModelId) return;
+        if (!state.selectedId && !state.selectedModelId && !state.selectedLampId) return;
         e.preventDefault();
         if (state.selectedModelId) state.removeModel(state.selectedModelId);
         else if (state.selectedId) state.removeBox(state.selectedId);
+        else if (state.selectedLampId) state.removeLamp(state.selectedLampId);
         return;
       }
 
@@ -603,7 +618,16 @@ export const WalkOverlay: React.FC<{
         e.preventDefault();
         const step = ((e.shiftKey ? 1 : 15) * Math.PI) / 180 * (key === ']' ? 1 : -1);
         const state = useStore.getState();
+        // Nothing held, nothing turned - and no undo step written for it.
+        // beginChange before the check pushed a phantom step that also
+        // emptied the redo stack, from a keypress that did nothing.
+        if (!state.selectedModelId && !state.selectedId && !state.selectedLampId) return;
         if (!e.repeat) state.beginChange();
+        if (state.selectedLampId) {
+          const lamp = state.lamps.find((l) => l.id === state.selectedLampId);
+          if (lamp) state.updateLamp(lamp.id, { aim: lamp.aim + step });
+          return;
+        }
         if (state.selectedModelId) {
           const mesh = state.models.find((m) => m.id === state.selectedModelId);
           if (mesh) state.updateModel(mesh.id, { rotationY: mesh.rotationY + step });
@@ -785,6 +809,47 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.vanishing} className="w-5 h-5" />
           </button>
+          {/* How far the lens may open: sight's own cone, the whole sphere
+              on the page, or the endless band - where the cylindrical sheet
+              repeats past a full turn instead of running out, the same room
+              again and again along one frieze. */}
+          <button
+            onClick={cycleFieldRange}
+            aria-label={`Lens reach: ${fieldRange === 'human' ? 'human sight' : fieldRange === 'sphere' ? 'the whole sphere' : 'endless'}`}
+            aria-pressed={fieldRange !== 'sphere'}
+            className={`${button} ${fieldRange !== 'sphere' ? ACTIVE : ''}`}
+          >
+            <Icon path={fieldRange === 'human' ? I.fieldHuman : fieldRange === 'endless' ? I.fieldEndless : I.fieldSphere} className="w-5 h-5" />
+          </button>
+          <button
+            onClick={async () => {
+              if (arLook) {
+                disableDeviceOrientation();
+                setArLook(false);
+                return;
+              }
+              // iOS grants the sensor only from inside a tap, which is why
+              // the permission ask lives here and nowhere else.
+              const granted = await enableDeviceOrientation();
+              setArLook(granted);
+              if (granted) {
+                setTimeout(() => {
+                  // Permission is not a sensor: a desktop grants the listener
+                  // and then never fires it. If nothing has arrived, say so
+                  // by switching back off rather than pretending.
+                  if (!walkInput.useDeviceOrientation) {
+                    disableDeviceOrientation();
+                    setArLook(false);
+                  }
+                }, 1500);
+              }
+            }}
+            aria-label="Look by turning the phone"
+            aria-pressed={arLook}
+            className={`${button} ${arLook ? ACTIVE : ''}`}
+          >
+            <Icon path={I.arLook} className="w-5 h-5" />
+          </button>
           <button onClick={toggleViewLock} aria-label="Lock view" aria-pressed={viewLocked} className={`${button} ${viewLocked ? '!text-amber-400' : ''}`}>
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="4" y="10.5" width="16" height="10" rx="2" />
@@ -878,7 +943,7 @@ export const WalkOverlay: React.FC<{
             reading={`${Math.round(fov)}°`}
             value={fov}
             min={25}
-            max={wholeSheet}
+            max={fieldRange === 'human' ? 210 : fieldRange === 'endless' ? MAX_FIELD : wholeSheet}
             step={1}
             // Twice the sweep, because the range is now twice what it was and
             // everything anyone does is still down at the narrow end.
@@ -887,7 +952,17 @@ export const WalkOverlay: React.FC<{
             // cone, a wide flat frame, the hemisphere, the full sphere - and
             // the whole sphere drawn small enough to see all the way round it,
             // which is a different number in every window.
-            cycle={[35, 60, 90, 120, 180, 270, 360, wholeSheet]}
+            // Sorted: the whole-sheet field depends on the window's shape and
+            // lands anywhere between 380 and 1080, and the tap-cycle takes the
+            // first preset past the current value in ARRAY order - unsorted, a
+            // portrait phone made 720 unreachable by tapping.
+            cycle={[...new Set(
+              fieldRange === 'human'
+                ? [35, 60, 90, 120, 180, 210]
+                : fieldRange === 'endless'
+                  ? [35, 60, 90, 120, 180, 270, 360, wholeSheet, 720, MAX_FIELD]
+                  : [35, 60, 90, 120, 180, 270, 360, wholeSheet]
+            )].sort((a, b) => a - b)}
             onChange={setLens}
           />
           <Scrub

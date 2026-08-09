@@ -168,6 +168,7 @@ const FRAGMENT = `
   uniform float gradFloor;
   uniform float tone;
   uniform float toneSteps;
+  uniform float fill;
 
   varying vec3 vNormalView;
   varying vec3 vViewPos;
@@ -262,6 +263,26 @@ const FRAGMENT = `
     float pen = clamp(max(max(contour, form), max(terminator, wrap)), 0.0, 1.0);
 
     /*
+     * The blacks, spotted in.
+     *
+     * Everything turned from the sun goes down as solid ink - a shape, not a
+     * wash, which is the whole difference between a value study and a
+     * brush-and-ink page. The edge is the terminator itself, antialiased over
+     * its own derivative so it stays one crisp boundary at every distance;
+     * on a flat face the derivative is nothing and the face simply is lit or
+     * is ink, which is what a box wants.
+     *
+     * Inside the fill the pen swaps to paper: a contour or a form line
+     * crossing the black runs white, which is how a drawn page keeps its
+     * edges alive through a spotted shadow - drawn around, not painted over.
+     */
+    float black = 0.0;
+    if (fill > 0.5) {
+      float blackEdge = max(fwidth(lambert), 1e-4);
+      black = 1.0 - smoothstep(0.0, blackEdge * 1.5, lambert);
+    }
+
+    /*
      * Composited the way a pen works, not the way a photograph does.
      *
      * Both colours are linear here, and mixing them linearly is what a camera
@@ -273,9 +294,11 @@ const FRAGMENT = `
      * Physically the linear blend is the correct one. This is a sheet that
      * exists to be traced, and the punchier line is the one worth having.
      */
+    vec3 base = mix(ground, ink, black);
+    vec3 stroke = mix(ink, paper, black);
     vec3 sheet = mix(
-      pow(max(ground, vec3(0.0)), vec3(0.4545)),
-      pow(max(ink, vec3(0.0)), vec3(0.4545)),
+      pow(max(base, vec3(0.0)), vec3(0.4545)),
+      pow(max(stroke, vec3(0.0)), vec3(0.4545)),
       pen
     );
     gl_FragColor = vec4(pow(sheet, vec3(2.2)), 1.0);
@@ -283,9 +306,12 @@ const FRAGMENT = `
   }
 `;
 
-const build = (extra: THREE.ShaderMaterialParameters = {}) => {
+const build = (filled: boolean, extra: THREE.ShaderMaterialParameters = {}) => {
   const material = new THREE.ShaderMaterial({
-    uniforms: inkUniforms,
+    // A spread, not the object: the shared uniform holders keep their
+    // identity - one setInkPaper reaches every material - while the fill
+    // switch is this material's own.
+    uniforms: { ...inkUniforms, fill: { value: filled ? 1 : 0 } },
     vertexShader: VERTEX,
     fragmentShader: FRAGMENT,
     ...extra,
@@ -298,7 +324,10 @@ const build = (extra: THREE.ShaderMaterialParameters = {}) => {
 };
 
 /** What a sculpted mesh is drawn with. */
-export const INK = build();
+export const INK = build(false);
+
+/** The same drawing with its blacks spotted in. */
+export const BRUSH = build(true);
 
 /**
  * What a box is drawn with.
@@ -309,7 +338,14 @@ export const INK = build();
  * for a box is lay the same paper under them, offset so the edges sit on top
  * rather than fighting the face for the pixel.
  */
-export const INK_BOX = build({ polygonOffset: true, polygonOffsetFactor: 1 });
+export const INK_BOX = build(false, { polygonOffset: true, polygonOffsetFactor: 1 });
+
+/**
+ * A box with its blacks spotted in. Flat faces make the fill a per-face
+ * verdict - a face is lit or it is ink - which is exactly the poster-flat
+ * black a brush page spots a box with.
+ */
+export const BRUSH_BOX = build(true, { polygonOffset: true, polygonOffsetFactor: 1 });
 
 /**
  * The sheet you are drawing on, from black paper to white.

@@ -133,12 +133,28 @@ export const MeshSheet: React.FC<{
     onClose();
   };
 
+  const addLamp = useStore((s) => s.addLamp);
+  const handleAddLamp = () => {
+    addLamp([focusPoint.x, focusPoint.z]);
+    onClose();
+  };
+
   return (
     <Sheet onClose={onClose}>
       <div
         data-tile-scroll
         className="grid grid-cols-3 gap-2 max-h-[50vh] overflow-y-auto overscroll-contain scrollbar-none px-4 pb-4"
       >
+        {/* A light is placed like anything else: it is a scene object, not a
+            setting - see components/Lamps.tsx. */}
+        <button
+          onClick={handleAddLamp}
+          disabled={busy}
+          aria-label="Add light"
+          className={`relative w-full aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${tile(dark)}`}
+        >
+          <Icon path={I.lampBulb} className="w-8 h-8 opacity-80" />
+        </button>
         <button
           onClick={handleAddCube}
           disabled={busy}

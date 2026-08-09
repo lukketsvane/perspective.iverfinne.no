@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { BOX_SURFACES, BoxData, nearestSurface } from '../types';
 import { useStore } from '../store';
 import { faceIsReachable, faceOutward } from '../lib/manipulate';
-import { constructionInk, inkHex, INK_BOX, paperHex } from '../lib/inkMaterial';
+import { BRUSH_BOX, constructionInk, inkHex, INK_BOX, paperHex } from '../lib/inkMaterial';
 import { pixelsPerMetreAt } from '../lib/pick';
 import { BOX_EDGES, usePen } from '../lib/pen';
 
@@ -140,7 +140,8 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
    * box's lines are its twelve edges, which it already carries as geometry.
    * Ink only lays the paper under them and turns the sun off.
    */
-  const inked = surface === 'ink';
+  const inked = surface === 'ink' || surface === 'brush';
+  const brushed = surface === 'brush';
   const hardShadows = useStore((state) => state.sun.shadows) === 'hard';
 
   // Black boxes on a black ground: the edges and the sun do the describing.
@@ -176,7 +177,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
    * documented feature, so it was reachable. The twelve edges stay on
    * edgeColor, where they belong: those are the box.
    */
-  const guideColor = constructionInk(sceneSurface === 'ink', isDark);
+  const guideColor = constructionInk(sceneSurface === 'ink' || sceneSurface === 'brush', isDark);
   // At the top rung the whole scene is blocked in, and a page of equal cages
   // is a page with no subject: the selection keeps the full voice, the rest
   // drop to an underdrawing.
@@ -259,7 +260,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
         // A box that throws no shadow is a box with no relationship to the
         // ground, which is half of what a perspective study is about - but only
         // a solid one has anything to cast.
-        castShadow={solid || (inked && hardShadows)}
+        castShadow={solid || brushed || (inked && hardShadows)}
         receiveShadow={solid}
       >
         <boxGeometry args={[1, 1, 1]} />
@@ -275,7 +276,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
             the flag: the box went on rendering solid while the store said
             otherwise. A fresh material is re-decided by definition. */}
         {inked ? (
-          <primitive object={INK_BOX} attach="material" />
+          <primitive object={brushed ? BRUSH_BOX : INK_BOX} attach="material" />
         ) : (
           <meshStandardMaterial
             key={surface}
