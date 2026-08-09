@@ -1,7 +1,5 @@
-import * as THREE from 'three';
-import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import type { SceneModel } from '../types';
-import { authoredMaterial, cloneModel } from './modelMaterials';
+import { cloneModel } from './modelMaterials';
 
 /** Turn a display name into a safe, recognisable download name. */
 const exportFileName = (name: string) => {
@@ -30,6 +28,9 @@ export const exportScaledModel = async (model: SceneModel): Promise<void> => {
   root.scale.multiplyScalar(model.scale);
   root.updateMatrixWorld(true);
 
+  // Fetched when the button is pressed, not on every page load: the exporter
+  // is 32 KB of the startup chunk for a path most sessions never walk.
+  const { GLTFExporter } = await import('three/examples/jsm/exporters/GLTFExporter.js');
   const output = await new GLTFExporter().parseAsync(root, {
     binary: true,
     onlyVisible: false,

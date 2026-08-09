@@ -1,8 +1,8 @@
 import { create } from 'zustand';
-import { v4 as uuidv4 } from 'uuid';
 import {
   BOX_SURFACES,
   BoxData,
+  ConstructionLevel,
   FillState,
   GuideLevel,
   MESH_SURFACES,
@@ -153,6 +153,22 @@ const clampTo = (value: number, [low, high]: readonly [number, number]) =>
 // deliberately, by name, and lives in IndexedDB with its meshes.
 // ---------------------------------------------------------------------------
 
+/**
+ * A fresh id for a thing in the scene.
+ *
+ * This was a dependency. All ten call sites want an opaque unique string and
+ * nothing else, which the platform provides - except that crypto.randomUUID
+ * only exists in a secure context, and the dev server is reachable over plain
+ * http from a phone on the same network. So the one line has its fallback
+ * spelled out rather than a package carried for it.
+ */
+const newId = (): string =>
+  typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =>
+        b.toString(16).padStart(2, '0')
+      ).join('');
+
 const SETTINGS_KEY = 'kjg-perspective-settings';
 
 const SETTING_KEYS = [
@@ -162,7 +178,7 @@ const SETTING_KEYS = [
   'guides',
   'gridX',
   'gridZ',
-  'showConstruction',
+  'construction',
   'roomLevel',
   'room',
   'showVanishing',
@@ -201,7 +217,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   guides: number,
   gridX: boolean,
   gridZ: boolean,
-  showConstruction: boolean,
+  construction: (v) => v === 0 || v === 1 || v === 2,
   roomLevel: number,
   room: object,
   showVanishing: boolean,
@@ -234,7 +250,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
 const VIEW_GENERATION = 3;
 
 /** The keys the reset above drops. Everything else survives it. */
-const VIEW_KEYS = ['fov', 'guides', 'showConstruction', 'surface', 'roomLevel'] as const;
+const VIEW_KEYS = ['fov', 'guides', 'construction', 'surface', 'roomLevel'] as const;
 
 /**
  * Whether the stored setup predates the current opening view.
@@ -314,6 +330,8 @@ const legacy = (() => {
       room?: { floor?: number };
       /** Written by the version that had one switch for the room. */
       showRoom?: boolean;
+      /** Written by the version whose cage was a switch, not a ladder. */
+      showConstruction?: boolean;
     };
   } catch {
     return {};
@@ -398,6 +416,14 @@ const remembered = kept({
     : (Math.min(2, loadedSettings.guides ?? (legacy.showGuides ? 3 : 0)) as GuideLevel),
   gridX: loadedSettings.gridX ?? (loadedSettings.guides ?? 3) >= 2,
   gridZ: loadedSettings.gridZ ?? (loadedSettings.guides ?? 3) >= 2,
+  // ...and before the cage was a ladder: the old switch's "on" is the middle
+  // rung, the selection's own construction. Same shape as `guides` above -
+  // undefined when nothing was ever stored, so a first visit takes the default.
+  construction:
+    loadedSettings.construction ??
+    (staleView || legacy.showConstruction === undefined
+      ? undefined
+      : ((legacy.showConstruction ? 1 : 0) as ConstructionLevel)),
   // ...and before the surface was a property of each thing rather than one
   // switch over every mesh in the scene.
   surface: loadedSettings.surface ?? (staleView ? undefined : legacy.modelMaterial),
@@ -596,7 +622,7 @@ export const useStore = create<SceneState>((set, get) => ({
   guides: 1,
   gridX: true,
   gridZ: true,
-  showConstruction: false,
+  construction: 0,
   roomLevel: 0,
   room: DEFAULT_ROOM,
   showVanishing: true,
@@ -637,7 +663,7 @@ export const useStore = create<SceneState>((set, get) => ({
   // grid so a new box shares the scene's vanishing points.
   addCube: (position) =>
     set((state) => {
-      const id = uuidv4();
+      const id = newId();
       return {
         ...remember(state),
         boxes: [
@@ -705,7 +731,7 @@ export const useStore = create<SceneState>((set, get) => ({
    * you touch the screen.
    */
   standObject: (model) =>
-    set((state) => ({ models: [...state.models, { id: uuidv4(), surface: state.surface, ...model }] })),
+    set((state) => ({ models: [...state.models, { id: newId(), surface: state.surface, ...model }] })),
 
   selectBox: (id) => set({ selectedId: id, selectedModelId: null }),
 
@@ -713,7 +739,7 @@ export const useStore = create<SceneState>((set, get) => ({
     set((state) => {
       // Select what was just placed: the next thing anyone does to a new figure
       // is size it or move it, and both need it selected.
-      const placed = { id: uuidv4(), surface: state.surface, ...model };
+      const placed = { id: newId(), surface: state.surface, ...model };
       return {
         ...remember(state),
         models: [...state.models, placed],
@@ -807,7 +833,8 @@ export const useStore = create<SceneState>((set, get) => ({
       return { snapStep: SNAP_STEPS[(index + 1) % SNAP_STEPS.length] };
     }),
 
-  toggleConstruction: () => set((state) => ({ showConstruction: !state.showConstruction })),
+  cycleConstruction: () =>
+    set((state) => ({ construction: ((state.construction + 1) % 3) as ConstructionLevel })),
 
   // -------------------------------------------------------------------------
   // The viewer's own shelf
@@ -869,7 +896,7 @@ export const useStore = create<SceneState>((set, get) => ({
         // A fresh instance: sharing the Object3D itself would move both copies.
         const copy = {
           ...original,
-          id: uuidv4(),
+          id: newId(),
           object: cloneModel(original.object),
           position: [x, original.position[1], z] as [number, number, number],
         };
@@ -882,7 +909,7 @@ export const useStore = create<SceneState>((set, get) => ({
         const step = Math.max(original.scale[0], 0.5) + 0.5;
         const copy: BoxData = {
           ...original,
-          id: uuidv4(),
+          id: newId(),
           position: [original.position[0] + step, original.position[1], original.position[2]],
         };
         return { undoStack, redoStack, boxes: [...state.boxes, copy], selectedId: copy.id };
@@ -1098,7 +1125,7 @@ export const useStore = create<SceneState>((set, get) => ({
     const saved = Date.now();
 
     const scene: SavedScene = {
-      id: uuidv4(),
+      id: newId(),
       // Never drawn: it names the exported file and the accessible control.
       name: new Date(saved).toISOString().slice(0, 16).replace('T', ' '),
       createdAt: saved,
@@ -1151,7 +1178,7 @@ export const useStore = create<SceneState>((set, get) => ({
         ]);
         restored.push({
           ...model,
-          id: uuidv4(),
+          id: newId(),
           // The saved transforms win over anything the loader worked out.
           position: [...instance.position] as [number, number, number],
           rotationY: instance.rotationY,
@@ -1170,7 +1197,7 @@ export const useStore = create<SceneState>((set, get) => ({
     set((state) => {
       const next = {
         ...remember(state),
-        boxes: scene.boxes.map((box) => ({ ...box, id: uuidv4() })),
+        boxes: scene.boxes.map((box) => ({ ...box, id: newId() })),
         models: restored,
         selectedId: null,
         selectedModelId: null,
@@ -1211,12 +1238,12 @@ export const useStore = create<SceneState>((set, get) => ({
         ...remember(state),
         boxes: boxes.map((box) => ({
           ...box,
-          id: uuidv4(),
+          id: newId(),
           surface: box.surface === undefined ? undefined : readSurface(box.surface),
         })),
         models: models.map((model) => ({
           ...model,
-          id: uuidv4(),
+          id: newId(),
           surface: model.surface === undefined ? undefined : readSurface(model.surface),
         })),
         selectedId: null,

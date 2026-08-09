@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore, EYE_LEVEL_PRESETS } from '../store';
 import { walkInput } from '../lib/walkInput';
-import { holdRail, showRail, useRail } from '../lib/rail';
+import { holdRail, releaseRail, showRail, useRail } from '../lib/rail';
 import { SelectionBar } from './SelectionBar';
 import { LightPanel } from './LightPanel';
 import { Icon, I, SURFACE_ICON } from './icons';
@@ -170,14 +170,10 @@ export const WalkOverlay: React.FC<{
   const roomLevel = useStore((s) => s.roomLevel);
   const room = useStore((s) => s.room);
   const roomControl = useRoomControl();
-  const models = useStore((s) => s.models);
   const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
   const canUndo = useStore((s) => s.undoStack.length > 0);
   const canRedo = useStore((s) => s.redoStack.length > 0);
-  const selectedModelId = useStore((s) => s.selectedModelId);
-  const selectedId = useStore((s) => s.selectedId);
-  const isSelected = selectedModelId !== null || selectedId !== null;
 
   const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
   const guides = useStore((s) => s.guides);
@@ -188,8 +184,8 @@ export const WalkOverlay: React.FC<{
   const toggleGridZ = useStore((s) => s.toggleGridZ);
   const snapStep = useStore((s) => s.snapStep);
   const cycleSnap = useStore((s) => s.cycleSnap);
-  const showConstruction = useStore((s) => s.showConstruction);
-  const toggleConstruction = useStore((s) => s.toggleConstruction);
+  const construction = useStore((s) => s.construction);
+  const cycleConstruction = useStore((s) => s.cycleConstruction);
   const showVanishing = useStore((s) => s.showVanishing);
   const toggleVanishing = useStore((s) => s.toggleVanishing);
 
@@ -659,7 +655,7 @@ export const WalkOverlay: React.FC<{
   // row starts the idle count again.
   useEffect(() => {
     if (showTools || showLights) holdRail();
-    else showRail();
+    else releaseRail();
   }, [showTools, showLights]);
 
 
@@ -769,13 +765,17 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={SNAP_ICON[SNAP_STEPS.indexOf(snapStep as (typeof SNAP_STEPS)[number])] ?? I.snapFree} className="w-5 h-5" />
           </button>
+          {/* A ladder like the guides': off, the selection's, everything's.
+              The top rung is the page blocked in whole - every object boxed
+              before any object is drawn - which is a thing you step onto
+              deliberately, not a side effect of what happens to be selected. */}
           <button
-            onClick={toggleConstruction}
-            aria-label="Construction around each object"
-            aria-pressed={showConstruction}
-            className={`${button} ${showConstruction ? ACTIVE : ''}`}
+            onClick={cycleConstruction}
+            aria-label={`Construction around ${['nothing', 'the selection', 'everything'][construction]}`}
+            aria-pressed={construction > 0}
+            className={`${button} ${construction ? ACTIVE : ''}`}
           >
-            <Icon path={I.cage} className="w-5 h-5" />
+            <Icon path={construction === 2 ? I.cages : I.cage} className="w-5 h-5" />
           </button>
           <button
             onClick={toggleVanishing}

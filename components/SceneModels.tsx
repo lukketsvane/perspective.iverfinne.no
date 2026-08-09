@@ -37,7 +37,7 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
   const theme = useStore((state) => state.theme);
 
   const sceneSurface = useStore((state) => state.surface);
-  const showConstruction = useStore((state) => state.showConstruction);
+  const construction = useStore((state) => state.construction);
   const isSelected = selectedModelId === model.id;
   const dark = theme === 'dark';
 
@@ -106,8 +106,8 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       scale={model.scale}
     >
       <primitive object={model.object} />
-      {showConstruction && isSelected && model.kind !== 'scene' && (
-        <Construction model={model} color={cageColor} lit />
+      {(construction === 2 || (construction === 1 && isSelected)) && model.kind !== 'scene' && (
+        <Construction model={model} color={cageColor} lit={isSelected || construction < 2} />
       )}
     </group>
   );
@@ -128,6 +128,11 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
  *
  * Everything here is inside the model's own group, so it turns and scales with
  * it and needs no arithmetic of its own.
+ *
+ * `lit` is which voice it speaks in. At the ladder's top rung every model on
+ * the page is blocked in at once, and a page of equal cages is a page with no
+ * subject - so the selection keeps the full voice and the rest drop to an
+ * underdrawing.
  */
 const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }> = ({
   model,
@@ -155,6 +160,8 @@ const Construction: React.FC<{ model: SceneModel; color: string; lit: boolean }>
         segments
         color={color}
         lineWidth={pen}
+        transparent
+        opacity={lit ? 1 : 0.55}
       />
 
       {/* Where it stands, and the diagonals that find the middle of that.

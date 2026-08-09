@@ -10,17 +10,12 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@react-three/drei": "9.99.0",
+    "@react-three/fiber": "8.15.16",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "uuid": "9.0.1",
     "three": "0.160.0",
-    "@react-three/fiber": "8.15.16",
-    "@react-three/drei": "9.99.0",
-    "@react-spring/three": "9.7.3",
-    "zustand": "4.5.0",
-    "@use-gesture/react": "10.3.0",
-    "postprocessing": "6.34.1",
-    "@react-three/postprocessing": "2.16.0"
+    "zustand": "4.5.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

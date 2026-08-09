@@ -160,9 +160,9 @@ The controls:
 - **Sun / moon** — tap for light and dark, drag through all 256 greys,
   double-tap for the procedural sky
 - **Sliders** — everything else: the room's guides, the floor's two rulings, snap,
-  the construction around each object, the selection's own vanishing points,
-  view lock, the room (tap to step, drag to size), the surface of everything,
-  the lights, undo, redo, and save the view as a PNG
+  the construction ladder (off, the selection's, everything's), the selection's
+  own vanishing points, view lock, the room (tap to step, drag to size), the
+  surface of everything, the lights, undo, redo, and save the view as a PNG
 
 The **light** control is the one that changes what it does with the mode. On the
 clay it sweeps the page from black to white, as it always did. In ink it sweeps
@@ -743,11 +743,18 @@ after being asked has, as far as anyone watching can tell, not heard.
 
 ## The construction around each thing
 
-The selection carries its own construction — and only the selection. Drawing it
-round everything standing in the scene was defensible when a scene had three
-things in it and indefensible at fifteen: fifteen cages, fifteen footprints,
-thirty diagonals and fifteen plumb lines over the drawing. A box round
-everything at once is a box round nothing in particular.
+A ladder, like the guides: off, the selection's, everything's. The middle rung
+is the working default — the cage answers questions about the thing in your
+hands, and drawing it round everything *at the same weight* was defensible when
+a scene had three things in it and indefensible at fifteen: fifteen equal
+cages, thirty diagonals and fifteen plumb lines over the drawing, a box round
+everything at once being a box round nothing in particular.
+
+The top rung is that page done properly, because it is how a page is actually
+started: every object blocked in before any object is drawn. What makes it
+usable where the old always-on version was not is the weight rule a real page
+follows — the selection keeps the full voice and everything else drops to an
+underdrawing, so the scene is blocked in *and* still has a subject.
 
 - **the box it blocks into** — the first mark anyone makes when they draw a
   figure, and the thing a drawing is measured in

@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { USDZLoader } from 'three/examples/jsm/loaders/USDZLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { SceneModel } from '../types';
 import { getAsset, isAssetRef, putAsset } from './assets';
@@ -225,9 +224,19 @@ const shrinkTextures = (root: THREE.Object3D) => {
 };
 
 const parseBuffer = async (buffer: ArrayBuffer, isUsdz: boolean): Promise<ParsedSource> => {
+  // Fetched when a .usdz actually arrives - this loader alone drags the zip
+  // machinery (fflate) into whatever chunk it lives in, and nothing the tool
+  // ships is usdz. Fetched OUTSIDE the try, deliberately: the catch below
+  // turns what it catches into a resolved "could not be read", which the
+  // source cache then memoizes under the file's content hash - correct for a
+  // parse failure, which is a property of the bytes, and wrong for a network
+  // failure, which is a property of the moment. Thrown, it reaches the
+  // cache's own rejection eviction and the next attempt fetches the loader
+  // again.
+  const usdz = isUsdz ? await import('three/examples/jsm/loaders/USDZLoader.js') : null;
   try {
-    if (isUsdz) {
-      const group = new USDZLoader().parse(buffer);
+    if (usdz) {
+      const group = new usdz.USDZLoader().parse(buffer);
       // A binary crate archive parses to an empty group.
       if (group.children.length > 0) return { object: group, isUsdz };
       return { object: null, warning: 'binary USDZ — use glTF/GLB', isUsdz };
@@ -257,7 +266,15 @@ export const loadModelFile = async (file: File, dropAt: [number, number]): Promi
   const fileUrl = await putAsset(buffer, file.name);
 
   if (!sources.has(fileUrl)) sources.set(fileUrl, parseBuffer(buffer, isUsdz));
-  const { object, warning } = await sources.get(fileUrl)!;
+  let parsed: ParsedSource;
+  try {
+    parsed = await sources.get(fileUrl)!;
+  } catch (error) {
+    // A rejected promise left in the cache would fail every later attempt.
+    sources.delete(fileUrl);
+    throw error;
+  }
+  const { object, warning } = parsed;
 
   return {
     model: buildModel(instanceOf(object), file.name.replace(/\.[^.]+$/, ''), fileUrl, isUsdz, dropAt),

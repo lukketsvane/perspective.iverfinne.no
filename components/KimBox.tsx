@@ -110,7 +110,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
   const theme = useStore((state) => state.theme);
   const sceneSurface = useStore((state) => state.surface);
 
-  const showConstruction = useStore((state) => state.showConstruction);
+  const construction = useStore((state) => state.construction);
   // One weight on the finished sheet, whatever the field is doing and whatever
   // the picture is being rendered into - see lib/pen.ts.
   const pen = usePen();
@@ -177,17 +177,25 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
    * edgeColor, where they belong: those are the box.
    */
   const guideColor = constructionInk(sceneSurface === 'ink', isDark);
+  // At the top rung the whole scene is blocked in, and a page of equal cages
+  // is a page with no subject: the selection keeps the full voice, the rest
+  // drop to an underdrawing.
+  const voice = construction === 2 && !isSelected ? 0.55 : 1;
 
   return (
     <group userData={{ selectableType: 'box', selectableId: data.id }}>
-      {/* The same four marks a mesh gets, for the same job, on the same switch.
+      {/* The same four marks a mesh gets, for the same job, on the same ladder.
 
           It used to draw two of its own regardless of that switch, and one of
           them was a tinted plane rather than a line - a tone, which is the one
           thing a line drawing cannot carry and the one thing you cannot trace.
           It was also 40 cm wider than the box in both directions, so lining it
-          up against the grid lined up the wrong rectangle. */}
-      {showConstruction && isSelected && (
+          up against the grid lined up the wrong rectangle.
+
+          At the top rung every box is blocked in, and the one in your hands
+          speaks a little louder than the rest - the same weight rule a page
+          being started actually follows. */}
+      {(construction === 2 || (construction === 1 && isSelected)) && (
         <group
           raycast={() => null}
           position={[data.position[0], 0, data.position[2]]}
@@ -201,7 +209,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
             transparent
             depthTest={false}
             renderOrder={998}
-            opacity={0.6}
+            opacity={0.6 * voice}
           />
           <Line
             raycast={() => null}
@@ -211,7 +219,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
             transparent
             depthTest={false}
             renderOrder={998}
-            opacity={0.34}
+            opacity={0.34 * voice}
           />
           <Line
             raycast={() => null}
@@ -221,12 +229,12 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
             transparent
             depthTest={false}
             renderOrder={998}
-            opacity={0.34}
+            opacity={0.34 * voice}
           />
           {/* The true centre of the footprint, in perspective. */}
           <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
             <circleGeometry args={[Math.max(0.02, Math.min(hx, hz) * 0.06), 16]} />
-            <meshBasicMaterial color={guideColor} transparent opacity={0.75} depthWrite={false} toneMapped={false} />
+            <meshBasicMaterial color={guideColor} transparent opacity={0.75 * voice} depthWrite={false} toneMapped={false} />
           </mesh>
           {/* The plumb, for reading its height off the grid. A flat two metres
               past the top made a half-metre box carry a mark five times its
@@ -239,7 +247,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
             transparent
             depthTest={false}
             renderOrder={998}
-            opacity={0.45}
+            opacity={0.45 * voice}
           />
         </group>
       )}
