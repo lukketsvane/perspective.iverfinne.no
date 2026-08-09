@@ -4,14 +4,14 @@ import { WalkOverlay } from './components/WalkOverlay';
 import { VanishingPoints } from './components/VanishingPoints';
 import { MeshSheet } from './components/MeshSheet';
 import { SceneSheet } from './components/SceneSheet';
-import { LightSheet } from './components/LightSheet';
 import { useStore, saveSettings, currentView, standingRoom } from './store';
 import { loadModelFile, loadModelFromUrl, findFreeSpot, modelRadius } from './lib/loadModel';
 import { MESH_LIBRARY, openingMesh } from './lib/meshLibrary';
 import { focusPoint } from './lib/focus';
 import { walkInput } from './lib/walkInput';
 import { fieldOf } from './lib/projection';
-import { constructionInk } from './lib/inkMaterial';
+import { constructionInk, paperFor } from './lib/inkMaterial';
+import { keepAwake } from './lib/wakeLock';
 import { holdPreviews, resumePreviews } from './lib/meshPreview';
 import { downloadSceneFile, readSceneFile, toSceneFile } from './lib/sceneJson';
 import { beginActivity, reportFailure } from './lib/activity';
@@ -31,14 +31,40 @@ export default function App() {
   const loadSceneHistory = useStore((s) => s.loadSceneHistory);
   const loadOwnMeshes = useStore((s) => s.loadOwnMeshes);
   const rememberMesh = useStore((s) => s.rememberMesh);
-  const [sheet, setSheet] = useState<'meshes' | 'scenes' | 'lights' | null>(null);
+  // The lights are not here: they are chrome, not a sheet - the overlay stands
+  // them in the tools row's slot over a live dock, so the covering rule below
+  // never applies to them.
+  const [sheet, setSheet] = useState<'meshes' | 'scenes' | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
     loadSceneHistory();
     loadOwnMeshes();
+    // A reference is propped up and drawn from; it does not get to go dark.
+    keepAwake();
   }, [loadSceneHistory, loadOwnMeshes]);
   useEffect(() => useStore.subscribe((state) => saveSettings(state)), []);
+
+  /*
+   * The status bar is part of the page, on a phone saved to the home screen.
+   *
+   * Its style is "default", which lets iOS paint it from theme-color - so the
+   * meta follows the live paper. Drag the tone and the bar sweeps with it;
+   * cross into board and the clock goes to chalk. The one thing it must never
+   * be is black-translucent's fixed white text over a white sheet.
+   */
+  useEffect(() => {
+    // Derived from the ramp directly, not read off the live ink material: that
+    // is set by a layout effect inside the canvas's own reconciler, which
+    // flushes on a schedule of its own - reading it from here raced, and lost.
+    const tone =
+      surface === 'ink'
+        ? `#${paperFor(backgroundGray).getHexString()}`
+        : `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})`;
+    document
+      .querySelectorAll('meta[name="theme-color"]')
+      .forEach((meta) => meta.setAttribute('content', tone));
+  }, [surface, backgroundGray]);
 
   /** How much of the frame's height the opening object should fill. */
   const OPENING_SIZE = 0.45;
@@ -280,7 +306,6 @@ export default function App() {
       <WalkOverlay
         onModels={() => setSheet('meshes')}
         onScenes={() => setSheet('scenes')}
-        onLights={() => setSheet('lights')}
         covered={sheet !== null}
       />
       {sheet === 'meshes' && (
@@ -292,7 +317,6 @@ export default function App() {
           busyId={busy}
         />
       )}
-      {sheet === 'lights' && <LightSheet onClose={() => setSheet(null)} />}
       {sheet === 'scenes' && (
         <SceneSheet
           onClose={() => setSheet(null)}

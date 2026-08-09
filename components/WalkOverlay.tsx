@@ -3,6 +3,7 @@ import { useStore, EYE_LEVEL_PRESETS } from '../store';
 import { walkInput } from '../lib/walkInput';
 import { holdRail, showRail, useRail } from '../lib/rail';
 import { SelectionBar } from './SelectionBar';
+import { LightPanel } from './LightPanel';
 import { Icon, I, SURFACE_ICON } from './icons';
 import { Scrub, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
@@ -135,10 +136,9 @@ const TAP_MS = 700;
 export const WalkOverlay: React.FC<{
   onModels: () => void;
   onScenes: () => void;
-  onLights: () => void;
   /** True while a sheet is up: the dock belongs under it, not beside it. */
   covered?: boolean;
-}> = ({ onModels, onScenes, onLights, covered = false }) => {
+}> = ({ onModels, onScenes, covered = false }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -154,6 +154,16 @@ export const WalkOverlay: React.FC<{
   const toggleSunEnvironment = useStore((s) => s.toggleSunEnvironment);
   const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
   const [showTools, setShowTools] = useState(false);
+  /*
+   * The lights stand in the tools row's own slot, over a live dock.
+   *
+   * They were a modal sheet, and opening one closed both toolbars - so moving
+   * the sun cost you the field-of-view and eye-height controls it is most
+   * often adjusted against, and the view could not be walked while a thumb
+   * was on a knob. The two are one slot now: Lights swaps the row for the
+   * panel, Tools swaps it back.
+   */
+  const [showLights, setShowLights] = useState(false);
   const railVisible = useRail();
   const sceneSurface = useStore((s) => s.surface);
   const cycleSurface = useStore((s) => s.cycleSurface);
@@ -561,7 +571,8 @@ export const WalkOverlay: React.FC<{
       if (e.key === 'Escape') {
         // A sheet closes itself on escape; backing out of one is not also a
         // reason to drop what was selected before it was opened.
-        if (showTools) setShowTools(false);
+        if (showLights) setShowLights(false);
+        else if (showTools) setShowTools(false);
         else if (!covered) useStore.getState().selectBox(null);
         return;
       }
@@ -640,16 +651,16 @@ export const WalkOverlay: React.FC<{
       walkInput.forward = 0;
       walkInput.strafe = 0;
     };
-  }, [showTools, undo, redo, covered]);
+  }, [showTools, showLights, undo, redo, covered]);
 
   // Opening the second row is a statement that the chrome is wanted. It used to
   // fade out from under an open panel six seconds later, leaving twelve
   // controls on screen that could be seen through and not pressed. Closing the
   // row starts the idle count again.
   useEffect(() => {
-    if (showTools) holdRail();
+    if (showTools || showLights) holdRail();
     else showRail();
-  }, [showTools]);
+  }, [showTools, showLights]);
 
 
   const button = iconButton(isDark);
@@ -684,10 +695,10 @@ export const WalkOverlay: React.FC<{
         onPointerLeave={() => setCursor('default')}
       />
 
-      {showTools && (
+      {(showTools || showLights) && (
         <div
           className="fixed inset-0 z-[39]"
-          onPointerDown={() => setShowTools(false)}
+          onPointerDown={() => { setShowTools(false); setShowLights(false); }}
         />
       )}
 
@@ -706,8 +717,17 @@ export const WalkOverlay: React.FC<{
         className={`fixed bottom-safe-panel left-0 right-0 z-40 flex flex-col items-center gap-3 px-3 pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${dockVisible ? 'opacity-100' : 'opacity-0'}`}
       >
 
+        {/* One slot above the dock, two occupants: the tools row and the light
+            panel overlap in it, and at most one is ever open. Zero-height, so
+            whichever is up hangs from the same line the dock column already
+            draws, and the closed one costs no space - stacked in the flow, an
+            invisible tools row held a tools-row-sized hole open between the
+            lights and the dock. */}
+        <div className="relative w-full h-0">
+
         {/* Secondary tools. Wrapping, because ten 44 px targets do not fit
             across a phone in one line and a scroller here would be a trap. */}
+        <div className="absolute bottom-0 inset-x-0 flex justify-center pointer-events-none">
         <div
           /* Out of the tab order while it is out of sight - what
              pointer-events-none already does for the pointer. A keyboard
@@ -797,7 +817,12 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={SURFACE_ICON[sceneSurface]} className="w-5 h-5" />
           </button>
-          <button onClick={() => { setShowTools(false); onLights(); }} aria-label="Lights" className={button}>
+          <button
+            onClick={() => { setShowTools(false); setShowLights(true); }}
+            aria-label="Lights"
+            aria-expanded={showLights}
+            className={button}
+          >
             <Icon path={I.strength} className="w-5 h-5" />
           </button>
           <button onClick={undo} aria-label="Undo" className={`${button} ${canUndo ? '' : 'opacity-30'}`}>
@@ -813,6 +838,19 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.camera} className="w-5 h-5" />
           </button>
+        </div>
+        </div>
+
+        {/* The lights, in the same slot. */}
+        <div className="absolute bottom-0 inset-x-0 flex justify-center pointer-events-none">
+          <div
+            {...(showLights && dockVisible ? {} : { inert: '' })}
+            className={`max-w-full p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showLights && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
+          >
+            <LightPanel />
+          </div>
+        </div>
+
         </div>
 
         {/* Primary Dock */}
@@ -883,7 +921,9 @@ export const WalkOverlay: React.FC<{
             <Icon path={sunEnvironment ? I.sky : isDark ? I.dark : I.light} className="w-5 h-5" />
           </button>
           <button
-            onClick={() => setShowTools((open) => !open)}
+            // With the lights up, Tools means "back to the tools": the two
+            // share the slot, so this swaps rather than stacks.
+            onClick={() => { setShowTools(showLights ? true : !showTools); setShowLights(false); }}
             aria-label="Tools"
             aria-expanded={showTools}
             className={`${button} ${showTools ? 'bg-black/10 dark:bg-white/10' : ''}`}
