@@ -494,6 +494,29 @@ interference, and it was the densest thing on screen after the sheet. It fades
 out between four and twelve metres; you measure with it at your feet, and from
 across the room the metre and the five do the work.
 
+### Blocking out
+
+Standing in a real place with the tool in hand, the job is speed: estimate
+the forms in the space around you and stand boxes in for them before the
+estimate fades. Two things carry it.
+
+**Drawing boxes.** Pick the pencil up in the tools row and a drag on the
+ground draws a footprint where the table is; release, and the next drag pulls
+its height; release, and the box stands - sized by eye, in two strokes, with
+its dimensions reading beside your finger as you draw and the snap applied
+throughout. The mode stays armed, so a room is blocked out in a run of
+strokes, each box one undo step, each landing selected for the usual handles
+to refine.
+
+**The known forms.** The model library carries the dozen numbers a real place
+is actually blocked out of: a seat is 0.45, a bed 0.55, a table 0.75, a
+counter 0.9, a person 1.75, a door 2.1. One tap stands the true-size box at
+the gaze point. Own those numbers and every form in a room can be estimated
+off them - a wardrobe is a door and a bit, a desk is a table - and placing
+them is how they are learned. The tile glyphs are each form's own proportion;
+the number under each is its height, the dimension a standing eye reads
+everything against.
+
 ### The measure
 
 The pencil at arm's length, as an instrument. Every artist measures the world

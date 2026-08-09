@@ -75,6 +75,9 @@ export const I = {
   lampSpot: (<><path d="M12 2.5v2.6" strokeOpacity="0.5" /><path d="M8.6 6.4h6.8l1.4 4.4H7.2z" /><path d="M8.2 12.6L5 20.5M15.8 12.6L19 20.5M12 12.6V21" strokeOpacity="0.5" /></>),
   power: (<><path d="M12 3.5v7" /><path d="M7.2 6.8a7 7 0 1 0 9.6 0" /></>),
 
+  /** A box being drawn: the footprint down, the height going up. */
+  block: (<><path d="M4 17.5l6-2.6 8 2.2-6 2.8z" /><path d="M12 14.9V6.2M9.8 8.4 12 6.2l2.2 2.2" strokeOpacity="0.65" /></>),
+
   /** The drafting divider, legs open over the arc it spans. */
   measure: (<><path d="M12 3.5L5.5 20M12 3.5L18.5 20" /><circle cx="12" cy="4.6" r="1.5" /><path d="M6.8 16.6a11.5 11.5 0 0 1 10.4 0" strokeOpacity="0.55" /></>),
 
