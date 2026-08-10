@@ -1165,7 +1165,37 @@ export const useStore = create<SceneState>((set, get) => ({
   shufflePreset: () =>
     set((state) => {
       const p = nextPreset(state.presetName);
+      /*
+       * WHAT WAS FOLLOWING THE PAGE FOLLOWS IT. WHAT WAS SET BY HAND STAYS.
+       *
+       * This said so and did the opposite: it stamped the page's rung onto
+       * every box and every mesh, exactly like the surface control next to it -
+       * which is the one place that is SUPPOSED to overrule everything, says so,
+       * and is undoable because of it. So a hatched object standing on a brush
+       * page, which is the whole reason a thing can have a rung of its own, was
+       * wiped by the button beside it. Dealing pages is a comparison and the
+       * button is meant to be pressed over and over; three presses and the
+       * arrangement was gone with nothing to press to get it back.
+       *
+       * Following is read as standing on the rung the page is leaving. There is
+       * nothing else to read it from - a box is born carrying the scene's
+       * surface rather than an empty one, so "unset" and "set to what the page
+       * happened to be" are the same row - but it is the right guess either
+       * way: what looked like the page moves with the page, and what looked
+       * different from it keeps looking different.
+       */
+      const following = (surface?: Surface) => surface === undefined || surface === state.surface;
       return {
+        // Undoable, now that it rewrites scene rows at all - every other thing
+        // in here that writes to boxes or models does this, and skipping it did
+        // not merely fail to record the shuffle: undo went looking for the last
+        // step that HAD been recorded and threw that away instead, so one press
+        // lost the deal and the surface change before it.
+        //
+        // It puts the rungs back, not the paper: the page's own settings are
+        // not in a history step here any more than the backdrop or the lamps
+        // are. Press for another page to change the page.
+        ...remember(state),
         presetName: p.name,
         surface: p.surface,
         backdrop: p.backdrop,
@@ -1175,10 +1205,8 @@ export const useStore = create<SceneState>((set, get) => ({
         fill: { ...state.fill, enabled: p.fill },
         marker: p.marker ? { ...state.marker, ...p.marker } : state.marker,
         hatch: p.hatch ? { ...state.hatch, ...p.hatch } : state.hatch,
-        // Everything placed keeps the rung it is on unless it was following
-        // the scene's; the surface control's own stamp is a separate act.
-        boxes: state.boxes.map((b) => ({ ...b, surface: p.surface })),
-        models: state.models.map((m) => ({ ...m, surface: p.surface })),
+        boxes: state.boxes.map((b) => (following(b.surface) ? { ...b, surface: p.surface } : b)),
+        models: state.models.map((m) => (following(m.surface) ? { ...m, surface: p.surface } : m)),
       };
     }),
 
