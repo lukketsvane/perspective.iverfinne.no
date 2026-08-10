@@ -1237,16 +1237,16 @@ export const WalkOverlay: React.FC<{
         <div className="relative w-full h-0">
 
         {/*
-          * Secondary tools, in four bands with a hairline between them.
+          * Secondary tools, in five bands with a hairline between them.
           *
           * Sixteen identical circles wrapped into whatever rows the width
           * happened to give was a wall, not a menu: nothing in it was near
           * anything it was related to, and the row a control sat in changed
           * with the phone. Each band is now its own line and holds one kind of
-          * decision - what is drawn on the ground, what the picture is made
-          * of, where it is seen from, and what to do with the session. A band
-          * is scanned in one movement, and a control keeps the company it
-          * belongs to at every width.
+          * decision - which instrument is in your hand, what is drawn on the
+          * ground, what the picture is made of, where it is seen from, and
+          * what to do with the session. A band is scanned in one movement, and
+          * a control keeps the company it belongs to at every width.
           */}
         <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
         <div
@@ -1257,7 +1257,67 @@ export const WalkOverlay: React.FC<{
           {...(showTools && dockVisible ? {} : { inert: '' })}
           className={`flex flex-col max-w-[22rem] ${SIDEWAYS_PANEL} p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showTools && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
         >
+          {/*
+            * THE TWO INSTRUMENTS, first, and off the dock.
+            *
+            * Both used to sit on the dock beside the view controls, where they
+            * were the only two things there that arm a MODE rather than do
+            * something. The dock is the verbs you reach for without looking;
+            * these are the two you pick up, use, and put down, and they read
+            * differently enough to be worth their own line here.
+            *
+            * They cannot both be up, so each puts the other down, and either
+            * closes this panel as it arms - the instrument is for using on the
+            * drawing, and the menu it was picked from would be in the way.
+            */}
           <div className={band}>
+          {/* The block-out pencil: while it is up, a drag on the ground draws
+              a footprint and the next drag pulls its height - a box, sized by
+              eye, in two strokes. The fastest road from standing in a real
+              place to a scene of its forms.
+
+              It puts itself down when the box is done - see the pointer
+              handler - so a room of six boxes is six trips back in here. That
+              is the cost of the seat it gave up. */}
+          <button
+            onClick={() => {
+              block.current = null;
+              setBlockReadout(null);
+              setBlocking((on) => !on);
+              if (measuring) clearMeasures();
+              measurePointer.current = null;
+              setMeasuring(false);
+              setShowTools(false);
+            }}
+            aria-label="Draw boxes on the ground"
+            aria-pressed={blocking}
+            className={`${button} ${blocking ? ACTIVE : ''}`}
+          >
+            <Icon path={I.block} className="w-5 h-5" />
+          </button>
+          {/* The pencil at arm's length: while it is up, a drag on the scene
+              lays a measure in degrees of visual angle instead of turning the
+              view. Putting the instrument down clears the sheet - a
+              measurement is a reading, not a mark of the composition. */}
+          <button
+            onClick={() => {
+              if (measuring) clearMeasures();
+              measurePointer.current = null;
+              setMeasuring((on) => !on);
+              setBlocking(false);
+              block.current = null;
+              setBlockReadout(null);
+              setShowTools(false);
+            }}
+            aria-label="Measure visual angles"
+            aria-pressed={measuring}
+            className={`${button} ${measuring ? ACTIVE : ''}`}
+          >
+            <Icon path={I.measure} className="w-5 h-5" />
+          </button>
+          </div>
+
+          <div className={`${band} ${divider}`}>
           <button
             onClick={cycleGuides}
             aria-label={`Construction guides, level ${guides} of 2`}
@@ -1577,21 +1637,27 @@ export const WalkOverlay: React.FC<{
         {/*
           * The dock is the verbs, and only the verbs.
           *
-          * Add something, choose the lens, choose the eye level, block a form
-          * in, measure an angle, take a step back or forward, and the way in
-          * to everything else. Nothing here is a setting: the projection and
-          * the sheet tone went into the panel, where the rest of the "how it
-          * is drawn" decisions live, and the two steps of the undo stack came
-          * out of it. It is the same eight seats either way, and the trade is
-          * a thing you touch once a session for two you touch every minute.
+          * Add something, choose the lens, choose the eye level, take a step
+          * back or forward, and the way in to everything else. Nothing here is
+          * a setting: the projection and the sheet tone went into the panel,
+          * where the rest of the "how it is drawn" decisions live, and the two
+          * steps of the undo stack came out of it.
+          *
+          * The two pencils went into the panel as well, at its head. They were
+          * the only things down here that arm a mode rather than do something,
+          * and six seats leave the row room to breathe on a narrow phone -
+          * though the block-out pencil puts itself down after every box, so
+          * each box now costs the trip back into the panel.
           */}
         <div
           {...(dockVisible ? {} : { inert: '' })}
           // Tighter on a phone, for the same reason the controls in it are:
-          // eight of them plus the glass is 368 px and a 390 px frame gives
-          // the dock 366, so it folded in half over the drawing for want of
-          // two pixels. It wraps rather than clips when it truly cannot fit -
-          // a control pushed off the edge is not a smaller control.
+          // eight of these plus the glass came to 368 px against the 366 a
+          // 390 px frame gives the dock, and it folded in half over the
+          // drawing for want of two pixels. Six now, with room to spare - the
+          // wrapping stays, because it wraps rather than clips when it truly
+          // cannot fit, and a control pushed off the edge is not a smaller
+          // control.
           className={`flex flex-wrap items-center justify-center max-w-full p-1.5 gap-1 max-[429px]:p-1 max-[429px]:gap-0.5 rounded-[1.75rem] border shadow-2xl ${SIDEWAYS_DOCK} ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
         >
           <div className={`${SIDEWAYS_CLUSTER} ${surface}`}>
@@ -1639,47 +1705,6 @@ export const WalkOverlay: React.FC<{
             cycle={EYE_LEVEL_PRESETS.map((p) => p.height)}
             onChange={setCameraHeight}
           />
-          {/* The block-out pencil: while it is up, a drag on the ground draws
-              a footprint and the next drag pulls its height - a box, sized by
-              eye, in two strokes, and the mode stays armed for the next one.
-              The fastest road from standing in a real place to a scene of its
-              forms. */}
-          <button
-            onClick={() => {
-              block.current = null;
-              setBlockReadout(null);
-              setBlocking((on) => !on);
-              if (measuring) clearMeasures();
-              measurePointer.current = null;
-              setMeasuring(false);
-              setShowTools(false);
-            }}
-            aria-label="Draw boxes on the ground"
-            aria-pressed={blocking}
-            className={`${button} ${blocking ? ACTIVE : ''}`}
-          >
-            <Icon path={I.block} className="w-5 h-5" />
-          </button>
-          {/* The pencil at arm's length: while it is up, a drag on the scene
-              lays a measure in degrees of visual angle instead of turning the
-              view. Putting the instrument down clears the sheet - a
-              measurement is a reading, not a mark of the composition. */}
-          <button
-            onClick={() => {
-              if (measuring) clearMeasures();
-              measurePointer.current = null;
-              setMeasuring((on) => !on);
-              setBlocking(false);
-              block.current = null;
-              setBlockReadout(null);
-              setShowTools(false);
-            }}
-            aria-label="Measure visual angles"
-            aria-pressed={measuring}
-            className={`${button} ${measuring ? ACTIVE : ''}`}
-          >
-            <Icon path={I.measure} className="w-5 h-5" />
-          </button>
           </div>
 
           <div className={`${SIDEWAYS_CLUSTER} ${surface}`}>
