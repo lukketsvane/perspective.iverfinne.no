@@ -501,7 +501,6 @@ export default function App() {
         shelf={
           sheet === 'meshes' ? (
             <MeshSheet
-              onClose={() => setSheet(null)}
               onPlace={placeLibraryMesh}
               onPlaceOwn={placeOwnMesh}
               onImport={importModels}

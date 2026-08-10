@@ -203,7 +203,10 @@ export interface OwnMesh {
 export const readLibrary = async (): Promise<OwnMesh[]> => {
   const stored = await transact<OwnMesh[]>(LIBRARY, 'readonly', (store) => store.getAll());
   const meshes = stored ?? Array.from(memoryLibrary.values());
-  return [...meshes].sort((a, b) => a.addedAt - b.addedAt);
+  // Newest first. The shelf is one row you push sideways, so the far end of it
+  // is the expensive place to be - and the thing most likely to be wanted next
+  // is the thing just put there.
+  return [...meshes].sort((a, b) => b.addedAt - a.addedAt);
 };
 
 export const addToLibrary = async (url: string, name: string): Promise<OwnMesh> => {
