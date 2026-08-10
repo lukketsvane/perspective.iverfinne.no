@@ -1245,6 +1245,21 @@ export const useStore = create<SceneState>((set, get) => ({
         fill: { ...state.fill, enabled: p.fill },
         marker: p.marker ? { ...state.marker, ...p.marker } : state.marker,
         hatch: p.hatch ? { ...state.hatch, ...p.hatch } : state.hatch,
+        // The two the pages could not say until the knobs existed.
+        //
+        // The pen is left alone when a page does not name one, like the stain
+        // and the rule above: it shows only on the three drawn rungs, and
+        // every page that lands on one names its own.
+        //
+        // THE FLOOR IS NOT. It shows on every page there is, so leaving it
+        // meant one deal turned it on and it stayed on through pages composed
+        // with nothing under them - measured, nineteen deals out of
+        // twenty-two came up standing on a floor that only two pages asked
+        // for. A page is a whole page; what it does not ask for it does not
+        // get. Its tone survives, so a floor dragged to a value you liked
+        // comes back at that value rather than at the default.
+        pen: p.pen ? { ...state.pen, ...p.pen } : state.pen,
+        ground: p.ground ?? { on: false, tone: state.ground.tone },
         boxes: state.boxes.map((b) => (following(b.surface) ? { ...b, surface: p.surface } : b)),
         models: state.models.map((m) => (following(m.surface) ? { ...m, surface: p.surface } : m)),
       };
