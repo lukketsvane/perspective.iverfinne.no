@@ -682,6 +682,31 @@ export interface SceneView {
   gridZ?: boolean;
   /** The default surface for anything placed after the scene comes back. */
   surface?: Surface;
+  /*
+   * ...AND HOW THAT SURFACE IS RULED.
+   *
+   * These five were the gap between what the types said and what happened. The
+   * comment on MarkerState has always claimed that "a saved scene composed in a
+   * forty-five degree hatch at six pixels should come back in a forty-five
+   * degree hatch at six pixels, and a value that lives only in a uniform cannot
+   * be written down" - and then none of them was written down. They persisted
+   * as SETTINGS, which survives a reload and has nothing to do with a scene: a
+   * composition saved on one page reopened on whatever page you happened to be
+   * on, with its surfaces intact and its rule someone else's.
+   *
+   * It mattered less when there were two of them. A page now carries a pen, a
+   * wash and a floor as well, and a page IS how the thing is drawn - so saving
+   * a scene and not saving that is saving half of it.
+   *
+   * All optional, and all read back through the defaults: a scene written by a
+   * version with fewer knobs must not return with an undefined outline and rule
+   * nothing.
+   */
+  marker?: MarkerState;
+  hatch?: HatchState;
+  pen?: PenState;
+  wash?: WashState;
+  ground?: { on: boolean; tone: number };
   /** Written by a version whose surface setting was models-only and had two rungs. */
   modelMaterial?: Surface;
   /** Whether the room was standing round the scene, and how big it was. */
