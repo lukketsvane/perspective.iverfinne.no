@@ -667,6 +667,117 @@ const build = (style: Style, extra: THREE.ShaderMaterialParameters = {}) => {
   return material;
 };
 
+/**
+ * The cast shadow, on the etched page, CUT RATHER THAN WASHED.
+ *
+ * A wash under a drawing made entirely of line is the one thing on the page
+ * that is not a line, and it shows: the object is engraved and its shadow is a
+ * grey rectangle of nothing. An etcher has no wash either - the shadow on the
+ * ground is the same needle, laid in the same ranks, running along the ground
+ * rather than over the form.
+ *
+ * So the ground's shadow catcher is three's own ShadowMaterial with its one
+ * line of output rewritten. Everything that makes shadows work - the maps, the
+ * cascades, the soft filtering - is inherited untouched; all that changes is
+ * that where it wrote a flat alpha it now writes the coverage of a rank of
+ * strokes. The strokes are ruled on world planes at the hand's own angle,
+ * which is what the flat faces of a box already use, so the shadow and the
+ * boxes standing in it are ruled by the same hand.
+ *
+ * The uniforms are the very objects the ink shader uses, not copies, so the
+ * angle and the spacing are one setting across the whole page.
+ */
+export const HATCH_SHADOW = (() => {
+  const material = new THREE.ShadowMaterial({ transparent: true, depthWrite: false });
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.radPerSheetPixel = inkUniforms.radPerSheetPixel;
+    shader.uniforms.hatchAngle = inkUniforms.hatchAngle;
+    shader.uniforms.hatchSpacing = inkUniforms.hatchSpacing;
+    shader.uniforms.hatchWidth = inkUniforms.hatchWidth;
+    shader.uniforms.hatchLength = inkUniforms.hatchLength;
+
+    shader.vertexShader = shader.vertexShader
+      .replace('void main() {', 'varying vec3 vGround;\nvoid main() {')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvGround = (modelMatrix * vec4(position, 1.0)).xyz;');
+
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        'void main() {',
+        [
+          'varying vec3 vGround;',
+          'uniform float radPerSheetPixel;',
+          'uniform float hatchAngle;',
+          'uniform float hatchSpacing;',
+          'uniform float hatchWidth;',
+          'uniform float hatchLength;',
+          'float groundMark(float value, float widthSourcePx) {',
+          '  float slope = max(fwidth(value), 1e-7);',
+          '  float away = abs(fract(value - 0.5) - 0.5) / slope;',
+          '  float arm = max(widthSourcePx * 0.5, 0.1);',
+          '  return 1.0 - smoothstep(arm - 0.55, arm + 0.55, away);',
+          '}',
+          'float groundRank(float f, float along, float step, float w, float runRatio) {',
+          '  if (w < 0.02) return 0.0;',
+          '  float v = f / step;',
+          '  float id = floor(floor(v + 0.5) * step / 0.005 + 0.5);',
+          '  float grainA = fract(sin(id * 12.9898) * 43758.5453);',
+          '  float grainB = fract(sin(id * 78.233) * 24634.6345);',
+          '  float line = groundMark(v, w * (0.82 + 0.36 * grainB));',
+          '  if (runRatio > 0.01) {',
+          '    float t = fract(along / (step * runRatio) + grainA);',
+          '    line *= smoothstep(0.0, 0.05, t) * (1.0 - smoothstep(0.95, 1.0, t));',
+          '  }',
+          '  return line;',
+          '}',
+          'void main() {',
+        ].join('\n')
+      )
+      .replace(
+        'gl_FragColor = vec4( color, opacity * ( 1.0 - getShadowMask() ) );',
+        [
+          'vec3 toEye = vGround - cameraPosition;',
+          'float dist = max(length(toEye), 1e-4);',
+          'vec3 view = toEye / dist;',
+          'float radPerSourcePixel = max(length(dFdx(view)), length(dFdy(view)));',
+          'float scale = radPerSheetPixel / max(radPerSourcePixel, 1e-7);',
+          'vec3 up = abs(view.y) > 0.98 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);',
+          'vec3 su = normalize(up - view * dot(up, view));',
+          'vec3 sr = normalize(cross(view, su));',
+          'vec3 axis = su * cos(hatchAngle) + sr * sin(hatchAngle);',
+          'vec3 runDir = su * -sin(hatchAngle) + sr * cos(hatchAngle);',
+          'float wantM = hatchSpacing * radPerSheetPixel * dist;',
+          'float lod = log2(max(wantM, 1e-5) / 0.01);',
+          'float rung = floor(lod);',
+          'float coarse = 0.01 * exp2(rung + 1.0);',
+          'float over = lod - rung;',
+          'float shade = 1.0 - getShadowMask();',
+          // The shadow's own value decides the weight, exactly as the form's
+          // does on an object: a grazing shadow is a lighter cut.
+          'float wPage = max(hatchWidth, 1.0) * (0.80 + 0.9 * shade);',
+          'float w = clamp(wPage * scale, 0.5, 40.0);',
+          'float f = dot(vGround, axis);',
+          'float along = dot(vGround, runDir);',
+          'float runRatio = hatchLength / max(hatchSpacing, 0.001);',
+          'float ink = max(',
+          '  groundRank(f, along, coarse, w, runRatio),',
+          '  groundRank(f, along, coarse * 0.5, w * (1.0 - over), runRatio)',
+          ');',
+          'gl_FragColor = vec4( color, opacity * ink * step(0.06, shade) );',
+        ].join('\n')
+      );
+  };
+  // A material that compiles differently from every other ShadowMaterial needs
+  // its own program, and three keys programs on this.
+  material.customProgramCacheKey = () => 'hatch-shadow';
+  return material;
+})();
+
+/** The cut shadow's pen and how hard it is laid. Pushed from the store. */
+export const setShadowInk = (hex: string, opacity: number) => {
+  HATCH_SHADOW.color.set(hex);
+  HATCH_SHADOW.opacity = opacity;
+};
+
 /** The finished brush page: line, and the blacks spotted in. */
 export const BRUSH = build({ fill: true });
 

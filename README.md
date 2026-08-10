@@ -217,6 +217,16 @@ width happened to give was a wall rather than a menu — nothing sat near anythi
 it was related to, and which row a control landed in changed with the phone. A
 band is scanned in one movement and keeps its company at every width.
 
+**Turned sideways, the dock splits in two.** A phone held in landscape is held
+in *two hands*, and the two places a thumb actually rests are the bottom
+corners — not the middle of the bottom edge, which is where the row sat and
+which is also directly under the subject of the drawing. Below 560 px of window
+height the eight controls become two clusters anchored to the two corners, and
+the whole centre of the frame comes back: measured on an 844 × 390 phone, 414 px
+of clear gap between them. The clusters are `display: contents` in portrait,
+which removes their boxes entirely and lets all eight children lay themselves
+out as the single row they have always been — one wrapper, no second layout.
+
 **Turned sideways, the whole panel turns with it.** A phone on its side has
 about 390 px of height and something like 850 of width. Four stacked bands plus
 the dock plus the selection bar came to more than half that height, over the
@@ -870,6 +880,28 @@ the drawing, and the drawing is what the export writes out at three times the
 frame to be printed or dropped into a tablet layer and traced over. Which sheet
 you want is yours to choose — but a *white line on a black field* is not what
 the dark theme should hand you by default, so the two are separate decisions.
+
+### Ten pages, and a shuffle
+
+Everything in this tool is a knob, and a tool that is all knobs is a tool nobody
+ever sees the range of. Most of what it can do lives in *combinations*: the
+etched page wants a low raking sun and no floor grid, the five-point sheet wants
+a wide field and the guides up, the marker wants a light mount. Any one of those
+is a minute of fiddling to find and a second to lose.
+
+So there are ten whole pages — surface, sheet, mount, light, lens, projection
+and furniture, chosen together — and one control that deals a different one each
+time it is pressed. Brush page on black, the etched plate, silverpoint, green
+marker, blue print, chalk on slate, the five-point sheet, the long frieze, noon
+clay, night study. It is the fastest way to learn what the knobs are *for*: you
+land somewhere good, and then you can see which knob put you there.
+
+They are dealt in one `set()`, so a page lands on a single frame rather than
+arriving as nine separate changes the renderer has to chase. Nothing in the
+scene and nothing about where you are standing is touched — what you have built
+and where you stand are yours, and this changes only how it is drawn. And it
+never deals the page you are already on: a shuffle that can hand you back your
+own hand looks broken half the time it is pressed on a list this short.
 
 ### Hatching that describes, rather than shades
 

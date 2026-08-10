@@ -645,6 +645,10 @@ export interface SceneState {
   cycleBackdrop: () => void;
   /** Set the page's own tone, 0 to 255 through the paper ramp. */
   setBackdrop: (value: number) => void;
+  /** The page a preset is showing, so the shuffle never deals the same one. */
+  presetName: string | null;
+  /** Deal a different whole page: surface, sheet, mount, light, lens, furniture. */
+  shufflePreset: () => void;
   setMarker: (marker: Partial<MarkerState>) => void;
   setHatch: (hatch: Partial<HatchState>) => void;
   cycleRoom: () => void;

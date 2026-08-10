@@ -75,6 +75,31 @@ const SIDEWAYS_PANEL =
   '[@media(max-height:560px)]:overflow-x-auto [@media(max-height:560px)]:scrollbar-none';
 
 /** The hairline between two bands, moved from under them to beside them. */
+/**
+ * The dock, turned sideways: two thumbs instead of one row.
+ *
+ * A phone held in landscape is held in TWO hands, and the two places a thumb
+ * actually rests are the bottom corners - not the middle of the bottom edge,
+ * which is where the row sat and which is also directly under the subject of
+ * the drawing. So the eight controls split into two clusters anchored to the
+ * two corners, and the whole centre of the frame comes back.
+ *
+ * The clusters are display:contents in portrait, which removes their boxes
+ * entirely and lets all eight children lay themselves out as the single row
+ * they have always been - so this costs one wrapper and no second layout.
+ */
+const SIDEWAYS_CLUSTER =
+  'contents [@media(max-height:560px)]:flex [@media(max-height:560px)]:items-center ' +
+  '[@media(max-height:560px)]:gap-1 [@media(max-height:560px)]:p-1.5 ' +
+  '[@media(max-height:560px)]:rounded-[1.75rem] [@media(max-height:560px)]:border ' +
+  '[@media(max-height:560px)]:shadow-2xl';
+
+/** ...and the row itself gives up its glass to them, and spreads to the edges. */
+const SIDEWAYS_DOCK =
+  '[@media(max-height:560px)]:w-full [@media(max-height:560px)]:justify-between ' +
+  '[@media(max-height:560px)]:bg-transparent [@media(max-height:560px)]:border-transparent ' +
+  '[@media(max-height:560px)]:shadow-none [@media(max-height:560px)]:p-0';
+
 const SIDEWAYS_DIVIDER =
   '[@media(max-height:560px)]:mt-0 [@media(max-height:560px)]:pt-0 ' +
   '[@media(max-height:560px)]:border-t-0 [@media(max-height:560px)]:ml-1 ' +
@@ -275,6 +300,7 @@ export const WalkOverlay: React.FC<{
   const railVisible = useRail();
   const sceneSurface = useStore((s) => s.surface);
   const cycleSurface = useStore((s) => s.cycleSurface);
+  const shufflePreset = useStore((s) => s.shufflePreset);
   const roomLevel = useStore((s) => s.roomLevel);
   const room = useStore((s) => s.room);
   const roomControl = useRoomControl();
@@ -1182,6 +1208,20 @@ export const WalkOverlay: React.FC<{
               one on the dock, one buried here - and they are one decision
               taken twice, so they stand together. */}
           <div className={`${band} ${divider}`}>
+          {/* Ten whole pages - surface, sheet, mount, light, lens, furniture,
+              chosen together - and this deals a different one each press.
+              Everything in this tool is a knob, and a tool that is all knobs is
+              a tool nobody sees the range of; most of what it can do lives in
+              combinations that take a minute to find and a second to lose.
+              Nothing in the scene and nothing about where you are standing is
+              touched: only how it is drawn. */}
+          <button
+            onClick={shufflePreset}
+            aria-label="Deal a different page"
+            className={button}
+          >
+            <Icon path={I.shuffle} className="w-5 h-5" />
+          </button>
           <button
             onClick={cycleSurface}
             aria-label={`Surface of everything: ${sceneSurface}`}
@@ -1417,8 +1457,9 @@ export const WalkOverlay: React.FC<{
           // the dock 366, so it folded in half over the drawing for want of
           // two pixels. It wraps rather than clips when it truly cannot fit -
           // a control pushed off the edge is not a smaller control.
-          className={`flex flex-wrap items-center justify-center max-w-full p-1.5 gap-1 max-[429px]:p-1 max-[429px]:gap-0.5 rounded-[1.75rem] border shadow-2xl ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
+          className={`flex flex-wrap items-center justify-center max-w-full p-1.5 gap-1 max-[429px]:p-1 max-[429px]:gap-0.5 rounded-[1.75rem] border shadow-2xl ${SIDEWAYS_DOCK} ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
         >
+          <div className={`${SIDEWAYS_CLUSTER} ${surface}`}>
           <button onClick={onModels} aria-label="Add model" className={button}>
             <Icon path={I.cube} className="w-5 h-5" />
           </button>
@@ -1504,6 +1545,9 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.measure} className="w-5 h-5" />
           </button>
+          </div>
+
+          <div className={`${SIDEWAYS_CLUSTER} ${surface}`}>
           {/*
             * Back and forward, on the dock rather than inside the menu.
             *
@@ -1543,6 +1587,7 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.sliders} className="w-5 h-5" />
           </button>
+          </div>
         </div>
       </div>
 
