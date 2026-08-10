@@ -15,6 +15,28 @@ things are, so anything drawn against one is drawn against a real chair. A knee-
 high thing, a seat-high thing and a six-metre thing: between them they cover the
 range a study needs something known to be measured against.
 
+Then **three horses and a platypus** — the half of the shelf that does not hold
+still. A chair is a box with legs and a car is a long box, and both are things
+you can check a construction against, but neither ever asks the question a body
+asks: how a form behaves when it is not square to anything. A horse is the
+classical answer to that and has been since Uccello — four legs at four
+different depths, a barrel that is a foreshortened cylinder from every angle
+worth drawing, a neck that turns the whole mass. Kim Jung Gi drew them
+constantly for exactly that reason.
+
+Three of them, because one horse is a shape and three are a lesson. Standing,
+the foal is the plain case: the barrel and the four supports. Jumping, the same
+animal is nearly horizontal with its legs gathered, so the barrel is seen end-on
+and the perspective does all the work. Rearing, it is vertical and the
+foreshortening runs the other way entirely. One form, three times, with nothing
+changed but its relation to the ground plane. The platypus is not a joke: it is
+the one thing on the shelf with no straight lines and no symmetry to lean on, a
+soft closed form of the kind that has to be drawn by its contour and its
+cross-contour or not at all — which is precisely what the drawn surfaces are
+built to show. They stand at the real animals' heights: 1.05 m at a foal's
+withers, 2.2 m gathered over a fence, 2.6 m up on the hind legs, 0.95 m of
+platypus.
+
 Then three **studies**, reconstructed from Kim Jung Gi pages. Each is a single
 sculpted mesh — fifteen figures, the furniture they are on, the animals among
 them, welded into one — so there is nothing in them to take apart and nothing to
@@ -1323,3 +1345,13 @@ which takes each from about 21 MB to under 3 MB with no visible difference at
 drawing scale — 650k triangles down to 76k, and 4096² textures that cost 89 MB
 of video memory apiece down to 1024². Quantization is `KHR_mesh_quantization`,
 which three.js reads natively — no decoder to load.
+
+The animals went through a step further, because of what this tool draws. Only
+the solid surface ever samples a texture at all: on ink, brush, marker and
+hatch the material is a shader that reads geometry and light, and never a map.
+So the normal, metallic-roughness, occlusion and emissive maps are dropped
+outright rather than resized — three 4096² maps apiece is 268 MB of video
+memory per animal, every byte of it invisible on four surfaces out of five —
+the base colour comes down to 1024 JPEG, and the geometry is welded and
+decimated to 14 %. Each arrives at 433k triangles and 15 MB and ships at 60k
+and about 1.5 MB, in line with the chairs.

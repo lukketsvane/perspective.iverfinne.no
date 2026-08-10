@@ -9,7 +9,11 @@ import { MaterialPanel } from './MaterialPanel';
 import { Icon, I, SURFACE_ICON } from './icons';
 import { Scrub, useBackdropControl, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
-import { quickLookAvailable } from '../lib/exportAR';
+// One import rather than a static one for the capability check and a dynamic
+// one for the work: the heavy part of this - the USDZ exporter itself - is
+// already loaded on demand from inside the module, so splitting the module too
+// bought nothing and only kept the bundler warning alive.
+import { quickLookAvailable, sceneToUSDZ, openInQuickLook, downloadUSDZ } from '../lib/exportAR';
 import { whileWorking } from '../lib/activity';
 import { ACTIVE, bubble, chrome, iconButton } from './ui';
 import { directionAt, pickGround, pickObject, pixelsPerMetreAt } from '../lib/pick';
@@ -1306,7 +1310,6 @@ export const WalkOverlay: React.FC<{
           <button
             onClick={() => whileWorking(async () => {
               const { boxes, models } = useStore.getState();
-              const { sceneToUSDZ, openInQuickLook, downloadUSDZ } = await import('../lib/exportAR');
               const file = await sceneToUSDZ(boxes, models);
               const name = `perspective-scene-${new Date().toISOString().slice(0, 10)}.usdz`;
               if (inRoom) openInQuickLook(file, name);
