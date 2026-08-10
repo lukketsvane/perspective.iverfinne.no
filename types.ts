@@ -508,6 +508,17 @@ export interface MarkerState {
   /** Degrees round the wheel. The reference sheet's marker is a yellow-green. */
   hue: number;
   /**
+   * How much colour is in it, 0 to 1.
+   *
+   * Welded at 0.72 until now, alongside the lightness - and the lightness has a
+   * reason to stay welded, since under about 0.3 the stain stops being a stain
+   * and competes with the spotted blacks. The saturation had no such reason,
+   * and its absence meant the marker rung was a rung with one axis: four pages
+   * that differed only in where they sat on the wheel. The greys are the
+   * markers most people actually own.
+   */
+  chroma: number;
+  /**
    * How much light there has to be before the paper is left bare.
    *
    * The one number that decides how much of the drawing the marker covers -
@@ -542,12 +553,49 @@ export interface PenState {
   /** How dark those are, against the outline's full weight. */
   formStrength: number;
   /**
+   * And how heavy, in sheet pixels.
+   *
+   * The pen could say how MANY of these there were and how DARK, and never how
+   * heavy - a weight for the outline and only a strength for the other two, as
+   * though the other two had no weight of their own. Fine and dark is an
+   * engraved hairline; heavy and faint is a stick dragged on its side. Below
+   * about 0.35 it meets the shader's own clamp and stops changing.
+   */
+  formWidth: number;
+  /**
    * How strongly the terminator is drawn - the line where the light leaves.
    *
    * The one mark that says which way the light comes from, and the one worth
    * being able to lift when the hatching is already saying it.
    */
   terminator: number;
+  /**
+   * How heavy that edge is, in sheet pixels.
+   *
+   * More than a thickness on the two rungs that spot their blacks in: the
+   * fill's edge sits on the same crossing, and inside the fill the pen draws in
+   * PAPER - so the terminator comes out as a paired ink line outside and a
+   * white one within, and widening it turns that pair into a drawn core-shadow
+   * band. `terminator` is still the off switch; this cannot be taken to none.
+   */
+  terminatorWidth: number;
+}
+
+/**
+ * The flat tone under the line.
+ *
+ * Not a gradient: a stepped plateau keyed to the sun, darkest at the terminator
+ * and gone in the highlight. That is what a stopped-out bite, a tone block and
+ * a chalk halftone all are, and it is the missing third value between the
+ * spotted black and the bare paper. On the etched page it is the only thing
+ * that can put a value in the gaps between the strokes, which is why the whole
+ * toned-paper tradition was unreachable without it.
+ */
+export interface WashState {
+  /** 0 is bare paper. */
+  amount: number;
+  /** How many plateaus it is laid in. One is a two-value poster. */
+  steps: number;
 }
 
 /**
@@ -567,6 +615,7 @@ export interface MaterialSettings {
   pen: PenState;
   marker: MarkerState;
   hatch: HatchState;
+  wash: WashState;
 }
 
 export interface HatchState {
@@ -740,6 +789,8 @@ export interface SceneState {
   hatch: HatchState;
   /** The pen every drawn page is drawn with. */
   pen: PenState;
+  /** The flat tone laid under it. */
+  wash: WashState;
   /**
    * A floor under the drawing, and what tone it is.
    *
@@ -806,6 +857,7 @@ export interface SceneState {
   setMarker: (marker: Partial<MarkerState>) => void;
   setHatch: (hatch: Partial<HatchState>) => void;
   setPen: (pen: Partial<PenState>) => void;
+  setWash: (wash: Partial<WashState>) => void;
   /** Tap the floor on and off. */
   toggleGround: () => void;
   /** Drag it from black through to white. */
@@ -815,6 +867,7 @@ export interface SceneState {
     pen?: Partial<PenState>;
     marker?: Partial<MarkerState>;
     hatch?: Partial<HatchState>;
+    wash?: Partial<WashState>;
   }) => void;
   /** Give the selection back to the page's own settings. */
   followPageMaterial: () => void;
