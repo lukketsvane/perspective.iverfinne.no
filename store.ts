@@ -700,6 +700,12 @@ export const currentView = (state: SceneState): SceneView => ({
   gridX: state.gridX,
   gridZ: state.gridZ,
   surface: state.surface,
+  // How that surface is ruled, which a scene never carried - see SceneView.
+  marker: { ...state.marker },
+  hatch: { ...state.hatch },
+  pen: { ...state.pen },
+  wash: { ...state.wash },
+  ground: { ...state.ground },
   roomLevel: state.roomLevel,
   room: { ...state.room },
   showVanishing: state.showVanishing,
@@ -794,6 +800,13 @@ const restoreView = (view: SceneView | undefined, range: FieldRange): Partial<Sc
     gridX: view.gridX ?? (view.guides ?? 3) >= 2,
     gridZ: view.gridZ ?? (view.guides ?? 3) >= 2,
     surface,
+    // Through the defaults, so a scene written by a version with fewer knobs
+    // does not come back with an undefined outline and rule nothing.
+    marker: { ...DEFAULT_MARKER, ...(view.marker ?? {}) },
+    hatch: { ...DEFAULT_HATCH, ...(view.hatch ?? {}) },
+    pen: { ...DEFAULT_PEN, ...(view.pen ?? {}) },
+    wash: { ...DEFAULT_WASH, ...(view.wash ?? {}) },
+    ground: { ...DEFAULT_GROUND, ...(view.ground ?? {}) },
     roomLevel: readRoomLevel(view.roomLevel ?? view.showRoom),
     room: readRoom(view.room),
     showVanishing: view.showVanishing ?? true,
