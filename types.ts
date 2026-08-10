@@ -98,6 +98,39 @@ export const nearestSurface = (surface: Surface, rungs: Surface[]): Surface =>
   rungs.includes(surface) ? surface : surface === 'matte' ? 'original' : 'brush';
 
 /**
+ * The rung the thing in your hand is actually drawn on. Null when nothing is.
+ *
+ * Two answers used to be needed for one question - the selection bar worked it
+ * out from the box or mesh it already had, and the overlay had no way to ask at
+ * all - and they have to agree exactly, because one of them draws the button
+ * that opens the page's knobs and the other decides which knobs those are. A
+ * button promising hatch over a panel of marker knobs is worse than no button.
+ *
+ * Its own override first, the scene's default behind it, and whichever of the
+ * two comes back is answered on the ladder that kind of thing can actually
+ * draw - a box asked for matte is already plain white.
+ */
+export const selectionSurface = (state: {
+  boxes: BoxData[];
+  models: SceneModel[];
+  selectedId: string | null;
+  selectedModelId: string | null;
+  surface: Surface;
+}): Surface | null => {
+  const model = state.selectedModelId
+    ? state.models.find((m) => m.id === state.selectedModelId)
+    : undefined;
+  if (model) return nearestSurface(model.surface ?? state.surface, MESH_SURFACES);
+  const box = state.selectedId ? state.boxes.find((b) => b.id === state.selectedId) : undefined;
+  if (box) return nearestSurface(box.surface ?? state.surface, BOX_SURFACES);
+  return null;
+};
+
+/** Whether a rung has anything to set - the two that are a family, not a look. */
+export const surfaceHasSettings = (surface: Surface | null): surface is 'marker' | 'hatch' =>
+  surface === 'marker' || surface === 'hatch';
+
+/**
  * A surface read back from something written earlier.
  *
  * A remembered *setting* is already checked against this list on the way in, so
