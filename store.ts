@@ -95,6 +95,16 @@ export const DEFAULT_MARKER: MarkerState = { hue: 88, high: 0.62 };
  * the terminator at its full weight, being the one mark that says where the
  * light is.
  */
+/**
+ * The floor: absent, at a middle grey for when it is asked for.
+ *
+ * Off, because the tool opens on bare paper - the ruling already says where the
+ * ground is, and painting it there as well is a decision rather than a default.
+ * The tone it comes up at is the one a floor is: darker than the sheet, light
+ * enough that a cast shadow still reads against it.
+ */
+export const DEFAULT_GROUND = { on: false, tone: 96 };
+
 export const DEFAULT_PEN: PenState = { outline: 2, formCount: 2, formStrength: 0.18, terminator: 1 };
 
 export const DEFAULT_HATCH: HatchState = {
@@ -102,7 +112,6 @@ export const DEFAULT_HATCH: HatchState = {
   // an etcher reaches for first. The knob swings them round towards running
   // along it.
   angle: 0,
-  cross: 58,
   spacing: 11,
   width: 1.05,
   length: 420,
@@ -286,6 +295,7 @@ const SETTING_KEYS = [
   'marker',
   'hatch',
   'pen',
+  'ground',
   'roomLevel',
   'room',
   'showVanishing',
@@ -330,6 +340,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   marker: object,
   hatch: object,
   pen: object,
+  ground: object,
   roomLevel: number,
   room: object,
   showVanishing: boolean,
@@ -551,6 +562,7 @@ const remembered = kept({
   marker: loadedSettings.marker === undefined ? undefined : { ...DEFAULT_MARKER, ...loadedSettings.marker },
   hatch: loadedSettings.hatch === undefined ? undefined : { ...DEFAULT_HATCH, ...loadedSettings.hatch },
   pen: loadedSettings.pen === undefined ? undefined : { ...DEFAULT_PEN, ...loadedSettings.pen },
+  ground: loadedSettings.ground === undefined ? undefined : { ...DEFAULT_GROUND, ...loadedSettings.ground },
   /*
    * The sun is the viewer's - bearing, height, strength and warmth all
    * survive - but which shadow the tool OPENS on is the tool's, and it moved
@@ -807,6 +819,7 @@ export const useStore = create<SceneState>((set, get) => ({
   marker: DEFAULT_MARKER,
   hatch: DEFAULT_HATCH,
   pen: DEFAULT_PEN,
+  ground: DEFAULT_GROUND,
   sunEnvironment: false,
   viewLocked: false,
   undoStack: [],
@@ -1240,6 +1253,14 @@ export const useStore = create<SceneState>((set, get) => ({
   setMarker: (marker) => set((state) => ({ marker: { ...state.marker, ...marker } })),
   setHatch: (hatch) => set((state) => ({ hatch: { ...state.hatch, ...hatch } })),
   setPen: (pen) => set((state) => ({ pen: { ...state.pen, ...pen } })),
+
+  toggleGround: () => set((state) => ({ ground: { ...state.ground, on: !state.ground.on } })),
+  // Turning it up from black is also turning it on: dragging a floor into view
+  // and then having to find the tap that admits it exists is one step too many.
+  setGroundTone: (tone) =>
+    set((state) => ({
+      ground: { on: true, tone: Math.max(0, Math.min(255, Math.round(tone))) },
+    })),
 
   /*
    * The same knobs, aimed at the thing in your hand instead of the page.

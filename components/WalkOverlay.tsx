@@ -7,7 +7,7 @@ import { SelectionBar } from './SelectionBar';
 import { LightPanel } from './LightPanel';
 import { MaterialPanel } from './MaterialPanel';
 import { Icon, I, SETTINGS_ICON, SURFACE_ICON } from './icons';
-import { Scrub, useBackdropControl, useGrayThemeControl, useRoomControl } from './controls';
+import { Scrub, useBackdropControl, useGrayThemeControl, useGroundControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
 // One import rather than a static one for the capability check and a dynamic
 // one for the work: the heavy part of this - the USDZ exporter itself - is
@@ -262,6 +262,8 @@ export const WalkOverlay: React.FC<{
   const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
   const backdrop = useStore((s) => s.backdrop);
   const backdropControl = useBackdropControl();
+  const ground = useStore((s) => s.ground);
+  const groundControl = useGroundControl();
   const [showTools, setShowTools] = useState(false);
   /*
    * The lights stand in the tools row's own slot, over a live dock.
@@ -810,7 +812,29 @@ export const WalkOverlay: React.FC<{
     // read as "nothing here", so the thing you wanted to adjust was deselected
     // by the very gesture that went looking for its controls.
     if (!hit) {
-      if (!woke.current) selectBox(null);
+      /*
+       * A TAP ON THE DRAWING PUTS THE PANEL AWAY.
+       *
+       * The glass is deliberately near-opaque - see components/ui.ts, where
+       * four per cent was the difference between a menu and a menu with a
+       * drawing showing through it - so an open panel genuinely covers what is
+       * behind it, and held sideways there are two of them stacked over the
+       * right of the frame. The answer is not to make them see-through, which
+       * that decision already weighed and rejected; it is to make getting rid
+       * of them cost nothing. Escape did this and a phone has no Escape.
+       *
+       * In the same order the key uses, and one tap does one thing: while
+       * anything is up, the tap spends itself putting that away and the
+       * selection is left alone. Otherwise a tap meaning "let me see the
+       * drawing" would also throw away the thing you had opened the panel for.
+       */
+      if (!woke.current) {
+        if (shelfOpen) onShelfAway();
+        else if (showMaterial) setMaterialFrom(null);
+        else if (showLights) setShowLights(false);
+        else if (showTools) setShowTools(false);
+        else selectBox(null);
+      }
     } else if (hit.type === 'box') selectBox(hit.id);
     else if (hit.type === 'lamp') selectLamp(hit.id);
     else selectModel(hit.id);
@@ -1346,6 +1370,19 @@ export const WalkOverlay: React.FC<{
             className={`${button} ${gridX ? ACTIVE : ''}`}
           >
             <Icon path={I.gridAcross} className="w-5 h-5" />
+          </button>
+          {/* ...and the floor itself, under both of them. The ruling says
+              where the ground IS; this is the ground. Tap it on and off, drag
+              it from black through to white - one control, because a band with
+              room for six should not spend two on whether a plane exists and
+              what tone it is. */}
+          <button
+            {...groundControl}
+            aria-label={`Floor: ${ground.on ? `${ground.tone} of 255` : 'none'} - drag to change`}
+            aria-pressed={ground.on}
+            className={`${button} touch-none ${ground.on ? ACTIVE : ''}`}
+          >
+            <Icon path={I.ground} className="w-5 h-5" />
           </button>
           <button
             onClick={cycleSnap}

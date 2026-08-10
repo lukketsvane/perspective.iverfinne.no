@@ -247,18 +247,6 @@ export const MaterialPanel: React.FC<{ surface: Surface; from: 'scene' | 'select
         <Scrub
           skin={skin}
           onFirstChange={start}
-          icon={I.hatchCross}
-          label="How far the crossing layers are turned off the first"
-          reading={`${Math.round(hatch.cross)}°`}
-          value={hatch.cross}
-          min={8}
-          max={90}
-          step={1}
-          onChange={(cross) => setHatch({ cross })}
-        />
-        <Scrub
-          skin={skin}
-          onFirstChange={start}
           icon={I.hatchSpacing}
           label="How far apart the strokes are"
           reading={hatch.spacing.toFixed(1)}

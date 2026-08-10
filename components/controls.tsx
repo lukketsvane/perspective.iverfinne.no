@@ -115,6 +115,44 @@ export const useBackdropControl = () => {
   };
 };
 
+/**
+ * The floor: tap it on and off, drag it from black through to white.
+ *
+ * The same one-control-two-gestures the page behind the drawing already uses,
+ * for the same reason - a band with room for six things should not spend two of
+ * them on whether a plane exists and what tone it is.
+ */
+export const useGroundControl = () => {
+  const ground = useStore((state) => state.ground);
+  const setTone = useStore((state) => state.setGroundTone);
+  const toggle = useStore((state) => state.toggleGround);
+  const drag = useRef<{ id: number; x: number; y: number; from: number; moved: boolean } | null>(null);
+
+  return {
+    onPointerDown: (event: React.PointerEvent) => {
+      event.stopPropagation();
+      try { (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); } catch { /* continue uncaptured */ }
+      drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, from: ground.tone, moved: false };
+    },
+    onPointerMove: (event: React.PointerEvent) => {
+      const held = drag.current;
+      if (held?.id !== event.pointerId) return;
+      const travel = event.clientX - held.x + (held.y - event.clientY);
+      if (Math.abs(travel) > 3) held.moved = true;
+      if (held.moved) setTone(held.from + travel);
+    },
+    onPointerUp: (event: React.PointerEvent) => {
+      const held = drag.current;
+      drag.current = null;
+      if (held?.id !== event.pointerId || held.moved) return;
+      toggle();
+    },
+    onPointerCancel: () => {
+      drag.current = null;
+    },
+  };
+};
+
 export const useGrayThemeControl = (onDoubleTap?: () => void) => {
   const value = useStore((state) => state.backgroundGray);
   const setValue = useStore((state) => state.setBackgroundGray);

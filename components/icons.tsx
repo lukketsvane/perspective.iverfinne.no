@@ -78,9 +78,12 @@ export const I = {
   /**
    * The drawn page's own knobs.
    *
-   * Five of them, and each has to say which of the five it is at 20 pixels
-   * across - so each draws the thing it changes: the strokes turned, the
-   * crossing, the gap between them, the weight, and the run.
+   * Each has to say which one it is at 20 pixels across, so each draws the
+   * thing it changes: the strokes turned, the gap between them, the weight,
+   * and the run. There was a fifth, for the angle the crossing layers were
+   * turned off the first, and it went when the knob did - the shader stopped
+   * crossing anything three changes before anyone noticed the control was
+   * still there.
    */
   hue: (<><circle cx="12" cy="12" r="8.6" /><path d="M12 3.4a8.6 8.6 0 0 1 7.4 12.9z" fill="currentColor" fillOpacity="0.5" stroke="none" /><circle cx="12" cy="12" r="3" strokeOpacity="0.6" /></>),
   wash: (<><path d="M12 3.2c3.4 4.2 5.4 7 5.4 9.4a5.4 5.4 0 0 1-10.8 0c0-2.4 2-5.2 5.4-9.4z" /><path d="M7.1 14.4a5.4 5.4 0 0 0 9.8 0z" fill="currentColor" fillOpacity="0.55" stroke="none" /></>),
@@ -91,8 +94,10 @@ export const I = {
   formLines: (<><path d="M12 3.6c4.6 0 7.4 3.6 7.4 8.4s-2.8 8.4-7.4 8.4S4.6 16.8 4.6 12 7.4 3.6 12 3.6z" strokeOpacity="0.4" /><path d="M9.2 5.1c2 3.9 2 9.9 0 13.8" strokeOpacity="0.85" /><path d="M14.8 5.1c2 3.9 2 9.9 0 13.8" strokeOpacity="0.85" /></>),
   terminator: (<><path d="M12 3.6c4.6 0 7.4 3.6 7.4 8.4s-2.8 8.4-7.4 8.4S4.6 16.8 4.6 12 7.4 3.6 12 3.6z" strokeOpacity="0.4" /><path d="M13.6 4.1c2.3 4 2.3 11.8 0 15.8" strokeWidth="2.2" /><path d="M16.4 6.4c1.6 3.2 1.6 8 0 11.2" strokeOpacity="0.3" /></>),
 
+  /** The floor itself: a plane running back to the horizon, filled in. */
+  ground: (<><path d="M2 20.5 8.4 9h7.2L22 20.5z" fill="currentColor" fillOpacity="0.45" /><line x1="2" y1="6.5" x2="22" y2="6.5" strokeOpacity="0.35" /></>),
+
   hatchAngle: (<><path d="M4.5 19 12 5M9 19l7.5-14M13.5 19 21 5" /><path d="M3 21h18" strokeOpacity="0.35" /></>),
-  hatchCross: (<><path d="M4.5 18.5 13 4M8 20 16.5 5.5" strokeOpacity="0.9" /><path d="M4 8.5 19 15M4.8 12.4 19.8 19" strokeOpacity="0.55" /></>),
   hatchSpacing: (<><path d="M5 4.5v15M12 4.5v15M19 4.5v15" /><path d="M6.6 12h3.8M13.6 12h3.8" strokeOpacity="0.45" /></>),
   hatchWidth: (<><path d="M5 5.5v13" strokeWidth="0.7" /><path d="M11 5.5v13" strokeWidth="1.7" /><path d="M18 5.5v13" strokeWidth="3.4" /></>),
   hatchLength: (<><path d="M5 4.5v6M5 13.5v6" /><path d="M12 6.5v11" /><path d="M19 3.5v17" strokeOpacity="0.7" /></>),
