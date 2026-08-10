@@ -83,9 +83,9 @@ export const DEFAULT_MARKER: MarkerState = { hue: 88, high: 0.62 };
 export const DEFAULT_HATCH: HatchState = {
   angle: 38,
   cross: 58,
-  spacing: 5,
-  width: 0.8,
-  length: 90,
+  spacing: 8,
+  width: 1.1,
+  length: 300,
 };
 
 export const DEFAULT_SUN: SunState = {
