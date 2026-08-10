@@ -81,11 +81,14 @@ export const DEFAULT_MARKER: MarkerState = { hue: 88, high: 0.62 };
  * enough that every stroke is still a stroke.
  */
 export const DEFAULT_HATCH: HatchState = {
-  angle: 38,
+  // Zero: strokes running square across the form, which is the cross-contour
+  // an etcher reaches for first. The knob swings them round towards running
+  // along it.
+  angle: 0,
   cross: 58,
-  spacing: 8,
-  width: 1.1,
-  length: 300,
+  spacing: 11,
+  width: 1.05,
+  length: 420,
 };
 
 export const DEFAULT_SUN: SunState = {
