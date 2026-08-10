@@ -457,8 +457,24 @@ export const setInkPaper = (gray: number) => {
  */
 const page = { tone: paperFor(243), ink: inkFor(paperFor(243)) };
 
-export const setPageTone = (gray: number) => {
-  page.tone = paperFor(gray);
+/**
+ * A mount at a given tone: a flat, neutral grey, and black really is black.
+ *
+ * Not the paper ramp. That ramp is warm on purpose, because no sheet is
+ * neutral and a drawing surface has a colour - but a mount is not a sheet. Its
+ * whole job is to be the thing the sheet is *not*, and the ramp's own black
+ * end is #15171b, a cool board tone, which is a perfectly good drawing board
+ * and visibly a dark blue when you asked for black. A mount has no hue to have
+ * an opinion about.
+ */
+export const mountFor = (gray: number): THREE.Color => {
+  const v = Math.max(0, Math.min(255, Math.round(gray)));
+  return new THREE.Color().setHex((v << 16) | (v << 8) | v);
+};
+
+/** Put the page behind the sheet, whatever it is made of, where it can be read. */
+export const setPageTone = (tone: THREE.Color) => {
+  page.tone = tone.clone();
   page.ink = inkFor(page.tone);
 };
 

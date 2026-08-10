@@ -103,6 +103,23 @@ const Arc: React.FC<{ measure: Measure; ink: string; halo: string; held: boolean
           style={{ paintOrder: 'stroke', stroke: halo, strokeWidth: 3 }}
         >
           {measure.deg >= 10 ? Math.round(measure.deg) : measure.deg.toFixed(1)}°
+          {/*
+            * And the metres, when both ends of the drag landed on something.
+            *
+            * Two different questions, and the instrument can answer both from
+            * one gesture. The angle is what sight reads and what a drawing is
+            * made of - it is first, and it is always there. The distance is
+            * what the place is actually made of, and it only exists when both
+            * ends met an object or the floor: a line taken across the sky has
+            * an angle and no length, and inventing one would be worse than
+            * leaving it out.
+            */}
+          {measure.metres !== undefined && measure.metres >= 0.02 && (
+            <tspan opacity={0.72}>
+              {'  '}
+              {measure.metres < 10 ? measure.metres.toFixed(2) : measure.metres.toFixed(1)} m
+            </tspan>
+          )}
         </text>
       )}
     </g>

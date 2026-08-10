@@ -25,6 +25,21 @@ export interface Measure {
   a: [number, number, number];
   b: [number, number, number];
   deg: number;
+  /**
+   * The two ends as places, when the drag actually landed on something.
+   *
+   * The angle is the reading this instrument is for, and it is available
+   * everywhere - every direction from the eye hits something, even if that
+   * something is the sky. A distance is not: it needs both ends to be *at*
+   * a point in the world, which means both had to meet an object or the
+   * floor. When they did, the straight-line metres between them is worth
+   * having - blocking a real place out is a conversation about how far one
+   * thing is from another - and when they did not, there is no number to
+   * make up and the measure is the angle alone.
+   */
+  from?: [number, number, number];
+  to?: [number, number, number];
+  metres?: number;
 }
 
 type Listener = () => void;
@@ -44,14 +59,26 @@ const degBetween = (a: [number, number, number], b: [number, number, number]) =>
   return (Math.acos(dot) * 180) / Math.PI;
 };
 
-export const beginMeasure = (dir: [number, number, number]) => {
-  live = { a: dir, b: dir, deg: 0 };
+const spanBetween = (
+  a: [number, number, number] | undefined,
+  b: [number, number, number] | undefined
+) =>
+  a && b ? Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) : undefined;
+
+export const beginMeasure = (dir: [number, number, number], at?: [number, number, number]) => {
+  live = { a: dir, b: dir, deg: 0, from: at, to: at, metres: 0 };
   publish();
 };
 
-export const updateMeasure = (dir: [number, number, number]) => {
+export const updateMeasure = (dir: [number, number, number], at?: [number, number, number]) => {
   if (!live) return;
-  live = { ...live, b: dir, deg: degBetween(live.a, dir) };
+  live = {
+    ...live,
+    b: dir,
+    deg: degBetween(live.a, dir),
+    to: at,
+    metres: spanBetween(live.from, at),
+  };
   publish();
 };
 

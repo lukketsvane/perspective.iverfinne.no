@@ -368,6 +368,9 @@ const SceneContent = () => {
    * there left every colour on the page one change behind.
    */
   const pageGray = backdrop === 'paper' ? backgroundGray : backdrop;
+  // One tone for the page, worked out in the store and pushed by the same
+  // subscription that sets the sheet - so the canvas, the chrome behind it
+  // and the phone's status bar cannot disagree about what is back there.
 
   /*
    * Hard or soft, at runtime.
@@ -396,7 +399,7 @@ const SceneContent = () => {
   }, [hardShadows, gl, scene]);
 
   // The page, not the sheet: a drawing mounted on black stands on black.
-  const bgColor = inkMode ? pageHex() : `rgb(${pageGray}, ${pageGray}, ${pageGray})`;
+  const bgColor = pageHex();
 
   /**
    * How wide a line is, and which way the light comes from.

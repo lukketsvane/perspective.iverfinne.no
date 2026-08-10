@@ -87,6 +87,14 @@ export const I = {
   /** A phone held up, and the turn that steers the view. */
   arLook: (<><rect x="8.5" y="4.5" width="7" height="13" rx="1.4" /><path d="M12 21.8a9.5 9.5 0 0 0 7.8-4M12 21.8l2.6-.4M12 21.8l-.9-2.4" strokeOpacity="0.7" /><circle cx="12" cy="15.3" r="0.8" fill="currentColor" stroke="none" /></>),
 
+  /**
+   * A box standing inside a bracketed frame: the thing put down in the room.
+   *
+   * The corner brackets are the mark every AR placement viewer uses for
+   * "somewhere out there", and the box in them is what this one puts there.
+   */
+  ar: (<><path d="M3 8V4.8A1.8 1.8 0 0 1 4.8 3H8M16 3h3.2A1.8 1.8 0 0 1 21 4.8V8M21 16v3.2a1.8 1.8 0 0 1-1.8 1.8H16M8 21H4.8A1.8 1.8 0 0 1 3 19.2V16" /><path d="M12 8.1l3.6 2v4l-3.6 2-3.6-2v-4z" /><path d="M12 12.1l3.6-2M12 12.1v4.1M12 12.1L8.4 10.1" strokeOpacity="0.55" /></>),
+
   /** Horizon line, and the field of view, which is the lens control's mark. */
   horizon: (<><line x1="2" y1="12" x2="22" y2="12" /><path d="M4 19l7-5M20 19l-7-5" strokeOpacity="0.45" /></>),
   cone: (<><path d="M12 3L4 20h16z" /><path d="M6.5 14h11" strokeOpacity="0.45" /></>),
