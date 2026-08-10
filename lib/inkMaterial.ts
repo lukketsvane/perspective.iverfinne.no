@@ -163,8 +163,6 @@ export const inkUniforms = {
    * the derivative blows up and paints a seam.
    */
   hatchAngle: { value: 0.6 },
-  /** Radians between the first layer and the crossing one. */
-  hatchCross: { value: 1.15 },
   /** Sheet pixels between neighbouring strokes. */
   hatchSpacing: { value: 6 },
   /** Sheet pixels of stroke weight. */
@@ -221,7 +219,6 @@ const FRAGMENT = `
   uniform vec3 accent;
   uniform float accentHigh;
   uniform float hatchAngle;
-  uniform float hatchCross;
   uniform float hatchSpacing;
   uniform float hatchWidth;
   uniform float hatchLength;
@@ -866,7 +863,6 @@ const OWN_UNIFORMS = [
   'accent',
   'accentHigh',
   'hatchAngle',
-  'hatchCross',
   'hatchSpacing',
   'hatchWidth',
   'hatchLength',
@@ -1116,10 +1112,9 @@ export const writePen = (
 /** Everything the hatch is ruled by. Angles in degrees, sizes in sheet pixels. */
 export const writeHatch = (
   u: Nib,
-  h: { angle: number; cross: number; spacing: number; width: number; length: number }
+  h: { angle: number; spacing: number; width: number; length: number }
 ) => {
   u.hatchAngle.value = (h.angle * Math.PI) / 180;
-  u.hatchCross.value = (h.cross * Math.PI) / 180;
   u.hatchSpacing.value = h.spacing;
   u.hatchWidth.value = h.width;
   u.hatchLength.value = h.length;

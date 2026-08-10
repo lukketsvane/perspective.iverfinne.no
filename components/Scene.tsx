@@ -298,6 +298,11 @@ const SceneContent = () => {
   const snapStep = useStore((state) => state.snapStep);
   const theme = useStore((state) => state.theme);
   const backgroundGray = useStore((state) => state.backgroundGray);
+  const ground = useStore((state) => state.ground);
+  /* A neutral grey rather than the paper ramp: this is a floor being lit, not
+     a sheet being looked at, and the warmth that makes paper read as paper
+     makes a floor read as sand. */
+  const groundColor = `rgb(${ground.tone}, ${ground.tone}, ${ground.tone})`;
   const shadowKind = useStore((state) => state.sun.shadows);
   const hardShadows = shadowKind === 'hard';
   const roomLevel = useStore((state) => state.roomLevel);
@@ -506,6 +511,36 @@ const SceneContent = () => {
           ink={inkMode ? pageInkHex() : undefined}
           along={{ x: gridX, z: gridZ }}
         />
+      )}
+
+      {/*
+        * The floor, when it is asked for.
+        *
+        * The tool opens on bare paper with the ruling doing the work, which is
+        * the honest start for a study of forms standing in nothing - but a
+        * plane is a value, and once there is one the shadows land IN something
+        * and the horizon is a place the floor actually reaches rather than one
+        * the grid implies.
+        *
+        * Pushed back in depth rather than dropped below zero: the ruling and
+        * the shadow catcher share this exact height, and a centimetre of gap
+        * would show at a grazing angle near the feet while polygon offset
+        * shows nowhere. It takes the sun like anything else standing in it,
+        * so it darkens away from the light and reads as a plane rather than
+        * as a flat fill.
+        */}
+      {ground.on && (
+        <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} raycast={() => null}>
+          <planeGeometry args={[2000, 2000]} />
+          <meshStandardMaterial
+            color={groundColor}
+            roughness={0.95}
+            metalness={0}
+            polygonOffset
+            polygonOffsetFactor={3}
+            polygonOffsetUnits={3}
+          />
+        </mesh>
       )}
 
       {/* The floor catches the sun's shadows and nothing else. It is far wider

@@ -572,8 +572,6 @@ export interface MaterialSettings {
 export interface HatchState {
   /** Which way the first layer runs, in degrees. */
   angle: number;
-  /** How far the crossing layers are turned off it, in degrees. */
-  cross: number;
   /** Sheet pixels between neighbouring strokes. */
   spacing: number;
   /** Sheet pixels of stroke weight. */
@@ -742,6 +740,16 @@ export interface SceneState {
   hatch: HatchState;
   /** The pen every drawn page is drawn with. */
   pen: PenState;
+  /**
+   * A floor under the drawing, and what tone it is.
+   *
+   * Off by default, because the tool opens on bare paper and a study of forms
+   * standing in nothing is the honest starting point - the ruling says where
+   * the ground is without anything having to be painted there. On is for when
+   * you want the plane itself: a value for the shadows to land in, and a
+   * horizon the floor actually meets rather than one the grid implies.
+   */
+  ground: { on: boolean; tone: number };
   /** Freeze the walk camera so a framed view stops moving. */
   viewLocked: boolean;
   /** Scenes to step back through. Newest last. */
@@ -798,6 +806,10 @@ export interface SceneState {
   setMarker: (marker: Partial<MarkerState>) => void;
   setHatch: (hatch: Partial<HatchState>) => void;
   setPen: (pen: Partial<PenState>) => void;
+  /** Tap the floor on and off. */
+  toggleGround: () => void;
+  /** Drag it from black through to white. */
+  setGroundTone: (tone: number) => void;
   /** The same three, aimed at the selection: it takes a copy and keeps it. */
   setSelectionMaterial: (patch: {
     pen?: Partial<PenState>;
