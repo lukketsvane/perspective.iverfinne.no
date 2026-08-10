@@ -564,8 +564,6 @@ export interface SceneState {
   selectLamp: (id: string | null) => void;
   /** Place the toolbar's canonical one-metre reference cube. */
   addCube: (position: [number, number, number]) => void;
-  /** Stand a known form - width, height, depth - where the viewer looks. */
-  standForm: (scale: [number, number, number], at: [number, number]) => void;
   /** Start the block-out gesture's drawn box. */
   beginBlock: (at: [number, number]) => void;
   updateBox: (id: string, updates: Partial<BoxData>) => void;

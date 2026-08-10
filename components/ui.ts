@@ -7,9 +7,25 @@
  * five near-identical strings and hoping. It is written once here.
  */
 
-/** Panels, bars and sheets: the blurred surface itself. */
+/**
+ * Panels, bars and sheets: the surface itself.
+ *
+ * Ninety-six per cent, not ninety-two, and no blur behind it.
+ *
+ * The eight per cent was chosen when the tool drew mid-grey clay on a mid-grey
+ * page, where letting a little of the scene through cost nothing. The page is
+ * black now and the drawing is white paper, which is the widest gap a screen
+ * has: eight per cent of 255 laid over a panel that is itself 10 put the car's
+ * lines twenty levels above the panel around them, and the drawing read
+ * straight through the menu on top of it.
+ *
+ * A backdrop-blur is the usual answer and the wrong one here. The thing behind
+ * every panel in this app is a live WebGL canvas, and a blurred backdrop makes
+ * the compositor sample it every frame - paid on the device this is actually
+ * used on, to soften something that four per cent of opacity removes for free.
+ */
 export const chrome = (dark: boolean) =>
-  dark ? 'bg-neutral-950/92 text-white border-white/20' : 'bg-white/92 text-black border-gray-300';
+  dark ? 'bg-neutral-950/96 text-white border-white/20' : 'bg-white/96 text-black border-gray-300';
 
 /**
  * A round 44 px control - the smallest target a thumb can be asked to hit.
@@ -28,7 +44,9 @@ export const chrome = (dark: boolean) =>
  */
 export const iconButton = (dark: boolean) =>
   `flex items-center justify-center w-11 max-[429px]:w-10 h-11 rounded-full transition-transform active:scale-95 ${
-    dark ? 'text-white hover:bg-white/10' : 'text-gray-900 hover:bg-black/5'
+    dark
+      ? 'text-white hover:bg-white/10 disabled:hover:bg-transparent'
+      : 'text-gray-900 hover:bg-black/5 disabled:hover:bg-transparent'
   }`;
 
 /**
@@ -41,17 +59,43 @@ export const iconButton = (dark: boolean) =>
  */
 export const snugIconButton = (dark: boolean) =>
   `flex items-center justify-center w-10 h-11 sm:w-11 rounded-full transition-transform active:scale-95 ${
-    dark ? 'text-white hover:bg-white/10' : 'text-gray-900 hover:bg-black/5'
+    dark
+      ? 'text-white hover:bg-white/10 disabled:hover:bg-transparent'
+      : 'text-gray-900 hover:bg-black/5 disabled:hover:bg-transparent'
   }`;
 
-/** A square in a grid of things you can pick. */
+/**
+ * A square in a grid of things you can pick.
+ *
+ * The fill alone was not enough to see. A tenth of white over a panel that is
+ * itself 92 per cent black is about four values of separation, so a shelf of
+ * them read as icons floating on glass rather than as a grid of targets - and
+ * the only tile anybody could actually see the edges of was the import one,
+ * because it happens to carry a dashed border. An edge is what makes a tile a
+ * tile: the hairline does the work the fill was failing to do, and the fill
+ * stays low so the picture on it is the brightest thing in the square.
+ */
 export const tile = (dark: boolean) =>
-  dark ? 'bg-white/10 hover:bg-white/15 active:bg-white/20' : 'bg-black/5 hover:bg-black/10 active:bg-black/15';
+  dark
+    ? 'bg-white/[0.07] border border-white/15 hover:bg-white/[0.12] active:bg-white/20'
+    : 'bg-black/[0.04] border border-black/10 hover:bg-black/[0.08] active:bg-black/15';
 
 /** A readout you can drag: the number *is* the control. */
 export const readout = (dark: boolean) =>
   `flex items-center justify-center min-w-[3.75rem] sm:min-w-[5.5rem] px-2 sm:px-3 h-11 rounded-full touch-none cursor-ew-resize border transition-colors ${
     dark ? 'bg-white/10 border-white/20 hover:bg-white/15' : 'bg-black/5 border-gray-300 hover:bg-black/10'
+  }`;
+
+/**
+ * The number that follows a drag: a small hard-edged pill of the current value.
+ *
+ * The room's size, the field, the eye level, a box's height as it is pulled -
+ * four controls hand back a live number the same way, and the string that drew
+ * it was written out four times in three files. It is one thing.
+ */
+export const bubble = (dark: boolean) =>
+  `px-3 py-1 rounded-full text-xs font-bold tabular-nums border shadow-xl whitespace-nowrap ${
+    dark ? 'bg-neutral-950/95 text-white border-white/20' : 'bg-white/95 text-black border-black/10'
   }`;
 
 /** The one accent colour: a control that is currently doing something. */

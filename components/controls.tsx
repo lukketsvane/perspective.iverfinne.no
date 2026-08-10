@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Icon } from './icons';
 import { useStore } from '../store';
+import { bubble } from './ui';
 import type { RoomSize } from '../types';
 
 /**
@@ -298,9 +299,7 @@ export const Scrub: React.FC<DraggableNumber> = (props) => {
         </span>
       </button>
       {active && (
-        <div className={`absolute -top-12 px-3 py-1 rounded-full text-xs font-bold tabular-nums border shadow-xl ${
-          skin.dark ? 'bg-neutral-950/95 text-white border-white/20' : 'bg-white/95 text-black border-black/10'
-        }`}>
+        <div className={`absolute -top-12 ${bubble(skin.dark)}`}>
           {reading}
         </div>
       )}

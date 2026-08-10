@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { Icon, I } from './icons';
-import { chrome, readout, snugIconButton } from './ui';
+import { bubble, chrome, readout, snugIconButton } from './ui';
 import { exportScaledModel } from '../lib/exportModel';
 import { SURFACE_ICON } from './icons';
 import { useRail } from '../lib/rail';
@@ -540,9 +540,7 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
           </button>
           {liftScrub.dragging && (
             <div
-              className={`absolute left-1/2 -translate-x-1/2 -top-12 px-3 py-1 rounded-full text-xs font-bold tabular-nums border shadow-xl pointer-events-none ${
-                isDark ? 'bg-neutral-950/95 text-white border-white/20' : 'bg-white/95 text-black border-black/10'
-              }`}
+              className={`absolute left-1/2 -translate-x-1/2 -top-12 pointer-events-none ${bubble(isDark)}`}
             >
               {metres(lift)}
             </div>
