@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MESH_SURFACES, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
-import { releaseSource, cachedSourceUrls, modelRadius, findFreeSpot, loadModelFromUrl } from './lib/loadModel';
+import { releaseSource, cachedSourceUrls, modelRadius, loadModelFromUrl } from './lib/loadModel';
+import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
 import { cloneModel } from './lib/modelMaterials';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
@@ -867,16 +868,38 @@ export const useStore = create<SceneState>((set, get) => ({
       };
     }),
 
+  /**
+   * A cube, in the nearest cell that has not got one in it.
+   *
+   * It used to take the cell under the gaze point and stop there, so a second
+   * tap put a second cube inside the first: same point, same snap, same answer.
+   * One visible cube and two hidden ones, and the only way to find them was to
+   * drag the top one off and see what was underneath.
+   *
+   * The search runs on the ruling rather than beside it - every place it tries
+   * is a cell centre - so a row built by tapping comes out square with the
+   * floor, which is what the snap was for. And it steps around the meshes too:
+   * the cell a chair is standing in is not an empty cell.
+   */
   addCube: (position) =>
     set((state) => {
       const id = newId();
+      const [x, z] = findFreeSpot(
+        onTheFloor(state),
+        [position[0], position[2]],
+        boxRadius({ scale: [UNIT, UNIT, UNIT] }),
+        // No gap: neighbouring cells are exactly a metre apart and two metre
+        // cubes are exactly a metre wide between them, so any clearance at all
+        // would skip a cell and leave a hole in the row.
+        { snap: snapToCell, clearance: 0 }
+      );
       return {
         ...remember(state),
         boxes: [
           ...state.boxes,
           {
             id,
-            position: [snapToCell(position[0]), UNIT / 2, snapToCell(position[2])],
+            position: [x, UNIT / 2, z],
             scale: [UNIT, UNIT, UNIT],
             rotation: [0, 0, 0],
             surface: state.surface,
@@ -955,26 +978,35 @@ export const useStore = create<SceneState>((set, get) => ({
    * high enough to light a figure from above, which is what a lamp is for.
    * A spot from the start would demand an aim before it did anything visible;
    * a bulb simply glows, so the first tap always shows something working.
+   *
+   * CLEAR OF THE OTHER LAMPS. This took the point raw, so a second tap hung a
+   * second lamp inside the first - two lights doing the work of what looked
+   * like one, and only the top one able to be taken hold of. Off the lamps
+   * only, not off the furniture: these hang at head height and above, so a lamp
+   * over a box is a lamp lighting a box.
    */
   addLamp: ([x, z]) =>
-    set((state) => ({
-      ...remember(state),
-      lamps: [
-        ...state.lamps,
-        {
-          id: newId(),
-          position: [x, 2.2, z] as [number, number, number],
-          kind: 'bulb' as const,
-          aim: 0,
-          intensity: 8,
-          temperature: 3600,
-          enabled: true,
-        },
-      ],
-      selectedLampId: null,
-      selectedId: null,
-      selectedModelId: null,
-    })),
+    set((state) => {
+      const [clearX, clearZ] = findFreeSpot(lampsStanding(state.lamps), [x, z], LAMP_RADIUS);
+      return {
+        ...remember(state),
+        lamps: [
+          ...state.lamps,
+          {
+            id: newId(),
+            position: [clearX, 2.2, clearZ] as [number, number, number],
+            kind: 'bulb' as const,
+            aim: 0,
+            intensity: 8,
+            temperature: 3600,
+            enabled: true,
+          },
+        ],
+        selectedLampId: null,
+        selectedId: null,
+        selectedModelId: null,
+      };
+    }),
 
   // Like updateBox: the undo step is the caller's business (beginChange, or
   // the grab's own first-move commit), so a drag is one step however many
@@ -1201,6 +1233,13 @@ export const useStore = create<SceneState>((set, get) => ({
    * button and re-sizing from scratch. The copy lands clear of its original and
    * becomes the selection, so it can be dragged straight into place.
    */
+  /**
+   * NOTHING CALLS THIS. The selection bar's copy button was the only way in,
+   * and that seat now opens the page's own knobs. It is left whole, and kept
+   * honest with the placement rule below, because the decision about whether a
+   * drawing tool wants a copy command is not one to make by deleting it
+   * quietly - but as it stands it is a verb with no button.
+   */
   duplicateSelection: () =>
     set((state) => {
       // Through `remember`, like every other change to the scene. It took the
@@ -1214,7 +1253,7 @@ export const useStore = create<SceneState>((set, get) => ({
         if (!original?.object) return {};
 
         const [x, z] = findFreeSpot(
-          state.models.map((m) => ({ position: m.position, radius: modelRadius(m) })),
+          onTheFloor(state),
           [original.position[0], original.position[2]],
           modelRadius(original)
         );
@@ -1231,11 +1270,22 @@ export const useStore = create<SceneState>((set, get) => ({
       if (state.selectedId) {
         const original = state.boxes.find((b) => b.id === state.selectedId);
         if (!original) return {};
+        // A step to the right if that is clear, and the nearest clear place to
+        // it if not - a copy that lands inside the mesh standing beside it is
+        // no more use than one that lands inside its own original. Off the
+        // ruling rather than on it, unlike a fresh cube: this one is a copy of
+        // something that may have been dragged or turned off-square, and
+        // snapping the copy to a cell would not be copying it.
         const step = Math.max(original.scale[0], 0.5) + 0.5;
+        const [x, z] = findFreeSpot(
+          onTheFloor(state),
+          [original.position[0] + step, original.position[2]],
+          boxRadius(original)
+        );
         const copy: BoxData = {
           ...original,
           id: newId(),
-          position: [original.position[0] + step, original.position[1], original.position[2]],
+          position: [x, original.position[1], z],
         };
         return { undoStack, redoStack, boxes: [...state.boxes, copy], selectedId: copy.id };
       }
