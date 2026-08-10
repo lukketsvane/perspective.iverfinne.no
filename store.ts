@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MESH_SURFACES, PenState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
+import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
 import { releaseSource, cachedSourceUrls, modelRadius, loadModelFromUrl } from './lib/loadModel';
 import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
 import { cloneModel } from './lib/modelMaterials';
@@ -1231,6 +1231,77 @@ export const useStore = create<SceneState>((set, get) => ({
   setHatch: (hatch) => set((state) => ({ hatch: { ...state.hatch, ...hatch } })),
   setPen: (pen) => set((state) => ({ pen: { ...state.pen, ...pen } })),
 
+  /*
+   * The same knobs, aimed at the thing in your hand instead of the page.
+   *
+   * The panel is opened from two places and they mean two different questions -
+   * the tools band asks what the page is made of, the selection bar asks about
+   * this one - and until now both wrote to the page, so setting the hatch angle
+   * on one object set it on every object in the scene drawn that way. That is
+   * the same mistake the material BUTTON made before it learnt to read the
+   * thing's own rung, one level down.
+   *
+   * The first turn of a knob copies the page's settings onto the object whole
+   * and edits the copy; every turn after that edits the copy. So the object
+   * does not jump when it steps off - the page's values are exactly what it was
+   * already being drawn with - and nothing else in the scene moves with it.
+   *
+   * No `remember` here: this is written on every frame of a drag, like moving
+   * or sizing anything else, and the panel takes one history step as the drag
+   * starts. See `beginChange`.
+   */
+  setSelectionMaterial: (patch) =>
+    set((state) => {
+      const page: MaterialSettings = { pen: state.pen, marker: state.marker, hatch: state.hatch };
+      const merge = (own: MaterialSettings | undefined): MaterialSettings => {
+        const from = own ?? page;
+        return {
+          pen: { ...from.pen, ...patch.pen },
+          marker: { ...from.marker, ...patch.marker },
+          hatch: { ...from.hatch, ...patch.hatch },
+        };
+      };
+      if (state.selectedModelId)
+        return {
+          models: state.models.map((m) =>
+            m.id === state.selectedModelId ? { ...m, material: merge(m.material) } : m
+          ),
+        };
+      if (state.selectedId)
+        return {
+          boxes: state.boxes.map((b) =>
+            b.id === state.selectedId ? { ...b, material: merge(b.material) } : b
+          ),
+        };
+      return {};
+    }),
+
+  /*
+   * Hand it back to the page.
+   *
+   * Without this an object that has been touched once is set apart for good,
+   * and the only way back would be to match the page's numbers by eye. It is
+   * undoable in its own right rather than through a drag, being one press.
+   */
+  followPageMaterial: () =>
+    set((state) => {
+      if (state.selectedModelId)
+        return {
+          ...remember(state),
+          models: state.models.map((m) =>
+            m.id === state.selectedModelId ? { ...m, material: undefined } : m
+          ),
+        };
+      if (state.selectedId)
+        return {
+          ...remember(state),
+          boxes: state.boxes.map((b) =>
+            b.id === state.selectedId ? { ...b, material: undefined } : b
+          ),
+        };
+      return {};
+    }),
+
   cycleFieldRange: () =>
     set((state) => {
       const range = FIELD_RANGES[(FIELD_RANGES.indexOf(state.fieldRange) + 1) % FIELD_RANGES.length];
@@ -1580,6 +1651,7 @@ export const useStore = create<SceneState>((set, get) => ({
         baseScale: model.baseScale,
         size: [...model.size] as [number, number, number],
         surface: model.surface,
+        material: model.material,
         kind: model.kind,
         lockedScale: model.lockedScale,
       })),
@@ -1630,6 +1702,7 @@ export const useStore = create<SceneState>((set, get) => ({
           baseScale: instance.baseScale ?? instance.scale,
           size: [...instance.size] as [number, number, number],
           surface: instance.surface === undefined ? undefined : readSurface(instance.surface),
+          material: instance.material,
           kind: instance.kind,
           lockedScale: instance.lockedScale,
         });

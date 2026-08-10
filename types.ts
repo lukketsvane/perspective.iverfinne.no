@@ -9,6 +9,13 @@ export interface BoxData {
   name?: string;
   /** How solidly it is drawn. Absent means whatever the scene's default is. */
   surface?: Surface;
+  /**
+   * How the drawing of it is ruled, if it has been set apart from the page's.
+   * Absent - and it is absent for everything until a knob is turned on it - is
+   * "drawn with the page's own", which is what keeps a scene of forty boxes on
+   * one material rather than forty.
+   */
+  material?: MaterialSettings;
 }
 
 export type ThemeMode = 'light' | 'dark';
@@ -125,6 +132,27 @@ export const selectionSurface = (state: {
   if (box) return nearestSurface(box.surface ?? state.surface, BOX_SURFACES);
   return null;
 };
+
+/**
+ * The settings the thing in your hand has of its own, if it has any.
+ *
+ * Beside `selectionSurface` and asked the same way, for the same reason: the
+ * panel reads it to know what to show, and the store writes through it to know
+ * what to change. Undefined is not "nothing" but "drawn with the page's", which
+ * is what everything is until a knob is turned on it.
+ */
+export const selectionMaterial = (state: {
+  boxes: BoxData[];
+  models: SceneModel[];
+  selectedId: string | null;
+  selectedModelId: string | null;
+}): MaterialSettings | undefined =>
+  (state.selectedModelId
+    ? state.models.find((m) => m.id === state.selectedModelId)
+    : state.selectedId
+      ? state.boxes.find((b) => b.id === state.selectedId)
+      : undefined
+  )?.material;
 
 /**
  * Whether a rung has anything to set.
@@ -371,6 +399,8 @@ export interface SceneModel {
   previewSupported: boolean;
   /** How solidly it is drawn. Absent means whatever the scene's default is. */
   surface?: Surface;
+  /** How that drawing is ruled, if it has been set apart from the page's. */
+  material?: MaterialSettings;
   /**
    * A room rather than an object.
    *
@@ -520,6 +550,25 @@ export interface PenState {
   terminator: number;
 }
 
+/**
+ * One object's own material, whole.
+ *
+ * A snapshot rather than a patch: the moment you turn a knob with something in
+ * your hand, the page's current settings are copied onto it and from then on it
+ * is drawn with its own. That is the same shape `surface` already has - a rung,
+ * not a nudge to the page's rung - and it is the one that can be read without
+ * knowing what the page happened to be when you set it.
+ *
+ * All three regardless of which rung the thing is on, because the rung is a
+ * thing you step through: a box moved from hatch to marker should find the
+ * marker settings it had last time rather than the page's.
+ */
+export interface MaterialSettings {
+  pen: PenState;
+  marker: MarkerState;
+  hatch: HatchState;
+}
+
 export interface HatchState {
   /** Which way the first layer runs, in degrees. */
   angle: number;
@@ -550,6 +599,8 @@ export interface SceneInstance {
   baseScale: number;
   size: [number, number, number];
   surface?: Surface;
+  /** Its own material, if it was drawn with one rather than the page's. */
+  material?: MaterialSettings;
   kind?: 'object' | 'scene';
   lockedScale?: boolean;
 }
@@ -747,6 +798,14 @@ export interface SceneState {
   setMarker: (marker: Partial<MarkerState>) => void;
   setHatch: (hatch: Partial<HatchState>) => void;
   setPen: (pen: Partial<PenState>) => void;
+  /** The same three, aimed at the selection: it takes a copy and keeps it. */
+  setSelectionMaterial: (patch: {
+    pen?: Partial<PenState>;
+    marker?: Partial<MarkerState>;
+    hatch?: Partial<HatchState>;
+  }) => void;
+  /** Give the selection back to the page's own settings. */
+  followPageMaterial: () => void;
   cycleRoom: () => void;
   /** Change the floor's two axes, or the ceiling. Clamped to what a room can be. */
   setRoom: (room: Partial<RoomSize>) => void;

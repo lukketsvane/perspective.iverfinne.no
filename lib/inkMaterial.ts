@@ -844,6 +844,88 @@ export const BRUSH_BOX = build({ fill: true }, { polygonOffset: true, polygonOff
 export const MARKER_BOX = build({ fill: true, marker: true }, { polygonOffset: true, polygonOffsetFactor: 1 });
 export const HATCH_BOX = build({ hatch: true }, { polygonOffset: true, polygonOffsetFactor: 1 });
 
+/**
+ * WHAT AN OBJECT SETS FOR ITSELF, AND WHAT IT CANNOT.
+ *
+ * These eleven are the ones a material can be given its own copy of. They are
+ * exactly the ones the three writers above touch - the pen, the marker's stain,
+ * the hatch's rule - which is not a coincidence: a number is settable because
+ * there is a knob for it, and a knob is per-object because these are.
+ *
+ * Everything NOT in this list stays shared, and has to: the paper and the ink
+ * are the sheet the whole drawing is on, the light direction is the sun, and
+ * `radPerSheetPixel` is how wide a screen pixel is. An object with its own
+ * paper would be an object on a different sheet, which is not a thing a page
+ * can contain.
+ */
+const OWN_UNIFORMS = [
+  'contourPx',
+  'formCount',
+  'formStrength',
+  'terminatorStrength',
+  'accent',
+  'accentHigh',
+  'hatchAngle',
+  'hatchCross',
+  'hatchSpacing',
+  'hatchWidth',
+  'hatchLength',
+] as const;
+
+/** Which of the six a rung and a kind of thing want. */
+const STYLE: Record<'brush' | 'marker' | 'hatch', Style> = {
+  brush: { fill: true },
+  marker: { fill: true, marker: true },
+  hatch: { hatch: true },
+};
+
+/**
+ * A material of an object's very own.
+ *
+ * Made only for something that has been given settings of its own; everything
+ * else goes on pointing at the one shared material for its rung, which is what
+ * makes "follows the page" free and what keeps a scene of forty untouched boxes
+ * at one material rather than forty.
+ *
+ * The shared holders come through by reference in the spread, so this still
+ * follows the page's paper, the sun and the pixel scale - it has only stepped
+ * off the eleven it is allowed to own. Their starting values are copied from
+ * the scene's, so the moment before you turn the first knob looks exactly like
+ * the moment after you were given the material.
+ *
+ * One program for all of them: the three style flags are uniforms rather than
+ * defines and the source is identical, so three.js compiles this once however
+ * many objects step off the page.
+ */
+export const ownInkMaterial = (rung: 'brush' | 'marker' | 'hatch', isBox: boolean) => {
+  const material = build(
+    STYLE[rung],
+    isBox ? { polygonOffset: true, polygonOffsetFactor: 1 } : {}
+  );
+  for (const key of OWN_UNIFORMS) {
+    const shared = inkUniforms[key].value;
+    material.uniforms[key] = {
+      value: shared instanceof THREE.Color ? shared.clone() : shared,
+    };
+  }
+  return material;
+};
+
+/** Everything one object's own material is set by, in one write. */
+export const writeOwnInk = (
+  material: THREE.ShaderMaterial,
+  settings: {
+    pen: Parameters<typeof writePen>[1];
+    marker: Parameters<typeof writeMarker>[1];
+    hatch: Parameters<typeof writeHatch>[1];
+  }
+) => {
+  const u = material.uniforms as unknown as Nib;
+  writePen(u, settings.pen);
+  writeMarker(u, settings.marker);
+  writeHatch(u, settings.hatch);
+};
+
 
 /**
  * The sheet you are drawing on, from black paper to white.
@@ -983,6 +1065,20 @@ export const setPageTone = (tone: THREE.Color) => {
   page.ink = inkFor(page.tone);
 };
 
+/*
+ * The three writers below take the uniform set they are writing to.
+ *
+ * There are two kinds of caller now. The scene's own materials are written
+ * through `inkUniforms`, the shared holders every material without settings of
+ * its own points at - one write, every object follows. An object that has been
+ * given its own material is written through that material's holders, and
+ * reaches nothing else in the scene.
+ *
+ * They were three functions that named `inkUniforms` in their own bodies, which
+ * is exactly the shape that cannot be pointed somewhere else.
+ */
+type Nib = typeof inkUniforms;
+
 /**
  * The marker's colour, and where it stops.
  *
@@ -991,47 +1087,48 @@ export const setPageTone = (tone: THREE.Color) => {
  * saturated stain over a drawing, and the two numbers that hold it there are
  * not choices worth offering.
  */
-export const setMarker = (hue: number, high: number) => {
-  inkUniforms.accent.value.setHSL(((hue % 360) + 360) % 360 / 360, 0.72, 0.58, THREE.SRGBColorSpace);
-  inkUniforms.accentHigh.value = high;
+export const writeMarker = (u: Nib, m: { hue: number; high: number }) => {
+  u.accent.value.setHSL(((m.hue % 360) + 360) % 360 / 360, 0.72, 0.58, THREE.SRGBColorSpace);
+  u.accentHigh.value = m.high;
 };
 
 /**
- * The pen every drawn page holds.
+ * The pen a drawn page is drawn with.
  *
  * One hand across brush, marker and hatch - the line is the same shader in all
- * three and only what lies under it differs - so this reaches all of them at
- * once, the same way the paper tone does.
+ * three and only what lies under it differs - so writing this to the shared
+ * holders reaches all three at once, and writing it to one object's holders
+ * reaches that object.
  *
  * The count is rounded because the shader rules that many even steps of the
  * facing ratio and a fractional one puts the last band half off the end.
  */
-export const setPen = (p: {
-  outline: number;
-  formCount: number;
-  formStrength: number;
-  terminator: number;
-}) => {
-  inkUniforms.contourPx.value = p.outline;
-  inkUniforms.formCount.value = Math.round(p.formCount);
-  inkUniforms.formStrength.value = p.formStrength;
-  inkUniforms.terminatorStrength.value = p.terminator;
+export const writePen = (
+  u: Nib,
+  p: { outline: number; formCount: number; formStrength: number; terminator: number }
+) => {
+  u.contourPx.value = p.outline;
+  u.formCount.value = Math.round(p.formCount);
+  u.formStrength.value = p.formStrength;
+  u.terminatorStrength.value = p.terminator;
 };
 
 /** Everything the hatch is ruled by. Angles in degrees, sizes in sheet pixels. */
-export const setHatch = (h: {
-  angle: number;
-  cross: number;
-  spacing: number;
-  width: number;
-  length: number;
-}) => {
-  inkUniforms.hatchAngle.value = (h.angle * Math.PI) / 180;
-  inkUniforms.hatchCross.value = (h.cross * Math.PI) / 180;
-  inkUniforms.hatchSpacing.value = h.spacing;
-  inkUniforms.hatchWidth.value = h.width;
-  inkUniforms.hatchLength.value = h.length;
+export const writeHatch = (
+  u: Nib,
+  h: { angle: number; cross: number; spacing: number; width: number; length: number }
+) => {
+  u.hatchAngle.value = (h.angle * Math.PI) / 180;
+  u.hatchCross.value = (h.cross * Math.PI) / 180;
+  u.hatchSpacing.value = h.spacing;
+  u.hatchWidth.value = h.width;
+  u.hatchLength.value = h.length;
 };
+
+/** The scene's own: the holders every object that has not been given its own points at. */
+export const setMarker = (hue: number, high: number) => writeMarker(inkUniforms, { hue, high });
+export const setPen = (p: Parameters<typeof writePen>[1]) => writePen(inkUniforms, p);
+export const setHatch = (h: Parameters<typeof writeHatch>[1]) => writeHatch(inkUniforms, h);
 
 /** The page's own tone and pen, as hex, for everything outside a shader. */
 export const pageHex = () => `#${page.tone.getHexString()}`;

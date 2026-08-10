@@ -383,6 +383,10 @@ export const WalkOverlay: React.FC<{
   // panel that changes or empties as it leaves.
   const lastMaterialSurface = useRef<Surface>('hatch');
   if (materialSurface) lastMaterialSurface.current = materialSurface;
+  // Where it was opened from, held through the fade for the same reason: on the
+  // way out the panel should go on showing whose settings it was showing.
+  const lastMaterialFrom = useRef<'scene' | 'selection'>('scene');
+  if (materialFrom) lastMaterialFrom.current = materialFrom;
   const cycleSurface = useStore((s) => s.cycleSurface);
   const shufflePreset = useStore((s) => s.shufflePreset);
   const roomLevel = useStore((s) => s.roomLevel);
@@ -1605,7 +1609,10 @@ export const WalkOverlay: React.FC<{
             {/* The rung it was opened for, held through the closing fade: read
                 live it would swap knobs on the way out, and `null` would empty
                 the panel before it had finished leaving. */}
-            <MaterialPanel surface={materialSurface ?? lastMaterialSurface.current} />
+            <MaterialPanel
+              surface={materialSurface ?? lastMaterialSurface.current}
+              from={materialFrom ?? lastMaterialFrom.current}
+            />
           </div>
         </div>
 

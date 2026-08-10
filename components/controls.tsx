@@ -40,6 +40,15 @@ interface DraggableNumber {
   step: number;
   /** Values a tap steps through, in order. */
   cycle?: number[];
+  /**
+   * Called once, as a drag becomes a drag.
+   *
+   * For taking a single history step across a whole drag: the change itself is
+   * written on every frame, and something that wants one step rather than two
+   * hundred needs a moment that happens exactly once. Fired at the same
+   * threshold that starts the change, so a tap that never moves takes no step.
+   */
+  onFirstChange?: () => void;
   /** True for an angle, where the top of the range meets the bottom. */
   wrap?: boolean;
   /**
@@ -225,7 +234,7 @@ export const useRoomControl = () => {
 };
 
 const useScrub = (
-  { value, min, max, step, cycle, wrap, sweep = SWEEP, onChange }: DraggableNumber,
+  { value, min, max, step, cycle, wrap, sweep = SWEEP, onChange, onFirstChange }: DraggableNumber,
   axis: 'x' | 'both'
 ) => {
   const drag = useRef<{ id: number; x: number; y: number; from: number; moved: boolean } | null>(null);
@@ -250,7 +259,10 @@ const useScrub = (
       if (held?.id !== e.pointerId) return;
       const travel =
         axis === 'x' ? e.clientX - held.x : e.clientX - held.x + (held.y - e.clientY);
-      if (Math.abs(travel) > 3) held.moved = true;
+      if (Math.abs(travel) > 3 && !held.moved) {
+        held.moved = true;
+        onFirstChange?.();
+      }
       if (!held.moved) return;
       onChange(settle(held.from + (travel / sweep) * (max - min)));
     },

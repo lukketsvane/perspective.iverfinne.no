@@ -2,7 +2,7 @@ import React from 'react';
 import { useStore } from '../store';
 import { I } from './icons';
 import { Scrub } from './controls';
-import type { Surface } from '../types';
+import { selectionMaterial, type Surface } from '../types';
 
 /**
  * The drawn page's own settings, for one rung of the ladder.
@@ -33,15 +33,82 @@ import type { Surface } from '../types';
  * from the drawing behind it, so the drawing has to stay visible and live
  * while the thumb is down.
  */
-export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
+export const MaterialPanel: React.FC<{ surface: Surface; from: 'scene' | 'selection' }> = ({
+  surface,
+  from,
+}) => {
   const dark = useStore((s) => s.theme) === 'dark';
-  const marker = useStore((s) => s.marker);
-  const hatch = useStore((s) => s.hatch);
-  const pen = useStore((s) => s.pen);
-  const setMarker = useStore((s) => s.setMarker);
-  const setHatch = useStore((s) => s.setHatch);
-  const setPen = useStore((s) => s.setPen);
+  const scenePen = useStore((s) => s.pen);
+  const sceneMarker = useStore((s) => s.marker);
+  const sceneHatch = useStore((s) => s.hatch);
+  const own = useStore(selectionMaterial);
+  const setSceneMarker = useStore((s) => s.setMarker);
+  const setSceneHatch = useStore((s) => s.setHatch);
+  const setScenePen = useStore((s) => s.setPen);
+  const setSelectionMaterial = useStore((s) => s.setSelectionMaterial);
+  const followPageMaterial = useStore((s) => s.followPageMaterial);
+  const beginChange = useStore((s) => s.beginChange);
   const skin = { dark, touch: true };
+
+  /*
+   * WHOSE SETTINGS THESE ARE.
+   *
+   * The same panel, opened from two places that mean two different questions.
+   * From the tools band it is the page: one write, every object that has not
+   * been set apart follows. From the selection bar it is the thing in your
+   * hand, and turning a knob there copies the page's settings onto it and
+   * edits the copy - so setting the hatch angle on one figure stops setting it
+   * on every figure in the scene drawn that way.
+   *
+   * Reading is the same shape as `selectionSurface` one level up: its own if
+   * it has one, the page's behind it. So the knobs never jump when an object
+   * steps off the page - what it was already being drawn with is exactly what
+   * it starts from.
+   */
+  const mine = from === 'selection';
+  const pen = (mine && own?.pen) || scenePen;
+  const marker = (mine && own?.marker) || sceneMarker;
+  const hatch = (mine && own?.hatch) || sceneHatch;
+
+  /*
+   * One history step for a whole drag, taken as it starts.
+   *
+   * An object's settings are part of the scene, so they belong in the undo
+   * stack - and a drag writes on every frame, so recording inside the write
+   * would put two hundred steps in it. Same bracket every other drag in the
+   * app uses. The page's own settings take none, being settings rather than
+   * scene, which is how the backdrop and the lamps behave too.
+   */
+  const start = () => { if (mine) beginChange(); };
+  const setPen = (p: Parameters<typeof setScenePen>[0]) =>
+    mine ? setSelectionMaterial({ pen: p }) : setScenePen(p);
+  const setMarker = (m: Parameters<typeof setSceneMarker>[0]) =>
+    mine ? setSelectionMaterial({ marker: m }) : setSceneMarker(m);
+  const setHatch = (h: Parameters<typeof setSceneHatch>[0]) =>
+    mine ? setSelectionMaterial({ hatch: h }) : setSceneHatch(h);
+
+  /*
+   * The one control that only exists when the selection has stepped off.
+   *
+   * Without it a thing touched once is set apart for good, and the only way
+   * back would be matching the page's numbers by eye. It also does the work of
+   * SAYING that it has stepped off: the knobs look identical either way, so
+   * this appearing is how you know the drag you just made changed one object
+   * rather than the page.
+   */
+  const rejoin = mine && own && (
+    <button
+      onClick={followPageMaterial}
+      aria-label="Draw this with the page's own settings again"
+      className={`h-11 px-3 rounded-full border text-[11px] tracking-wide ${
+        dark
+          ? 'border-white/15 text-white/70 hover:text-white'
+          : 'border-black/15 text-black/60 hover:text-black'
+      }`}
+    >
+      follows its own
+    </button>
+  );
 
   /*
    * The pen, on every drawn page, above whatever that page lays under it.
@@ -58,6 +125,7 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
     <div className="flex flex-wrap items-center justify-center gap-1">
       <Scrub
         skin={skin}
+        onFirstChange={start}
         icon={I.outline}
         // Zero is not "very thin": it lifts the contour off the page entirely,
         // which on an etched page is the tonal engraving whose every edge is
@@ -72,6 +140,7 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
       />
       <Scrub
         skin={skin}
+        onFirstChange={start}
         icon={I.formLines}
         label="How many lines follow the form"
         reading={pen.formCount < 0.5 ? 'none' : Math.round(pen.formCount).toString()}
@@ -83,6 +152,7 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
       />
       <Scrub
         skin={skin}
+        onFirstChange={start}
         icon={I.wash}
         label="How dark those lines are"
         reading={`${Math.round(pen.formStrength * 100)}%`}
@@ -94,6 +164,7 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
       />
       <Scrub
         skin={skin}
+        onFirstChange={start}
         icon={I.terminator}
         label="How strongly the light's edge is drawn"
         reading={pen.terminator < 0.01 ? 'none' : `${Math.round(pen.terminator * 100)}%`}
@@ -103,6 +174,7 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
         step={0.01}
         onChange={(terminator) => setPen({ terminator })}
       />
+      {rejoin}
     </div>
   );
 
@@ -127,6 +199,7 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
       <>
         <Scrub
           skin={skin}
+          onFirstChange={start}
           icon={I.hue}
           label="The marker's colour"
           reading={`${Math.round(marker.hue)}°`}
@@ -139,6 +212,7 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
         />
         <Scrub
           skin={skin}
+          onFirstChange={start}
           icon={I.wash}
           label="How far up the light the colour goes"
           reading={`${Math.round(marker.high * 100)}%`}
@@ -159,6 +233,7 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
       <>
         <Scrub
           skin={skin}
+          onFirstChange={start}
           icon={I.hatchAngle}
           label="Which way the strokes run"
           reading={`${Math.round(hatch.angle)}°`}
@@ -171,6 +246,7 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
         />
         <Scrub
           skin={skin}
+          onFirstChange={start}
           icon={I.hatchCross}
           label="How far the crossing layers are turned off the first"
           reading={`${Math.round(hatch.cross)}°`}
@@ -182,6 +258,7 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
         />
         <Scrub
           skin={skin}
+          onFirstChange={start}
           icon={I.hatchSpacing}
           label="How far apart the strokes are"
           reading={hatch.spacing.toFixed(1)}
@@ -193,6 +270,7 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
         />
         <Scrub
           skin={skin}
+          onFirstChange={start}
           icon={I.hatchWidth}
           label="How heavy each stroke is"
           reading={hatch.width.toFixed(2)}
@@ -204,6 +282,7 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
         />
         <Scrub
           skin={skin}
+          onFirstChange={start}
           icon={I.hatchLength}
           // Zero is the unbroken rule, which is why the range starts there
           // rather than at the shortest stroke worth drawing.
