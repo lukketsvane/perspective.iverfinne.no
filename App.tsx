@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { isSketch } from './types';
 import { Scene } from './components/Scene';
 import { WalkOverlay } from './components/WalkOverlay';
 import { VanishingPoints } from './components/VanishingPoints';
@@ -304,30 +305,42 @@ export default function App() {
     >
       <Scene />
       <Activity />
-      <VanishingPoints color={constructionInk(surface === 'ink' || surface === 'brush', isDark)} />
+      <VanishingPoints color={constructionInk(isSketch(surface), isDark)} />
       <Measures />
+      {/*
+        * Both libraries are handed to the overlay rather than drawn over it.
+        *
+        * They used to come up from the bottom edge as modal sheets, which put
+        * them on top of the dock - so the moment either was open the whole
+        * toolbar was gone, and you could not see what you were placing a mesh
+        * into. They stand in the panel slot now, above the dock and beside the
+        * tools and the lights, as one row you scroll sideways. Which is what
+        * they are: a shelf.
+        */}
       <WalkOverlay
-        onModels={() => setSheet('meshes')}
-        onScenes={() => setSheet('scenes')}
-        covered={sheet !== null}
+        onModels={() => setSheet((at) => (at === 'meshes' ? null : 'meshes'))}
+        onScenes={() => setSheet((at) => (at === 'scenes' ? null : 'scenes'))}
+        shelfOpen={sheet !== null}
+        onShelfAway={() => setSheet(null)}
+        shelf={
+          sheet === 'meshes' ? (
+            <MeshSheet
+              onClose={() => setSheet(null)}
+              onPlace={placeLibraryMesh}
+              onPlaceOwn={placeOwnMesh}
+              onImport={importModels}
+              busyId={busy}
+            />
+          ) : sheet === 'scenes' ? (
+            <SceneSheet
+              onClose={() => setSheet(null)}
+              onExport={exportScene}
+              onImport={importScene}
+              busy={busy !== null}
+            />
+          ) : null
+        }
       />
-      {sheet === 'meshes' && (
-        <MeshSheet
-          onClose={() => setSheet(null)}
-          onPlace={placeLibraryMesh}
-          onPlaceOwn={placeOwnMesh}
-          onImport={importModels}
-          busyId={busy}
-        />
-      )}
-      {sheet === 'scenes' && (
-        <SceneSheet
-          onClose={() => setSheet(null)}
-          onExport={exportScene}
-          onImport={importScene}
-          busy={busy !== null}
-        />
-      )}
     </div>
   );
 }

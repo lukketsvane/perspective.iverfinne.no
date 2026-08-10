@@ -198,36 +198,6 @@ const LampBar: React.FC<{ lamp: LampData; raised: boolean }> = ({ lamp, raised }
       position: [lamp.position[0], Math.min(MAX_LIFT, Math.max(0.1, metres)), lamp.position[2]],
     })
   );
-  const brightScrub = useScrub(lamp.intensity, (value) =>
-    updateLamp(lamp.id, { intensity: Math.min(60, Math.max(0.2, Math.round(value * 10) / 10)) })
-  );
-  // Linear, like the lift: a temperature is a position on a scale, not a size.
-  const warmth = useRef<{ id: number; x: number; from: number; changed: boolean } | null>(null);
-  const warmthScrub = {
-    onPointerDown: (e: React.PointerEvent) => {
-      try {
-        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-      } catch { /* still sees the moves */ }
-      warmth.current = { id: e.pointerId, x: e.clientX, from: lamp.temperature, changed: false };
-    },
-    onPointerMove: (e: React.PointerEvent) => {
-      if (warmth.current?.id !== e.pointerId) return;
-      if (!warmth.current.changed) {
-        warmth.current.changed = true;
-        beginChange();
-      }
-      const kelvin = warmth.current.from + (e.clientX - warmth.current.x) * 25;
-      updateLamp(lamp.id, {
-        temperature: Math.round(Math.min(12000, Math.max(1800, kelvin)) / 50) * 50,
-      });
-    },
-    onPointerUp: (e: React.PointerEvent) => {
-      if (warmth.current?.id === e.pointerId) warmth.current = null;
-    },
-    onPointerCancel: () => {
-      warmth.current = null;
-    },
-  };
   const aimHold = useRef<{ id: number; x: number; from: number; changed: boolean } | null>(null);
   const aimScrub = {
     onPointerDown: (e: React.PointerEvent) => {
@@ -273,39 +243,25 @@ const LampBar: React.FC<{ lamp: LampData; raised: boolean }> = ({ lamp, raised }
           raised || !railVisible ? 'pointer-events-none' : 'pointer-events-auto'
         } ${chrome(isDark)}`}
       >
+        {/*
+          * Where it stands, and nothing about how it burns.
+          *
+          * Brightness, warmth, aim, kind and the switch all used to be here as
+          * well - a second set of knobs for the same five numbers the light
+          * panel already had, in a different order, reachable only while the
+          * lamp happened to be in your hand. There is one place where a light
+          * is set now, and it holds every light in the scene at once; taking
+          * hold of a lamp brings it under those knobs. What is left here is
+          * what this bar is for on every other object: where the thing is.
+          */}
         {reading(metres(lamp.position[1]), 'Height off the floor - drag to change', liftScrub.handlers)}
-        {reading(lamp.intensity.toFixed(1), 'Brightness - drag to change', brightScrub)}
-        {reading(`${lamp.temperature}K`, 'Colour temperature - drag to change', warmthScrub, true)}
+        {/* A bulb shines every way at once, so it has no aim to swing. */}
         {lamp.kind === 'spot' &&
           reading(
             `${Math.round((((lamp.aim * 180) / Math.PI) % 360 + 360) % 360)}°`,
-            'Aim - drag to swing the spot',
+            'Aim - drag to swing it',
             aimScrub
           )}
-        <button
-          onClick={() => {
-            beginChange();
-            updateLamp(lamp.id, { kind: lamp.kind === 'bulb' ? 'spot' : 'bulb' });
-          }}
-          aria-label={`Lamp kind: ${lamp.kind}`}
-          className={button}
-        >
-          <Icon path={lamp.kind === 'bulb' ? I.lampBulb : I.lampSpot} className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => {
-            beginChange();
-            updateLamp(lamp.id, { enabled: !lamp.enabled });
-          }}
-          aria-label="Lamp on"
-          aria-pressed={lamp.enabled}
-          className={`${button} ${lamp.enabled ? '!text-sky-500' : 'opacity-40'}`}
-        >
-          <Icon path={I.power} className="w-5 h-5" />
-        </button>
-        <button onClick={useStore.getState().stampRow} className={button} aria-label="Stamp a row of these">
-          <Icon path={I.row} className="w-5 h-5" />
-        </button>
         <button onClick={() => removeLamp(lamp.id)} className={`${button} !text-red-500`} aria-label="Delete">
           <Icon path={I.trash} className="w-5 h-5" />
         </button>
@@ -321,7 +277,6 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
   const selectedId = useStore((s) => s.selectedId);
   const selectedModelId = useStore((s) => s.selectedModelId);
   const duplicateSelection = useStore((s) => s.duplicateSelection);
-  const stampRow = useStore((s) => s.stampRow);
   const beginChange = useStore((s) => s.beginChange);
   const scaleModel = useStore((s) => s.scaleModel);
   const updateBox = useStore((s) => s.updateBox);
@@ -559,9 +514,6 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
         {/* The diminution lesson in one press: four more, marching along the
             selection's own facing towards their shared point. Turn the thing
             to aim the row. */}
-        <button onClick={stampRow} className={button} aria-label="Stamp a row of these">
-          <Icon path={I.row} className="w-5 h-5" />
-        </button>
         {model?.object && (
           <button
             onClick={exportModel}

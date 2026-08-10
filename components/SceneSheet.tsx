@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { Icon, I } from './icons';
-import { Sheet } from './Sheet';
 import { iconButton, tile } from './ui';
 import { beginActivity, reportFailure } from '../lib/activity';
 import type { SavedScene } from '../types';
@@ -96,6 +95,21 @@ export const SceneSheet: React.FC<{
 
   const fileInput = useRef<HTMLInputElement>(null);
   const [working, setWorking] = useState(false);
+  const [arming, setArming] = useState(false);
+  const resetScene = useStore((s) => s.resetScene);
+
+  // The arming lapses on its own, so a stray first tap is not left loaded.
+  useEffect(() => {
+    if (!arming) return;
+    const timer = setTimeout(() => setArming(false), 2600);
+    return () => clearTimeout(timer);
+  }, [arming]);
+
+  const clear = () => {
+    setArming(false);
+    resetScene();
+    onClose();
+  };
 
   const run = async (work: () => Promise<unknown>) => {
     setWorking(true);
@@ -133,8 +147,12 @@ export const SceneSheet: React.FC<{
   const action = `${iconButton(dark)} disabled:opacity-40`;
 
   return (
-    <Sheet onClose={onClose}>
-      <div className="flex items-center justify-center gap-1 px-3 pb-3">
+    /*
+     * A shelf, not a sheet: one row you scroll sideways, standing in the panel
+     * slot above the dock rather than drawn over it.
+     */
+    <div className="flex items-stretch gap-1 max-w-full min-w-0">
+      <div className="flex items-center gap-1 shrink-0">
         <button
           onClick={() => run(saveCurrentScene)}
           disabled={disabled}
@@ -156,10 +174,28 @@ export const SceneSheet: React.FC<{
         >
           <Icon path={I.sceneImport} className="w-5 h-5" />
         </button>
+        {/*
+          * Back to the empty grid, and only here.
+          *
+          * There used to be one of these a thumb-width from the controls you
+          * reach for constantly, with a single undo between a mis-tap and a
+          * morning's work, and taking it away was right. It belongs in the
+          * room where compositions are kept, next to save and export, where
+          * every neighbouring control is also about the scene as a whole -
+          * and it asks twice, like deleting a saved scene does.
+          */}
+        <button
+          onClick={() => (arming ? clear() : setArming(true))}
+          disabled={disabled}
+          aria-label={arming ? 'Clear the scene for good' : 'Clear the scene'}
+          className={`${action} ${arming ? '!text-red-500' : ''}`}
+        >
+          <Icon path={arming ? I.trash : I.clearScene} className="w-5 h-5" />
+        </button>
       </div>
 
       {scenes.length > 0 && (
-        <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto overscroll-contain scrollbar-none px-3 pb-4">
+        <div className="flex gap-2 min-w-0 overflow-x-auto overscroll-contain scrollbar-none [&>*]:shrink-0 [&>*]:w-32">
           {scenes.map((scene) => (
             <SceneCard
               key={scene.id}
@@ -185,6 +221,6 @@ export const SceneSheet: React.FC<{
           e.target.value = '';
         }}
       />
-    </Sheet>
+    </div>
   );
 };

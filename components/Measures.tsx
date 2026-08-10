@@ -1,4 +1,5 @@
 import React, { useEffect, useReducer } from 'react';
+import { isSketch } from '../types';
 import { useStore } from '../store';
 import { useMeasures, type Measure } from '../lib/measure';
 import { projectDirection } from '../lib/pick';
@@ -154,7 +155,7 @@ export const Measures: React.FC = () => {
   }, [any]);
 
   if (!any) return null;
-  const sketch = surface === 'ink' || surface === 'brush';
+  const sketch = isSketch(surface);
   const ink = constructionInk(sketch, dark);
   // The halo is the page, not "white": on a dark board a white halo was the
   // brightest mark on the sheet.
