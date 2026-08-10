@@ -72,8 +72,20 @@
        * should run edge to edge under the notch and the home indicator, while
        * every control stays inside the safe box.
        */
-      .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
       .bottom-safe-panel { bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem); }
+      /*
+       * ...and the SIDES, which only matter when the phone is on its side and
+       * are the whole difference there. Held in landscape the notch takes about
+       * 44 px off one edge and the rounded corners a little off both, and the
+       * dock's two clusters are anchored to exactly those corners - so the
+       * left-hand one sat under the notch, with the control at its end
+       * unreachable. Upright both insets are zero and this is the 0.75rem the
+       * padding always was.
+       */
+      .x-safe-panel {
+        padding-left: calc(env(safe-area-inset-left, 0px) + 0.75rem);
+        padding-right: calc(env(safe-area-inset-right, 0px) + 0.75rem);
+      }
 
       /* A flick strip has no room for a scrollbar, and never needs one. */
       .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }

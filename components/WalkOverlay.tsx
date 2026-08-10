@@ -15,7 +15,7 @@ import { captureFileName, captureView } from '../lib/capture';
 // bought nothing and only kept the bundler warning alive.
 import { quickLookAvailable, sceneToUSDZ, openInQuickLook, downloadUSDZ } from '../lib/exportAR';
 import { whileWorking } from '../lib/activity';
-import { ACTIVE, bubble, chrome, iconButton } from './ui';
+import { ACTIVE, bubble, chrome, iconButton, SIDEWAYS_SLOT } from './ui';
 import { directionAt, pickGround, pickObject, pixelsPerMetreAt } from '../lib/pick';
 import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
@@ -70,29 +70,27 @@ const SNAP_ICON: React.ReactNode[] = [I.snapFree, I.snapFine, I.snapMedium, I.sn
  * identical to portrait, because the CSS simply did not exist.)
  */
 const SIDEWAYS_PANEL =
-  '[@media(max-height:560px)]:flex-row [@media(max-height:560px)]:items-center ' +
+  // items-stretch, so every hairline runs the full height of the block rather
+  // than only as far as its own band's controls reach.
+  '[@media(max-height:560px)]:flex-row [@media(max-height:560px)]:items-stretch ' +
+  // A BLOCK IN THE CORNER, NOT A BAR ACROSS THE BOTTOM.
+  //
+  // The bands were turned sideways but kept as rows, which laid twenty-two
+  // controls end to end: a strip wider than the phone, so it filled the frame
+  // edge to edge, scrolled sideways to reach half of itself, and landed as a
+  // second dark bar directly on top of the dock. Two full-width bars is the
+  // whole bottom third of a 440 px frame gone, and the drawing was what was
+  // under them.
+  //
+  // Each band is a COLUMN instead. Four columns of up to six is about 200 by
+  // 270 - a block that sits in the corner over the button that opened it, with
+  // three quarters of the frame beside it untouched, nothing to scroll, and
+  // every control visible at once. It is the same trade as before, made the
+  // other way: spend the axis the screen has (width, and only 200 px of it)
+  // rather than the axis it has none of.
   '[@media(max-height:560px)]:max-w-[calc(100vw-1.5rem)] ' +
-  // Eighteen controls at 44 px is a little over the width even a phone on its
-  // side has, and one of them wrapping puts the whole panel back to two rows
-  // deep - which is the height this arrangement exists to save. It scrolls
-  // instead: a row you push sideways is still one row.
-  '[@media(max-height:560px)]:overflow-x-auto [@media(max-height:560px)]:scrollbar-none';
-
-/** The hairline between two bands, moved from under them to beside them. */
-/**
- * Every panel hangs from the RIGHT when the window is short.
- *
- * Centred, a panel opened from the right-hand thumb cluster came up somewhere
- * else - and on a landscape phone "somewhere else" is most of a hand's width
- * away, so the control you pressed and the controls it revealed were nowhere
- * near each other. Hung right, a panel opens directly above the button that
- * opened it, every one of them shares one edge, and the left two thirds of the
- * frame - which is the part the drawing is in - stays clear.
- *
- * Upright it stays centred: there is only one dock there, in the middle, and a
- * panel pinned to one side of a 390 px screen would be lopsided for nothing.
- */
-const SIDEWAYS_SLOT = '[@media(max-height:560px)]:justify-end';
+  '[@media(max-height:560px)]:max-h-[calc(100dvh-9.5rem)] ' +
+  '[@media(max-height:560px)]:overflow-y-auto [@media(max-height:560px)]:scrollbar-none';
 
 /**
  * The dock, turned sideways: two thumbs instead of one row.
@@ -118,6 +116,28 @@ const SIDEWAYS_DOCK =
   '[@media(max-height:560px)]:w-full [@media(max-height:560px)]:justify-between ' +
   '[@media(max-height:560px)]:bg-transparent [@media(max-height:560px)]:border-transparent ' +
   '[@media(max-height:560px)]:shadow-none [@media(max-height:560px)]:p-0';
+
+/**
+ * The lights and the material knobs, on their side.
+ *
+ * Neither has enough in it to need turning the way the tools panel does - nine
+ * controls and seven - but both would still run most of the width of a phone
+ * held sideways if left to fill it, and a panel that reaches the far corner is
+ * a panel that has stopped being near the button that opened it. Held to a
+ * third of the frame they wrap into two or three short lines in the corner,
+ * which is the shape everything else up there is.
+ */
+const SIDEWAYS_BLOCK = '[@media(max-height:560px)]:max-w-[20rem]';
+
+/**
+ * The library is the exception, and stays a strip.
+ *
+ * It is one row of thumbnails you push sideways, and that is the whole idea of
+ * it - a shelf. Held to twenty rem it would show four objects out of fourteen.
+ * Two thirds of the frame is nine of them, still hung from the right, still
+ * clear of the left-hand thumb.
+ */
+const SIDEWAYS_SHELF = '[@media(max-height:560px)]:max-w-[min(38rem,66vw)]';
 
 const SIDEWAYS_DIVIDER =
   '[@media(max-height:560px)]:mt-0 [@media(max-height:560px)]:pt-0 ' +
@@ -261,6 +281,27 @@ export const WalkOverlay: React.FC<{
    * out of five is a control you learn to distrust.
    */
   const [showMaterial, setShowMaterial] = useState(false);
+
+  /**
+   * ONE PANEL IN THE SLOT AT A TIME.
+   *
+   * The tools, the lights, the page's own knobs, the mesh library and the
+   * scene library all hang in one zero-height slot above the dock, and they
+   * are all opacity - so two open at once is not two panels, it is one drawn
+   * on top of another. The four buttons inside the panel already stood each
+   * other down; the two on the dock, which open the libraries, did not, so
+   * tapping the library with the tools up put a shelf across the middle of it.
+   * On an upright phone the scene library landed entirely inside the tools
+   * panel, which reads as the panel having changed rather than as a second
+   * thing arriving.
+   */
+  const swapTo = (open: () => void) => () => {
+    setShowTools(false);
+    setShowLights(false);
+    setShowMaterial(false);
+    open();
+  };
+
   /*
    * Whether the phone's own orientation is driving the view.
    *
@@ -1050,14 +1091,28 @@ export const WalkOverlay: React.FC<{
    * A phone on its side has about 380 px of height and something like a
    * thousand of width. Four stacked bands plus the dock plus the selection bar
    * came to more than half of that height, over the middle of the drawing -
-   * which is the one part of the frame the drawing is actually in. There is
-   * nothing wrong with the panel except that it was laid out for the wrong
-   * axis: turned, the four bands stand side by side in one line, the hairlines
-   * between them go vertical, and the whole thing is one row tall. It costs a
-   * fifth of the height it used to and spends width, which is the thing that
-   * screen has too much of.
+   * which is the one part of the frame the drawing is actually in. So the four
+   * bands stand side by side, and the hairlines between them go vertical.
+   *
+   * But a band is a COLUMN when it does, not a row. Laid out as rows they made
+   * one strip of twenty-two controls, wider than the phone - which is a second
+   * full-width bar on top of the dock, and half of it off the edge. Stacked,
+   * the whole panel is a block in the corner over the button that opened it,
+   * with everything visible at once and three quarters of the frame still
+   * drawing.
+   *
+   * The column is capped at three and wraps rather than running on, because
+   * there is no fixed budget to run into: the slot the panel hangs in moves up
+   * by the height of the selection bar whenever something is selected, and a
+   * six-deep column that fitted on an empty grid went off the top of the frame
+   * the moment a mesh was picked. Three is short enough to survive that, and
+   * wrapping keeps it honest either way - nothing scrolls, nothing is hidden,
+   * the block just gets wider on the axis that has the room.
    */
-  const band = 'flex flex-wrap justify-start gap-1 [@media(max-height:560px)]:flex-nowrap [@media(max-height:560px)]:shrink-0';
+  const band =
+    'flex flex-wrap justify-start gap-1 ' +
+    '[@media(max-height:560px)]:flex-col [@media(max-height:560px)]:content-start ' +
+    '[@media(max-height:560px)]:max-h-[8.75rem] [@media(max-height:560px)]:shrink-0';
   /**
    * The hairline between two bands: under them in portrait, beside them when
    * the screen is short.
@@ -1133,7 +1188,7 @@ export const WalkOverlay: React.FC<{
         // Working the dock keeps the dock up: the fade is a six second idle
         // timer, and it used to be reset only by touching the scene.
         onPointerDown={showRail}
-        className={`fixed bottom-safe-panel left-0 right-0 z-40 flex flex-col items-center gap-3 px-3 pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${dockVisible ? 'opacity-100' : 'opacity-0'}`}
+        className={`fixed bottom-safe-panel left-0 right-0 z-40 flex flex-col items-center gap-3 x-safe-panel pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${dockVisible ? 'opacity-100' : 'opacity-0'}`}
       >
 
         {/* One slot above the dock, two occupants: the tools row and the light
@@ -1406,7 +1461,7 @@ export const WalkOverlay: React.FC<{
           {/* The library of compositions, and taking the picture away. The
               dock is the verbs you use mid-drawing; both of these are things
               you do between drawings, at the start and at the end. */}
-          <button onClick={onScenes} aria-label="Scenes" className={button}>
+          <button onClick={swapTo(onScenes)} aria-label="Scenes" className={button}>
             <Icon path={I.scenes} className="w-5 h-5" />
           </button>
           <button
@@ -1424,7 +1479,7 @@ export const WalkOverlay: React.FC<{
         <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
           <div
             {...(showLights && dockVisible ? {} : { inert: '' })}
-            className={`max-w-full p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showLights && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
+            className={`max-w-full ${SIDEWAYS_BLOCK} p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showLights && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
           >
             <LightPanel />
           </div>
@@ -1434,7 +1489,7 @@ export const WalkOverlay: React.FC<{
         <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
           <div
             {...(shelfOpen && dockVisible ? {} : { inert: '' })}
-            className={`max-w-full min-w-0 p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${shelfOpen && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
+            className={`max-w-full min-w-0 ${SIDEWAYS_SHELF} p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${shelfOpen && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
           >
             {shelf}
           </div>
@@ -1444,7 +1499,7 @@ export const WalkOverlay: React.FC<{
         <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
           <div
             {...(showMaterial && dockVisible ? {} : { inert: '' })}
-            className={`max-w-full p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showMaterial && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
+            className={`max-w-full ${SIDEWAYS_BLOCK} p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showMaterial && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
           >
             <MaterialPanel />
           </div>
@@ -1478,7 +1533,7 @@ export const WalkOverlay: React.FC<{
           className={`flex flex-wrap items-center justify-center max-w-full p-1.5 gap-1 max-[429px]:p-1 max-[429px]:gap-0.5 rounded-[1.75rem] border shadow-2xl ${SIDEWAYS_DOCK} ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
         >
           <div className={`${SIDEWAYS_CLUSTER} ${surface}`}>
-          <button onClick={onModels} aria-label="Add model" className={button}>
+          <button onClick={swapTo(onModels)} aria-label="Add model" className={button}>
             <Icon path={I.cube} className="w-5 h-5" />
           </button>
           <Scrub

@@ -37,10 +37,20 @@ symmetry to lean on, a soft closed form of the kind that has to be drawn by its
 contour and its cross-contour or not at all, which is precisely what the drawn
 surfaces are built to show.
 
-They stand at 0.9, 1.35, 1.9 and 0.95 metres, which is the animal *in that pose*
-measured to the top of its head, not the standing height of the species. A
-couched foal is not as tall as a standing one, and telling the grid it was would
-put a wrong number under every measurement taken against it.
+They stand at 0.9, 1.55, 2.15 and 0.95 metres, which is the animal *in that
+pose*, not the standing height of the species. A couched foal is not as tall as
+a standing one, and telling the grid it was would put a wrong number under every
+measurement taken against it.
+
+Those four numbers were settled **by weight**. A height is easy to argue about
+and easy to be a foot wrong about; the volume a closed mesh encloses is not, and
+at the density of an animal it comes out in kilogrammes. All four meshes are
+watertight, so the divergence theorem gives an exact answer: they displace 90,
+91, 456 and 39 kg. Two foals of the same weight, which is the whole claim of
+having two of them, and a horse in the middle of the 450–550 kg an adult riding
+horse weighs. They shipped once with the leaping foal at 1.35 m and the horse at
+1.9, which is 60 kg and 314: a foal half the weight of the foal beside it, and a
+pony.
 
 Then three **studies**, reconstructed from Kim Jung Gi pages. Each is a single
 sculpted mesh — fifteen figures, the furniture they are on, the animals among
@@ -1360,3 +1370,14 @@ memory per animal, every byte of it invisible on four surfaces out of five —
 the base colour comes down to 1024 JPEG, and the geometry is welded and
 decimated to 14 %. Each arrives at 433k triangles and 15 MB and ships at 60k
 and about 1.5 MB, in line with the chairs.
+
+Dropping a map means owning the **factor it was overriding**, which is the step
+that is easy to miss and turns everything black. glTF defaults `metallicFactor`
+to 1, and a fully metallic surface has no diffuse term at all — albedo × (1 −
+metalness) is zero — so the base colour never reaches a pixel and all that is
+left is a rough specular off whatever analytic lights there are. With no
+environment map that is very nearly black. Nothing looks wrong until the map
+that had been overriding the factor per texel is the one you just deleted: the
+chairs and the car still ship a metal-roughness map and so were never affected,
+which is exactly why four dark animals beside them read as four bad meshes
+rather than as one missing line in the bake.

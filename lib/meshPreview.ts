@@ -20,11 +20,27 @@ import { getAsset, getPreview, isAssetRef, putPreview } from './assets';
 
 const SIZE = 96;
 
+/**
+ * Which way the pictures are drawn.
+ *
+ * They are kept in the browser and never looked at again, which is the whole
+ * point of them - so a change to how they are drawn reaches nobody who has
+ * already opened the library unless the key changes with it. Bump this when
+ * the render changes.
+ *
+ * 2: clay rather than the mesh's own materials.
+ */
+const RENDER = 2;
+const cacheKey = (url: string) => `${RENDER}:${url}`;
+
 const memory = new Map<string, string>();
 const pending = new Map<string, Promise<string>>();
 
 /** A preview already in hand, for the first paint of a tile. */
-export const getMeshPreview = (url: string): string | null => memory.get(url) ?? null;
+export const getMeshPreview = (url: string): string | null => memory.get(cacheKey(url)) ?? null;
+
+/** What every tile is made of. One of it, for every mesh, forever. */
+const CLAY = new THREE.MeshStandardMaterial({ color: 0xe6e3dd, roughness: 0.76, metalness: 0 });
 
 let renderer: THREE.WebGLRenderer | null = null;
 
@@ -90,30 +106,31 @@ const enqueue = async <T>(work: () => Promise<T>): Promise<T> => {
 };
 
 export const generateMeshPreview = (url: string): Promise<string> => {
-  const held = memory.get(url);
+  const key = cacheKey(url);
+  const held = memory.get(key);
   if (held) return Promise.resolve(held);
 
-  const inflight = pending.get(url);
+  const inflight = pending.get(key);
   if (inflight) return inflight;
 
   const promise = (async () => {
-    const stored = await getPreview(url);
+    const stored = await getPreview(key);
     if (stored) return stored;
     const drawn = await enqueue(() => renderPreview(url));
-    void putPreview(url, drawn);
+    void putPreview(key, drawn);
     return drawn;
   })()
     .then((dataUrl) => {
-      memory.set(url, dataUrl);
-      pending.delete(url);
+      memory.set(key, dataUrl);
+      pending.delete(key);
       return dataUrl;
     })
     .catch(() => {
-      pending.delete(url);
+      pending.delete(key);
       return '';
     });
 
-  pending.set(url, promise);
+  pending.set(key, promise);
   return promise;
 };
 
@@ -149,13 +166,41 @@ const renderPreview = async (url: string): Promise<string> => {
   const scene = new THREE.Scene();
   scene.add(model);
 
-  // Bright enough to read the model's own materials, from three sides so a
-  // silhouette does not come out as one flat shape.
-  scene.add(new THREE.AmbientLight(0xffffff, 1.4));
-  const key = new THREE.DirectionalLight(0xffffff, 2);
+  /*
+   * EVERY TILE IS CLAY. The mesh's own materials do not come to the shelf.
+   *
+   * A tile is 96 pixels of near-black glass in the dark, near-white in the
+   * light, and one preview has to read on both - it is drawn once and kept.
+   * The horses arrive bay brown, which on the dark tile is a brown shape on a
+   * black square: correctly framed, correctly sized, and invisible. A blue
+   * chair beside it reads perfectly, so the shelf looked half broken rather
+   * than consistently wrong, which is worse.
+   *
+   * One material for all of them settles it by construction, including for
+   * every mesh the viewer imports - which is the case nobody can go and fix.
+   * It is also the truer picture of what is on the shelf: colour appears
+   * nowhere else in this tool, which draws in line and value, and a library of
+   * forms should look like one.
+   *
+   * The ambient is low so the shadow side goes genuinely dark. That is what
+   * makes one picture work on two backgrounds: the lit side carries it on the
+   * dark tile, the shadow side on the light one.
+   */
+  const authored: THREE.Material[] = [];
+  model.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).forEach((material) => {
+      if (material) authored.push(material);
+    });
+    mesh.material = CLAY;
+  });
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+  const key = new THREE.DirectionalLight(0xffffff, 2.6);
   key.position.set(2, 3, 2);
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0xffffff, 0.8);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.7);
   fill.position.set(-2, 1, -1);
   scene.add(fill);
 
@@ -171,19 +216,18 @@ const renderPreview = async (url: string): Promise<string> => {
   const dataUrl = gl.domElement.toDataURL('image/png');
 
   // The picture is all that was wanted; geometry, materials and the maps they
-  // hold all go straight back.
+  // hold all go straight back. The materials are the ones the file came with,
+  // collected on the way in - what is hanging off the meshes now is the shared
+  // clay, and that one stays.
   model.traverse((child) => {
     const mesh = child as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    mesh.geometry?.dispose();
-    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-    materials.forEach((material) => {
-      if (!material) return;
-      Object.values(material).forEach((value) => {
-        if ((value as THREE.Texture)?.isTexture) (value as THREE.Texture).dispose();
-      });
-      material.dispose();
+    if (mesh.isMesh) mesh.geometry?.dispose();
+  });
+  authored.forEach((material) => {
+    Object.values(material).forEach((value) => {
+      if ((value as THREE.Texture)?.isTexture) (value as THREE.Texture).dispose();
     });
+    material.dispose();
   });
 
   return dataUrl;
