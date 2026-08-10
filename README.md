@@ -249,7 +249,7 @@ The timer lives outside both of them, in `lib/rail.ts`, since they are different
 components in different parts of the tree and there is only one idea of "the
 chrome is wanted" between them.
 
-**The dock is the verbs, and only the verbs.** Eight seats:
+**The dock is the verbs, and only the verbs.** Six seats:
 
 - **Cube** — the mesh library: a lamp, a 1 m reference cube, the way in for your
   own files, then the objects and figures
@@ -596,7 +596,7 @@ one light leaving half of everything black.
 The sun and the fill say where the big light comes from. **Lamps** say where
 the small ones hang, and they are scene objects, not settings — placed from the
 model library (the tile left of the cube), selected with a tap, slid along
-their own level, lifted, duplicated by another placement, saved with the
+their own level, lifted, placed again from the shelf, saved with the
 composition, exported in the scene file and taken back by undo, exactly like a
 box. That is what separates a light *editor* from a light panel.
 
@@ -644,11 +644,15 @@ in it: fifteen cages, fifteen footprints, thirty dashed diagonals and fifteen
 plumb lines, over the drawing. A box round everything at once is a box round
 nothing in particular.
 
-**The ground grid is two switches, one per direction** — the lines running away
-from you, and the lines running across. It used to be a rung of the ladder,
-which could only ever offer the whole grid, and a floor is not drawn that way:
-you lay the receding lines to their point and then you cross them. Either family
-alone is the step before a grid; both is a grid; neither is bare ground.
+**The ground ruling is one seat with four states** — none, the lines running
+away from you, both, the lines running across. It used to be a rung of the
+guides ladder, which could only ever offer the whole grid, and a floor is not
+drawn that way: you lay the receding lines to their point and then you cross
+them. Either family alone is the step before a grid; both is a grid; neither is
+bare ground. It was then a switch each, which said all four but spent two seats
+in the widest band in the panel — and the widest band is what sets the panel's
+whole width. The cycle is ordered so that the sequence above is two consecutive
+taps.
 
 The ground is ruled as a tape measure is: three rulers at once — the step you
 snap to, the metre, and the five — each heavier than the last, so distance can
@@ -778,8 +782,14 @@ up against. Eye level sets to the centimetre.
 
 Selecting something raises a second bar above the dock — it does not replace it —
 with what you can do to the thing you are holding: **how far away it is**, size,
-**lock the size**, lift it off the floor, change its surface, duplicate, export
-the mesh at the size you settled on, delete.
+**lock the size**, lift it off the floor, change its surface, open the knobs
+that rule that surface, switch its own vanishing points on, export the mesh at
+the size you settled on, delete.
+
+The copy command used to sit here, and its seat became the way into the
+surface's knobs. Nothing replaced the entry point, so for a while there was a
+verb nobody could press; it has been taken out. Placing the same thing twice
+does the job, and each placement lands clear of what is already standing there.
 
 The distance is a reading, not a control. Perspective is a relation between
 three numbers — how big a thing is, how far away it is, and how high your eye is
@@ -962,7 +972,7 @@ frame to be printed or dropped into a tablet layer and traced over. Which sheet
 you want is yours to choose — but a *white line on a black field* is not what
 the dark theme should hand you by default, so the two are separate decisions.
 
-### Ten pages, and a shuffle
+### Twenty-three pages, and a shuffle
 
 Everything in this tool is a knob, and a tool that is all knobs is a tool nobody
 ever sees the range of. Most of what it can do lives in *combinations*: the
@@ -970,10 +980,15 @@ etched page wants a low raking sun, the engraving wants its strokes at six
 pixels and its mount black, the marker wants a light one. Any of those is a
 minute of fiddling to find and a second to lose.
 
-So there are ten whole pages — surface, sheet, mount and light, chosen together
-— and one control that deals a different one each time it is pressed. Brush page
-on black, the etched plate, silverpoint, steel engraving, green marker, blue
-print, sanguine, chalk on slate, noon clay, night study. It is the fastest way
+So there are whole pages — surface, sheet, mount, light, the pen and the floor,
+chosen together — and one control that deals a different one each time it is
+pressed. The needle four (etched plate, silverpoint, steel engraving, woodcut),
+the toned sheets (conté on Ingres, charcoal with the lights lifted, sanguine,
+aquatint), the two extremes of the pen (notan, which takes it off entirely, and
+clear line, which is nothing but edge), the markers, and four pages about light
+rather than line. Deliberately not counted here: the last count in this file
+said ten while there were sixteen, which is what a number typed into prose looks
+like a year later. It is the fastest way
 to learn what the knobs are *for*: you land somewhere good, and then you can see
 which knob put you there.
 
@@ -1074,10 +1089,13 @@ six-pixel gradient with a grey middle, which is why the darks could not close
 however far the weight was pushed. A stroke has a solid core and about a pixel
 of edge now, so the width is the width.
 
-Five knobs: which way the strokes run, how far the crossing layers are turned
-off them, how far apart they stand, how heavy each one is, and how long it runs
-before it lifts. They are knobs rather than a preset because the difference
-between a good hatch and a bad one is those four numbers, and shipping one
+Four knobs: which way the strokes run, how far apart they stand, how heavy each
+one is, and how long it runs before it lifts. There was a fifth, for how far the
+crossing layers were turned off the first, and it went when the crossing did —
+it had been wired to a uniform no shader reads for three changes, and measured
+against the drawing it moved nothing at all. They are knobs rather than a preset
+because the difference between a good hatch and a bad one is those numbers, and
+shipping one
 guess would be shipping one etching.
 
 ### The sheet and the page it is mounted on

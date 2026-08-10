@@ -867,8 +867,6 @@ export interface SceneState {
   /** Step down through the room's construction: everything, less, none, round. */
   cycleGuides: () => void;
   /** One family of the ground's ruling, or the other. */
-  toggleGridX: () => void;
-  toggleGridZ: () => void;
   /** Both of them, on one seat: none, away, both, across. */
   cycleFloorRuling: () => void;
   cycleConstruction: () => void;
