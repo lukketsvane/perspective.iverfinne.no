@@ -33,7 +33,7 @@ import { cloneModel } from './lib/modelMaterials';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
 import { MAX_FIELD, wholeSheetField } from './lib/projection';
-import { luminance, paperFor, setInkPaper, setPageTone } from './lib/inkMaterial';
+import { luminance, mountFor, paperFor, setInkPaper, setPageTone } from './lib/inkMaterial';
 import { walkInput } from './lib/walkInput';
 
 // ---------------------------------------------------------------------------
@@ -159,23 +159,39 @@ export const pageGrayOf = (state: { backdrop: Backdrop; backgroundGray: number }
   state.backdrop === 'paper' ? state.backgroundGray : state.backdrop;
 
 /**
+ * The colour actually behind everything - the one page tone, worked out once.
+ *
+ * Three cases and only three. The page IS the sheet and the sheet is a sketch:
+ * the warm ramp, so the world is made of the paper the object is drawn on. The
+ * page is the sheet and the surface is clay: a flat grey, which is what a lit
+ * scene wants behind it. Or the page is a mount of its own, which is neutral
+ * whatever the sheet is doing - a mount is not a sheet, and running it through
+ * a ramp built to be warm is why a page set to zero came out a cool dark blue
+ * instead of black.
+ */
+export const pageToneOf = (state: {
+  backdrop: Backdrop;
+  backgroundGray: number;
+  surface: Surface;
+}) =>
+  state.backdrop === 'paper' && (state.surface === 'ink' || state.surface === 'brush')
+    ? paperFor(state.backgroundGray)
+    : mountFor(pageGrayOf(state));
+
+/**
  * Light chrome or dark, decided by what the chrome floats over.
  *
- * The sketch pages run through the warm ramp, where the crossing from paper
- * to board is a relative luminance of 0.179 rather than the middle of the
- * range; the clay is a flat grey, where the middle is the middle.
+ * One rule for all three pages, asked of the tone rather than the number: a
+ * relative luminance of 0.18, which is the crossing where a sheet stops being
+ * paper and becomes a board. On a neutral page that lands at 118 of 255, which
+ * is the middle to within a rounding error - so the flat grey keeps behaving
+ * exactly as it did without needing to be a second rule.
  */
-const themeFor = (gray: number, surface: Surface): ThemeMode =>
-  surface === 'ink' || surface === 'brush'
-    ? luminance(paperFor(gray)) >= 0.18
-      ? 'light'
-      : 'dark'
-    : gray >= 128
-      ? 'light'
-      : 'dark';
+const themeFor = (state: { backdrop: Backdrop; backgroundGray: number; surface: Surface }): ThemeMode =>
+  luminance(pageToneOf(state)) >= 0.18 ? 'light' : 'dark';
 
 const pageTheme = (backdrop: Backdrop, backgroundGray: number, surface: Surface) => ({
-  theme: themeFor(pageGrayOf({ backdrop, backgroundGray }), surface),
+  theme: themeFor({ backdrop, backgroundGray, surface }),
 });
 
 /**
@@ -776,13 +792,11 @@ export const useStore = create<SceneState>((set, get) => ({
    * light theme would have opened light chrome over the new black mount, on the
    * single load where nothing they did could explain it.
    */
-  theme: themeFor(
-    pageGrayOf({
-      backdrop: remembered.backdrop ?? OPENING_BACKDROP,
-      backgroundGray: remembered.backgroundGray ?? OPENING_PAPER,
-    }),
-    remembered.surface ?? OPENING_SURFACE
-  ),
+  theme: themeFor({
+    backdrop: remembered.backdrop ?? OPENING_BACKDROP,
+    backgroundGray: remembered.backgroundGray ?? OPENING_PAPER,
+    surface: remembered.surface ?? OPENING_SURFACE,
+  }),
 
   /**
    * The line under everything about to change.
@@ -1406,14 +1420,19 @@ export const useStore = create<SceneState>((set, get) => ({
       // sheet while the page IS the sheet, otherwise the mount. Flipping the
       // sheet under a black mount would change nothing anybody can see and
       // leave the chrome claiming otherwise.
-      const of = state.backdrop === 'paper' ? state.backgroundGray : (state.backdrop as number);
+      const onSheet = state.backdrop === 'paper';
+      const of = onSheet ? state.backgroundGray : (state.backdrop as number);
       const mirrored = 255 - of;
-      const landed = themeFor(mirrored, state.surface) === wanted
-        ? mirrored
-        : wanted === 'dark'
-          ? 0
-          : 243;
-      return state.backdrop === 'paper'
+      // Asked of the page the flip would actually produce, which is the mount
+      // when there is one and the sheet when the page is the sheet.
+      const would = (gray: number) =>
+        themeFor({
+          backdrop: onSheet ? 'paper' : gray,
+          backgroundGray: onSheet ? gray : state.backgroundGray,
+          surface: state.surface,
+        });
+      const landed = would(mirrored) === wanted ? mirrored : wanted === 'dark' ? 0 : 243;
+      return onSheet
         ? { theme: wanted, backgroundGray: landed }
         : { theme: wanted, backdrop: landed };
     }),
@@ -1607,7 +1626,7 @@ export const useStore = create<SceneState>((set, get) => ({
  */
 const syncTones = (state: SceneState) => {
   setInkPaper(state.backgroundGray);
-  setPageTone(pageGrayOf(state));
+  setPageTone(pageToneOf(state));
 };
 syncTones(useStore.getState());
 useStore.subscribe(syncTones);

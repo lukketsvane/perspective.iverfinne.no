@@ -128,6 +128,8 @@ the floor seen from above.
   it, spread to size it, slide to move it. The turn lands on 15° steps whenever
   the snap is on, so 45° — the two-point setup — is hittable by hand
 - **Turn from a keyboard** — `[` and `]`, fifteen degrees a press, shift for one.
+- **Stand it in the room you are in** — the AR control in the panel; its own
+  section below
 - **Look by turning the phone** — a toggle in the panel hands the view's
   heading to the phone's own orientation sensors, smoothed, with drag-to-look
   layered on top for the turn your chair will not make. Hold the phone up and
@@ -208,12 +210,23 @@ projection once and draw for an hour inside it.
 what is drawn on the ground (the guides, the floor's two rulings, snap, the
 construction ladder, the selection's own vanishing points); what the picture is
 made of (the surface, the sheet, the page, the lamps); where it is seen from
-(the projection, the lens reach, the room, view lock, looking by turning the
-phone); and the session (the scene library, save the view as a PNG). Sixteen
-identical circles wrapping into whatever rows the width happened to give was a
-wall rather than a menu — nothing sat near anything it was related to, and which
-row a control landed in changed with the phone. A band is scanned in one
-movement and keeps its company at every width.
+(standing it in the real room, the projection, the lens reach, the room, view
+lock, looking by turning the phone); and the session (the scene library, save
+the view as a PNG). Sixteen identical circles wrapping into whatever rows the
+width happened to give was a wall rather than a menu — nothing sat near anything
+it was related to, and which row a control landed in changed with the phone. A
+band is scanned in one movement and keeps its company at every width.
+
+**And it stays up.** It used to dismiss itself: a full-screen catcher sat under
+it and closed it on the first touch anywhere else. Every control in it changes
+what the drawing looks like, and the only way to judge that is to look at the
+drawing — so every single adjustment cost a reopen, and comparing two settings
+was four taps a comparison. Worse, the catcher swallowed the touch that closed
+it, so the drag you actually wanted did not happen either. The panel is pinned
+now and the scene under it stays live: turn the view, drag the sun, walk, with
+the tools still in reach. Tools puts it away, Lights swaps to the other panel,
+Escape closes whichever is up. The lights panel behaves the same way, which it
+always should have.
 
 The **light** control is the one that changes what it does with the mode. On the
 clay it sweeps the page from black to white, as it always did. In ink it sweeps
@@ -584,6 +597,16 @@ Measures pin to the world, so you can lay several and turn to compare them;
 they go into an exported picture; putting the instrument down clears the sheet
 — a measurement is a reading of the view, never part of the composition.
 
+**It also reads metres**, when it can. The angle is the reading the instrument
+is for and it is always available, because every direction from the eye has
+one. A distance is not: it needs both ends of the drag to have landed *on*
+something — an object or the floor — and when they did, the straight-line
+metres between those two places is written beside the angle, quieter. Blocking
+a real place out is a conversation in both units at once ("that wall is four
+metres off, and it stands two heads high from here"), and one gesture answering
+both is one gesture. A line taken across the sky has an angle and no length,
+and gets no number rather than an invented one.
+
 Each measure is drawn twice, and the gap between the drawings is a lesson no
 telling teaches: the **geodesic**, solid — the image of the straight line in
 the world between the two marks, which bows on a curved sheet because that is
@@ -591,6 +614,43 @@ what straight things genuinely look like across a wide field — and the
 **chord**, faint — the ruler-straight line your flat-page schooling insists
 on. Near the middle of a narrow view they lie on top of each other, which is
 why the belief survives; open the field and watch them part company.
+
+### Standing it in the real room
+
+There are two ways into a real space here and they are not equal.
+
+The **primary** one is the phone's own. Press the AR control and the scene is
+written out as a `.usdz` and handed to AR Quick Look, which drops it on the
+floor in front of you with full ARKit tracking: walk round it, kneel to it,
+sight along it, and it stays exactly where you put it. That is not something a
+web page can do for itself. Every browser-side attempt at it — a camera feed
+behind a canvas, a gyroscope pretending to be a tracker, a six-degree pose
+guessed from one sensor — is a worse version of a thing the device already does
+properly, so the AR mode here is an **export**, and the tracking is Apple's.
+
+Two details carry most of the value. The scene is anchored to a horizontal
+plane, because a study composed on a metric ground grid belongs on the ground
+rather than floating at whatever height the phone was held at. And it is opened
+with `allowsContentScaling=0`, so a pinch cannot resize it: a perspective
+reference you can scale is not a reference, and the entire point of standing a
+2.1 m door in your hallway is that it is 2.1 m.
+
+The room and the lamps stay behind. You are already in a room, and a second one
+dropped over it puts walls through the walls; Quick Look lights what it places
+from an estimate of the real light in front of it, which beats any lamp aimed
+at a virtual sun. What goes is the forms, in a plain unlit-by-us material —
+the ink shaders cannot travel, because they draw a line where a surface turns
+edge-on to a *virtual* eye, and out there the eye is yours.
+
+Where there is no system viewer — a desktop, an Android browser — the same
+control writes the `.usdz` to disk instead, which is still the file you would
+AirDrop to a phone. The button says which of the two it is about to do.
+
+The **secondary** way is the gyroscope toggle beside it, which keeps its seat
+for one honest reason: it works on the page you are already on, over the
+curvilinear projections. Quick Look cannot draw a five-point sheet — it draws
+the world through a camera's own rectilinear lens, and bending that would be a
+perspective over a perspective.
 
 ### The row
 
@@ -816,6 +876,22 @@ vanish into a white mount or ink guides that disappear into a black one.
 
 The chrome follows the page, not the sheet, which is why sweeping the sheet
 under a black mount leaves the buttons dark: the buttons are over the mount.
+
+**A mount is neutral, and black really is black.** The page went through the
+warm paper ramp at first, which was the obvious thing to reuse and the wrong
+thing to reuse: that ramp is warm on purpose, because no sheet is neutral and a
+drawing surface has a colour, and its own black end is `#15171b` — a perfectly
+good drawing board, and visibly a dark blue when what you asked for was black.
+A mount is not a sheet. Its whole job is to be what the sheet is not, and it has
+no hue to have an opinion about, so a numeric backdrop is a flat neutral grey
+end to end: 0 is `#000000`, 255 is `#ffffff`, and the ramp is left to the thing
+it was built for. `'paper'` still means the page *is* the sheet, warmth and all.
+
+One consequence worth stating: there is now exactly one function that answers
+"what colour is behind everything" — `pageToneOf` in the store, pushed to
+`lib/inkMaterial.ts` by the same subscription that sets the sheet. The canvas,
+the frame around it in the DOM, and the phone's status bar all quote that one
+answer instead of each re-deriving it from the ramp and hoping the three agree.
 
 **A note on where the two tones are pushed.** Both live in module state inside
 `lib/inkMaterial.ts`, because a hundred materials and a dozen components all

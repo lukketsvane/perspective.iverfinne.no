@@ -11,7 +11,7 @@ import { MESH_LIBRARY, openingMesh } from './lib/meshLibrary';
 import { focusPoint } from './lib/focus';
 import { walkInput } from './lib/walkInput';
 import { fieldOf } from './lib/projection';
-import { constructionInk, paperFor } from './lib/inkMaterial';
+import { constructionInk, pageHex } from './lib/inkMaterial';
 import { keepAwake } from './lib/wakeLock';
 import { holdPreviews, resumePreviews } from './lib/meshPreview';
 import { downloadSceneFile, readSceneFile, toSceneFile } from './lib/sceneJson';
@@ -54,18 +54,16 @@ export default function App() {
    * be is black-translucent's fixed white text over a white sheet.
    */
   useEffect(() => {
-    // Derived from the ramp directly, not read off the live ink material: that
-    // is set by a layout effect inside the canvas's own reconciler, which
-    // flushes on a schedule of its own - reading it from here raced, and lost.
-    // The page, not the sheet - the bar sits over what is behind the drawing.
-    const gray = backdrop === 'paper' ? backgroundGray : backdrop;
-    const tone =
-      surface === 'ink' || surface === 'brush'
-        ? `#${paperFor(gray).getHexString()}`
-        : `rgb(${gray}, ${gray}, ${gray})`;
+    // Read straight off the page the renderer is using. It used to re-derive
+    // the tone from the ramp here, because the live value was written from a
+    // layout effect inside the canvas's own reconciler and reading it from
+    // out here raced and lost. It is written from a store subscription now,
+    // which lands before any render that could read it - so there is one
+    // answer to what is behind the drawing, and the bar quotes it rather than
+    // recomputing it and hoping the two agree.
     document
       .querySelectorAll('meta[name="theme-color"]')
-      .forEach((meta) => meta.setAttribute('content', tone));
+      .forEach((meta) => meta.setAttribute('content', pageHex()));
   }, [surface, backgroundGray, backdrop]);
 
   /** How much of the frame's height the opening object should fill. */
@@ -297,14 +295,12 @@ export default function App() {
   };
 
   const isDark = theme === 'dark';
-  const pageGray = backdrop === 'paper' ? backgroundGray : backdrop;
   return (
     <div
       className="fixed inset-0 w-screen h-screen font-sans selection:bg-none"
-      style={{
-        minHeight: '100dvh',
-        backgroundColor: `rgb(${pageGray}, ${pageGray}, ${pageGray})`,
-      }}
+      // The same page the canvas paints, so the safe-area strips above and
+      // below it are the mount rather than an approximation of it.
+      style={{ minHeight: '100dvh', backgroundColor: pageHex() }}
     >
       <Scene />
       <Activity />

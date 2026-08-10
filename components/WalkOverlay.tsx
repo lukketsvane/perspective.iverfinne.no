@@ -8,6 +8,7 @@ import { LightPanel } from './LightPanel';
 import { Icon, I, SURFACE_ICON } from './icons';
 import { Scrub, useBackdropControl, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
+import { quickLookAvailable } from '../lib/exportAR';
 import { whileWorking } from '../lib/activity';
 import { ACTIVE, bubble, chrome, iconButton } from './ui';
 import { directionAt, pickGround, pickObject, pixelsPerMetreAt } from '../lib/pick';
@@ -171,14 +172,28 @@ export const WalkOverlay: React.FC<{
   /*
    * Whether the phone's own orientation is driving the view.
    *
-   * Hold the phone up and turn - your body's turn is the camera's, which is
-   * the nearest thing to standing inside the scene a browser can offer:
-   * position stays on the sticks (no web API tracks where you walk), but
-   * which way you are FACING is the phone's own sensors, smoothed. On a
-   * desktop with no sensor the toggle offers itself and honestly declines:
-   * if no reading arrives within a moment it switches itself back off.
+   * The *second* of the two ways into a real room, and it is worth saying why
+   * it is still here. Hold the phone up and turn, and your body's turn is the
+   * camera's: position stays on the sticks, since no web API tracks where you
+   * walk, but which way you are facing is the phone's own sensors, smoothed.
+   * That is a browser looking around a scene it is drawing. Quick Look, beside
+   * it, is the scene standing in the room with real tracking - which is the
+   * better answer whenever the phone can give it. This one still earns its
+   * seat: it works on the page you are already on, over the curvilinear
+   * projections, which Quick Look cannot do because it draws the world through
+   * a camera's own rectilinear lens.
+   *
+   * On a desktop with no sensor the toggle offers itself and honestly
+   * declines: if no reading arrives within a moment it switches itself back
+   * off.
    */
   const [arLook, setArLook] = useState(false);
+  /**
+   * Whether this device has a system AR viewer to hand the scene to.
+   *
+   * Asked once. It is a capability of the browser, not of the session.
+   */
+  const [inRoom] = useState(quickLookAvailable);
   /*
    * Whether drags are measuring instead of looking.
    *
@@ -318,6 +333,20 @@ export const WalkOverlay: React.FC<{
     walkInput.strafe = 0;
   };
 
+  /**
+   * Where a measure's end actually is, when it is anywhere.
+   *
+   * An object first, then the floor. The instrument reads visual angle, which
+   * every direction has; this is the other half, and only some drags have it -
+   * a line taken across the sky lands on nothing and gets no metres.
+   */
+  const placeAt = (x: number, y: number): [number, number, number] | undefined => {
+    const hit = pickObject(x, y);
+    if (hit) return [hit.point.x, hit.point.y, hit.point.z];
+    const ground = pickGround(x, y);
+    return ground ? [ground.x, ground.y, ground.z] : undefined;
+  };
+
   const onPointerDown = (e: React.PointerEvent) => {
     // The pencil first: while measuring, the first finger lays a measure and
     // the drag belongs to it entirely - no look, no walk, no select. The
@@ -380,7 +409,7 @@ export const WalkOverlay: React.FC<{
             (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
           } catch { /* the element still sees the moves */ }
           measurePointer.current = e.pointerId;
-          beginMeasure(dir);
+          beginMeasure(dir, placeAt(e.clientX, e.clientY));
         }
       }
       return;
@@ -541,7 +570,7 @@ export const WalkOverlay: React.FC<{
           return;
         }
         const dir = directionAt(e.clientX, e.clientY);
-        if (dir) updateMeasure(dir);
+        if (dir) updateMeasure(dir, placeAt(e.clientX, e.clientY));
       }
       return;
     }
@@ -957,12 +986,23 @@ export const WalkOverlay: React.FC<{
         </div>
       )}
 
-      {(showTools || showLights) && (
-        <div
-          className="fixed inset-0 z-[39]"
-          onPointerDown={() => { setShowTools(false); setShowLights(false); }}
-        />
-      )}
+      {/*
+        * There is no scrim over the scene, and the panel does not dismiss
+        * itself.
+        *
+        * It used to: a full-screen catcher sat under it and closed both it and
+        * the lights on the first touch anywhere else. Every one of these
+        * controls changes what the drawing looks like, and the only way to
+        * judge that is to look at the drawing - which meant every single
+        * adjustment cost a reopen, and comparing two settings meant four taps
+        * per comparison. Worse, the catcher swallowed the touch that closed
+        * it, so the drag you actually wanted did not happen either.
+        *
+        * The panel stays up until you put it away, and the scene underneath it
+        * stays live: turn the view, drag the sun, walk, with the tools still
+        * in reach. Tools closes it, Lights swaps to the other one, Escape
+        * closes whichever is up.
+        */}
 
       {/*
         * The dock.
@@ -1114,6 +1154,29 @@ export const WalkOverlay: React.FC<{
               phone. Set once and drawn from, which is why none of them
               is on the dock. */}
           <div className={`${band} ${divider}`}>
+          {/*
+            * The real room, first, because it is the best answer in the band.
+            *
+            * Everything else here decides where a virtual eye stands. This one
+            * hands the scene to the phone's own AR viewer, at true size, and
+            * the eye is then yours: walk round it, kneel to it, sight along
+            * it, with ARKit doing the tracking. See lib/exportAR.ts for why
+            * that is an export rather than a renderer.
+            */}
+          <button
+            onClick={() => whileWorking(async () => {
+              const { boxes, models } = useStore.getState();
+              const { sceneToUSDZ, openInQuickLook, downloadUSDZ } = await import('../lib/exportAR');
+              const file = await sceneToUSDZ(boxes, models);
+              const name = `perspective-scene-${new Date().toISOString().slice(0, 10)}.usdz`;
+              if (inRoom) openInQuickLook(file, name);
+              else downloadUSDZ(file, name);
+            })}
+            aria-label={inRoom ? 'Stand the scene in the room around you' : 'Save the scene as USDZ for an AR device'}
+            className={`${button} ${inRoom ? ACTIVE : ''}`}
+          >
+            <Icon path={I.ar} className="w-5 h-5" />
+          </button>
           {/* Accented only away from the sheet it opens on, which is what the
               colour means everywhere else in this panel. On the dock it was
               permanently blue and that was readable as identity; in a line of
