@@ -286,6 +286,8 @@ export const SelectionBar: React.FC<{
   const theme = useStore((s) => s.theme);
   const boxes = useStore((s) => s.boxes);
   const models = useStore((s) => s.models);
+  const showVanishing = useStore((s) => s.showVanishing);
+  const toggleVanishing = useStore((s) => s.toggleVanishing);
   const selectedId = useStore((s) => s.selectedId);
   const selectedModelId = useStore((s) => s.selectedModelId);
   const beginChange = useStore((s) => s.beginChange);
@@ -540,6 +542,27 @@ export const SelectionBar: React.FC<{
           * Only on the two rungs that have anything to set. A button that
           * opened an empty panel would be worse than no button.
           */}
+        {/*
+          * THE SELECTION'S OWN VANISHING POINTS, on the bar of the selection
+          * they belong to.
+          *
+          * It was a seat in the tools panel, where it was one of several
+          * controls that mean nothing at the moment they are shown: with
+          * nothing held there are no points to draw, so the control was a
+          * switch for an absence. Here it exists exactly when it has something
+          * to say, it is one tap while you are looking at the object rather
+          * than three through a panel that covers it, and it costs the panel a
+          * seat in its widest band.
+          */}
+        <button
+          onClick={toggleVanishing}
+          aria-label="The selection's own vanishing points"
+          aria-pressed={showVanishing}
+          className={`${button} ${showVanishing ? (isDark ? 'bg-white/10' : 'bg-black/10') : ''}`}
+        >
+          <Icon path={I.vanishing} className="w-5 h-5" />
+        </button>
+
         {onMaterial && surfaceHasSettings(surface) && (
           <button
             onClick={onMaterial}

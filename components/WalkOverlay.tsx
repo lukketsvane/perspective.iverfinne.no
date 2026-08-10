@@ -407,16 +407,13 @@ export const WalkOverlay: React.FC<{
   const cycleGuides = useStore((s) => s.cycleGuides);
   const gridX = useStore((s) => s.gridX);
   const gridZ = useStore((s) => s.gridZ);
-  const toggleGridX = useStore((s) => s.toggleGridX);
-  const toggleGridZ = useStore((s) => s.toggleGridZ);
+  const cycleFloorRuling = useStore((s) => s.cycleFloorRuling);
   const snapStep = useStore((s) => s.snapStep);
   const cycleSnap = useStore((s) => s.cycleSnap);
   const construction = useStore((s) => s.construction);
   const cycleConstruction = useStore((s) => s.cycleConstruction);
   const fieldRange = useStore((s) => s.fieldRange);
   const cycleFieldRange = useStore((s) => s.cycleFieldRange);
-  const showVanishing = useStore((s) => s.showVanishing);
-  const toggleVanishing = useStore((s) => s.toggleVanishing);
 
   const isDark = theme === 'dark';
   const surface = chrome(isDark);
@@ -1363,22 +1360,21 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={GUIDE_ICON[guides]} className="w-5 h-5" />
           </button>
-          {/* The floor's two rulings, one switch each. */}
+          {/* The floor's two rulings, on ONE seat, tapped through four states.
+              They were a switch each - see cycleFloorRuling in store.ts for why
+              that was right and why one seat says the same four things. This is
+              the widest band in the panel and the widest band is what sets the
+              panel's whole width, so a seat here is worth more than a seat
+              anywhere else in it. */}
           <button
-            onClick={toggleGridZ}
-            aria-label="Floor lines running away"
-            aria-pressed={gridZ}
-            className={`${button} ${gridZ ? ACTIVE : ''}`}
+            onClick={cycleFloorRuling}
+            aria-label={`Floor lines: ${
+              gridZ && gridX ? 'away and across' : gridZ ? 'running away' : gridX ? 'running across' : 'none'
+            }`}
+            aria-pressed={gridX || gridZ}
+            className={`${button} ${gridX || gridZ ? ACTIVE : ''}`}
           >
-            <Icon path={I.gridAway} className="w-5 h-5" />
-          </button>
-          <button
-            onClick={toggleGridX}
-            aria-label="Floor lines running across"
-            aria-pressed={gridX}
-            className={`${button} ${gridX ? ACTIVE : ''}`}
-          >
-            <Icon path={I.gridAcross} className="w-5 h-5" />
+            <Icon path={gridZ && !gridX ? I.gridAway : gridX && !gridZ ? I.gridAcross : I.clearScene} className="w-5 h-5" />
           </button>
           {/* ...and the floor itself, under both of them. The ruling says
               where the ground IS; this is the ground. Tap it on and off, drag
@@ -1404,7 +1400,12 @@ export const WalkOverlay: React.FC<{
           {/* A ladder like the guides': off, the selection's, everything's.
               The top rung is the page blocked in whole - every object boxed
               before any object is drawn - which is a thing you step onto
-              deliberately, not a side effect of what happens to be selected. */}
+              deliberately, not a side effect of what happens to be selected.
+
+              Its neighbour, the selection's own vanishing points, is not here
+              any more: it was a switch for an absence with nothing selected, so
+              it went to the bar that only exists while something is. This one
+              stays, because "everything" means something at any moment. */}
           <button
             onClick={cycleConstruction}
             aria-label={`Construction around ${['nothing', 'the selection', 'everything'][construction]}`}
@@ -1412,14 +1413,6 @@ export const WalkOverlay: React.FC<{
             className={`${button} ${construction ? ACTIVE : ''}`}
           >
             <Icon path={construction === 2 ? I.cages : I.cage} className="w-5 h-5" />
-          </button>
-          <button
-            onClick={toggleVanishing}
-            aria-label="The selection's own vanishing points"
-            aria-pressed={showVanishing}
-            className={`${button} ${showVanishing ? ACTIVE : ''}`}
-          >
-            <Icon path={I.vanishing} className="w-5 h-5" />
           </button>
           </div>
 
