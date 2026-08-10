@@ -43,53 +43,6 @@ const readFile = (file: File): Promise<ArrayBuffer> =>
     reader.readAsArrayBuffer(file);
   });
 
-/**
- * How much air to leave between two things placed automatically.
- *
- * Six centimetres: enough that two chairs are not fused, little enough that
- * they read as a pair standing together. Half a metre - what this was - put
- * every copy its own arm's length away, so a row of chairs came out as a
- * scattering across the floor and every one had to be dragged back in.
- */
-const CLEARANCE = 0.06;
-
-/**
- * Somewhere clear to stand, as close in as it will go.
- *
- * Dropping several models at once, or one after another, would pile them on the
- * same spot. Walk a widening ring around the wanted point until there is room
- * for this one's footprint beside everything already placed - in steps of about
- * a radius, so the first ring that clears is the tight one rather than the next
- * one out.
- */
-export const findFreeSpot = (
-  taken: { position: [number, number, number]; radius: number }[],
-  wanted: [number, number],
-  radius: number
-): [number, number] => {
-  const clashes = (x: number, z: number) =>
-    taken.some((other) => {
-      const gap = Math.hypot(x - other.position[0], z - other.position[2]);
-      return gap < radius + other.radius + CLEARANCE;
-    });
-
-  if (!clashes(wanted[0], wanted[1])) return wanted;
-
-  const step = Math.max(0.12, radius * 0.9);
-  for (let ring = 1; ring < 40; ring++) {
-    // More places to try the further out it goes, so the ring is searched at
-    // about the same spacing however big it is.
-    const count = Math.max(8, Math.round(ring * 8));
-    for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2;
-      const x = wanted[0] + Math.cos(angle) * ring * step;
-      const z = wanted[1] + Math.sin(angle) * ring * step;
-      if (!clashes(x, z)) return [x, z];
-    }
-  }
-  return wanted;
-};
-
 /** Footprint radius of a placed model, for spacing. */
 export const modelRadius = (model: { size: [number, number, number]; scale: number }) =>
   (Math.max(model.size[0], model.size[2]) * model.scale) / 2;
