@@ -919,7 +919,6 @@ export interface SceneState {
   /** Pin a placed mesh's size, or let it go again. */
   toggleModelLock: (id: string) => void;
   /** Copy whatever is selected, placed clear of the original. */
-  duplicateSelection: () => void;
   /**
    * Step the whole scene to the next surface: the default for what comes next,
    * and everything already standing there with it.

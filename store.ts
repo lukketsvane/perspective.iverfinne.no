@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
-import { releaseSource, cachedSourceUrls, modelRadius, loadModelFromUrl } from './lib/loadModel';
+import { releaseSource, cachedSourceUrls, loadModelFromUrl } from './lib/loadModel';
 import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
-import { cloneModel } from './lib/modelMaterials';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
 import { MAX_FIELD, wholeSheetField } from './lib/projection';
@@ -1465,67 +1464,6 @@ export const useStore = create<SceneState>((set, get) => ({
    * button and re-sizing from scratch. The copy lands clear of its original and
    * becomes the selection, so it can be dragged straight into place.
    */
-  /**
-   * NOTHING CALLS THIS. The selection bar's copy button was the only way in,
-   * and that seat now opens the page's own knobs. It is left whole, and kept
-   * honest with the placement rule below, because the decision about whether a
-   * drawing tool wants a copy command is not one to make by deleting it
-   * quietly - but as it stands it is a verb with no button.
-   */
-  duplicateSelection: () =>
-    set((state) => {
-      // Through `remember`, like every other change to the scene. It took the
-      // raw snapshot, which leaves the redo branch alive: add, add, undo,
-      // duplicate - and one press of redo threw away the copy you had just
-      // made and put back the box you had abandoned.
-      const { undoStack, redoStack } = remember(state);
-
-      if (state.selectedModelId) {
-        const original = state.models.find((m) => m.id === state.selectedModelId);
-        if (!original?.object) return {};
-
-        const [x, z] = findFreeSpot(
-          onTheFloor(state),
-          [original.position[0], original.position[2]],
-          modelRadius(original)
-        );
-        // A fresh instance: sharing the Object3D itself would move both copies.
-        const copy = {
-          ...original,
-          id: newId(),
-          object: cloneModel(original.object),
-          position: [x, original.position[1], z] as [number, number, number],
-        };
-        return { undoStack, redoStack, models: [...state.models, copy], selectedModelId: copy.id };
-      }
-
-      if (state.selectedId) {
-        const original = state.boxes.find((b) => b.id === state.selectedId);
-        if (!original) return {};
-        // A step to the right if that is clear, and the nearest clear place to
-        // it if not - a copy that lands inside the mesh standing beside it is
-        // no more use than one that lands inside its own original. Off the
-        // ruling rather than on it, unlike a fresh cube: this one is a copy of
-        // something that may have been dragged or turned off-square, and
-        // snapping the copy to a cell would not be copying it.
-        const step = Math.max(original.scale[0], 0.5) + 0.5;
-        const [x, z] = findFreeSpot(
-          onTheFloor(state),
-          [original.position[0] + step, original.position[2]],
-          boxRadius(original)
-        );
-        const copy: BoxData = {
-          ...original,
-          id: newId(),
-          position: [x, original.position[1], z],
-        };
-        return { undoStack, redoStack, boxes: [...state.boxes, copy], selectedId: copy.id };
-      }
-
-      return {};
-    }),
-
-
   /**
    * The whole scene to the next rung.
    *
