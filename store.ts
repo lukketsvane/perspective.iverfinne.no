@@ -12,8 +12,11 @@ import {
   setHatch as setHatchRule,
   setInkPaper,
   setMarker as setMarkerInk,
+  pageInkHex,
   setPageTone,
+  setShadowInk,
 } from './lib/inkMaterial';
+import { nextPreset } from './lib/presets';
 import { walkInput } from './lib/walkInput';
 
 // ---------------------------------------------------------------------------
@@ -789,6 +792,7 @@ export const useStore = create<SceneState>((set, get) => ({
   // `theme` is not here: it is derived from whatever survives the migration
   // below, since the page it floats over is what decides it.
   backgroundGray: OPENING_PAPER,
+  presetName: null,
   currentSceneId: null,
   sceneHistory: [],
   ownMeshes: [],
@@ -1106,6 +1110,43 @@ export const useStore = create<SceneState>((set, get) => ({
     set((state) => {
       const gray = Math.max(0, Math.min(255, Math.round(value)));
       return { backdrop: gray, ...pageTheme(gray, state.backgroundGray, state.surface) };
+    }),
+
+  /**
+   * Deal a whole page at once.
+   *
+   * One set(), so the whole look lands on the same frame rather than arriving
+   * as nine separate changes the renderer has to chase. No undo step and
+   * nothing touched in the scene: what you have built and where you are
+   * standing are yours, and this changes only how it is drawn.
+   */
+  shufflePreset: () =>
+    set((state) => {
+      const p = nextPreset(state.presetName);
+      return {
+        presetName: p.name,
+        surface: p.surface,
+        backdrop: p.backdrop,
+        backgroundGray: p.paper,
+        ...pageTheme(p.backdrop, p.paper, p.surface),
+        sun: { ...state.sun, ...p.sun },
+        fill: { ...state.fill, enabled: p.fill },
+        fov: clampTo(p.fov, [10, MAX_FIELD]),
+        perspectiveMode: p.projection,
+        fieldRange: p.fieldRange,
+        guides: p.guides,
+        gridX: p.gridX,
+        gridZ: p.gridZ,
+        construction: p.construction,
+        showVanishing: p.vanishing,
+        roomLevel: p.room,
+        marker: p.marker ? { ...state.marker, ...p.marker } : state.marker,
+        hatch: p.hatch ? { ...state.hatch, ...p.hatch } : state.hatch,
+        // Everything placed keeps the rung it is on unless it was following
+        // the scene's; the surface control's own stamp is a separate act.
+        boxes: state.boxes.map((b) => ({ ...b, surface: p.surface })),
+        models: state.models.map((m) => ({ ...m, surface: p.surface })),
+      };
     }),
 
   setMarker: (marker) => set((state) => ({ marker: { ...state.marker, ...marker } })),
@@ -1577,6 +1618,9 @@ export const useStore = create<SceneState>((set, get) => ({
 const syncTones = (state: SceneState) => {
   setInkPaper(state.backgroundGray);
   setPageTone(pageToneOf(state));
+  // The cut shadow is one shared material rather than a React-managed one, so
+  // its two tones are pushed here with everything else's.
+  setShadowInk(pageInkHex(), state.surface === 'hatch' ? 0.92 : 0.6);
   setMarkerInk(state.marker.hue, state.marker.high);
   setHatchRule(state.hatch);
 };

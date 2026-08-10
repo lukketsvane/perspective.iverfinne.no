@@ -24,6 +24,7 @@ import {
   pageInkHex,
   setInkLight,
   setInkScale,
+  HATCH_SHADOW,
 } from '../lib/inkMaterial';
 
 /** Keeps the "put one here" point under the middle of the view. */
@@ -528,19 +529,28 @@ const SceneContent = () => {
       {shadowKind !== 'off' && (!inkMode || hardShadows || brushMode) && (
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} raycast={() => null}>
           <planeGeometry args={[2000, 2000]} />
-          <shadowMaterial
-            transparent
-            color={inkMode ? pageInkHex() : '#000000'}
-            opacity={
-              brushMode
-                ? brushShadowAlpha()
-                : inkMode
-                  ? inkShadowAlpha(pageGray)
-                  : isDark
-                    ? 0.55
-                    : 0.42
-            }
-          />
+          {/* On the etched page the shadow is cut, not washed: a rank of
+              strokes running along the ground, ruled by the same hand and at
+              the same angle as the flat faces of anything standing in it. A
+              wash under a drawing made entirely of line is the one thing on
+              the page that is not a line, and it shows. */}
+          {sceneSurface === 'hatch' ? (
+            <primitive object={HATCH_SHADOW} attach="material" />
+          ) : (
+            <shadowMaterial
+              transparent
+              color={inkMode ? pageInkHex() : '#000000'}
+              opacity={
+                brushMode
+                  ? brushShadowAlpha()
+                  : inkMode
+                    ? inkShadowAlpha(pageGray)
+                    : isDark
+                      ? 0.55
+                      : 0.42
+              }
+            />
+          )}
         </mesh>
       )}
 

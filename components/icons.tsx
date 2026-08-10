@@ -90,6 +90,14 @@ export const I = {
   hatchWidth: (<><path d="M5 5.5v13" strokeWidth="0.7" /><path d="M11 5.5v13" strokeWidth="1.7" /><path d="M18 5.5v13" strokeWidth="3.4" /></>),
   hatchLength: (<><path d="M5 4.5v6M5 13.5v6" /><path d="M12 6.5v11" /><path d="M19 3.5v17" strokeOpacity="0.7" /></>),
 
+  /**
+   * The shuffle: two pages crossing on their way past each other.
+   *
+   * Not dice. A die is chance for its own sake; this deals one of ten pages
+   * somebody chose, which is a different promise.
+   */
+  shuffle: (<><path d="M3 7.5h3.2c1.5 0 2.4.8 3.4 2.2l3.8 5.4c1 1.4 1.9 2.2 3.4 2.2H21" /><path d="M3 16.6h3.2c1.5 0 2.4-.8 3.4-2.2" strokeOpacity="0.6" /><path d="M14.4 8.8c1-1 1.8-1.3 2.6-1.3H21" strokeOpacity="0.6" /><path d="M18.6 5.1 21 7.5l-2.4 2.4M18.6 14.9 21 17.3l-2.4 2.4" /></>),
+
   /** An empty grid: the ground with nothing standing on it. */
   clearScene: (<><path d="M2.5 19.5c4.5-2.2 14.5-2.2 19 0M4.6 15.3c3.6-1.5 11.2-1.5 14.8 0M6.2 11.8c2.8-1 8.8-1 11.6 0" strokeOpacity="0.75" /><path d="M8.5 19.9 11.4 11M15.5 19.9 12.6 11" strokeOpacity="0.4" /><path d="M12 3.2v4.6M9.8 5.4 12 3.2l2.2 2.2" strokeOpacity="0.85" /></>),
 
