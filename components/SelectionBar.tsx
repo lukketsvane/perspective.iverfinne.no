@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { Icon, I } from './icons';
-import { bubble, chrome, readout, snugIconButton } from './ui';
+import { bubble, chrome, readout, SIDEWAYS_SLOT, snugIconButton } from './ui';
 import { exportScaledModel } from '../lib/exportModel';
 import { SURFACE_ICON } from './icons';
 import { useRail } from '../lib/rail';
@@ -234,7 +234,7 @@ const LampBar: React.FC<{ lamp: LampData; raised: boolean }> = ({ lamp, raised }
 
   return (
     <div
-      className={`flex justify-center max-w-full px-2 pointer-events-none transition-all duration-300 ${
+      className={`flex justify-center max-w-full px-2 ${SIDEWAYS_SLOT} pointer-events-none transition-all duration-300 ${
         raised ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
       }`}
     >
@@ -402,7 +402,7 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
       /* Inside the dock's own column now, so the column carries the fade and
          the position. All this decides is whether the bar is in the stack at
          all - two fades over one element only ever fight. */
-      className={`flex justify-center max-w-full px-2 pointer-events-none transition-all duration-300 ${
+      className={`flex justify-center max-w-full px-2 ${SIDEWAYS_SLOT} pointer-events-none transition-all duration-300 ${
         raised ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
       }`}
     >

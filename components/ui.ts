@@ -100,3 +100,30 @@ export const bubble = (dark: boolean) =>
 
 /** The one accent colour: a control that is currently doing something. */
 export const ACTIVE = '!text-sky-500';
+
+/**
+ * Where a floating panel sits when the window is SHORT.
+ *
+ * Keyed on height rather than on orientation: what matters is how much room
+ * there is above the dock, and a short window is a short window whether it is
+ * a landscape phone, a split view or a browser with three toolbars in it.
+ *
+ * Hung from the right. Centred, a panel opened from the right-hand thumb
+ * cluster came up most of a hand's width away from the button that opened it,
+ * and the left two thirds of the frame - which is the part the drawing is in -
+ * had a bar across it. Every panel shares this one edge, so they all arrive in
+ * the same place. Upright it stays centred: there is one dock there, in the
+ * middle, and a panel pinned to one side of a 390 px screen would be lopsided
+ * for nothing.
+ *
+ * Written out in full rather than composed: Tailwind finds classes by reading
+ * the source text, so a variant assembled at runtime is one that never gets a
+ * rule generated for it.
+ */
+export const SIDEWAYS_SLOT =
+  // Full width first, or there is nothing for justify-end to push against: the
+  // dock's column centres its items, so a shrink-to-fit row is already in the
+  // middle and telling its contents to sit right moves nothing. (The panels
+  // above the dock are absolutely positioned across the frame and were already
+  // full width, so this costs them nothing.)
+  '[@media(max-height:560px)]:w-full [@media(max-height:560px)]:justify-end';

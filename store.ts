@@ -147,10 +147,14 @@ export const DEFAULT_ROOM: RoomSize = { width: 10, depth: 10, height: 3 };
  * The furthest back anything should stand the viewer from the middle of it.
  *
  * A metre and a bit inside the wall, so a framing worked out from an object's
- * size cannot put you through it - and never so close that a small room makes
- * the framing useless. The room is off by default and this holds anyway: where
- * the tool opens should be one place, not one place with the room and another
- * without.
+ * size cannot put you through it.
+ *
+ * It bounds the framing only when the walls are actually up: with them down
+ * there is nothing to be inside of, and clamping to an imaginary room was half
+ * of why the tool used to open with the car running off both edges. The other
+ * half was that with the walls up it clamped and stopped - so the room grows
+ * to the view instead now, and this is the floor it grows from rather than a
+ * ceiling on how far back the framing may stand. See App.tsx.
  */
 export const standingRoom = (room: RoomSize) =>
   Math.max(1.6, (Number.isFinite(room.depth) ? room.depth : DEFAULT_ROOM.depth) / 2 - 1.2);
@@ -1008,10 +1012,16 @@ export const useStore = create<SceneState>((set, get) => ({
    * double tap on it, and two fingers on the mesh itself - and a rule kept at
    * the controls is a rule that holds until somebody adds a fourth.
    */
+  // A size that is not a number leaves the mesh at the one it had. Every
+  // clamp in the app passes NaN straight through - Math.max(0.02, NaN) is NaN
+  // - and a mesh scaled by NaN has no vertices anywhere, so it does not error,
+  // it just stops being on screen.
   scaleModel: (id, scale) =>
     set((state) => ({
       models: state.models.map((m) =>
-        m.id === id && !m.lockedScale ? { ...m, scale: Math.max(0.02, Math.min(50, scale)) } : m
+        m.id === id && !m.lockedScale && Number.isFinite(scale)
+          ? { ...m, scale: Math.max(0.02, Math.min(50, scale)) }
+          : m
       ),
     })),
 
@@ -1523,7 +1533,12 @@ export const useStore = create<SceneState>((set, get) => ({
           position: [...instance.position] as [number, number, number],
           rotationY: instance.rotationY,
           scale: instance.scale,
-          baseScale: instance.baseScale,
+          // Falling back to the saved scale, because a scene written before
+          // the size a mesh ARRIVED at was recorded has no such number - and
+          // taking it undefined made "back to how it came" set the scale to
+          // NaN, which is a mesh that silently disappears. The size it was
+          // saved at is the best answer that file has.
+          baseScale: instance.baseScale ?? instance.scale,
           size: [...instance.size] as [number, number, number],
           surface: instance.surface === undefined ? undefined : readSurface(instance.surface),
           kind: instance.kind,

@@ -87,13 +87,24 @@ export const MESH_LIBRARY: LibraryMesh[] = [
    * are gone entirely, the base colour is 1024, the geometry is down to 60,000
    * triangles, and each is about 1.5 MB - in line with the chairs.
    *
-   * The heights are the animal in that pose, measured to the top of the head,
+   * The heights are the animal in that pose, measured across the whole of it,
    * not the standing height of the species: a couched foal is not as tall as a
-   * standing one and would be wrong on the grid if it were told it was.
+   * standing one and would be wrong on the grid if it were told it was. The
+   * leaping foal's is a diagonal, hind hoof to ear tip, because that is what
+   * its box measures when it is off the ground.
+   *
+   * Checked by WEIGHT, not by eye. A height is easy to argue about and easy to
+   * be a foot wrong about; the volume a closed mesh encloses is not, and at
+   * the density of an animal it comes out in kilogrammes. These four displace
+   * 90, 91, 456 and 39 kg - two foals of the same weight, which is the whole
+   * claim of having two of them, and a horse in the middle of the 450 to 550
+   * an adult riding horse weighs. They shipped once with the leaping foal at
+   * 1.35 m and the horse at 1.9, which is 60 kg and 314: a foal half the
+   * weight of the foal beside it, and a pony.
    */
   { id: 'foal-lying', name: 'Foal, lying', url: '/meshes/foal-lying.glb', height: 0.9 },
-  { id: 'foal-leaping', name: 'Foal, leaping', url: '/meshes/foal-leaping.glb', height: 1.35 },
-  { id: 'horse-rising', name: 'Horse, rising', url: '/meshes/horse-rising.glb', height: 1.9 },
+  { id: 'foal-leaping', name: 'Foal, leaping', url: '/meshes/foal-leaping.glb', height: 1.55 },
+  { id: 'horse-rising', name: 'Horse, rising', url: '/meshes/horse-rising.glb', height: 2.15 },
   { id: 'platypus', name: 'Platypus', url: '/meshes/platypus.glb', height: 0.95 },
 
   /*

@@ -148,7 +148,9 @@ export const readSceneFile = async (file: File): Promise<ImportedScene> => {
         position: [...record.position] as [number, number, number],
         rotationY: record.rotationY,
         scale: record.scale,
-        baseScale: record.baseScale,
+        // See store.ts: a file older than the recorded arrival size has none,
+        // and undefined here reaches the size control as NaN.
+        baseScale: record.baseScale ?? record.scale,
         size: [...record.size] as [number, number, number],
         surface: record.surface === undefined ? undefined : readSurface(record.surface),
         kind: record.kind,

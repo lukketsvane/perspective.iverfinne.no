@@ -345,9 +345,12 @@ const fetchSource = async (url: string): Promise<ParsedSource> => {
 /**
  * Load a mesh by reference: a built-in library path, or an imported file.
  *
- * `targetHeight` is the real height of the pose. The library files are all
- * normalised to the same box height whatever they are doing, so this is what
- * stops a kneeling figure arriving as tall as a standing one.
+ * `targetHeight` is the real height of the thing IN THE POSE IT IS IN, and it
+ * is applied to the whole box's Y. Scanned meshes arrive normalised to a unit
+ * box on their LONGEST axis, which is only the height for something upright -
+ * a couched foal comes in 0.91 tall because its length is the 1.0 - so
+ * whatever a file happens to measure is not a size, and this is the number
+ * that makes it one. Without it a lying foal stands as tall as a leaping one.
  */
 export const loadModelFromUrl = async (
   url: string,

@@ -100,10 +100,23 @@ export default function App() {
    * whichever is greater. A six-metre car cannot fill a portrait phone without
    * being cropped, and the honest answer there is to stand further back.
    *
-   * The room's floor still bounds it, but only when there IS a room. Clamping
-   * to it with the walls switched off was the other half of the crop: 3.8 m is
-   * the right limit for not standing outside the brickwork and the wrong one
-   * for an object on an open grid.
+   * A ROOM TOO SMALL TO SEE ITS OWN CONTENTS FROM IS NOT A ROOM.
+   *
+   * The floor bounds where you can stand, and with the default ten-metre room
+   * up that bound is 3.8 m - while a six-metre car on an upright phone needs
+   * nearly ten, because a 90 degree field is only 41 degrees WIDE when the
+   * longest edge of the frame is the vertical one. So the search returned the
+   * right answer and a hard clamp threw it away, and the tool opened with the
+   * car running off both edges. That is the crop, and it is the whole of it.
+   *
+   * The clamp is not the thing to remove: standing outside your own walls,
+   * looking in through them, is not a view anybody wants either. The room is
+   * the thing to change. It is furniture - the walls are there to give the
+   * scene a corner to read against, and a shell that will not let you back far
+   * enough to see what is inside it has failed at the one job it has. So when
+   * the framing needs more floor than there is, the room grows to give it,
+   * squarely, and only as far as it must. With the walls down nothing bounds
+   * it at all.
    *
    * Then whether to kneel. Anything taller than about a metre is something you
    * meet from your own height - a person, a car - and dropping to its waist
@@ -120,14 +133,45 @@ export default function App() {
     const halfPitch = Math.min(field.halfPitch, Math.PI * 0.46);
 
     /*
-     * The width to clear is the FOOTPRINT'S radius, not the object's length.
+     * The width to clear is what the TURN actually presents.
      *
-     * The opening turns the object forty degrees off square - which is the
-     * whole point, so that all three of its axes run to three separate points -
-     * and a turned six-by-six-metre footprint presents its diagonal, eight and
-     * a half metres, not its length.
+     * Not the object's length - the opening turns it forty degrees off square,
+     * which is the whole point, so that all three of its axes run to three
+     * separate points, and a turned box shows some of its side as well as some
+     * of its end. Not the footprint's diagonal either, which is what this used
+     * to take: the diagonal is the width at the one bearing that presents it,
+     * forty-five degrees off, and everywhere else it is an over-estimate. On
+     * the car it is twelve per cent over, which is a metre of air added to
+     * every edge for nothing.
+     *
+     * AND IT IS NOT A WIDTH AT ALL, IT IS FOUR CORNERS.
+     *
+     * A width has to be held at some depth to become an angle, and the depth
+     * that matters is not the one through the middle of the object. The corner
+     * that reaches furthest across the frame is also the one nearest the eye,
+     * and being nearer it subtends more - on the car in portrait, 21.0 degrees
+     * against the 17.8 the mid-plane width predicted, which is a corner one
+     * degree outside a 20.7 degree field. That is the front wing, off the edge
+     * of an upright phone, at a distance the solve had just certified.
+     *
+     * So the four corners of the turned footprint are carried about and asked
+     * directly. It is the same trigonometry either way, done in the right
+     * place: each corner has its own lateral offset and its own depth.
      */
-    const across = Math.hypot(size[0], size[2]) / 2;
+    const cos = Math.cos(OPENING_TURN);
+    const sin = Math.sin(OPENING_TURN);
+    const feet = ([1, -1] as const).flatMap((a) =>
+      ([1, -1] as const).map((b) => {
+        const x = (a * size[0]) / 2;
+        const z = (b * size[2]) / 2;
+        return { x: x * cos + z * sin, z: -x * sin + z * cos };
+      })
+    );
+    /** The widest any corner reaches, standing d back. */
+    const widest = (d: number) =>
+      Math.max(...feet.map((foot) => Math.atan(Math.abs(foot.x) / Math.max(d - foot.z, 0.35))));
+    /** ...and how far the nearest of them is in front of the origin. */
+    const deep = Math.max(...feet.map((foot) => foot.z));
     const middle = size[1] / 2;
     const eye = size[1] >= EYE_TO_EYE ? cameraHeight : Math.max(0.8, middle + 0.55);
 
@@ -141,18 +185,36 @@ export default function App() {
      * has nothing to do with it, and the tool opened with the front wheel off
      * the bottom of the screen.
      *
+     * AND IT HAS TO FIT AROUND WHERE THE CAMERA WILL ACTUALLY POINT.
+     *
+     * The pitch is not free: the eye is aimed at the object's middle, which
+     * keeps the horizon and the vanishing points on the page, and that is the
+     * lesson the opening view exists to teach - so it is not something to give
+     * up to centre a car. But the vertical span is not centred on the object's
+     * middle. It runs from the GROUND at the near edge, which is far below it,
+     * up to the near top edge, which is barely above; the middle of that span
+     * sits some way beneath the point being looked at. Measuring the span's
+     * total width against the whole field, as this did, therefore passes
+     * distances at which the near end is still off the bottom - by six per
+     * cent of the frame on a landscape phone, which is the front wheel.
+     *
+     * So each end is measured from the aim rather than from each other, and
+     * the worse of the two has to fit its half of the field.
+     *
      * Both conditions are transcendental in the distance, so they are searched
-     * rather than solved: the smallest standing distance at which the
-     * footprint fits the yaw AND the near end's drop plus the far end's rise
-     * fit the pitch. Sixteen halvings settle it to a centimetre, once, when
-     * the object is stood up.
+     * rather than solved. Sixteen halvings settle it to a centimetre, once,
+     * when the object is stood up.
      */
     const fits = (d: number) => {
-      if (Math.atan(across / d) > halfYaw * FILL) return false;
-      const near = Math.max(d - across, 0.35);
-      const drop = Math.atan(eye / near);
-      const rise = Math.atan(Math.max(size[1] - eye, 0.02) / near);
-      return drop + rise <= 2 * halfPitch * FILL;
+      if (widest(d) > halfYaw * FILL) return false;
+      const near = Math.max(d - deep, 0.35);
+      const aim = Math.atan2(middle - eye, d);
+      // Signed, both of them: a thing shorter than the eye has its top BELOW
+      // the horizon, and calling that a rise of nothing was a small lie that
+      // stood you further back than the shape needed.
+      const top = Math.atan((size[1] - eye) / near);
+      const foot = -Math.atan(eye / near);
+      return Math.max(Math.abs(top - aim), Math.abs(foot - aim)) <= halfPitch * FILL;
     };
     let low = 0.9;
     let high = 60;
@@ -164,11 +226,26 @@ export default function App() {
         else low = mid;
       }
     }
-    // The room's floor still bounds it, but only when there IS a room. Clamping
-    // to it with the walls switched off was the other half of the crop: 3.8 m
-    // is the right limit for not standing outside the brickwork and the wrong
-    // one for an object on an open grid.
-    const distance = Math.min(roomLevel > 0 ? standingRoom(room) : Infinity, 60, Math.max(0.9, high));
+    const wanted = Math.min(60, Math.max(0.9, high));
+
+    /*
+     * Grow the room to the view rather than crop the view to the room.
+     *
+     * Squarely, because the object is turned and a room that gained ten metres
+     * of depth and none of width is a corridor with a car across it. Only when
+     * the walls are up, only as far as short, and setRoom's own limit of forty
+     * metres still has the last word - past that the honest answer really is
+     * that you cannot see the thing from inside the building.
+     */
+    const standing = () => (roomLevel > 0 ? standingRoom(useStore.getState().room) : Infinity);
+    if (roomLevel > 0 && wanted > standing()) {
+      const side = 2 * (wanted + 1.2);
+      useStore.getState().setRoom({
+        width: Math.max(room.width, side),
+        depth: Math.max(room.depth, side),
+      });
+    }
+    const distance = Math.min(standing(), wanted);
 
     setCameraHeight(eye);
     walkInput.position.set(0, 0, distance);
@@ -177,7 +254,56 @@ export default function App() {
     walkInput.lookYaw = 0;
     walkInput.lookPitch = 0;
     walkInput.seeded = true;
+
+    // Kept so a turned phone can be answered - see below.
+    framed.current = { size, z: distance, pitch: walkInput.pitch, eye };
   };
+
+  /**
+   * The opening framing, and the pose it chose - so turning the phone can be
+   * answered rather than ignored.
+   *
+   * The whole solve depends on the shape of the window: at 90 degrees the
+   * field is laid on the longest edge, so upright a phone has 41 degrees of
+   * yaw and 90 of pitch, and on its side exactly the other way round. Those
+   * are different answers - nine metres back against six for the same car -
+   * and the framing ran once, on mount, and never again. Open upright and turn
+   * the phone and the car went off the right-hand edge; the tool had framed
+   * itself for a window that no longer existed.
+   *
+   * Only while the view is still the one that was chosen, though. The moment
+   * you walk, turn or kneel, where you are standing is yours, and a framing
+   * that reasserted itself every time the address bar collapsed would be the
+   * worse bug by far. So the pose is remembered, and the first time the live
+   * one differs from it this stops watching for good.
+   */
+  const framed = useRef<{ size: [number, number, number]; z: number; pitch: number; eye: number } | null>(null);
+  useEffect(() => {
+    const reframe = () => {
+      const held = framed.current;
+      if (!held) return;
+      const moved =
+        Math.abs(walkInput.position.x) > 0.01 ||
+        Math.abs(walkInput.position.z - held.z) > 0.01 ||
+        Math.abs(walkInput.yaw) > 0.004 ||
+        Math.abs(walkInput.pitch - held.pitch) > 0.004 ||
+        Math.abs(walkInput.lookYaw) > 0.004 ||
+        Math.abs(walkInput.lookPitch) > 0.004 ||
+        Math.abs(useStore.getState().cameraHeight - held.eye) > 0.01;
+      if (moved) {
+        framed.current = null;
+        return;
+      }
+      frame(held.size);
+    };
+    window.addEventListener('resize', reframe);
+    window.addEventListener('orientationchange', reframe);
+    return () => {
+      window.removeEventListener('resize', reframe);
+      window.removeEventListener('orientationchange', reframe);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * The scene the tool starts from: the car on the origin, framed to fill it.
