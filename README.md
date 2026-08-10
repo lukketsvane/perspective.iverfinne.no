@@ -1374,6 +1374,7 @@ npm install
 npm run dev     # http://localhost:3000
 npm run lint    # tsc --noEmit
 npm run build
+npm test        # playwright; builds and serves the app itself
 ```
 
 State lives in `store.ts` (zustand). `lib/assets.ts` is the IndexedDB layer:
@@ -1425,3 +1426,52 @@ that had been overriding the factor per texel is the one you just deleted: the
 chairs and the car still ship a metal-roughness map and so were never affected,
 which is exactly why four dark animals beside them read as four bad meshes
 rather than as one missing line in the bake.
+
+## Tests
+
+`npm test` builds the app, serves the build on port 4319, runs Playwright
+against it and takes the server down again. Nothing to start first, and no
+`playwright install` — the browsers are already on the machine and the
+dependency is pinned to the version they belong to.
+
+```
+tests/harness.ts     the fixture and the helpers
+tests/smoke.spec.ts  proof that the harness works end to end
+```
+
+**What is covered:** whatever the specs in `tests/` assert, and nothing else.
+This suite began as a net under work that had none — the tour, the per-object
+materials, the stepped wash, the preset deck, the ground plane — so treat a
+green run as "the things somebody wrote down still work", not as "the app
+works".
+
+**What is not covered, and will not be by anything in here:** two thumbs at
+once. The suite drives a mouse-shaped pointer at phone size, which exercises
+the pointer-event paths every input shares, but look-and-walk together is the
+one gesture this tool is built around and Playwright moves one pointer at a
+time. Nothing here says whether that still works.
+
+Two things about the app make it awkward to test, and the harness answers each
+of them rather than working around them:
+
+- **It is one canvas.** Most of what this tool does leaves no DOM behind at
+  all. So `fingerprint()` reads the canvas back — coarse cell averages, which
+  the renderer's `preserveDrawingBuffer` makes possible — and that is the only
+  assertion that covers the shader, the ink, the wash and the page.
+- **The exact answer is in the file.** `readSceneBundle()` exports the scene
+  through the app's own button and parses the PSPV manifest in node, which is
+  how a spec says a box is 2.5 m rather than "the picture changed". The
+  dev-only handles this README describes above (`window.__store`, `__pick`,
+  `__forceMesh`) are **not** there: the suite runs against a production build,
+  which is the thing that ships.
+
+The rest of `harness.ts` is a list of ways this app can be tested wrongly, each
+with the reason attached: the tour has to be suppressed before the app reads
+its own storage, the chrome fades after six seconds and a click on it lands on
+the scene instead, "Tools" is a toggle, the same `aria-label` is on two
+different buttons, a Scrub is dragged and reads out only while held, a box is
+two drags and both have to land on the floor. Read them before writing a spec;
+every one of them cost a run before it was written down.
+
+There are no retries, on purpose. A test that only passes sometimes teaches
+people that red means nothing, which is worse than not having the test.
