@@ -6,7 +6,7 @@ import { holdRail, releaseRail, showRail, useRail } from '../lib/rail';
 import { SelectionBar } from './SelectionBar';
 import { LightPanel } from './LightPanel';
 import { Icon, I, SURFACE_ICON } from './icons';
-import { Scrub, useGrayThemeControl, useRoomControl } from './controls';
+import { Scrub, useBackdropControl, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
 import { whileWorking } from '../lib/activity';
 import { ACTIVE, chrome, iconButton } from './ui';
@@ -155,6 +155,8 @@ export const WalkOverlay: React.FC<{
   const backgroundGray = useStore((s) => s.backgroundGray);
   const toggleSunEnvironment = useStore((s) => s.toggleSunEnvironment);
   const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
+  const backdrop = useStore((s) => s.backdrop);
+  const backdropControl = useBackdropControl();
   const [showTools, setShowTools] = useState(false);
   /*
    * The lights stand in the tools row's own slot, over a live dock.
@@ -1081,47 +1083,6 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.arLook} className="w-5 h-5" />
           </button>
-          {/* The block-out pencil: while it is up, a drag on the ground draws
-              a footprint and the next drag pulls its height - a box, sized by
-              eye, in two strokes, and the mode stays armed for the next one.
-              The fastest road from standing in a real place to a scene of its
-              forms. */}
-          <button
-            onClick={() => {
-              block.current = null;
-              setBlockReadout(null);
-              setBlocking((on) => !on);
-              if (measuring) clearMeasures();
-              measurePointer.current = null;
-              setMeasuring(false);
-              setShowTools(false);
-            }}
-            aria-label="Draw boxes on the ground"
-            aria-pressed={blocking}
-            className={`${button} ${blocking ? ACTIVE : ''}`}
-          >
-            <Icon path={I.block} className="w-5 h-5" />
-          </button>
-          {/* The pencil at arm's length: while it is up, a drag on the scene
-              lays a measure in degrees of visual angle instead of turning the
-              view. Putting the instrument down clears the sheet - a
-              measurement is a reading, not a mark of the composition. */}
-          <button
-            onClick={() => {
-              if (measuring) clearMeasures();
-              measurePointer.current = null;
-              setMeasuring((on) => !on);
-              setBlocking(false);
-              block.current = null;
-              setBlockReadout(null);
-              setShowTools(false);
-            }}
-            aria-label="Measure visual angles"
-            aria-pressed={measuring}
-            className={`${button} ${measuring ? ACTIVE : ''}`}
-          >
-            <Icon path={I.measure} className="w-5 h-5" />
-          </button>
           <button onClick={toggleViewLock} aria-label="Lock view" aria-pressed={viewLocked} className={`${button} ${viewLocked ? '!text-amber-400' : ''}`}>
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="4" y="10.5" width="16" height="10" rx="2" />
@@ -1162,6 +1123,26 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.strength} className="w-5 h-5" />
           </button>
+          {/* What the drawing is mounted on. The sheet is the light control's
+              on the dock; this is the page behind it - tap for the sheet
+              itself, black, white, drag for any tone between. */}
+          <button
+            {...backdropControl}
+            aria-label={`Page behind the drawing: ${
+              backdrop === 'paper' ? 'the sheet itself' : `${backdrop} of 255`
+            } - drag to change`}
+            aria-pressed={backdrop !== 'paper'}
+            className={`${button} touch-none ${backdrop !== 'paper' ? ACTIVE : ''}`}
+          >
+            <Icon path={I.backdrop} className="w-5 h-5" />
+          </button>
+          {/* Saved compositions, with the rest of what you do to a session:
+              back, forward, and take the picture away. The dock is the verbs
+              you use while drawing - the two instruments took its last two
+              seats, and a library you open once an hour is not one of them. */}
+          <button onClick={onScenes} aria-label="Scenes" className={button}>
+            <Icon path={I.scenes} className="w-5 h-5" />
+          </button>
           <button onClick={undo} aria-label="Undo" className={`${button} ${canUndo ? '' : 'opacity-30'}`}>
             <Icon path={I.undo} className="w-5 h-5" />
           </button>
@@ -1197,16 +1178,15 @@ export const WalkOverlay: React.FC<{
 
         <div
           {...(dockVisible ? {} : { inert: '' })}
-          // Tighter on a small phone, for the same reason the controls in it
-          // are - seven of them plus the glass around them is more than 320 px
-          // of screen has, and the two on the ends were the ones paying.
-          className={`flex items-center p-1.5 gap-1 max-[359px]:p-1 max-[359px]:gap-0.5 rounded-full border shadow-2xl ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
+          // Tighter on a phone, for the same reason the controls in it are:
+          // eight of them plus the glass is 368 px and a 390 px frame gives
+          // the dock 366, so it folded in half over the drawing for want of
+          // two pixels. It wraps rather than clips when it truly cannot fit -
+          // a control pushed off the edge is not a smaller control.
+          className={`flex flex-wrap items-center justify-center max-w-full p-1.5 gap-1 max-[429px]:p-1 max-[429px]:gap-0.5 rounded-[1.75rem] border shadow-2xl ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
         >
           <button onClick={onModels} aria-label="Add model" className={button}>
             <Icon path={I.cube} className="w-5 h-5" />
-          </button>
-          <button onClick={onScenes} aria-label="Scenes" className={button}>
-            <Icon path={I.scenes} className="w-5 h-5" />
           </button>
           <Scrub
             skin={{ dark: isDark, touch: true }}
@@ -1249,6 +1229,47 @@ export const WalkOverlay: React.FC<{
             cycle={EYE_LEVEL_PRESETS.map((p) => p.height)}
             onChange={setCameraHeight}
           />
+          {/* The block-out pencil: while it is up, a drag on the ground draws
+              a footprint and the next drag pulls its height - a box, sized by
+              eye, in two strokes, and the mode stays armed for the next one.
+              The fastest road from standing in a real place to a scene of its
+              forms. */}
+          <button
+            onClick={() => {
+              block.current = null;
+              setBlockReadout(null);
+              setBlocking((on) => !on);
+              if (measuring) clearMeasures();
+              measurePointer.current = null;
+              setMeasuring(false);
+              setShowTools(false);
+            }}
+            aria-label="Draw boxes on the ground"
+            aria-pressed={blocking}
+            className={`${button} ${blocking ? ACTIVE : ''}`}
+          >
+            <Icon path={I.block} className="w-5 h-5" />
+          </button>
+          {/* The pencil at arm's length: while it is up, a drag on the scene
+              lays a measure in degrees of visual angle instead of turning the
+              view. Putting the instrument down clears the sheet - a
+              measurement is a reading, not a mark of the composition. */}
+          <button
+            onClick={() => {
+              if (measuring) clearMeasures();
+              measurePointer.current = null;
+              setMeasuring((on) => !on);
+              setBlocking(false);
+              block.current = null;
+              setBlockReadout(null);
+              setShowTools(false);
+            }}
+            aria-label="Measure visual angles"
+            aria-pressed={measuring}
+            className={`${button} ${measuring ? ACTIVE : ''}`}
+          >
+            <Icon path={I.measure} className="w-5 h-5" />
+          </button>
           <button
             onClick={() => {
               const at = PROJECTION_ORDER.indexOf(perspectiveMode);

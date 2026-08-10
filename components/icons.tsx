@@ -75,6 +75,9 @@ export const I = {
   lampSpot: (<><path d="M12 2.5v2.6" strokeOpacity="0.5" /><path d="M8.6 6.4h6.8l1.4 4.4H7.2z" /><path d="M8.2 12.6L5 20.5M15.8 12.6L19 20.5M12 12.6V21" strokeOpacity="0.5" /></>),
   power: (<><path d="M12 3.5v7" /><path d="M7.2 6.8a7 7 0 1 0 9.6 0" /></>),
 
+  /** A sheet mounted on a page: the drawing, and what is behind it. */
+  backdrop: (<><rect x="2.5" y="3.5" width="19" height="17" rx="1.6" fill="currentColor" fillOpacity="0.9" stroke="none" /><rect x="7" y="7.5" width="10" height="9" rx="0.8" fill="none" stroke="currentColor" strokeOpacity="0.9" /></>),
+
   /** A box being drawn: the footprint down, the height going up. */
   block: (<><path d="M4 17.5l6-2.6 8 2.2-6 2.8z" /><path d="M12 14.9V6.2M9.8 8.4 12 6.2l2.2 2.2" strokeOpacity="0.65" /></>),
 

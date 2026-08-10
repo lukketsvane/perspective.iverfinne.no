@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import {
+  Backdrop,
   BOX_SURFACES,
   BoxData,
   ConstructionLevel,
@@ -20,6 +21,7 @@ import {
   SNAP_STEPS,
   SunState,
   Surface,
+  ThemeMode,
   SURFACES,
   readRoomLevel,
   readShadows,
@@ -31,7 +33,7 @@ import { cloneModel } from './lib/modelMaterials';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
 import { MAX_FIELD, wholeSheetField } from './lib/projection';
-import { luminance, paperFor } from './lib/inkMaterial';
+import { luminance, paperFor, setInkPaper, setPageTone } from './lib/inkMaterial';
 import { walkInput } from './lib/walkInput';
 
 // ---------------------------------------------------------------------------
@@ -88,7 +90,7 @@ export const DEFAULT_SUN: SunState = {
   elevation: 48,
   intensity: 3.5,
   temperature: 5600,
-  shadows: 'soft',
+  shadows: 'hard',
 };
 
 /**
@@ -146,6 +148,56 @@ const snapToCell = (v: number) => Math.floor(v) + 0.5;
 const clampTo = (value: number, [low, high]: readonly [number, number]) =>
   Math.max(low, Math.min(high, value));
 
+/**
+ * The tone actually behind everything: the sheet's own, or the page's.
+ *
+ * One question with one answer, asked by the renderer, the chrome and the
+ * status bar alike - so a page set to black is black in all three rather
+ * than in whichever of them remembered to look.
+ */
+export const pageGrayOf = (state: { backdrop: Backdrop; backgroundGray: number }) =>
+  state.backdrop === 'paper' ? state.backgroundGray : state.backdrop;
+
+/**
+ * Light chrome or dark, decided by what the chrome floats over.
+ *
+ * The sketch pages run through the warm ramp, where the crossing from paper
+ * to board is a relative luminance of 0.179 rather than the middle of the
+ * range; the clay is a flat grey, where the middle is the middle.
+ */
+const themeFor = (gray: number, surface: Surface): ThemeMode =>
+  surface === 'ink' || surface === 'brush'
+    ? luminance(paperFor(gray)) >= 0.18
+      ? 'light'
+      : 'dark'
+    : gray >= 128
+      ? 'light'
+      : 'dark';
+
+const pageTheme = (backdrop: Backdrop, backgroundGray: number, surface: Surface) => ({
+  theme: themeFor(pageGrayOf({ backdrop, backgroundGray }), surface),
+});
+
+/**
+ * What the tool opens on, named once.
+ *
+ * The finished brush page rather than a lighting study of it, and rather than
+ * the pen-only underdrawing: line, spotted black, hard shadow. White paper
+ * mounted on black, which is how a drawing is presented - the sheet stays warm
+ * and light so the ink is still ink, and the page behind it goes black so the
+ * drawing is the only thing in the frame with a value. It is also what makes
+ * the horizon read: the ground's ruling and the guides are chalk on the dark
+ * page, and the object is the one light shape on it.
+ *
+ * These are three constants rather than three literals in the state below
+ * because the opening has to be stated twice - once as the state, once as the
+ * fallback the settings migration lands on - and two copies of it is how you
+ * get a returning visitor whose chrome does not match their page.
+ */
+const OPENING_SURFACE: Surface = 'brush';
+const OPENING_BACKDROP: Backdrop = 0;
+const OPENING_PAPER = 243;
+
 // ---------------------------------------------------------------------------
 // Remembered settings
 // ---------------------------------------------------------------------------
@@ -183,6 +235,7 @@ const SETTING_KEYS = [
   'gridZ',
   'construction',
   'fieldRange',
+  'backdrop',
   'roomLevel',
   'room',
   'showVanishing',
@@ -223,6 +276,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   gridZ: boolean,
   construction: (v) => v === 0 || v === 1 || v === 2,
   fieldRange: (v) => FIELD_RANGES.includes(v as FieldRange),
+  backdrop: (v) => v === 'paper' || (number(v) && (v as number) >= 0 && (v as number) <= 255),
   roomLevel: number,
   room: object,
   showVanishing: boolean,
@@ -252,10 +306,10 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
  * else in the setup is touched: the theme, the room, the sun, the fill, the eye
  * level and the snap are all still yours.
  */
-const VIEW_GENERATION = 3;
+const VIEW_GENERATION = 4;
 
 /** The keys the reset above drops. Everything else survives it. */
-const VIEW_KEYS = ['fov', 'guides', 'construction', 'surface', 'roomLevel'] as const;
+const VIEW_KEYS = ['fov', 'guides', 'construction', 'surface', 'roomLevel', 'backdrop'] as const;
 
 /**
  * Whether the stored setup predates the current opening view.
@@ -396,7 +450,10 @@ const kept = <T extends object>(source: T): Partial<T> =>
 const readSun = (stored: Partial<SunState> | undefined): SunState => ({
   ...DEFAULT_SUN,
   ...(stored ?? {}),
-  shadows: readShadows(stored?.shadows),
+  // Nothing stored falls back to the opening sun's own rung, not to a rung
+  // named here - the tool opens hard, and a fresh visitor was getting soft
+  // from a default written into the reader instead of into the sun.
+  shadows: readShadows(stored?.shadows, DEFAULT_SUN.shadows),
 });
 
 const remembered = kept({
@@ -436,6 +493,18 @@ const remembered = kept({
   roomLevel: loadedSettings.roomLevel ?? (staleView || !legacy.showRoom ? undefined : 2),
   // ...and before the room's floor was two numbers rather than one.
   room: readRoom(loadedSettings.room),
+  /*
+   * The sun is the viewer's - bearing, height, strength and warmth all
+   * survive - but which shadow the tool OPENS on is the tool's, and it moved
+   * to hard with the page. So the one field is taken back with the rest of
+   * the opening view, and the other four are left alone.
+   */
+  sun:
+    loadedSettings.sun === undefined
+      ? undefined
+      : staleView
+        ? { ...readSun(loadedSettings.sun), shadows: 'hard' as const }
+        : readSun(loadedSettings.sun),
 });
 
 /**
@@ -538,6 +607,7 @@ export const currentView = (state: SceneState): SceneView => ({
   fov: state.fov,
   perspectiveMode: state.perspectiveMode,
   backgroundGray: state.backgroundGray,
+  backdrop: state.backdrop,
   theme: state.theme,
   sun: { ...state.sun },
   fill: { ...state.fill },
@@ -604,6 +674,25 @@ const restoreView = (view: SceneView | undefined, range: FieldRange): Partial<Sc
   walkInput.strafe = 0;
   walkInput.seeded = true;
 
+  /*
+   * The page, the sheet and the chrome are one decision, so the file is only
+   * asked for the first two.
+   *
+   * A scene written before the page could differ from the sheet has no
+   * backdrop in it, and `'paper'` - the page IS the sheet - is precisely the
+   * arrangement it was composed against. The theme is then derived rather
+   * than taken: in the live store it is a pure function of the page and the
+   * surface, every setter keeps it that way, and a file that says otherwise
+   * is a file describing a state the tool cannot be in. Trusting it gave dark
+   * chrome over a white page for every scene saved on a black mount.
+   */
+  const surface = readSurface(view.surface ?? view.modelMaterial);
+  const backgroundGray = take(view.backgroundGray, 0, 255, 243);
+  const backdrop: Backdrop =
+    view.backdrop === undefined || view.backdrop === 'paper'
+      ? 'paper'
+      : take(view.backdrop, 0, 255, 0);
+
   return {
     cameraHeight: take(view.cameraHeight, 0.2, 12, DEFAULT_CAMERA_HEIGHT),
     fov: take(view.fov, 10, MAX_FIELD, DEFAULT_FOV),
@@ -611,15 +700,16 @@ const restoreView = (view: SceneView | undefined, range: FieldRange): Partial<Sc
     // opens the reach rather than being clipped by it.
     fieldRange: rangeFor(range, take(view.fov, 10, MAX_FIELD, DEFAULT_FOV)),
     perspectiveMode: readMode(view.perspectiveMode),
-    backgroundGray: take(view.backgroundGray, 0, 255, 243),
-    theme: view.theme,
+    backgroundGray,
+    backdrop,
+    ...pageTheme(backdrop, backgroundGray, surface),
     sun: readSun(view.sun),
     fill: { ...DEFAULT_FILL, ...(view.fill ?? {}) },
     sunEnvironment: view.sunEnvironment,
     guides: (Math.min(2, view.guides ?? ((view.showGuides ?? true) ? 3 : 0)) as GuideLevel),
     gridX: view.gridX ?? (view.guides ?? 3) >= 2,
     gridZ: view.gridZ ?? (view.guides ?? 3) >= 2,
-    surface: readSurface(view.surface ?? view.modelMaterial),
+    surface,
     roomLevel: readRoomLevel(view.roomLevel ?? view.showRoom),
     room: readRoom(view.room),
     showVanishing: view.showVanishing ?? true,
@@ -654,14 +744,15 @@ export const useStore = create<SceneState>((set, get) => ({
   selectedModelId: null,
   lamps: [],
   selectedLampId: null,
-  // The tool opens on the drawing, not on a lighting study of it.
-  surface: 'ink',
+  surface: OPENING_SURFACE,
+  backdrop: OPENING_BACKDROP,
   sunEnvironment: false,
   viewLocked: false,
   undoStack: [],
   redoStack: [],
-  theme: 'light',
-  backgroundGray: 243,
+  // `theme` is not here: it is derived from whatever survives the migration
+  // below, since the page it floats over is what decides it.
+  backgroundGray: OPENING_PAPER,
   currentSceneId: null,
   sceneHistory: [],
   ownMeshes: [],
@@ -673,6 +764,25 @@ export const useStore = create<SceneState>((set, get) => ({
   // its fields, must not leave the scene with no light in it.
   sun: readSun(remembered.sun),
   fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
+  /*
+   * The chrome is worked out from the page rather than taken back from storage.
+   *
+   * It is stored - the migration from the old light/dark switch to a continuous
+   * page still reads it - but as a *state* it is derived: every setter here
+   * recomputes it from the page and the surface, so it cannot be an independent
+   * opinion in the live store and must not become one on the way in. The one
+   * time the two disagree is exactly the one that matters. The page moved with
+   * this version and `theme` did not, so a returning visitor with a stored
+   * light theme would have opened light chrome over the new black mount, on the
+   * single load where nothing they did could explain it.
+   */
+  theme: themeFor(
+    pageGrayOf({
+      backdrop: remembered.backdrop ?? OPENING_BACKDROP,
+      backgroundGray: remembered.backgroundGray ?? OPENING_PAPER,
+    }),
+    remembered.surface ?? OPENING_SURFACE
+  ),
 
   /**
    * The line under everything about to change.
@@ -979,6 +1089,25 @@ export const useStore = create<SceneState>((set, get) => ({
    * new range, so the control never reads one thing while the view does
    * another.
    */
+  /**
+   * Step the page: the sheet itself, then black, then white.
+   *
+   * Three rungs because they are the three presentations - continuous with
+   * the drawing, mounted on black, mounted on white - and the tone in
+   * between is a drag on the same control for anyone who wants it.
+   */
+  cycleBackdrop: () =>
+    set((state) => {
+      const next = state.backdrop === 'paper' ? 0 : state.backdrop === 0 ? 255 : 'paper';
+      return { backdrop: next, ...pageTheme(next, state.backgroundGray, state.surface) };
+    }),
+
+  setBackdrop: (value) =>
+    set((state) => {
+      const gray = Math.max(0, Math.min(255, Math.round(value)));
+      return { backdrop: gray, ...pageTheme(gray, state.backgroundGray, state.surface) };
+    }),
+
   cycleFieldRange: () =>
     set((state) => {
       const range = FIELD_RANGES[(FIELD_RANGES.indexOf(state.fieldRange) + 1) % FIELD_RANGES.length];
@@ -1310,14 +1439,20 @@ export const useStore = create<SceneState>((set, get) => ({
   toggleTheme: () =>
     set((state) => {
       const wanted = state.theme === 'light' ? 'dark' : 'light';
-      const mirrored = 255 - state.backgroundGray;
-      const isLight =
-        state.surface === 'ink' || state.surface === 'brush'
-          ? luminance(paperFor(mirrored)) >= 0.18
-          : mirrored >= 128;
-      return isLight === (wanted === 'light')
-        ? { theme: wanted, backgroundGray: mirrored }
-        : { theme: wanted, backgroundGray: wanted === 'dark' ? 0 : 243 };
+      // Whichever tone the page is actually made of is the one that flips: the
+      // sheet while the page IS the sheet, otherwise the mount. Flipping the
+      // sheet under a black mount would change nothing anybody can see and
+      // leave the chrome claiming otherwise.
+      const of = state.backdrop === 'paper' ? state.backgroundGray : (state.backdrop as number);
+      const mirrored = 255 - of;
+      const landed = themeFor(mirrored, state.surface) === wanted
+        ? mirrored
+        : wanted === 'dark'
+          ? 0
+          : 243;
+      return state.backdrop === 'paper'
+        ? { theme: wanted, backgroundGray: landed }
+        : { theme: wanted, backdrop: landed };
     }),
 
   /*
@@ -1334,11 +1469,10 @@ export const useStore = create<SceneState>((set, get) => ({
   setBackgroundGray: (value) =>
     set((state) => {
       const gray = Math.max(0, Math.min(255, Math.round(value)));
-      const light =
-        state.surface === 'ink' || state.surface === 'brush'
-          ? luminance(paperFor(gray)) >= 0.18
-          : gray >= 128;
-      return { backgroundGray: gray, theme: light ? 'light' : 'dark' };
+      // The chrome floats over the PAGE, so dragging the sheet only moves it
+      // while the page is the sheet. Sweep the paper under a black mount and
+      // the chrome has no business following it.
+      return { backgroundGray: gray, ...pageTheme(state.backdrop, gray, state.surface) };
     }),
 
   // -------------------------------------------------------------------------
@@ -1493,3 +1627,24 @@ export const useStore = create<SceneState>((set, get) => ({
     }),
 
 }));
+
+/*
+ * The sheet and the page, kept in step with the store.
+ *
+ * Both are module state that React READS DURING RENDER - the box's own paper,
+ * the background, the grid's ink, every construction colour - and both used to
+ * be written from a layout effect, which runs after that render. So every
+ * consumer was one change behind: sweep the page to white and the frame stayed
+ * black until the next unrelated change, and the last frame of a drag kept the
+ * second-to-last value for good.
+ *
+ * A store subscription is synchronous on the write and strictly earlier than
+ * any render that could read it, which is the only placement that cannot be
+ * stale.
+ */
+const syncTones = (state: SceneState) => {
+  setInkPaper(state.backgroundGray);
+  setPageTone(pageGrayOf(state));
+};
+syncTones(useStore.getState());
+useStore.subscribe(syncTones);

@@ -441,6 +441,34 @@ export const setInkPaper = (gray: number) => {
 };
 
 /**
+ * The page BEHIND the sheet, and the pen that reads on it.
+ *
+ * Two tones, not one. The sheet is what an object is drawn on - it decides
+ * the object's own paper and its own ink, and it lives in the material's
+ * uniforms above. The page is what the sheet is mounted on, and it decides
+ * everything drawn OVER the world rather than on an object: the ground's
+ * ruling, the guides, the construction, the cast shadow, and whether the
+ * chrome is light or dark.
+ *
+ * They were the same value, so a drawing on warm paper stood in a world made
+ * of warm paper - and the oldest presentation there is, white paper on black,
+ * could not be had at all. Separated, the ink stays ink and the page goes
+ * wherever it separates the drawing best.
+ */
+const page = { tone: paperFor(243), ink: inkFor(paperFor(243)) };
+
+export const setPageTone = (gray: number) => {
+  page.tone = paperFor(gray);
+  page.ink = inkFor(page.tone);
+};
+
+/** The page's own tone and pen, as hex, for everything outside a shader. */
+export const pageHex = () => `#${page.tone.getHexString()}`;
+export const pageInkHex = () => `#${page.ink.getHexString()}`;
+/** Rec. 709 luminance of the page: what decides light chrome or dark. */
+export const pageLuminance = () => luminance(page.tone);
+
+/**
  * How wide a line is, in radians.
  *
  * Both numbers come from `fieldOf`: the field's angular radius follows the
@@ -462,7 +490,7 @@ export const setInkScale = (halfYaw: number, cssWidth: number) => {
  */
 export const constructionInk = (inkMode: boolean, dark: boolean) =>
   inkMode
-    ? `#${inkUniforms.paper.value.clone().lerp(inkUniforms.ink.value, 0.52).getHexString()}`
+    ? `#${page.tone.clone().lerp(page.ink, 0.52).getHexString()}`
     : dark
       ? '#ff6a5e'
       : '#e0342a';
@@ -482,6 +510,18 @@ export const paperHex = () => `#${inkUniforms.paper.value.getHexString()}`;
  */
 export const inkShadowAlpha = (gray: number) =>
   0.3 * Math.max(0, Math.min(1, (luminance(paperFor(gray)) - 0.18) / 0.22));
+
+/**
+ * How dark a spotted shadow may be laid on the page.
+ *
+ * The brush page fills its blacks solid, and its cast shadow is a shape
+ * rather than a wash - so it goes down heavy on a light page. On a dark one
+ * there is nothing for a dark shape to say: the page is already the shadow,
+ * and what reads there is the lit ground, so the shadow fades out entirely
+ * rather than becoming a darker black nobody can see.
+ */
+export const brushShadowAlpha = () =>
+  0.82 * Math.max(0, Math.min(1, (pageLuminance() - 0.1) / 0.25));
 
 /** Which way the sun is, so the terminator knows where to fall. */
 export const setInkLight = (x: number, y: number, z: number) => {

@@ -2,7 +2,7 @@ import React, { useEffect, useReducer } from 'react';
 import { useStore } from '../store';
 import { useMeasures, type Measure } from '../lib/measure';
 import { projectDirection } from '../lib/pick';
-import { constructionInk, paperHex } from '../lib/inkMaterial';
+import { constructionInk, pageHex } from '../lib/inkMaterial';
 
 /**
  * The measures, drawn on the glass.
@@ -141,7 +141,7 @@ export const Measures: React.FC = () => {
   const ink = constructionInk(sketch, dark);
   // The halo is the page, not "white": on a dark board a white halo was the
   // brightest mark on the sheet.
-  const halo = sketch ? paperHex() : dark ? 'rgba(16,16,16,0.75)' : 'rgba(255,255,255,0.75)';
+  const halo = sketch ? pageHex() : dark ? 'rgba(16,16,16,0.75)' : 'rgba(255,255,255,0.75)';
 
   return (
     <svg

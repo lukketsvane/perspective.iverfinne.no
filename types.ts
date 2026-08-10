@@ -154,6 +154,24 @@ export type ConstructionLevel = 0 | 1 | 2;
  * one endless band, so a study can be set out on a frieze that never ends.
  */
 export type FieldRange = 'human' | 'sphere' | 'endless';
+
+/**
+ * What is behind the drawing.
+ *
+ * The sketch materials draw on a sheet of their own - warm paper, near-black
+ * pen - and until now the whole frame was that sheet, so an object drawn on
+ * paper stood in a world made of the same paper. They are two decisions. A
+ * drawing on white paper mounted on black is the oldest presentation there
+ * is, and it is the one that makes the object read: the sheet stays the sheet
+ * so the ink is still ink, while the page behind it goes to whatever separates
+ * it best.
+ *
+ * `'paper'` is the old behaviour - the page IS the sheet. A number is a tone
+ * of its own, read through the same warm ramp, and everything drawn OVER the
+ * page rather than on the sheet follows it: the grid, the guides, the
+ * construction, the cast shadow, and the chrome's own light or dark.
+ */
+export type Backdrop = 'paper' | number;
 export const FIELD_RANGES: FieldRange[] = ['human', 'sphere', 'endless'];
 
 /**
@@ -332,14 +350,14 @@ export const SHADOW_KINDS: ShadowKind[] = ['off', 'hard', 'soft'];
  * returning viewer's sun quietly stops casting anything at all. `true` reads as
  * soft, so reloading changes nobody's picture.
  */
-export const readShadows = (stored: unknown): ShadowKind =>
+export const readShadows = (stored: unknown, fallback: ShadowKind = 'hard'): ShadowKind =>
   stored === true
     ? 'soft'
     : stored === false
       ? 'off'
       : SHADOW_KINDS.includes(stored as ShadowKind)
         ? (stored as ShadowKind)
-        : 'soft';
+        : fallback;
 
 /**
  * Where a light is and how hard it burns.
@@ -405,6 +423,12 @@ export interface SceneView {
   fov: number;
   perspectiveMode: PerspectiveMode;
   backgroundGray: number;
+  /**
+   * The page the sheet is mounted on. Absent in scenes saved before the two
+   * were separable, which read as `'paper'` - the page IS the sheet, which is
+   * exactly what those scenes were composed against.
+   */
+  backdrop?: Backdrop;
   theme: ThemeMode;
   sun: SunState;
   fill?: FillState;
@@ -474,6 +498,7 @@ export interface SceneState {
    */
   construction: ConstructionLevel;
   fieldRange: FieldRange;
+  backdrop: Backdrop;
   /**
    * Four walls and a ceiling, standing round the origin.
    *
@@ -565,6 +590,10 @@ export interface SceneState {
   /** Four more of the selection, marching along its own facing. */
   stampRow: () => void;
   cycleFieldRange: () => void;
+  /** Step the page behind the sheet: the sheet itself, black, white. */
+  cycleBackdrop: () => void;
+  /** Set the page's own tone, 0 to 255 through the paper ramp. */
+  setBackdrop: (value: number) => void;
   cycleRoom: () => void;
   /** Change the floor's two axes, or the ceiling. Clamped to what a room can be. */
   setRoom: (room: Partial<RoomSize>) => void;
