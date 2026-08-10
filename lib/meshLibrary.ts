@@ -52,6 +52,29 @@ export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'ekstrem', name: 'Ekstrem', url: '/meshes/ekstrem.glb' },
   { id: 'balans-variabel', name: 'Balans Variabel', url: '/meshes/balans-variabel.glb' },
   { id: 'il-tempo-gigante', name: 'Il Tempo Gigante', url: '/meshes/il-tempo-gigante.glb' },
+  /*
+   * The Hughes H-1, 1935: the one form on the shelf that is a solid of
+   * revolution with things hung off it.
+   *
+   * Every other vehicle here is a long box with wheels, which is a box lesson.
+   * A racer's fuselage is a lathe-turned body tapering in two directions at
+   * once, and its wings are one aerofoil section swept and stretched - so the
+   * cross-section changes along the length in a way no box construction
+   * predicts, and the ellipse the cowling presents changes its openness
+   * continuously from nose to tail. That is the drawing this shelf did not
+   * have.
+   *
+   * Height 2.4 m is the aircraft standing on its own gear with the tail down,
+   * measured over the whole of it the way the animals are - not the wingspan,
+   * which is 7.6, and not the length, which is 8.2.
+   *
+   * IT IS NINETEEN MEGABYTES, which is seven times the largest thing that was
+   * here and half the shelf again on its own. Nothing loads until it is
+   * tapped, so it costs a first visit nothing - but it is a real cost to
+   * whoever taps it, and on a phone it is the single heaviest thing this tool
+   * will ever ask a browser to parse.
+   */
+  { id: 'hughes-h1', name: 'Hughes H-1 Racer', url: '/meshes/hughes-h1.glb', height: 2.4 },
 
   /*
    * Four horses and a platypus: the half of the shelf that does not hold
