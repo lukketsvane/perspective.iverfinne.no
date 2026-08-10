@@ -167,8 +167,8 @@ const useRange = () => {
 
 /**
  * What you can do to the thing you just tapped: size it, lift it off the floor,
- * change how solidly it is drawn, copy it, delete it - and, for a mesh, take it
- * away at the size you settled on.
+ * change how solidly it is drawn, open the knobs that rule that drawing, delete
+ * it - and, for a mesh, take it away at the size you settled on.
  *
  * Turning is not here. It is a drag on the thing itself, which is where it was
  * always going to be looked for first, and a pair of arrows on a bar that turn
@@ -270,13 +270,24 @@ const LampBar: React.FC<{ lamp: LampData; raised: boolean }> = ({ lamp, raised }
   );
 };
 
-export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false }) => {
+export const SelectionBar: React.FC<{
+  raised?: boolean;
+  /**
+   * Open the page's own knobs - the marker's colour, the hatching's rule.
+   *
+   * Handed in rather than reached for: the panel shares one slot with the
+   * tools, the lights and the two libraries, and which of them is up is the
+   * overlay's business. This bar only says that they were asked for.
+   */
+  onMaterial?: () => void;
+  /** Whether those knobs are the panel currently up. */
+  materialOpen?: boolean;
+}> = ({ raised = false, onMaterial, materialOpen = false }) => {
   const theme = useStore((s) => s.theme);
   const boxes = useStore((s) => s.boxes);
   const models = useStore((s) => s.models);
   const selectedId = useStore((s) => s.selectedId);
   const selectedModelId = useStore((s) => s.selectedModelId);
-  const duplicateSelection = useStore((s) => s.duplicateSelection);
   const beginChange = useStore((s) => s.beginChange);
   const scaleModel = useStore((s) => s.scaleModel);
   const updateBox = useStore((s) => s.updateBox);
@@ -508,12 +519,30 @@ export const SelectionBar: React.FC<{ raised?: boolean }> = ({ raised = false })
         >
           <Icon path={SURFACE_ICON[surface]} className="w-5 h-5" />
         </button>
-        <button onClick={duplicateSelection} className={button} aria-label="Duplicate">
-          <Icon path={I.duplicate} className="w-5 h-5" />
-        </button>
-        {/* The diminution lesson in one press: four more, marching along the
-            selection's own facing towards their shared point. Turn the thing
-            to aim the row. */}
+        {/*
+          * And how that rung is ruled, next to the rung itself.
+          *
+          * The hatch angle and the marker's hue were three taps away - Tools,
+          * find the band, then the knob - and they are the two settings you
+          * change while looking at the thing they are drawing, which is
+          * exactly when a full-width panel over the drawing is worst. Same
+          * panel, same slot, one tap, with the selection still in hand.
+          *
+          * Only on the two rungs that have anything to set, and keyed to the
+          * scene's rung rather than this one's because those knobs are the
+          * page's: they rule every stroke in it, not just this object's. A
+          * button that opened an empty panel would be worse than no button.
+          */}
+        {onMaterial && (sceneSurface === 'marker' || sceneSurface === 'hatch') && (
+          <button
+            onClick={onMaterial}
+            aria-label={sceneSurface === 'hatch' ? 'How the hatching is ruled' : "The marker's own settings"}
+            aria-expanded={materialOpen}
+            className={`${button} ${materialOpen ? (isDark ? 'bg-white/10' : 'bg-black/10') : ''}`}
+          >
+            <Icon path={sceneSurface === 'hatch' ? I.hatchAngle : I.hue} className="w-5 h-5" />
+          </button>
+        )}
         {model?.object && (
           <button
             onClick={exportModel}

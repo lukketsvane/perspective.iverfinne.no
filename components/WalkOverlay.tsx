@@ -1509,8 +1509,24 @@ export const WalkOverlay: React.FC<{
 
         {/* Primary Dock */}
         {/* What you can do to the thing you are holding, above what you can do
-            to the view. */}
-        <SelectionBar />
+            to the view. The page's own knobs hang off it as well as off the
+            tools row: on the two rungs that have any, they are the settings
+            you reach for with something still selected. It toggles, unlike
+            the copy in the tools band - that one closes the panel it lives in
+            as it opens this one, so there is nothing left to press twice. */}
+        <SelectionBar
+          materialOpen={showMaterial}
+          onMaterial={() => {
+            if (showMaterial) {
+              setShowMaterial(false);
+              return;
+            }
+            setShowTools(false);
+            setShowLights(false);
+            setShowMaterial(true);
+            onShelfAway();
+          }}
+        />
 
         {/*
           * The dock is the verbs, and only the verbs.
