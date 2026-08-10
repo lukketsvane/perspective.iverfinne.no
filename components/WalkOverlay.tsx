@@ -9,7 +9,7 @@ import { Icon, I, SURFACE_ICON } from './icons';
 import { Scrub, useBackdropControl, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
 import { whileWorking } from '../lib/activity';
-import { ACTIVE, chrome, iconButton } from './ui';
+import { ACTIVE, bubble, chrome, iconButton } from './ui';
 import { directionAt, pickGround, pickObject, pixelsPerMetreAt } from '../lib/pick';
 import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
@@ -906,6 +906,17 @@ export const WalkOverlay: React.FC<{
 
 
   const button = iconButton(isDark);
+  /**
+   * One band of the tools panel: a line of related controls.
+   *
+   * Hung from the left rather than centred. The hairlines run the full width
+   * of the panel, and bands of six, four, five and two centred under each
+   * other made a diamond - four rows with four different left edges, which is
+   * four places to start reading. Sharing one edge makes them rows of a list.
+   */
+  const band = 'flex flex-wrap justify-start gap-1';
+  /** The hairline between two bands, and the air either side of it. */
+  const divider = `mt-1 pt-1 border-t ${isDark ? 'border-white/10' : 'border-black/10'}`;
   /*
    * The dock stays up when something is selected.
    *
@@ -939,9 +950,7 @@ export const WalkOverlay: React.FC<{
 
       {blockReadout && (
         <div
-          className={`fixed z-40 px-3 py-1 rounded-full text-xs font-bold tabular-nums border shadow-xl pointer-events-none whitespace-nowrap ${
-            isDark ? 'bg-neutral-950/95 text-white border-white/20' : 'bg-white/95 text-black border-black/10'
-          }`}
+          className={`fixed z-40 pointer-events-none ${bubble(isDark)}`}
           style={{ left: blockReadout.x + 14, top: blockReadout.y - 40 }}
         >
           {blockReadout.text}
@@ -978,8 +987,18 @@ export const WalkOverlay: React.FC<{
             lights and the dock. */}
         <div className="relative w-full h-0">
 
-        {/* Secondary tools. Wrapping, because ten 44 px targets do not fit
-            across a phone in one line and a scroller here would be a trap. */}
+        {/*
+          * Secondary tools, in four bands with a hairline between them.
+          *
+          * Sixteen identical circles wrapped into whatever rows the width
+          * happened to give was a wall, not a menu: nothing in it was near
+          * anything it was related to, and the row a control sat in changed
+          * with the phone. Each band is now its own line and holds one kind of
+          * decision - what is drawn on the ground, what the picture is made
+          * of, where it is seen from, and what to do with the session. A band
+          * is scanned in one movement, and a control keeps the company it
+          * belongs to at every width.
+          */}
         <div className="absolute bottom-0 inset-x-0 flex justify-center pointer-events-none">
         <div
           /* Out of the tab order while it is out of sight - what
@@ -987,8 +1006,9 @@ export const WalkOverlay: React.FC<{
              user's very first Tab landed in the collapsed row, and Enter there
              changed the construction guides with nothing on screen moving. */
           {...(showTools && dockVisible ? {} : { inert: '' })}
-          className={`flex flex-wrap justify-center max-w-[22rem] gap-1 p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showTools && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
+          className={`flex flex-col max-w-[22rem] p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showTools && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
         >
+          <div className={band}>
           <button
             onClick={cycleGuides}
             aria-label={`Construction guides, level ${guides} of 2`}
@@ -1042,6 +1062,73 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.vanishing} className="w-5 h-5" />
           </button>
+          </div>
+
+          {/* What the picture is made of: the surface every object wears,
+              the sheet it is drawn on, the page that sheet is mounted on,
+              and the lamps lighting it. The two tones were a rung apart -
+              one on the dock, one buried here - and they are one decision
+              taken twice, so they stand together. */}
+          <div className={`${band} ${divider}`}>
+          <button
+            onClick={cycleSurface}
+            aria-label={`Surface of everything: ${sceneSurface}`}
+            className={`${button} ${sceneSurface !== 'original' ? ACTIVE : ''}`}
+          >
+            <Icon path={SURFACE_ICON[sceneSurface]} className="w-5 h-5" />
+          </button>
+          <button
+            {...grayThemeControl}
+            aria-label={`Paper tone, ${backgroundGray} of 255 - drag to change`}
+            aria-pressed={sunEnvironment}
+            className={`${button} touch-none ${sunEnvironment ? ACTIVE : ''}`}
+          >
+            <Icon path={sunEnvironment ? I.sky : isDark ? I.dark : I.light} className="w-5 h-5" />
+          </button>
+          {/* What the drawing is mounted on: the page behind the sheet its
+              neighbour sets - tap for the sheet itself, black, white, and
+              drag for any tone between. */}
+          <button
+            {...backdropControl}
+            aria-label={`Page behind the drawing: ${
+              backdrop === 'paper' ? 'the sheet itself' : `${backdrop} of 255`
+            } - drag to change`}
+            aria-pressed={backdrop !== 'paper'}
+            className={`${button} touch-none ${backdrop !== 'paper' ? ACTIVE : ''}`}
+          >
+            <Icon path={I.backdrop} className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => { setShowTools(false); setShowLights(true); }}
+            aria-label="Lights"
+            aria-expanded={showLights}
+            className={button}
+          >
+            <Icon path={I.strength} className="w-5 h-5" />
+          </button>
+          </div>
+
+          {/* Where the drawing is seen from, and on what sheet: the
+              projection, how far the lens may open, the room around it,
+              whether the view is pinned, and looking by turning the
+              phone. Set once and drawn from, which is why none of them
+              is on the dock. */}
+          <div className={`${band} ${divider}`}>
+          {/* Accented only away from the sheet it opens on, which is what the
+              colour means everywhere else in this panel. On the dock it was
+              permanently blue and that was readable as identity; in a line of
+              toggles it would read as "on", which is not a thing a projection
+              can be - there is always one. */}
+          <button
+            onClick={() => {
+              const at = PROJECTION_ORDER.indexOf(perspectiveMode);
+              setPerspectiveMode(PROJECTION_ORDER[(at + 1) % PROJECTION_ORDER.length]);
+            }}
+            aria-label={`Projection: ${perspectiveMode}`}
+            className={`${button} ${perspectiveMode !== 'equidistant' ? ACTIVE : ''}`}
+          >
+            <Icon path={PROJECTION_ICON[perspectiveMode]} className="w-5 h-5" />
+          </button>
           {/* How far the lens may open: sight's own cone, the whole sphere
               on the page, or the endless band - where the cylindrical sheet
               repeats past a full turn instead of running out, the same room
@@ -1053,6 +1140,29 @@ export const WalkOverlay: React.FC<{
             className={`${button} ${fieldRange !== 'sphere' ? ACTIVE : ''}`}
           >
             <Icon path={fieldRange === 'human' ? I.fieldHuman : fieldRange === 'endless' ? I.fieldEndless : I.fieldSphere} className="w-5 h-5" />
+          </button>
+          <div className="relative flex items-center">
+            <button
+              {...roomControl.handlers}
+              aria-label={`Room, ${room.width.toFixed(1)} by ${room.depth.toFixed(1)} metres`}
+              aria-pressed={roomLevel > 0}
+              className={`${button} touch-none ${roomLevel > 0 ? ACTIVE : ''}`}
+            >
+              <Icon path={roomLevel === 2 ? I.roomWalls : I.room} className="w-5 h-5" />
+            </button>
+            {roomControl.sizing && (
+              <div
+                className={`absolute left-1/2 -translate-x-1/2 -top-11 pointer-events-none ${bubble(isDark)}`}
+              >
+                {room.width.toFixed(1)} × {room.depth.toFixed(1)}
+              </div>
+            )}
+          </div>
+          <button onClick={toggleViewLock} aria-label="Lock view" aria-pressed={viewLocked} className={`${button} ${viewLocked ? '!text-amber-400' : ''}`}>
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="4" y="10.5" width="16" height="10" rx="2" />
+              {viewLocked ? <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /> : <path d="M8 10.5V7a4 4 0 0 1 7.5-2" />}
+            </svg>
           </button>
           <button
             onClick={async () => {
@@ -1083,71 +1193,15 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.arLook} className="w-5 h-5" />
           </button>
-          <button onClick={toggleViewLock} aria-label="Lock view" aria-pressed={viewLocked} className={`${button} ${viewLocked ? '!text-amber-400' : ''}`}>
-            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="4" y="10.5" width="16" height="10" rx="2" />
-              {viewLocked ? <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /> : <path d="M8 10.5V7a4 4 0 0 1 7.5-2" />}
-            </svg>
-          </button>
-          <div className="relative flex items-center">
-            <button
-              {...roomControl.handlers}
-              aria-label={`Room, ${room.width.toFixed(1)} by ${room.depth.toFixed(1)} metres`}
-              aria-pressed={roomLevel > 0}
-              className={`${button} touch-none ${roomLevel > 0 ? ACTIVE : ''}`}
-            >
-              <Icon path={roomLevel === 2 ? I.roomWalls : I.room} className="w-5 h-5" />
-            </button>
-            {roomControl.sizing && (
-              <div
-                className={`absolute left-1/2 -translate-x-1/2 -top-11 px-3 py-1 rounded-full text-xs font-bold tabular-nums border shadow-xl pointer-events-none whitespace-nowrap ${
-                  isDark ? 'bg-neutral-950/95 text-white border-white/20' : 'bg-white/95 text-black border-black/10'
-                }`}
-              >
-                {room.width.toFixed(1)} × {room.depth.toFixed(1)}
-              </div>
-            )}
           </div>
-          <button
-            onClick={cycleSurface}
-            aria-label={`Surface of everything: ${sceneSurface}`}
-            className={`${button} ${sceneSurface !== 'original' ? ACTIVE : ''}`}
-          >
-            <Icon path={SURFACE_ICON[sceneSurface]} className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => { setShowTools(false); setShowLights(true); }}
-            aria-label="Lights"
-            aria-expanded={showLights}
-            className={button}
-          >
-            <Icon path={I.strength} className="w-5 h-5" />
-          </button>
-          {/* What the drawing is mounted on. The sheet is the light control's
-              on the dock; this is the page behind it - tap for the sheet
-              itself, black, white, drag for any tone between. */}
-          <button
-            {...backdropControl}
-            aria-label={`Page behind the drawing: ${
-              backdrop === 'paper' ? 'the sheet itself' : `${backdrop} of 255`
-            } - drag to change`}
-            aria-pressed={backdrop !== 'paper'}
-            className={`${button} touch-none ${backdrop !== 'paper' ? ACTIVE : ''}`}
-          >
-            <Icon path={I.backdrop} className="w-5 h-5" />
-          </button>
-          {/* Saved compositions, with the rest of what you do to a session:
-              back, forward, and take the picture away. The dock is the verbs
-              you use while drawing - the two instruments took its last two
-              seats, and a library you open once an hour is not one of them. */}
+
+          {/* The session itself. */}
+          <div className={`${band} ${divider}`}>
+          {/* The library of compositions, and taking the picture away. The
+              dock is the verbs you use mid-drawing; both of these are things
+              you do between drawings, at the start and at the end. */}
           <button onClick={onScenes} aria-label="Scenes" className={button}>
             <Icon path={I.scenes} className="w-5 h-5" />
-          </button>
-          <button onClick={undo} aria-label="Undo" className={`${button} ${canUndo ? '' : 'opacity-30'}`}>
-            <Icon path={I.undo} className="w-5 h-5" />
-          </button>
-          <button onClick={redo} aria-label="Redo" className={`${button} ${canRedo ? '' : 'opacity-30'}`}>
-            <Icon path={I.redo} className="w-5 h-5" />
           </button>
           <button
             onClick={() => whileWorking(() => captureView(captureFileName(cameraHeight, fov, perspectiveMode)))}
@@ -1156,6 +1210,7 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.camera} className="w-5 h-5" />
           </button>
+          </div>
         </div>
         </div>
 
@@ -1176,6 +1231,17 @@ export const WalkOverlay: React.FC<{
             to the view. */}
         <SelectionBar raised={covered} />
 
+        {/*
+          * The dock is the verbs, and only the verbs.
+          *
+          * Add something, choose the lens, choose the eye level, block a form
+          * in, measure an angle, take a step back or forward, and the way in
+          * to everything else. Nothing here is a setting: the projection and
+          * the sheet tone went into the panel, where the rest of the "how it
+          * is drawn" decisions live, and the two steps of the undo stack came
+          * out of it. It is the same eight seats either way, and the trade is
+          * a thing you touch once a session for two you touch every minute.
+          */}
         <div
           {...(dockVisible ? {} : { inert: '' })}
           // Tighter on a phone, for the same reason the controls in it are:
@@ -1270,23 +1336,34 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.measure} className="w-5 h-5" />
           </button>
+          {/*
+            * Back and forward, on the dock rather than inside the menu.
+            *
+            * Undoing is not a setting you go and find - it is the second half
+            * of every gesture that went wrong, and the whole value of it is
+            * that it costs nothing. Two taps and a flyout in the way is enough
+            * to make a mis-drag something you live with instead, which is a
+            * tool teaching you to be careful rather than to try things.
+            *
+            * Disabled rather than dimmed-but-live at the ends of the stack: a
+            * control that looks spent and still takes the tap is a control
+            * that lies about what it did.
+            */}
           <button
-            onClick={() => {
-              const at = PROJECTION_ORDER.indexOf(perspectiveMode);
-              setPerspectiveMode(PROJECTION_ORDER[(at + 1) % PROJECTION_ORDER.length]);
-            }}
-            aria-label={`Projection: ${perspectiveMode}`}
-            className={`${button} ${ACTIVE}`}
+            onClick={undo}
+            disabled={!canUndo}
+            aria-label="Undo"
+            className={`${button} disabled:opacity-25 disabled:active:scale-100`}
           >
-            <Icon path={PROJECTION_ICON[perspectiveMode]} className="w-5 h-5" />
+            <Icon path={I.undo} className="w-5 h-5" />
           </button>
           <button
-            {...grayThemeControl}
-            aria-label={`Paper tone, ${backgroundGray} of 255 - drag to change`}
-            aria-pressed={sunEnvironment}
-            className={`${button} touch-none ${sunEnvironment ? ACTIVE : ''}`}
+            onClick={redo}
+            disabled={!canRedo}
+            aria-label="Redo"
+            className={`${button} disabled:opacity-25 disabled:active:scale-100`}
           >
-            <Icon path={sunEnvironment ? I.sky : isDark ? I.dark : I.light} className="w-5 h-5" />
+            <Icon path={I.redo} className="w-5 h-5" />
           </button>
           <button
             // With the lights up, Tools means "back to the tools": the two

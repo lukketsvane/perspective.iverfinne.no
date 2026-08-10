@@ -128,7 +128,7 @@ the floor seen from above.
   it, spread to size it, slide to move it. The turn lands on 15° steps whenever
   the snap is on, so 45° — the two-point setup — is hittable by hand
 - **Turn from a keyboard** — `[` and `]`, fifteen degrees a press, shift for one.
-- **Look by turning the phone** — a toggle in the tools row hands the view's
+- **Look by turning the phone** — a toggle in the panel hands the view's
   heading to the phone's own orientation sensors, smoothed, with drag-to-look
   layered on top for the turn your chair will not make. Hold the phone up and
   your body's turn is the camera's, which is the nearest thing to standing
@@ -143,7 +143,7 @@ the floor seen from above.
   open this on
 - **The sun** — three fingers anywhere: across for its bearing, up and down for
   its height
-- **Undo** — ⌘Z / Ctrl-Z; **redo** ⇧⌘Z, or the two arrows in the tools row
+- **Undo** — ⌘Z / Ctrl-Z; **redo** ⇧⌘Z, or the two arrows on the dock
 - **Deselect** — escape, or tap where there is nothing
 - **Delete** — the delete key, or the bin in the selection bar
 
@@ -176,9 +176,10 @@ The timer lives outside both of them, in `lib/rail.ts`, since they are different
 components in different parts of the tree and there is only one idea of "the
 chrome is wanted" between them.
 
-The controls:
+**The dock is the verbs, and only the verbs.** Eight seats:
 
-- **Cube** — the mesh library: a 1 m reference cube, then the objects and figures
+- **Cube** — the mesh library: a lamp, a 1 m reference cube, the way in for your
+  own files, then the objects and figures
 - **Field of view** — drag for any value, tap to step through presets, the last
   of which stands back far enough to see the whole sheet
 - **Horizon** — eye level, from 0.2 m to 12 m
@@ -186,22 +187,33 @@ The controls:
   and the mode stays armed for the next one
 - **Measure** — the pencil at arm's length: drag across the scene for the visual
   angle between two directions, in degrees
-- **Projection** — steps through the three systems (below)
-- **Sun / moon** — tap for light and dark, drag through all 256 greys,
-  double-tap for the procedural sky
-- **Sliders** — everything else: the room's guides, the floor's two rulings, snap,
-  the construction ladder (off, the selection's, everything's), the selection's
-  own vanishing points, the lens reach, view lock, the room (tap to step, drag to
-  size), the surface of everything, the lights, the page behind the drawing, the
-  scene library, undo, redo, and save the view as a PNG
+- **Undo** and **redo** — properly disabled at the ends of the stack rather than
+  dimmed and still live
+- **Sliders** — the panel of everything else, in four bands
 
-The two instruments came **up** into the dock and the scene library went **down**
-into the tools row, which is a straight trade of one slot. The test is how often
-a thing is reached for mid-drawing versus between drawings. Blocking out and
-measuring are the two things you do *while* looking at something you are trying
-to get down; either one behind a menu costs a tap and a re-aim every time the
-mode goes on or off, and both are modes you flip constantly. Loading a saved
-frame is a thing you do once, at the start, and one extra tap for it is nothing.
+The test for a seat is how often a thing is reached for *mid-drawing* rather
+than between drawings. Blocking out and measuring are what you do while looking
+at something you are trying to get down, and both are modes you flip constantly;
+either one behind a menu costs a tap and a re-aim every time it goes on or off.
+Undo is the second half of every gesture that went wrong, and its whole value is
+that it costs nothing — two taps and a flyout in the way is enough to make a
+mis-drag something you live with instead, which is a tool teaching you to be
+careful rather than to try things.
+
+What went the other way is everything that is a *setting*: the projection and
+the sheet tone down into the panel, the scene library with them. You pick a
+projection once and draw for an hour inside it.
+
+**The panel, in four bands**, hairline-separated and hung from one left edge:
+what is drawn on the ground (the guides, the floor's two rulings, snap, the
+construction ladder, the selection's own vanishing points); what the picture is
+made of (the surface, the sheet, the page, the lamps); where it is seen from
+(the projection, the lens reach, the room, view lock, looking by turning the
+phone); and the session (the scene library, save the view as a PNG). Sixteen
+identical circles wrapping into whatever rows the width happened to give was a
+wall rather than a menu — nothing sat near anything it was related to, and which
+row a control landed in changed with the phone. A band is scanned in one
+movement and keeps its company at every width.
 
 The **light** control is the one that changes what it does with the mode. On the
 clay it sweeps the page from black to white, as it always did. In ink it sweeps
@@ -212,8 +224,8 @@ which is exactly where a sheet stops being paper and becomes a board, so drag
 past that point and the drawing turns to chalk on slate on its own. Paper and
 pen are one decision with a constraint on it, and offering them as two controls
 would be offering a way to make the mode useless. What it no longer sweeps is
-the *page behind* the drawing, which is a second control in the tools row and
-has its own section below.
+the *page behind* the drawing, which stands right beside it in the panel and has
+its own section below — two tones, one band, one decision taken twice.
 
 **The dock stays up when something is selected**, with the selection bar stacked
 above it. It used to hide — and three of the things it hides do nothing *except*
@@ -228,10 +240,27 @@ one line at 390 and above; at 320 it still wraps, and wrapping is the right
 failure — a control pushed off the edge of the screen is not a smaller control,
 it is no control. Four pixels off one dimension is a worse target than 44 and a
 better one than nothing. The height does not move, and a thumb is wider than it
-is tall. The two drag readouts stay full width, since dragging is what they are
-for. The selection bar solves the same
-problem the other way — it scrolls sideways, because it is a list of things you
-can do to one object and a list can be as long as it likes.
+is tall. The selection bar solves the same problem the other way — it scrolls
+sideways, because it is a list of things you can do to one object and a list can
+be as long as it likes.
+
+**The glass is 96 % opaque, and there is no blur behind it.** The eight per cent
+it used to let through was chosen when the tool drew mid-grey clay on a mid-grey
+page, where a little of the scene coming through cost nothing. The page is black
+now and the drawing is white paper, which is the widest gap a screen has: eight
+per cent of 255 over a panel that is itself 10 put the car's lines twenty levels
+above the panel around them, and the drawing read *through* the menu on top of
+it. A backdrop-blur is the usual answer and the wrong one here — the thing
+behind every panel is a live WebGL canvas, and a blurred backdrop has the
+compositor resample it every frame, paid on the phone this is actually used on,
+to soften something four per cent of opacity removes for nothing.
+
+Tiles in the two libraries carry a hairline for the same reason. A tenth of
+white over a panel that is 96 % black is about four values of separation, so a
+shelf of them read as icons floating on glass rather than as a grid of targets
+— and the only one whose edges anybody could see was the import tile, which
+happens to have a dashed border. The edge is what makes a tile a tile; the fill
+stays low so the picture on it is the brightest thing in the square.
 
 ### Projections
 
@@ -397,7 +426,7 @@ you place it and faintest out where it would otherwise cross the drawing.
 The control on the dock is one number — how much of the world the sheet holds,
 from a long lens to past a full turn — and the frame decides the shape of it.
 
-How far that number may open is a ladder of its own, in the tools row: **human
+How far that number may open is a ladder of its own, in the panel: **human
 sight** stops the drag at 210°, about what two eyes cover, so the whole throw
 of the control is spent inside what a standing person could actually see;
 **the sphere** is the tool's usual reach, out to where the entire sphere sits
@@ -523,24 +552,23 @@ across the room the metre and the five do the work.
 
 Standing in a real place with the tool in hand, the job is speed: estimate
 the forms in the space around you and stand boxes in for them before the
-estimate fades. Two things carry it.
+estimate fades.
 
-**Drawing boxes.** Pick the pencil up in the tools row and a drag on the
-ground draws a footprint where the table is; release, and the next drag pulls
-its height; release, and the box stands - sized by eye, in two strokes, with
-its dimensions reading beside your finger as you draw and the snap applied
-throughout. The mode stays armed, so a room is blocked out in a run of
-strokes, each box one undo step, each landing selected for the usual handles
-to refine.
+Pick the pencil up on the dock and a drag on the ground draws a footprint
+where the table is; release, and the next drag pulls its height; release, and
+the box stands — sized by eye, in two strokes, with its dimensions reading
+beside your finger as you draw and the snap applied throughout. The mode
+stays armed, so a room is blocked out in a run of strokes, each box one undo
+step, each landing selected for the usual handles to refine.
 
-**The known forms.** The model library carries the dozen numbers a real place
-is actually blocked out of: a seat is 0.45, a bed 0.55, a table 0.75, a
-counter 0.9, a person 1.75, a door 2.1. One tap stands the true-size box at
-the gaze point. Own those numbers and every form in a room can be estimated
-off them - a wardrobe is a door and a bit, a desk is a table - and placing
-them is how they are learned. The tile glyphs are each form's own proportion;
-the number under each is its height, the dimension a standing eye reads
-everything against.
+The library used to carry a block of sized boxes beside it — a seat at 0.45, a
+bed 0.55, a table 0.75, a counter 0.9, a person 1.75, a door 2.1 — one tap
+each for the half-dozen numbers a room is actually estimated off. The numbers
+are worth owning; the tiles were not the way to own them. Six near-identical
+cubes labelled with decimals is a spreadsheet, they pushed the actual objects
+below the fold of a phone-sized sheet, and each one is the pencil plus a guess
+— which is precisely what the pencil is for. Making the estimate is the
+exercise. Being handed it is not.
 
 ### The measure
 
@@ -550,7 +578,7 @@ that gesture actually reads is **visual angle**, the one measure sight has.
 "The car is three of its own heights long" is a statement about angles, and
 taking it by eye is the skill under every other perspective skill.
 
-Pick the divider up in the tools row and a drag on the scene lays a measure:
+Pick the divider up on the dock and a drag on the scene lays a measure:
 two directions from the eye, the angle in degrees written at the line.
 Measures pin to the world, so you can lay several and turn to compare them;
 they go into an exported picture; putting the instrument down clears the sheet
@@ -704,7 +732,7 @@ reaches for is a rung in the way of the next one.
 
 The button on the selection bar steps the one thing you are holding, through the
 rungs its own kind has — a box skips matte, being plain white already, and a
-mesh skips wire, having no cage to fall back on. The button in the tools row
+mesh skips wire, having no cage to fall back on. The button in the panel
 steps the whole scene at once and stamps everything standing in it, in one
 undoable move.
 
@@ -774,7 +802,7 @@ the two meet is the picture's frame rather than an accident of the window.
 So they are two tones now. `backdrop` is either `'paper'`, meaning what it
 always did — the page is the sheet, one colour edge to edge — or a grey from 0
 to 255 that the page takes instead. The sheet keeps `backgroundGray`. The **page
-button** in the tools row taps through *sheet → black → white* and drags for any
+button** in the panel taps through *sheet → black → white* and drags for any
 grey in between, exactly like the light control does for the sheet.
 
 Everything that is *furniture* moved onto the page and everything that is

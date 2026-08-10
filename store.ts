@@ -796,43 +796,6 @@ export const useStore = create<SceneState>((set, get) => ({
 
   // The always-visible cube button is the reliable 1 m ruler: it lands on the
   // grid so a new box shares the scene's vanishing points.
-  /**
-   * Stand a box of a KNOWN size - a door, a table, a person - where the
-   * viewer is looking.
-   *
-   * Blocking out a real place runs on a dozen memorised numbers: doors are
-   * 2.1, tables 0.75, seats 0.45, a standing figure 1.75. An artist who owns
-   * those numbers can estimate every form in a room off them, which is why
-   * they are offered as one-tap blocks rather than left for face-handles to
-   * find: the tap places the estimate, and placing them is how the numbers
-   * are learned.
-   */
-  standForm: (scale, at) =>
-    set((state) => {
-      const id = newId();
-      // Edges on the ruled lines, not centres on cell middles: a two-metre
-      // bed centred on a half-metre stood with both ends mid-cell, half off
-      // every line it should be read against - and off the convention the
-      // drawn boxes snap to. The near corner lands on a whole metre and the
-      // size runs from there.
-      const edge = (v: number, size: number) => Math.round(v - size / 2) + size / 2;
-      return {
-        ...remember(state),
-        boxes: [
-          ...state.boxes,
-          {
-            id,
-            position: [edge(at[0], scale[0]), scale[1] / 2, edge(at[1], scale[2])],
-            scale: [...scale] as [number, number, number],
-            rotation: [0, 0, 0],
-            surface: state.surface,
-          },
-        ],
-        selectedId: id,
-        selectedModelId: null,
-        selectedLampId: null,
-      };
-    }),
 
   /**
    * Start a drawn box: the block-out gesture's first frame.
