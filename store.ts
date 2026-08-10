@@ -1185,8 +1185,6 @@ export const useStore = create<SceneState>((set, get) => ({
 
   cycleGuides: () => set((state) => ({ guides: (((state.guides + 2) % 3) as GuideLevel) })),
 
-  toggleGridX: () => set((state) => ({ gridX: !state.gridX })),
-  toggleGridZ: () => set((state) => ({ gridZ: !state.gridZ })),
 
   /**
    * The floor's two rulings, on one seat.
