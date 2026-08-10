@@ -1176,6 +1176,39 @@ export const useStore = create<SceneState>((set, get) => ({
   toggleGridX: () => set((state) => ({ gridX: !state.gridX })),
   toggleGridZ: () => set((state) => ({ gridZ: !state.gridZ })),
 
+  /**
+   * The floor's two rulings, on one seat.
+   *
+   * They were a switch each, and the reasoning was sound: ruling only the lines
+   * running away from you, or only the ones that cross them, is how a floor is
+   * actually drawn, and the guides LADDER could not say it - a monotone
+   * how-much-construction sequence has one place for the grid and no way to
+   * separate its two halves.
+   *
+   * A cycle of its own says all four. Nothing that argument created is lost -
+   * the states are identical - and what it costs is direct addressability:
+   * flipping one family alone can take up to three taps instead of one. What it
+   * buys is a seat off the widest band in the panel, which is the band that
+   * sets the panel's whole width.
+   *
+   * Ordered none, away, BOTH, across, so that the sequence the original
+   * reasoning describes - lay the receding lines to their point, then cross
+   * them - is two consecutive taps, and the working default is one tap from
+   * nothing.
+   */
+  cycleFloorRuling: () =>
+    set((state) => {
+      const order: [boolean, boolean][] = [
+        [false, false],
+        [false, true],
+        [true, true],
+        [true, false],
+      ];
+      const at = order.findIndex(([x, z]) => x === state.gridX && z === state.gridZ);
+      const [gridX, gridZ] = order[(at + 1) % order.length];
+      return { gridX, gridZ };
+    }),
+
   cycleSnap: () =>
     set((state) => {
       const index = SNAP_STEPS.indexOf(state.snapStep as (typeof SNAP_STEPS)[number]);
