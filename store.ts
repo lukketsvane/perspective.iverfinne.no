@@ -1040,13 +1040,23 @@ export const useStore = create<SceneState>((set, get) => ({
       selectedLampId: state.selectedLampId === id ? null : state.selectedLampId,
     })),
 
-  addModel: (model) =>
+  /**
+   * @param quiet Take no history step of its own.
+   *
+   * For a run of placements that is really one act - dropping twenty files in
+   * at once - where a step per file is both wrong to undo through and, on a
+   * phone, the thing that runs it out of memory: a source stays parsed while
+   * ANY history entry still names it, so twenty steps pin twenty meshes for
+   * twenty-five actions afterwards, whether or not they are still in the scene.
+   * The importer takes one step before the loop instead. See App.tsx.
+   */
+  addModel: (model, quiet) =>
     set((state) => {
       // Select what was just placed: the next thing anyone does to a new figure
       // is size it or move it, and both need it selected.
       const placed = { id: newId(), surface: state.surface, ...model };
       return {
-        ...remember(state),
+        ...(quiet ? {} : remember(state)),
         models: [...state.models, placed],
         selectedModelId: placed.id,
         selectedId: null,

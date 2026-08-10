@@ -818,7 +818,7 @@ export interface SceneState {
   forgetMesh: (url: string) => Promise<void>;
   /** Step through free, 5 cm, 25 cm, 1 m. */
   cycleSnap: () => void;
-  addModel: (model: Omit<SceneModel, 'id'>) => void;
+  addModel: (model: Omit<SceneModel, 'id'>, quiet?: boolean) => void;
   removeModel: (id: string) => void;
   selectModel: (id: string | null) => void;
   updateModel: (id: string, updates: Partial<Omit<SceneModel, 'id'>>) => void;
