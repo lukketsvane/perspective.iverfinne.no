@@ -7,7 +7,8 @@ import { Measures } from './components/Measures';
 import { MeshSheet } from './components/MeshSheet';
 import { SceneSheet } from './components/SceneSheet';
 import { useStore, saveSettings, currentView, standingRoom } from './store';
-import { loadModelFile, loadModelFromUrl, findFreeSpot, modelRadius } from './lib/loadModel';
+import { loadModelFile, loadModelFromUrl, modelRadius } from './lib/loadModel';
+import { findFreeSpot, onTheFloor } from './lib/placement';
 import { MESH_LIBRARY, openingMesh } from './lib/meshLibrary';
 import { focusPoint } from './lib/focus';
 import { walkInput } from './lib/walkInput';
@@ -355,10 +356,15 @@ export default function App() {
   }, []);
 
 
-  /** Stand a new mesh clear of everything already placed, near the gaze point. */
+  /**
+   * Stand a new mesh clear of everything already placed, near the gaze point.
+   *
+   * Everything, now: this asked only about the other meshes, so a chair set
+   * down where a blocked-in box already stood went straight through it.
+   */
   const place = (model: Omit<SceneModel, 'id'>) => {
     const [x, z] = findFreeSpot(
-      useStore.getState().models.map((other) => ({ position: other.position, radius: modelRadius(other) })),
+      onTheFloor(useStore.getState()),
       [focusPoint.x, focusPoint.z],
       modelRadius(model)
     );
