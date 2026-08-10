@@ -24,18 +24,23 @@ different depths, a barrel that is a foreshortened cylinder from every angle
 worth drawing, a neck that turns the whole mass. Kim Jung Gi drew them
 constantly for exactly that reason.
 
-Three of them, because one horse is a shape and three are a lesson. Standing,
-the foal is the plain case: the barrel and the four supports. Jumping, the same
-animal is nearly horizontal with its legs gathered, so the barrel is seen end-on
-and the perspective does all the work. Rearing, it is vertical and the
-foreshortening runs the other way entirely. One form, three times, with nothing
-changed but its relation to the ground plane. The platypus is not a joke: it is
-the one thing on the shelf with no straight lines and no symmetry to lean on, a
-soft closed form of the kind that has to be drawn by its contour and its
-cross-contour or not at all — which is precisely what the drawn surfaces are
-built to show. They stand at the real animals' heights: 1.05 m at a foal's
-withers, 2.2 m gathered over a fence, 2.6 m up on the hind legs, 0.95 m of
-platypus.
+Three of them, because one horse is a shape and three are a lesson — and each is
+named for the pose it is actually in rather than the pose that would round the
+set off. Lying, the foal is folded down on itself and the whole barrel is read
+across the back. Leaping, the same animal is off the ground with its forelegs
+up, so the near foreleg comes almost straight at the eye and the perspective
+does all the work. Rising, the adult horse has its hind end still down and its
+neck already vertical, turning the spine through nearly a right angle inside one
+form: the deepest foreshortening on the shelf, and the reason it is here. The
+platypus is not a joke — it is the one thing here with no straight lines and no
+symmetry to lean on, a soft closed form of the kind that has to be drawn by its
+contour and its cross-contour or not at all, which is precisely what the drawn
+surfaces are built to show.
+
+They stand at 0.9, 1.35, 1.9 and 0.95 metres, which is the animal *in that pose*
+measured to the top of its head, not the standing height of the species. A
+couched foal is not as tall as a standing one, and telling the grid it was would
+put a wrong number under every measurement taken against it.
 
 Then three **studies**, reconstructed from Kim Jung Gi pages. Each is a single
 sculpted mesh — fifteen figures, the furniture they are on, the animals among
