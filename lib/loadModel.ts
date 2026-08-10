@@ -191,7 +191,14 @@ const parseBuffer = async (buffer: ArrayBuffer, isUsdz: boolean): Promise<Parsed
     if (usdz) {
       const group = new usdz.USDZLoader().parse(buffer);
       // A binary crate archive parses to an empty group.
-      if (group.children.length > 0) return { object: group, isUsdz };
+      if (group.children.length > 0) {
+        // Capped here too. This branch went uncapped, which meant the one
+        // format most likely to arrive off a phone - a usdz out of an AR
+        // capture, maps and all - was the one format that uploaded its maps at
+        // whatever size they were authored at.
+        shrinkTextures(group);
+        return { object: group, isUsdz };
+      }
       return { object: null, warning: 'binary USDZ — use glTF/GLB', isUsdz };
     }
     const gltf = await new GLTFLoader().parseAsync(buffer, '');

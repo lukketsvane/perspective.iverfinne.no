@@ -6,7 +6,7 @@ import { holdRail, releaseRail, showRail, useRail } from '../lib/rail';
 import { SelectionBar } from './SelectionBar';
 import { LightPanel } from './LightPanel';
 import { MaterialPanel } from './MaterialPanel';
-import { Icon, I, SURFACE_ICON } from './icons';
+import { Icon, I, SETTINGS_ICON, SURFACE_ICON } from './icons';
 import { Scrub, useBackdropControl, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
 // One import rather than a static one for the capability check and a dynamic
@@ -20,7 +20,7 @@ import { directionAt, pickGround, pickObject, pixelsPerMetreAt } from '../lib/pi
 import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
 import { MAX_FIELD, wholeSheetField } from '../lib/projection';
-import { SNAP_STEPS, selectionSurface, surfaceHasSettings, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
+import { SNAP_STEPS, selectionSurface, surfaceHasSettings, surfaceSettingsLabel, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
 
 /**
  * The systems the button steps through: bowed horizontals, then the ruled
@@ -383,6 +383,10 @@ export const WalkOverlay: React.FC<{
   // panel that changes or empties as it leaves.
   const lastMaterialSurface = useRef<Surface>('hatch');
   if (materialSurface) lastMaterialSurface.current = materialSurface;
+  // Where it was opened from, held through the fade for the same reason: on the
+  // way out the panel should go on showing whose settings it was showing.
+  const lastMaterialFrom = useRef<'scene' | 'selection'>('scene');
+  if (materialFrom) lastMaterialFrom.current = materialFrom;
   const cycleSurface = useStore((s) => s.cycleSurface);
   const shufflePreset = useStore((s) => s.shufflePreset);
   const roomLevel = useStore((s) => s.roomLevel);
@@ -1410,11 +1414,11 @@ export const WalkOverlay: React.FC<{
           {surfaceHasSettings(sceneSurface) && (
             <button
               onClick={() => { setShowTools(false); setShowLights(false); setMaterialFrom('scene'); onShelfAway(); }}
-              aria-label={sceneSurface === 'hatch' ? 'How the hatching is ruled' : "The marker's own settings"}
+              aria-label={surfaceSettingsLabel(sceneSurface)}
               aria-expanded={materialFrom === 'scene'}
               className={button}
             >
-              <Icon path={sceneSurface === 'hatch' ? I.hatchAngle : I.hue} className="w-5 h-5" />
+              <Icon path={SETTINGS_ICON[sceneSurface]} className="w-5 h-5" />
             </button>
           )}
           <button
@@ -1605,7 +1609,10 @@ export const WalkOverlay: React.FC<{
             {/* The rung it was opened for, held through the closing fade: read
                 live it would swap knobs on the way out, and `null` would empty
                 the panel before it had finished leaving. */}
-            <MaterialPanel surface={materialSurface ?? lastMaterialSurface.current} />
+            <MaterialPanel
+              surface={materialSurface ?? lastMaterialSurface.current}
+              from={materialFrom ?? lastMaterialFrom.current}
+            />
           </div>
         </div>
 

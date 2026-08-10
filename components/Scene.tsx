@@ -613,7 +613,24 @@ export const Scene = () => {
     <Canvas
       // Start standing at eye level, a few metres back, looking level.
       camera={{ position: initialCameraPosition(), fov: 60, near: 0.05, far: 2000 }}
-      dpr={[1, 1.5]}
+      /*
+        * TWO, NOT ONE AND A HALF.
+        *
+        * This is the resolution the finished picture is composited at, and on
+        * a phone it was the thing throwing the drawing away: an iPhone reports
+        * three device pixels per CSS pixel and the panorama's own flat source
+        * is already rendered at up to 2.5 of them - deliberately, so the sheet
+        * is supersampled rather than magnified - and then all of it landed on a
+        * 1.5 canvas. A page made of hairlines is the worst possible thing to
+        * resample down: the contour is under a pixel wide to begin with.
+        *
+        * Two rather than three because the cost is the square: three would be
+        * four times the fill of what was here, and this draws a full shadow
+        * pass over it. The cube pass is held at its old budget explicitly - see
+        * Panorama.tsx - so the six-faced path costs exactly what it did and
+        * only the picture you actually look at got sharper.
+        */
+      dpr={[1, 2]}
       // preserveDrawingBuffer keeps the last frame readable so the view can be
       // saved as a PNG at any time.
       gl={{

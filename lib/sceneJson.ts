@@ -55,6 +55,7 @@ export const toSceneFile = (
     baseScale: m.baseScale,
     size: [...m.size] as [number, number, number],
     surface: m.surface,
+    material: m.material,
     kind: m.kind,
     lockedScale: m.lockedScale,
   })),
@@ -153,6 +154,7 @@ export const readSceneFile = async (file: File): Promise<ImportedScene> => {
         baseScale: record.baseScale ?? record.scale,
         size: [...record.size] as [number, number, number],
         surface: record.surface === undefined ? undefined : readSurface(record.surface),
+        material: record.material,
         kind: record.kind,
         lockedScale: record.lockedScale,
       });

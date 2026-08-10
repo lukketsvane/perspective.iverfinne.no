@@ -3,10 +3,10 @@ import { useStore } from '../store';
 import { Icon, I } from './icons';
 import { bubble, chrome, readout, SIDEWAYS_SLOT, snugIconButton } from './ui';
 import { exportScaledModel } from '../lib/exportModel';
-import { SURFACE_ICON } from './icons';
+import { SETTINGS_ICON, SURFACE_ICON } from './icons';
 import { useRail } from '../lib/rail';
 import { selectionRange } from '../lib/focus';
-import { selectionSurface, surfaceHasSettings } from '../types';
+import { selectionSurface, surfaceHasSettings, surfaceSettingsLabel } from '../types';
 import type { LampData } from '../types';
 
 /** Everything sizes to the centimetre. Below that is not a drawing decision. */
@@ -543,11 +543,11 @@ export const SelectionBar: React.FC<{
         {onMaterial && surfaceHasSettings(surface) && (
           <button
             onClick={onMaterial}
-            aria-label={surface === 'hatch' ? 'How the hatching is ruled' : "The marker's own settings"}
+            aria-label={surfaceSettingsLabel(surface)}
             aria-expanded={materialOpen}
             className={`${button} ${materialOpen ? (isDark ? 'bg-white/10' : 'bg-black/10') : ''}`}
           >
-            <Icon path={surface === 'hatch' ? I.hatchAngle : I.hue} className="w-5 h-5" />
+            <Icon path={SETTINGS_ICON[surface]} className="w-5 h-5" />
           </button>
         )}
         {model?.object && (

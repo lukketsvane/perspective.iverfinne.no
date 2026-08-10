@@ -3,7 +3,8 @@ import * as THREE from 'three';
 import { useStore } from '../store';
 import { isSketch, MESH_SURFACES, nearestSurface, SceneModel } from '../types';
 import { authoredMaterial } from '../lib/modelMaterials';
-import { BRUSH, constructionInk, HATCH, MARKER } from '../lib/inkMaterial';
+import { constructionInk } from '../lib/inkMaterial';
+import { useObjectMaterial } from '../lib/ownMaterial';
 import { Line } from '@react-three/drei';
 import { BOX_EDGES, usePen } from '../lib/pen';
 
@@ -66,6 +67,13 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
    * Swap materials in place, keeping each mesh's own on the side so the switch
    * goes both ways without reloading the file.
    */
+  /*
+   * Its own material if it has settings of its own, the shared one for its rung
+   * if not. See lib/ownMaterial.ts - the whole difference between setting the
+   * hatch on this figure and setting it on every figure in the scene.
+   */
+  const drawn = useObjectMaterial(surface, model.material, false);
+
   useEffect(() => {
     const object = model.object;
     if (!object) return;
@@ -92,14 +100,9 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       // Read the authored materials before swapping, so the first swap is what
       // records them rather than what loses them.
       const own = authoredMaterial(mesh);
-      mesh.material =
-        surface === 'matte' ? MATTE
-          : surface === 'brush' ? BRUSH
-          : surface === 'marker' ? MARKER
-          : surface === 'hatch' ? HATCH
-          : own;
+      mesh.material = surface === 'matte' ? MATTE : (drawn ?? own);
     });
-  }, [surface, hardShadows, model.object]);
+  }, [surface, hardShadows, model.object, drawn]);
 
   if (!model.object) return null;
 
