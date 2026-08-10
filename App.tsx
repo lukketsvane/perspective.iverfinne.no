@@ -362,13 +362,13 @@ export default function App() {
    * Everything, now: this asked only about the other meshes, so a chair set
    * down where a blocked-in box already stood went straight through it.
    */
-  const place = (model: Omit<SceneModel, 'id'>) => {
+  const place = (model: Omit<SceneModel, 'id'>, quiet?: boolean) => {
     const [x, z] = findFreeSpot(
       onTheFloor(useStore.getState()),
       [focusPoint.x, focusPoint.z],
       modelRadius(model)
     );
-    addModel({ ...model, position: [x, 0, z] });
+    addModel({ ...model, position: [x, 0, z] }, quiet);
   };
 
   /**
@@ -425,10 +425,22 @@ export default function App() {
    */
   const importModels = (files: FileList) =>
     whileLoading('import', async () => {
+      /*
+       * ONE STEP BACK FOR THE WHOLE DROP, taken before any of it lands.
+       *
+       * Twenty files used to be twenty steps, which is wrong twice over. To
+       * undo a drop you had to press it twenty times. And a parsed mesh is
+       * held in memory while ANY history entry still names its file - that is
+       * what makes undo able to bring it back - so twenty steps pinned twenty
+       * meshes for the twenty-five actions afterwards, in the scene or not.
+       * Dropping a folder of figures on a phone spends its memory on the
+       * history of the drop rather than on the drop.
+       */
+      useStore.getState().beginChange();
       for (const file of Array.from(files)) {
         const { model } = await loadModelFile(file, [focusPoint.x, focusPoint.z]);
         if (!model.previewSupported) continue;
-        place(model);
+        place(model, true);
         await rememberMesh(model.fileUrl, model.name);
       }
     });

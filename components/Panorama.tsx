@@ -249,7 +249,11 @@ export const Panorama: React.FC<{
         // pixel ratio to keep sixty frames a second, and the source is what
         // decides whether the picture is magnified or supersampled.
         flat: Math.min(typeof window === 'undefined' ? 2 : window.devicePixelRatio || 1, 2.5) * SHARPEN,
-        cube: Math.min(viewport.dpr, 2),
+        // Held at 1.5 rather than following the canvas. This is six faces, so
+        // its cost is the one that matters, and 1.5 is what it was already
+        // getting when the canvas was capped there - raising the canvas to
+        // sharpen the picture should not quietly multiply this by six.
+        cube: Math.min(viewport.dpr, 1.5),
       }),
     [mode, spread, size.width, size.height, viewport.dpr]
   );

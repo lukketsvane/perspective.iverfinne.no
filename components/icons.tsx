@@ -84,6 +84,13 @@ export const I = {
    */
   hue: (<><circle cx="12" cy="12" r="8.6" /><path d="M12 3.4a8.6 8.6 0 0 1 7.4 12.9z" fill="currentColor" fillOpacity="0.5" stroke="none" /><circle cx="12" cy="12" r="3" strokeOpacity="0.6" /></>),
   wash: (<><path d="M12 3.2c3.4 4.2 5.4 7 5.4 9.4a5.4 5.4 0 0 1-10.8 0c0-2.4 2-5.2 5.4-9.4z" /><path d="M7.1 14.4a5.4 5.4 0 0 0 9.8 0z" fill="currentColor" fillOpacity="0.55" stroke="none" /></>),
+  /* The pen's own three: the edge of a form, the lines inside it, and the
+     boundary the light stops at. All drawn as the same closed shape so the
+     band reads as one instrument set at three weights. */
+  outline: (<><path d="M12 3.6c4.6 0 7.4 3.6 7.4 8.4s-2.8 8.4-7.4 8.4S4.6 16.8 4.6 12 7.4 3.6 12 3.6z" strokeWidth="2.6" /></>),
+  formLines: (<><path d="M12 3.6c4.6 0 7.4 3.6 7.4 8.4s-2.8 8.4-7.4 8.4S4.6 16.8 4.6 12 7.4 3.6 12 3.6z" strokeOpacity="0.4" /><path d="M9.2 5.1c2 3.9 2 9.9 0 13.8" strokeOpacity="0.85" /><path d="M14.8 5.1c2 3.9 2 9.9 0 13.8" strokeOpacity="0.85" /></>),
+  terminator: (<><path d="M12 3.6c4.6 0 7.4 3.6 7.4 8.4s-2.8 8.4-7.4 8.4S4.6 16.8 4.6 12 7.4 3.6 12 3.6z" strokeOpacity="0.4" /><path d="M13.6 4.1c2.3 4 2.3 11.8 0 15.8" strokeWidth="2.2" /><path d="M16.4 6.4c1.6 3.2 1.6 8 0 11.2" strokeOpacity="0.3" /></>),
+
   hatchAngle: (<><path d="M4.5 19 12 5M9 19l7.5-14M13.5 19 21 5" /><path d="M3 21h18" strokeOpacity="0.35" /></>),
   hatchCross: (<><path d="M4.5 18.5 13 4M8 20 16.5 5.5" strokeOpacity="0.9" /><path d="M4 8.5 19 15M4.8 12.4 19.8 19" strokeOpacity="0.55" /></>),
   hatchSpacing: (<><path d="M5 4.5v15M12 4.5v15M19 4.5v15" /><path d="M6.6 12h3.8M13.6 12h3.8" strokeOpacity="0.45" /></>),
@@ -242,4 +249,19 @@ export const SURFACE_ICON: Record<Surface, React.ReactNode> = {
   brush: I.brush,
   marker: I.marker,
   hatch: I.hatch,
+};
+
+/**
+ * What the button that opens a drawn page's knobs wears.
+ *
+ * Not the rung's own mark, which is already on the button beside it and would
+ * make a pair of identical icons that do different things. Each is the first
+ * thing that page's panel offers: the hatch's angle, the marker's hue, and for
+ * brush the pen itself - which is all a brush page has, and all the other two
+ * have above what they lay under it.
+ */
+export const SETTINGS_ICON: Record<'brush' | 'marker' | 'hatch', React.ReactNode> = {
+  brush: I.outline,
+  marker: I.hue,
+  hatch: I.hatchAngle,
 };

@@ -9,6 +9,13 @@ export interface BoxData {
   name?: string;
   /** How solidly it is drawn. Absent means whatever the scene's default is. */
   surface?: Surface;
+  /**
+   * How the drawing of it is ruled, if it has been set apart from the page's.
+   * Absent - and it is absent for everything until a knob is turned on it - is
+   * "drawn with the page's own", which is what keeps a scene of forty boxes on
+   * one material rather than forty.
+   */
+  material?: MaterialSettings;
 }
 
 export type ThemeMode = 'light' | 'dark';
@@ -126,9 +133,57 @@ export const selectionSurface = (state: {
   return null;
 };
 
-/** Whether a rung has anything to set - the two that are a family, not a look. */
-export const surfaceHasSettings = (surface: Surface | null): surface is 'marker' | 'hatch' =>
-  surface === 'marker' || surface === 'hatch';
+/**
+ * The settings the thing in your hand has of its own, if it has any.
+ *
+ * Beside `selectionSurface` and asked the same way, for the same reason: the
+ * panel reads it to know what to show, and the store writes through it to know
+ * what to change. Undefined is not "nothing" but "drawn with the page's", which
+ * is what everything is until a knob is turned on it.
+ */
+export const selectionMaterial = (state: {
+  boxes: BoxData[];
+  models: SceneModel[];
+  selectedId: string | null;
+  selectedModelId: string | null;
+}): MaterialSettings | undefined =>
+  (state.selectedModelId
+    ? state.models.find((m) => m.id === state.selectedModelId)
+    : state.selectedId
+      ? state.boxes.find((b) => b.id === state.selectedId)
+      : undefined
+  )?.material;
+
+/**
+ * Whether a rung has anything to set.
+ *
+ * All three of the drawn ones now. It was the two that are a family rather than
+ * a look - the marker's colour, the hatch's rule - and brush was left out
+ * because it had nothing of its own to offer. It has the pen, which it shares
+ * with the other two and which nobody could reach at all before; a page whose
+ * outline you cannot set is a page missing its most important mark.
+ *
+ * The two solid rungs still have nothing: 'original' is whatever the file says
+ * and 'matte' is that with the texture taken off, and neither is drawn.
+ */
+export const surfaceHasSettings = (
+  surface: Surface | null
+): surface is 'brush' | 'marker' | 'hatch' => surface !== null && isSketch(surface);
+
+/**
+ * What the button that opens them should say it opens.
+ *
+ * In one place because two buttons ask it - the tools band of the whole page,
+ * the selection bar of the thing in your hand - and a label that disagreed
+ * between them would be two names for one panel. Each names what that page has
+ * on top of the pen, and brush has only the pen.
+ */
+export const surfaceSettingsLabel = (surface: 'brush' | 'marker' | 'hatch') =>
+  surface === 'hatch'
+    ? 'How the hatching is ruled'
+    : surface === 'marker'
+      ? "The marker's own settings"
+      : 'The pen this page is drawn with';
 
 /**
  * A surface read back from something written earlier.
@@ -344,6 +399,8 @@ export interface SceneModel {
   previewSupported: boolean;
   /** How solidly it is drawn. Absent means whatever the scene's default is. */
   surface?: Surface;
+  /** How that drawing is ruled, if it has been set apart from the page's. */
+  material?: MaterialSettings;
   /**
    * A room rather than an object.
    *
@@ -460,6 +517,58 @@ export interface MarkerState {
   high: number;
 }
 
+/**
+ * The pen, which every drawn page holds in the same hand.
+ *
+ * The three drawn rungs differ only in what is laid UNDER the line - a fill of
+ * spotted blacks, a flat marker stain, a rank of ruled strokes - and the line
+ * itself is one shader and one set of numbers across all three. So these are
+ * the page's pen rather than the hatch's or the marker's, and changing them on
+ * an etched page changes the brush page too. That is not a leak: it is one
+ * hand, and a drawing made with two pens is two drawings.
+ *
+ * They were fixed constants, which meant the one mark that carries a drawing -
+ * the outline - was the one thing about it nobody could set.
+ */
+export interface PenState {
+  /**
+   * Sheet pixels of the contour: the silhouette, and every interior edge the
+   * form rolls over. Zero lifts it entirely, which on an etched page is the
+   * tonal engraving that has no outline at all.
+   */
+  outline: number;
+  /** How many value contours between edge-on and face-on. Zero is none. */
+  formCount: number;
+  /** How dark those are, against the outline's full weight. */
+  formStrength: number;
+  /**
+   * How strongly the terminator is drawn - the line where the light leaves.
+   *
+   * The one mark that says which way the light comes from, and the one worth
+   * being able to lift when the hatching is already saying it.
+   */
+  terminator: number;
+}
+
+/**
+ * One object's own material, whole.
+ *
+ * A snapshot rather than a patch: the moment you turn a knob with something in
+ * your hand, the page's current settings are copied onto it and from then on it
+ * is drawn with its own. That is the same shape `surface` already has - a rung,
+ * not a nudge to the page's rung - and it is the one that can be read without
+ * knowing what the page happened to be when you set it.
+ *
+ * All three regardless of which rung the thing is on, because the rung is a
+ * thing you step through: a box moved from hatch to marker should find the
+ * marker settings it had last time rather than the page's.
+ */
+export interface MaterialSettings {
+  pen: PenState;
+  marker: MarkerState;
+  hatch: HatchState;
+}
+
 export interface HatchState {
   /** Which way the first layer runs, in degrees. */
   angle: number;
@@ -490,6 +599,8 @@ export interface SceneInstance {
   baseScale: number;
   size: [number, number, number];
   surface?: Surface;
+  /** Its own material, if it was drawn with one rather than the page's. */
+  material?: MaterialSettings;
   kind?: 'object' | 'scene';
   lockedScale?: boolean;
 }
@@ -629,6 +740,8 @@ export interface SceneState {
   marker: MarkerState;
   /** How the etched page is ruled. */
   hatch: HatchState;
+  /** The pen every drawn page is drawn with. */
+  pen: PenState;
   /** Freeze the walk camera so a framed view stops moving. */
   viewLocked: boolean;
   /** Scenes to step back through. Newest last. */
@@ -684,6 +797,15 @@ export interface SceneState {
   shufflePreset: () => void;
   setMarker: (marker: Partial<MarkerState>) => void;
   setHatch: (hatch: Partial<HatchState>) => void;
+  setPen: (pen: Partial<PenState>) => void;
+  /** The same three, aimed at the selection: it takes a copy and keeps it. */
+  setSelectionMaterial: (patch: {
+    pen?: Partial<PenState>;
+    marker?: Partial<MarkerState>;
+    hatch?: Partial<HatchState>;
+  }) => void;
+  /** Give the selection back to the page's own settings. */
+  followPageMaterial: () => void;
   cycleRoom: () => void;
   /** Change the floor's two axes, or the ceiling. Clamped to what a room can be. */
   setRoom: (room: Partial<RoomSize>) => void;
@@ -696,7 +818,7 @@ export interface SceneState {
   forgetMesh: (url: string) => Promise<void>;
   /** Step through free, 5 cm, 25 cm, 1 m. */
   cycleSnap: () => void;
-  addModel: (model: Omit<SceneModel, 'id'>) => void;
+  addModel: (model: Omit<SceneModel, 'id'>, quiet?: boolean) => void;
   removeModel: (id: string) => void;
   selectModel: (id: string | null) => void;
   updateModel: (id: string, updates: Partial<Omit<SceneModel, 'id'>>) => void;

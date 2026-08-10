@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import { BOX_SURFACES, BoxData, isSketch, nearestSurface } from '../types';
 import { useStore } from '../store';
 import { faceIsReachable, faceOutward } from '../lib/manipulate';
-import { BRUSH_BOX, constructionInk, HATCH_BOX, inkHex, MARKER_BOX, paperHex } from '../lib/inkMaterial';
+import { constructionInk, inkHex, paperHex } from '../lib/inkMaterial';
+import { useObjectMaterial } from '../lib/ownMaterial';
 import { pixelsPerMetreAt } from '../lib/pick';
 import { BOX_EDGES, usePen } from '../lib/pen';
 
@@ -142,7 +143,11 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
    */
   const inked = isSketch(surface);
   /** Which of the three drawn pages this box is on. */
-  const sketchBox = surface === 'marker' ? MARKER_BOX : surface === 'hatch' ? HATCH_BOX : BRUSH_BOX;
+  /*
+   * Which of the three drawn pages this box is on - and whether it is drawn
+   * with the page's own pen or with one of its own. See lib/ownMaterial.ts.
+   */
+  const sketchBox = useObjectMaterial(surface, data.material, true);
 
   // Black boxes on a black ground: the edges and the sun do the describing.
   // In ink the page decides both, in both themes.
