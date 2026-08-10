@@ -254,19 +254,18 @@ const FRAGMENT = `
   }
 
   /**
-   * One layer of hatching, CUT AGAINST THE FORM.
+   * One stroke family, CUT AGAINST THE FORM.
    *
    * This is the whole difference between a hatching material and a hatching
    * filter, so it is worth being exact about.
    *
    * A filter rules strokes on the screen. It cannot describe anything: the
    * lines run dead straight over a sphere, a cliff and a fold alike, and the
-   * only thing they carry is a value. What an etcher actually does is lay
-   * strokes ALONG the form, so the strokes themselves say which way the
-   * surface is turning - they bend over a shoulder, run round a cylinder,
-   * crowd where the surface swings away and open out where it faces you. You
-   * can read the form off the line direction alone, with every trace of tone
-   * removed. That is the thing being simulated here.
+   * only thing they carry is a value. Look at any Zorn plate and the opposite
+   * is true - you can read the whole form off the line DIRECTION with every
+   * trace of tone removed. The strokes bend over a shoulder, run round a
+   * cylinder, crowd where the surface swings away and open out where it turns
+   * to face you.
    *
    * The mechanism is a burin's: a family of parallel PLANES in the world, cut
    * against the surface. The curve where a plane meets the object is one
@@ -280,49 +279,124 @@ const FRAGMENT = `
    *     foreshortening, drawn, and it is what makes the shading describe
    *     rather than merely darken.
    *
-   * The first argument is the signed distance along the planes shared normal,
-   * in metres; the third is how far apart they stand. Both come from the
-   * caller, which is where the level of detail is decided. (No back quotes
-   * anywhere below: this whole shader is one JS template literal and a single
-   * one of them ends it in the middle of a comment.)
-   *
-   * The stroke is then cut to length along the plane and tapered at both
-   * ends, because a needle enters and leaves the wax and an unbroken rule
-   * reads as a wire fence. The run is a multiple of the spacing rather than a
-   * length of its own, which is what keeps a passage looking like one hand at
-   * every distance.
+   * (No back quotes anywhere below: this whole shader is one JS template
+   * literal and a single one of them ends it in the middle of a comment.)
    */
-  float hatchCut(float f, float along, float step, float widthSourcePx, float runRatio) {
-    float line = ruledMark(f / step, widthSourcePx, 0.0);
+
+  /**
+   * A stroke of a given WIDTH, with a solid core.
+   *
+   * Not ruledMark, which ramps smoothly from the centre out and so is only
+   * fully black on the line's axis - perfect for a hairline and useless for a
+   * cut that is meant to widen until it touches its neighbour. Asked for six
+   * pixels it gave a soft six-pixel gradient whose middle was grey, which is
+   * why the darkest passages stayed a lattice however far the weight was
+   * pushed. Here the width is the width: solid out to half of it, with about a
+   * pixel of edge on either side to keep a hairline from crawling.
+   */
+  float hatchMark(float value, float widthSourcePx) {
+    float slope = max(fwidth(value), 1e-7);
+    float away = abs(fract(value - 0.5) - 0.5) / slope;
+    // Not "half": that is a reserved word in GLSL and the whole fragment
+    // shader silently refuses to compile if you use it as a name.
+    float arm = max(widthSourcePx * 0.5, 0.15);
+    return 1.0 - smoothstep(arm - 0.55, arm + 0.55, away);
+  }
+
+  /**
+   * One stroke, weighted.
+   *
+   * TONE IS WEIGHT, NOT OPACITY. A burin cut deeper is a cut wider, and that
+   * is the whole of how an engraved passage gets darker: the same lines, in
+   * the same places, fatter - until at the bottom they touch and the passage
+   * is solid. Nothing here fades. A stroke is either not yet cut (width zero,
+   * so genuinely absent) or it is a line at some weight, and the ramp from one
+   * to the other is a ramp in width. Fading the ink instead is what makes
+   * shading read as a screen laid over a picture rather than as the picture.
+   *
+   * Two grains of randomness per stroke, keyed on which stroke it is so they
+   * are steady as you walk: a little weight either side of the asked-for
+   * width, and a shove along its own run so the ends do not line up. Ends in a
+   * row is the single loudest tell that a machine drew it - a hand starts each
+   * stroke where the last one happened to leave off.
+   */
+  float hatchStroke(
+    float f, float along, float step, float widthSourcePx, float runRatio, float closed
+  ) {
+    if (widthSourcePx < 0.008) return 0.0;
+    float v = f / step;
+    /*
+     * The grain is keyed to WHERE THE STROKE IS, not to its index in this
+     * spacing.
+     *
+     * The two levels of detail below share every other line, and keying the
+     * randomness on the index gave the same physical stroke a different weight
+     * and a different phase in each - so the two drawings of it beat against
+     * each other and scattered pale blotches through every midtone. A line's
+     * offset in metres is the same number whichever rung is drawing it.
+     */
+    float key = floor(v + 0.5) * step;
+    /*
+     * ...counted in a fixed grid, so the hash actually hashes.
+     *
+     * Keyed on the offset in metres directly, neighbouring strokes differ by a
+     * hundredth and sin() of two inputs that close together returns two nearly
+     * equal numbers - so the "random" phase drifted smoothly along the rank
+     * instead of scattering, every few strokes lifted in the same place, and
+     * the coincidence read as pale blotches marching diagonally through the
+     * midtones. Counted in five-millimetre units the neighbours differ by two
+     * or more and the hash decorrelates, while the same physical stroke still
+     * gets the same number at either level of detail.
+     */
+    float id = floor(key / 0.005 + 0.5);
+    float grainA = fract(sin(id * 12.9898) * 43758.5453);
+    float grainB = fract(sin(id * 78.233) * 24634.6345);
+    float line = hatchMark(v, widthSourcePx * (0.78 + 0.44 * grainB));
     if (runRatio > 0.01) {
-      float t = fract(along / (step * runRatio));
-      line *= smoothstep(0.0, 0.14, t) * (1.0 - smoothstep(0.62, 0.80, t));
+      float t = fract(along / (step * runRatio) + grainA);
+      /*
+       * A long stroke with a short lift, tapered at both ends: a needle enters
+       * and leaves the wax. Not a dash - a dashed rule reads as stitching.
+       *
+       * The lift closes as the passage darkens. An engraver's black is
+       * continuous cutting; leaving the gaps in it puts a white speck at the
+       * end of every stroke, and a field of those specks IS the lattice look
+       * that says a machine ruled it.
+       */
+      float lift = mix(1.0, 0.0, closed);
+      line *= mix(1.0, smoothstep(0.0, 0.06, t) * (1.0 - smoothstep(0.94, 1.0, t)), lift);
     }
     return line;
   }
 
   /**
-   * The same, held to one weight on the page however far away the object is.
+   * The family, held to one spacing on the page however far away it is.
    *
-   * Planes at a fixed spacing in metres would close into solid black as an
-   * object recedes, which is what makes naive world-space hatching unusable.
-   * An engraver answers that by cutting FEWER lines on the small far thing and
+   * Planes at a fixed spacing in metres close into solid black as an object
+   * recedes, which is what makes naive world-space hatching unusable. An
+   * engraver answers that by cutting FEWER lines on the small far thing and
    * more on the big near one - the same decision taken again at every scale -
-   * so the spacing is quantised to powers of two of the distance and two
-   * neighbouring rungs are crossfaded. Every second line simply fades in as
-   * the surface comes closer, and no stroke ever slides.
+   * so the spacing is quantised to powers of two of the distance and the two
+   * neighbouring rungs are blended. The blend is in WIDTH, like everything
+   * else here: the line between each pair grows in from nothing as you walk
+   * closer, so no stroke ever appears, slides, or pops.
    */
-  float hatchAt(
-    float f, float along, float wantMetres, float widthSourcePx, float runRatio
+  float hatchFamily(
+    vec3 P, vec3 su, vec3 sr, float angle,
+    float wantMetres, float widthSourcePx, float runRatio, float closed
   ) {
+    vec3 axis = su * cos(angle) + sr * sin(angle);
+    vec3 perp = su * -sin(angle) + sr * cos(angle);
+    float f = dot(P, axis);
+    float along = dot(P, perp);
+
     float lod = log2(max(wantMetres, 1e-5) / 0.01);
     float rung = floor(lod);
     float coarse = 0.01 * exp2(rung + 1.0);
-    float fine = coarse * 0.5;
     float over = lod - rung;
     return max(
-      hatchCut(f, along, coarse, widthSourcePx, runRatio),
-      hatchCut(f, along, fine, widthSourcePx, runRatio) * (1.0 - over)
+      hatchStroke(f, along, coarse, widthSourcePx, runRatio, closed),
+      hatchStroke(f, along, coarse * 0.5, widthSourcePx * (1.0 - over), runRatio, closed)
     );
   }
 
@@ -418,16 +492,15 @@ const FRAGMENT = `
     float hatchInk = 0.0;
     if (hatch > 0.5) {
       /*
-       * The burin's axis: a fixed angle to the horizon, without knowing which
+       * The burin's frame: a fixed angle to the horizon, without knowing which
        * way the head is turned.
        *
        * The planes have to be steady while you look around, or the strokes
        * would swim - and worse, the six cube faces the curvilinear view is
        * read off would each rule a different set, seams and all. So the frame
        * is built from the fragment's own ray out of the eye and world up: two
-       * things that change when you WALK and not when you turn. That is also
-       * exactly the right dependency for the renderer, which redraws the cube
-       * on a move and not on a turn.
+       * things that change when you WALK and not when you turn, which is also
+       * exactly what the renderer redraws the cube on.
        */
       vec3 toEye = vWorldPos - cameraPosition;
       float dist = max(length(toEye), 1e-4);
@@ -436,49 +509,51 @@ const FRAGMENT = `
       vec3 su = normalize(up - d * dot(up, d));
       vec3 sr = normalize(cross(d, su));
 
-      // How far apart the strokes should stand ON THE PAGE, said in metres
-      // out here where the surface is.
+      // How far apart the strokes should stand ON THE PAGE, said in metres out
+      // here where the surface is.
       float wantMetres = hatchSpacing * radPerSheetPixel * dist;
-      float strokeWidth = clamp(hatchWidth * scale, 0.3, 24.0);
+      float wMax = clamp(hatchWidth * scale, 0.05, 24.0);
       float runRatio = hatchLength / max(hatchSpacing, 0.001);
       float dark = 1.0 - clamp(lambert, 0.0, 1.0);
 
       /*
-       * Three passes, and only the first is laid everywhere there is shade.
+       * Three families, and the value is carried by how heavily each is cut.
        *
-       * A Zorn passage is one confident direction almost throughout, crossed
-       * once where the form turns away and a third time in the last few per
-       * cent. Overlapping the bands is what turns hatching into a woven net -
-       * a mechanical screen, which is the opposite of the thing.
+       * The first runs through the whole shade and does most of the work: it
+       * comes in as a hairline where the light begins to go and is at full
+       * weight by the time the form has turned properly away. The second
+       * crosses it once the first has said all it can, and the third crosses
+       * again in the last fifth, where the strokes are wide enough to close
+       * on each other and the passage goes solid.
        *
-       * The weight rides the value inside each band as well, because a needle
-       * bites deeper in a dark passage: the same stroke is a hair at the top
-       * of its band and a line at the bottom.
+       * The ramps overlap only where an etcher's would. Bands laid on top of
+       * each other across the whole midtone is what turns hatching into a
+       * woven net - a mechanical screen, which is the opposite of the thing.
        */
-      float bite = 0.70 + 0.95 * dark;
-      vec3 axis;
-      float f;
-      float along;
+      float first = smoothstep(0.05, 0.52, dark);
+      float second = smoothstep(0.62, 0.90, dark);
+      float third = smoothstep(0.86, 1.0, dark);
+      /** How far into continuous cutting the passage has gone. */
+      float closed = smoothstep(0.72, 0.98, dark);
 
-      axis = su * cos(hatchAngle) + sr * sin(hatchAngle);
-      f = dot(vWorldPos, axis);
-      along = dot(vWorldPos, su * -sin(hatchAngle) + sr * cos(hatchAngle));
-      hatchInk = hatchAt(f, along, wantMetres, strokeWidth * bite, runRatio)
-        * smoothstep(0.10, 0.34, dark);
+      /*
+       * ...and past its own full weight, the first family keeps opening up.
+       *
+       * An engraver's darkest passage is not a lattice, it is nearly solid -
+       * the cuts have widened until they meet and the paper between them is
+       * gone. Stopping every family at the same maximum weight leaves a woven
+       * screen at the bottom of the range instead, which is exactly the look
+       * that says a machine made it. So the first family goes on widening
+       * after it is nominally full, and at the very bottom the strokes touch.
+       */
+      float swell = 1.0 + 1.5 * smoothstep(0.70, 1.0, dark);
 
-      float second = hatchAngle + hatchCross;
-      axis = su * cos(second) + sr * sin(second);
-      f = dot(vWorldPos, axis);
-      along = dot(vWorldPos, su * -sin(second) + sr * cos(second));
-      hatchInk = max(hatchInk, hatchAt(f, along, wantMetres, strokeWidth * bite, runRatio)
-        * smoothstep(0.52, 0.76, dark));
-
-      float third = hatchAngle - hatchCross * 0.55;
-      axis = su * cos(third) + sr * sin(third);
-      f = dot(vWorldPos, axis);
-      along = dot(vWorldPos, su * -sin(third) + sr * cos(third));
-      hatchInk = max(hatchInk, hatchAt(f, along, wantMetres * 0.8, strokeWidth * bite, runRatio)
-        * smoothstep(0.82, 0.99, dark));
+      hatchInk = hatchFamily(
+        vWorldPos, su, sr, hatchAngle, wantMetres, wMax * first * swell, runRatio, closed);
+      hatchInk = max(hatchInk, hatchFamily(
+        vWorldPos, su, sr, hatchAngle + hatchCross, wantMetres, wMax * second * swell, runRatio, closed));
+      hatchInk = max(hatchInk, hatchFamily(
+        vWorldPos, su, sr, hatchAngle - hatchCross * 0.5, wantMetres * 0.92, wMax * third, runRatio, closed));
 
       pen = clamp(max(pen, hatchInk), 0.0, 1.0);
     }

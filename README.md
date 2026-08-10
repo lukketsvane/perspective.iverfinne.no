@@ -910,14 +910,34 @@ again at every scale — so the spacing is quantised to powers of two of the
 distance and two neighbouring rungs are crossfaded. Every second line simply
 fades in as you walk closer, and no stroke ever slides.
 
-**One direction has to carry the drawing.** Three passes, and only the first is
-laid everywhere there is shade; the second crosses it where the form turns
-away, the third only in the last few per cent. Overlapping those bands is what
-turns hatching into a woven net, which is a mechanical screen and the opposite
-of the thing. The weight rides the value inside each band as well, because a
-needle bites deeper in a dark passage. And every stroke is cut to length and
-tapered at both ends — a needle enters and leaves the wax, and an unbroken rule
-reads as a wire fence.
+**Tone must be weight, not opacity.** A burin cut deeper is a cut wider, and
+that is the whole of how an engraved passage darkens: the same lines, in the
+same places, fatter — until at the bottom they touch and the passage is solid.
+Nothing here fades. A stroke is either not yet cut, at width zero and genuinely
+absent, or it is a line at some weight, and the ramp between is a ramp in
+width. Fading ink instead is exactly what makes shading read as a screen laid
+over a picture rather than as the picture. Three families: only the first is
+laid everywhere there is shade, the second crosses it once the first has said
+all it can, the third only in the last fifth — and past its nominal full weight
+the first keeps swelling, so the darkest passages close rather than staying a
+lattice. Every stroke is cut to length and tapered, because a needle enters and
+leaves the wax, and the lift closes as the passage darkens, because an
+engraver's black is continuous cutting.
+
+Two bugs in that machinery were worth the hunt and are worth recording. The
+per-stroke grain was keyed on a stroke's offset in metres, so neighbours
+differed by a hundredth and `sin()` of two inputs that close together returns
+two nearly equal numbers — the "random" phase drifted smoothly along the rank
+instead of scattering, every few strokes lifted in the same place, and the
+coincidence marched pale blotches diagonally through every midtone. It counts
+in five-millimetre units now, so neighbours differ by two or more and the hash
+actually hashes, while the same physical stroke still gets the same number at
+either level of detail. And the mark itself was drawn with the shader's
+hairline routine, which ramps smoothly from the centre out and is therefore
+only fully black on the line's axis — asked for six pixels it gave a soft
+six-pixel gradient with a grey middle, which is why the darks could not close
+however far the weight was pushed. A stroke has a solid core and about a pixel
+of edge now, so the width is the width.
 
 Five knobs: which way the strokes run, how far the crossing layers are turned
 off them, how far apart they stand, how heavy each one is, and how long it runs
