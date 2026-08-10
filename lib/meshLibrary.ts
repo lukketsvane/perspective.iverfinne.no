@@ -1,11 +1,12 @@
 /**
- * The three objects the tool ships with.
+ * The objects the tool ships with.
  *
- * They are true to life as authored - measured, they come in at the sizes the
- * real things are, so anything drawn against one is drawn against a real chair.
- * Nothing corrects for them, because nothing has to. Two chairs and a car: a
- * knee-high thing, a seat-high thing and a six-metre thing, which between them
- * cover the range a study needs something known to be measured against.
+ * They are true to life - measured, they come in at the sizes the real things
+ * are, so anything drawn against one is drawn against a real chair. Two chairs
+ * and a car, which between them cover the range a study needs something known
+ * to be measured against: a knee-high thing, a seat-high thing and a six-metre
+ * thing. Then four animals, which cover the other range - the forms that are
+ * not square to anything.
  *
  * Everything else in the library is the viewer's own. A file dropped in is kept
  * in the browser and listed beside these from then on, so a mesh is imported
@@ -51,6 +52,44 @@ export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'ekstrem', name: 'Ekstrem', url: '/meshes/ekstrem.glb' },
   { id: 'balans-variabel', name: 'Balans Variabel', url: '/meshes/balans-variabel.glb' },
   { id: 'il-tempo-gigante', name: 'Il Tempo Gigante', url: '/meshes/il-tempo-gigante.glb' },
+
+  /*
+   * Three horses and a platypus: the moving, breathing half of the shelf.
+   *
+   * Everything else here holds still. A chair is a box with legs and a car is
+   * a long box, and both are things you can check a construction against - but
+   * neither of them ever asks the question a body asks, which is how a form
+   * behaves when it is not square to anything. A horse is the classical answer
+   * to that and has been since Uccello: four legs at four different depths, a
+   * barrel that is a foreshortened cylinder from every angle worth drawing,
+   * and a neck that turns the whole mass. Kim Jung Gi drew them constantly for
+   * exactly that reason.
+   *
+   * Three, deliberately, because one horse is a shape and three are a lesson.
+   * Standing, the foal is the plain case - the barrel and the four supports.
+   * Jumping, the same animal is nearly horizontal with its legs gathered, so
+   * the barrel is seen end-on and the perspective does all the work. Rearing,
+   * it is vertical and the foreshortening runs the other way entirely. The
+   * same form, three times, with nothing changed but its relation to the
+   * ground plane.
+   *
+   * The platypus is not a joke. It is the one thing on the shelf with no
+   * straight lines and no symmetry you can lean on - a soft closed form of the
+   * kind that has to be drawn by its contour and its cross-contour or not at
+   * all, which is precisely what the drawn rungs are built to show.
+   *
+   * They arrive from Tripo at 433,000 triangles and three 4096-square maps
+   * apiece: 268 MB of GPU memory each, on a tool that only samples a texture
+   * on one rung out of five. Shipped, the normal and metallic-roughness maps
+   * are gone entirely, the base colour is 1024, the geometry is down to 60,000
+   * triangles, and each is about 1.5 MB - in line with the chairs. Their
+   * heights below are the real animals': a foal at the withers, a horse
+   * gathered over a fence, a horse standing on its hind legs.
+   */
+  { id: 'foal', name: 'Foal', url: '/meshes/foal.glb', height: 1.05 },
+  { id: 'horse-jumping', name: 'Horse, jumping', url: '/meshes/horse-jumping.glb', height: 2.2 },
+  { id: 'horse-rearing', name: 'Horse, rearing', url: '/meshes/horse-rearing.glb', height: 2.6 },
+  { id: 'platypus', name: 'Platypus', url: '/meshes/platypus.glb', height: 0.95 },
 
   /*
    * Three studies, reconstructed from Kim Jung Gi pages.
