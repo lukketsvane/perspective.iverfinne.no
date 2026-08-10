@@ -6,7 +6,7 @@ import { holdRail, releaseRail, showRail, useRail } from '../lib/rail';
 import { SelectionBar } from './SelectionBar';
 import { LightPanel } from './LightPanel';
 import { MaterialPanel } from './MaterialPanel';
-import { Icon, I, SURFACE_ICON } from './icons';
+import { Icon, I, SETTINGS_ICON, SURFACE_ICON } from './icons';
 import { Scrub, useBackdropControl, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
 // One import rather than a static one for the capability check and a dynamic
@@ -20,7 +20,7 @@ import { directionAt, pickGround, pickObject, pixelsPerMetreAt } from '../lib/pi
 import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
 import { MAX_FIELD, wholeSheetField } from '../lib/projection';
-import { SNAP_STEPS, selectionSurface, surfaceHasSettings, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
+import { SNAP_STEPS, selectionSurface, surfaceHasSettings, surfaceSettingsLabel, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
 
 /**
  * The systems the button steps through: bowed horizontals, then the ruled
@@ -1410,11 +1410,11 @@ export const WalkOverlay: React.FC<{
           {surfaceHasSettings(sceneSurface) && (
             <button
               onClick={() => { setShowTools(false); setShowLights(false); setMaterialFrom('scene'); onShelfAway(); }}
-              aria-label={sceneSurface === 'hatch' ? 'How the hatching is ruled' : "The marker's own settings"}
+              aria-label={surfaceSettingsLabel(sceneSurface)}
               aria-expanded={materialFrom === 'scene'}
               className={button}
             >
-              <Icon path={sceneSurface === 'hatch' ? I.hatchAngle : I.hue} className="w-5 h-5" />
+              <Icon path={SETTINGS_ICON[sceneSurface]} className="w-5 h-5" />
             </button>
           )}
           <button

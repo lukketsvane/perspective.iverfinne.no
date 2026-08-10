@@ -371,7 +371,17 @@ const FRAGMENT = `
     // form rolls over. abs(), so a back face reads the same as a front one.
     float facing = abs(dot(N, -ray));
 
-    float contour = mark(facing, contourWidth, gradFloor);
+    /*
+     * Zero pixels is NO contour, not the thinnest one the clamp will allow.
+     *
+     * That floor is there so a line that is wanted does not alias away into
+     * nothing at distance, and while the width was a constant it never had to
+     * mean anything else. Now that it is a knob, the bottom of its travel is a
+     * page with no outline at all - which is not an absence but a thing an
+     * etcher does on purpose, the tonal engraving whose every edge is found by
+     * where the strokes stop.
+     */
+    float contour = mark(facing, contourWidth, gradFloor) * step(0.01, contourPx);
 
     // Form lines, ruled at even steps of the same ratio. Faded out as the
     // surface comes square on: there the steps are far apart and the
@@ -984,6 +994,28 @@ export const setPageTone = (tone: THREE.Color) => {
 export const setMarker = (hue: number, high: number) => {
   inkUniforms.accent.value.setHSL(((hue % 360) + 360) % 360 / 360, 0.72, 0.58, THREE.SRGBColorSpace);
   inkUniforms.accentHigh.value = high;
+};
+
+/**
+ * The pen every drawn page holds.
+ *
+ * One hand across brush, marker and hatch - the line is the same shader in all
+ * three and only what lies under it differs - so this reaches all of them at
+ * once, the same way the paper tone does.
+ *
+ * The count is rounded because the shader rules that many even steps of the
+ * facing ratio and a fractional one puts the last band half off the end.
+ */
+export const setPen = (p: {
+  outline: number;
+  formCount: number;
+  formStrength: number;
+  terminator: number;
+}) => {
+  inkUniforms.contourPx.value = p.outline;
+  inkUniforms.formCount.value = Math.round(p.formCount);
+  inkUniforms.formStrength.value = p.formStrength;
+  inkUniforms.terminatorStrength.value = p.terminator;
 };
 
 /** Everything the hatch is ruled by. Angles in degrees, sizes in sheet pixels. */

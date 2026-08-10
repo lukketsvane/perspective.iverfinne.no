@@ -37,13 +37,94 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
   const dark = useStore((s) => s.theme) === 'dark';
   const marker = useStore((s) => s.marker);
   const hatch = useStore((s) => s.hatch);
+  const pen = useStore((s) => s.pen);
   const setMarker = useStore((s) => s.setMarker);
   const setHatch = useStore((s) => s.setHatch);
+  const setPen = useStore((s) => s.setPen);
   const skin = { dark, touch: true };
 
+  /*
+   * The pen, on every drawn page, above whatever that page lays under it.
+   *
+   * The line is one shader across brush, marker and hatch - they differ only
+   * in what goes UNDER it - so these four are the same four wherever they are
+   * opened from, and changing them on the etched page changes the brush page
+   * too. One hand, one pen.
+   *
+   * They were constants until now, which meant the mark that carries a drawing
+   * more than any other was the one thing about it nobody could set.
+   */
+  const nib = (
+    <div className="flex flex-wrap items-center justify-center gap-1">
+      <Scrub
+        skin={skin}
+        icon={I.outline}
+        // Zero is not "very thin": it lifts the contour off the page entirely,
+        // which on an etched page is the tonal engraving whose every edge is
+        // found by where the strokes stop.
+        label="How heavy the outline is"
+        reading={pen.outline < 0.01 ? 'none' : pen.outline.toFixed(1)}
+        value={pen.outline}
+        min={0}
+        max={7}
+        step={0.1}
+        onChange={(outline) => setPen({ outline })}
+      />
+      <Scrub
+        skin={skin}
+        icon={I.formLines}
+        label="How many lines follow the form"
+        reading={pen.formCount < 0.5 ? 'none' : Math.round(pen.formCount).toString()}
+        value={pen.formCount}
+        min={0}
+        max={6}
+        step={1}
+        onChange={(formCount) => setPen({ formCount })}
+      />
+      <Scrub
+        skin={skin}
+        icon={I.wash}
+        label="How dark those lines are"
+        reading={`${Math.round(pen.formStrength * 100)}%`}
+        value={pen.formStrength}
+        min={0}
+        max={1}
+        step={0.01}
+        onChange={(formStrength) => setPen({ formStrength })}
+      />
+      <Scrub
+        skin={skin}
+        icon={I.terminator}
+        label="How strongly the light's edge is drawn"
+        reading={pen.terminator < 0.01 ? 'none' : `${Math.round(pen.terminator * 100)}%`}
+        value={pen.terminator}
+        min={0}
+        max={1}
+        step={0.01}
+        onChange={(terminator) => setPen({ terminator })}
+      />
+    </div>
+  );
+
+  /** The pen above, the page's own below, with a hairline between. */
+  const page = (own?: React.ReactNode) => (
+    <div className="flex flex-col gap-1">
+      {nib}
+      {own && (
+        <div
+          className={`flex flex-wrap items-center justify-center gap-1 border-t pt-1 ${
+            dark ? 'border-white/10' : 'border-black/10'
+          }`}
+        >
+          {own}
+        </div>
+      )}
+    </div>
+  );
+
   if (surface === 'marker') {
-    return (
-      <div className="flex flex-wrap items-center justify-center gap-1">
+    return page(
+      <>
         <Scrub
           skin={skin}
           icon={I.hue}
@@ -67,15 +148,15 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
           step={0.01}
           onChange={(high) => setMarker({ high })}
         />
-      </div>
+      </>
     );
   }
 
   if (surface === 'hatch') {
-    return (
-      // Wrapping, because five knobs at their smallest are a whisker over a
-      // 320 px screen and a knob pushed off the edge is not a knob.
-      <div className="flex flex-wrap items-center justify-center gap-1">
+    // Both rows wrap: five of these at their smallest were already a whisker
+    // over a 320 px screen, and the pen's four sit above them now.
+    return page(
+      <>
         <Scrub
           skin={skin}
           icon={I.hatchAngle}
@@ -134,9 +215,12 @@ export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
           step={2}
           onChange={(length) => setHatch({ length })}
         />
-      </div>
+      </>
     );
   }
 
-  return null;
+  // Brush: the pen and nothing else. It lays spotted blacks under the line and
+  // has no numbers of its own, which is why it had no panel at all before the
+  // pen became something you could set.
+  return page();
 };

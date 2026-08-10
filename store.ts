@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MESH_SURFACES, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
+import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MESH_SURFACES, PenState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
 import { releaseSource, cachedSourceUrls, modelRadius, loadModelFromUrl } from './lib/loadModel';
 import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
 import { cloneModel } from './lib/modelMaterials';
@@ -11,6 +11,7 @@ import {
   mountFor,
   paperFor,
   setHatch as setHatchRule,
+  setPen as setPenNib,
   setInkPaper,
   setMarker as setMarkerInk,
   pageInkHex,
@@ -84,6 +85,18 @@ export const DEFAULT_MARKER: MarkerState = { hue: 88, high: 0.62 };
  * pixels: close enough that the darks read as tone at arm's length, open
  * enough that every stroke is still a stroke.
  */
+/**
+ * The pen the tool opens with.
+ *
+ * Two sheet pixels of contour, which is what `lib/pen.ts` measures its own line
+ * against and what every page in the tool was drawn with while this was a
+ * constant. Two form lines, faintly - at three the steps land a few pixels
+ * inside the silhouette on a curved form and every edge reads as a tube - and
+ * the terminator at its full weight, being the one mark that says where the
+ * light is.
+ */
+export const DEFAULT_PEN: PenState = { outline: 2, formCount: 2, formStrength: 0.18, terminator: 1 };
+
 export const DEFAULT_HATCH: HatchState = {
   // Zero: strokes running square across the form, which is the cross-contour
   // an etcher reaches for first. The knob swings them round towards running
@@ -272,6 +285,7 @@ const SETTING_KEYS = [
   'backdrop',
   'marker',
   'hatch',
+  'pen',
   'roomLevel',
   'room',
   'showVanishing',
@@ -315,6 +329,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   backdrop: (v) => v === 'paper' || (number(v) && (v as number) >= 0 && (v as number) <= 255),
   marker: object,
   hatch: object,
+  pen: object,
   roomLevel: number,
   room: object,
   showVanishing: boolean,
@@ -535,6 +550,7 @@ const remembered = kept({
   // does not come back with an undefined angle and rule nothing.
   marker: loadedSettings.marker === undefined ? undefined : { ...DEFAULT_MARKER, ...loadedSettings.marker },
   hatch: loadedSettings.hatch === undefined ? undefined : { ...DEFAULT_HATCH, ...loadedSettings.hatch },
+  pen: loadedSettings.pen === undefined ? undefined : { ...DEFAULT_PEN, ...loadedSettings.pen },
   /*
    * The sun is the viewer's - bearing, height, strength and warmth all
    * survive - but which shadow the tool OPENS on is the tool's, and it moved
@@ -790,6 +806,7 @@ export const useStore = create<SceneState>((set, get) => ({
   backdrop: OPENING_BACKDROP,
   marker: DEFAULT_MARKER,
   hatch: DEFAULT_HATCH,
+  pen: DEFAULT_PEN,
   sunEnvironment: false,
   viewLocked: false,
   undoStack: [],
@@ -1212,6 +1229,7 @@ export const useStore = create<SceneState>((set, get) => ({
 
   setMarker: (marker) => set((state) => ({ marker: { ...state.marker, ...marker } })),
   setHatch: (hatch) => set((state) => ({ hatch: { ...state.hatch, ...hatch } })),
+  setPen: (pen) => set((state) => ({ pen: { ...state.pen, ...pen } })),
 
   cycleFieldRange: () =>
     set((state) => {
@@ -1709,6 +1727,7 @@ const syncTones = (state: SceneState) => {
   setShadowInk(pageInkHex(), state.surface === 'hatch' ? 0.92 : 0.6);
   setMarkerInk(state.marker.hue, state.marker.high);
   setHatchRule(state.hatch);
+  setPenNib(state.pen);
 };
 syncTones(useStore.getState());
 useStore.subscribe(syncTones);
