@@ -2,14 +2,27 @@ import React from 'react';
 import { useStore } from '../store';
 import { I } from './icons';
 import { Scrub } from './controls';
+import type { Surface } from '../types';
 
 /**
- * The drawn page's own settings.
+ * The drawn page's own settings, for one rung of the ladder.
  *
  * Two of the five surface rungs are not one look but a family of them, and the
  * difference between a good hatch and a bad one is four numbers. Guessing them
  * once and shipping the guess would be shipping one etching; the point of an
  * instrument is that you can find the one the drawing wants.
+ *
+ * WHICH rung is the caller's to say, and it is not always the scene's. The
+ * knobs are reached from two places now - the tools band, where the question is
+ * what the whole page is made of, and the selection bar, where it is what the
+ * thing in your hand is drawn on - and those two disagree the moment an object
+ * overrules the scene. Reading the scene's rung here would have answered the
+ * second question with the first one's answer, and shown an empty panel
+ * whenever the scene was on a rung with nothing to set.
+ *
+ * What it edits is the page's either way: one hue, one hatch rule, ruling every
+ * stroke in the scene drawn on that rung. Opening them from an object is a way
+ * of reaching them, not a claim that they belong to it.
  *
  * Every control is the same drag as the lights': the reading appears over the
  * thumb while it moves and is gone when it lifts, so there is no writing on
@@ -20,9 +33,8 @@ import { Scrub } from './controls';
  * from the drawing behind it, so the drawing has to stay visible and live
  * while the thumb is down.
  */
-export const MaterialPanel: React.FC = () => {
+export const MaterialPanel: React.FC<{ surface: Surface }> = ({ surface }) => {
   const dark = useStore((s) => s.theme) === 'dark';
-  const surface = useStore((s) => s.surface);
   const marker = useStore((s) => s.marker);
   const hatch = useStore((s) => s.hatch);
   const setMarker = useStore((s) => s.setMarker);
