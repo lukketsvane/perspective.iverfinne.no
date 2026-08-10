@@ -74,6 +74,16 @@
        */
       .bottom-safe-panel { bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem); }
       /*
+       * ...and the TOP, which only the tour's card uses.
+       *
+       * Every other panel in the tool hangs off the bottom edge, because that
+       * is where the thumbs are - so the top is the one band nothing else
+       * claims, and a card that sits there covers neither the dock, nor the
+       * panel slot, nor the walk quadrant in the bottom-left. It has to clear
+       * the notch and the status bar like everything else.
+       */
+      .top-safe-panel { top: calc(env(safe-area-inset-top, 0px) + 0.5rem); }
+      /*
        * ...and the SIDES, which only matter when the phone is on its side and
        * are the whole difference there. Held in landscape the notch takes about
        * 44 px off one edge and the rounded corners a little off both, and the

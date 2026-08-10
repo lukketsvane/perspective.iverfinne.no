@@ -23,7 +23,20 @@ const LINGER = 6000;
 const listeners = new Set<Listener>();
 let visible = true;
 let timer: number | undefined;
-let held = false;
+/**
+ * WHO is holding it up, not whether somebody is.
+ *
+ * It was one boolean, and one boolean cannot survive two holders. The overlay
+ * runs `if (showTools || showLights || showMaterial) holdRail(); else
+ * releaseRail();` on every change of those three - INCLUDING once on mount,
+ * with all three false - so anything else that had taken a hold had it dropped
+ * out from under it by a panel it has nothing to do with. Nothing noticed while
+ * the panels were the only holder; the guided tour is the second, it takes its
+ * hold as the app opens, and that mount-time release landed squarely on it.
+ *
+ * A set, so the count only runs again when the last holder has let go.
+ */
+const holds = new Set<string>();
 
 const publish = (next: boolean) => {
   if (visible === next) return;
@@ -43,7 +56,7 @@ const publish = (next: boolean) => {
  */
 export const showRail = () => {
   publish(true);
-  if (held) return;
+  if (holds.size > 0) return;
   if (timer !== undefined) clearTimeout(timer);
   timer = setTimeout(() => publish(false), LINGER) as unknown as number;
 };
@@ -53,17 +66,21 @@ export const showRail = () => {
  * controls fading out from under an open sheet leaves twelve things on screen
  * that can be seen and not pressed.
  */
-export const holdRail = () => {
-  held = true;
+export const holdRail = (who = 'panel') => {
+  holds.add(who);
   publish(true);
   if (timer !== undefined) clearTimeout(timer);
   timer = undefined;
 };
 
-/** The panel has closed: back to fading on the idle clock. */
-export const releaseRail = () => {
-  held = false;
-  showRail();
+/**
+ * That holder has let go: back to fading on the idle clock, but only once
+ * every holder has. The default names the panels, so both existing call sites
+ * read exactly as they did.
+ */
+export const releaseRail = (who = 'panel') => {
+  holds.delete(who);
+  if (holds.size === 0) showRail();
 };
 
 const subscribe = (listener: Listener) => {

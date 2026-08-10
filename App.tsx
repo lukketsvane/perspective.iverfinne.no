@@ -19,6 +19,8 @@ import { holdPreviews, resumePreviews } from './lib/meshPreview';
 import { downloadSceneFile, readSceneFile, toSceneFile } from './lib/sceneJson';
 import { beginActivity, reportFailure } from './lib/activity';
 import { Activity } from './components/Activity';
+import { Tour } from './components/Tour';
+import { beginTour, tourSeen } from './lib/tour';
 import type { SceneModel } from './types';
 
 /** The application is always a first-person workspace. */
@@ -346,6 +348,39 @@ export default function App() {
    * double-mount would otherwise stand up two of them.
    */
   const opened = useRef(false);
+  /*
+   * Offer the tour once the tool has actually opened.
+   *
+   * Not on a flat timer: `standOpening` pulls about three megabytes before
+   * anything stands up and then solves the framing, and a card over an empty
+   * grid teaches nothing - the first thing it says is "you are standing in it".
+   * So it waits for something to be standing there, with a settle for the
+   * framing, and a hard fallback so a dead network costs the mesh rather than
+   * the tour.
+   */
+  useEffect(() => {
+    if (tourSeen()) return;
+    let armed = false;
+    const arm = () => {
+      if (armed) return;
+      armed = true;
+      beginTour();
+    };
+    const settle = window.setTimeout(() => {
+      const { models, boxes } = useStore.getState();
+      if (models.length > 0 || boxes.length > 0) arm();
+    }, 600);
+    const stop = useStore.subscribe((state) => {
+      if (state.models.length > 0 || state.boxes.length > 0) window.setTimeout(arm, 600);
+    });
+    const fallback = window.setTimeout(arm, 3000);
+    return () => {
+      window.clearTimeout(settle);
+      window.clearTimeout(fallback);
+      stop();
+    };
+  }, []);
+
   useEffect(() => {
     if (opened.current) return;
     opened.current = true;
@@ -499,6 +534,7 @@ export default function App() {
     >
       <Scene />
       <Activity />
+      <Tour />
       <VanishingPoints color={constructionInk(isSketch(surface), isDark)} />
       <Measures />
       {/*

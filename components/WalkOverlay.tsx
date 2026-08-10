@@ -21,6 +21,7 @@ import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
 import { MAX_FIELD, wholeSheetField } from '../lib/projection';
 import { SNAP_STEPS, selectionSurface, surfaceHasSettings, surfaceSettingsLabel, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
+import { beginTour, endTour, useTourStep } from '../lib/tour';
 
 /**
  * The systems the button steps through: bowed horizontals, then the ruled
@@ -369,6 +370,8 @@ export const WalkOverlay: React.FC<{
   /** The reading beside the finger while a box is being drawn. */
   const [blockReadout, setBlockReadout] = useState<{ x: number; y: number; text: string } | null>(null);
   const railVisible = useRail();
+  /** The tour is drawn over everything, so Escape reaches it first. */
+  const tourRunning = useTourStep() >= 0;
   const sceneSurface = useStore((s) => s.surface);
   /*
    * Which rung the page's knobs are showing, read fresh from where they were
@@ -1019,7 +1022,13 @@ export const WalkOverlay: React.FC<{
         // A sheet closes itself on escape; backing out of one is not also a
         // reason to drop what was selected before it was opened. The pencil
         // goes down first: a mode whose exit is hard to reach is a trap.
-        if (blocking) {
+        //
+        // And the tour before even that, being the one thing drawn over all of
+        // it - the ladder's own principle is to put the topmost thing away
+        // first, and on a desktop this is the keyboard's half of the Skip chip.
+        if (tourRunning) {
+          endTour();
+        } else if (blocking) {
           block.current = null;
           setBlockReadout(null);
           setBlocking(false);
@@ -1420,8 +1429,11 @@ export const WalkOverlay: React.FC<{
               one on the dock, one buried here - and they are one decision
               taken twice, so they stand together. */}
           <div className={`${band} ${divider}`}>
-          {/* Ten whole pages - surface, sheet, mount, light, lens, furniture,
+          {/* Whole pages - surface, sheet, mount, light, the pen, the floor,
               chosen together - and this deals a different one each press.
+              Deliberately not a count: the last one said ten while there were
+              sixteen, which is what a number typed into prose looks like a
+              year later.
               Everything in this tool is a knob, and a tool that is all knobs is
               a tool nobody sees the range of; most of what it can do lives in
               combinations that take a minute to find and a second to lose.
@@ -1612,6 +1624,21 @@ export const WalkOverlay: React.FC<{
             className={button}
           >
             <Icon path={I.camera} className="w-5 h-5" />
+          </button>
+          {/* The five cards a first-time viewer gets, from the beginning. In
+              this band because it is a thing you do between drawings rather
+              than while drawing, and it closes the panel as it starts - the
+              same as the two instruments in the first band, and for the same
+              reason: what it points at is out here.
+
+              "Take the tour again" is read by lib/tour.ts. Never accented: it
+              is a verb, not a state. */}
+          <button
+            onClick={() => { setShowTools(false); beginTour(); }}
+            aria-label="Take the tour again"
+            className={button}
+          >
+            <Icon path={I.tour} className="w-5 h-5" />
           </button>
           </div>
         </div>
