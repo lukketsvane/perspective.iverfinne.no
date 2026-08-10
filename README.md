@@ -227,6 +227,16 @@ of clear gap between them. The clusters are `display: contents` in portrait,
 which removes their boxes entirely and lets all eight children lay themselves
 out as the single row they have always been — one wrapper, no second layout.
 
+**And every panel hangs from the right there.** Centred, a panel opened from the
+right-hand thumb cluster came up somewhere else — and on a landscape phone
+"somewhere else" is most of a hand's width away, so the control you pressed and
+the controls it revealed were nowhere near each other. Hung right, a panel opens
+directly above the button that opened it, all four occupants of the slot share
+one edge, and the narrow ones (the lights, the page's own knobs) leave the left
+two thirds of the frame — the part the drawing is in — clear. Upright it stays
+centred: there is one dock there, in the middle, and a panel pinned to one side
+of a 390 px screen would be lopsided for nothing.
+
 **Turned sideways, the whole panel turns with it.** A phone on its side has
 about 390 px of height and something like 850 of width. Four stacked bands plus
 the dock plus the selection bar came to more than half that height, over the

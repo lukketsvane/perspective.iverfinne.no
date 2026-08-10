@@ -76,6 +76,21 @@ const SIDEWAYS_PANEL =
 
 /** The hairline between two bands, moved from under them to beside them. */
 /**
+ * Every panel hangs from the RIGHT when the window is short.
+ *
+ * Centred, a panel opened from the right-hand thumb cluster came up somewhere
+ * else - and on a landscape phone "somewhere else" is most of a hand's width
+ * away, so the control you pressed and the controls it revealed were nowhere
+ * near each other. Hung right, a panel opens directly above the button that
+ * opened it, every one of them shares one edge, and the left two thirds of the
+ * frame - which is the part the drawing is in - stays clear.
+ *
+ * Upright it stays centred: there is only one dock there, in the middle, and a
+ * panel pinned to one side of a 390 px screen would be lopsided for nothing.
+ */
+const SIDEWAYS_SLOT = '[@media(max-height:560px)]:justify-end';
+
+/**
  * The dock, turned sideways: two thumbs instead of one row.
  *
  * A phone held in landscape is held in TWO hands, and the two places a thumb
@@ -1137,7 +1152,7 @@ export const WalkOverlay: React.FC<{
           * is scanned in one movement, and a control keeps the company it
           * belongs to at every width.
           */}
-        <div className="absolute bottom-0 inset-x-0 flex justify-center pointer-events-none">
+        <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
         <div
           /* Out of the tab order while it is out of sight - what
              pointer-events-none already does for the pointer. A keyboard
@@ -1403,7 +1418,7 @@ export const WalkOverlay: React.FC<{
         </div>
 
         {/* The lights, in the same slot. */}
-        <div className="absolute bottom-0 inset-x-0 flex justify-center pointer-events-none">
+        <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
           <div
             {...(showLights && dockVisible ? {} : { inert: '' })}
             className={`max-w-full p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showLights && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
@@ -1413,7 +1428,7 @@ export const WalkOverlay: React.FC<{
         </div>
 
         {/* The library, in the same slot: one row, scrolled sideways. */}
-        <div className="absolute bottom-0 inset-x-0 flex justify-center pointer-events-none">
+        <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
           <div
             {...(shelfOpen && dockVisible ? {} : { inert: '' })}
             className={`max-w-full min-w-0 p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${shelfOpen && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
@@ -1423,7 +1438,7 @@ export const WalkOverlay: React.FC<{
         </div>
 
         {/* And the drawn page's own knobs, in the same slot again. */}
-        <div className="absolute bottom-0 inset-x-0 flex justify-center pointer-events-none">
+        <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
           <div
             {...(showMaterial && dockVisible ? {} : { inert: '' })}
             className={`max-w-full p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showMaterial && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
