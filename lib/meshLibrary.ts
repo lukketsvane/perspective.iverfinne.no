@@ -54,41 +54,46 @@ export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'il-tempo-gigante', name: 'Il Tempo Gigante', url: '/meshes/il-tempo-gigante.glb' },
 
   /*
-   * Three horses and a platypus: the moving, breathing half of the shelf.
+   * Three horses and a platypus: the half of the shelf that does not hold
+   * still.
    *
-   * Everything else here holds still. A chair is a box with legs and a car is
-   * a long box, and both are things you can check a construction against - but
-   * neither of them ever asks the question a body asks, which is how a form
-   * behaves when it is not square to anything. A horse is the classical answer
-   * to that and has been since Uccello: four legs at four different depths, a
-   * barrel that is a foreshortened cylinder from every angle worth drawing,
-   * and a neck that turns the whole mass. Kim Jung Gi drew them constantly for
-   * exactly that reason.
+   * A chair is a box with legs and a car is a long box, and both are things a
+   * construction can be checked against - but neither of them ever asks the
+   * question a body asks, which is how a form behaves when it is not square to
+   * anything. A horse is the classical answer to that and has been since
+   * Uccello: four legs at four different depths, a barrel that is a
+   * foreshortened cylinder from every angle worth drawing, and a neck that
+   * turns the whole mass. Kim Jung Gi drew them constantly for exactly that
+   * reason.
    *
-   * Three, deliberately, because one horse is a shape and three are a lesson.
-   * Standing, the foal is the plain case - the barrel and the four supports.
-   * Jumping, the same animal is nearly horizontal with its legs gathered, so
-   * the barrel is seen end-on and the perspective does all the work. Rearing,
-   * it is vertical and the foreshortening runs the other way entirely. The
-   * same form, three times, with nothing changed but its relation to the
-   * ground plane.
+   * Three, deliberately, because one horse is a shape and three are a lesson,
+   * and each is named for the pose it is actually in rather than the pose that
+   * would round the set off. Lying, the foal is folded down on itself and the
+   * whole barrel is read across the back. Leaping, the same animal is off the
+   * ground with the forelegs up, so the near foreleg comes almost straight at
+   * the eye and the perspective does all the work. Rising, the adult horse has
+   * its hind end still down and its neck already vertical, which turns the
+   * spine through nearly a right angle inside one form - the deepest
+   * foreshortening on the shelf, and the reason it is here.
    *
-   * The platypus is not a joke. It is the one thing on the shelf with no
-   * straight lines and no symmetry you can lean on - a soft closed form of the
-   * kind that has to be drawn by its contour and its cross-contour or not at
-   * all, which is precisely what the drawn rungs are built to show.
+   * The platypus is not a joke. It is the one thing here with no straight
+   * lines and no symmetry to lean on - a soft closed form of the kind that has
+   * to be drawn by its contour and its cross-contour or not at all, which is
+   * precisely what the drawn rungs are built to show.
    *
    * They arrive from Tripo at 433,000 triangles and three 4096-square maps
    * apiece: 268 MB of GPU memory each, on a tool that only samples a texture
    * on one rung out of five. Shipped, the normal and metallic-roughness maps
    * are gone entirely, the base colour is 1024, the geometry is down to 60,000
-   * triangles, and each is about 1.5 MB - in line with the chairs. Their
-   * heights below are the real animals': a foal at the withers, a horse
-   * gathered over a fence, a horse standing on its hind legs.
+   * triangles, and each is about 1.5 MB - in line with the chairs.
+   *
+   * The heights are the animal in that pose, measured to the top of the head,
+   * not the standing height of the species: a couched foal is not as tall as a
+   * standing one and would be wrong on the grid if it were told it was.
    */
-  { id: 'foal', name: 'Foal', url: '/meshes/foal.glb', height: 1.05 },
-  { id: 'horse-jumping', name: 'Horse, jumping', url: '/meshes/horse-jumping.glb', height: 2.2 },
-  { id: 'horse-rearing', name: 'Horse, rearing', url: '/meshes/horse-rearing.glb', height: 2.6 },
+  { id: 'foal-lying', name: 'Foal, lying', url: '/meshes/foal-lying.glb', height: 0.9 },
+  { id: 'foal-leaping', name: 'Foal, leaping', url: '/meshes/foal-leaping.glb', height: 1.35 },
+  { id: 'horse-rising', name: 'Horse, rising', url: '/meshes/horse-rising.glb', height: 1.9 },
   { id: 'platypus', name: 'Platypus', url: '/meshes/platypus.glb', height: 0.95 },
 
   /*
