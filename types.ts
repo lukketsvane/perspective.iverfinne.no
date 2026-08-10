@@ -42,33 +42,31 @@ export type PerspectiveMode = 'cylindrical' | 'equidistant' | 'stereographic';
  * - 'matte': opaque, plain white, no texture. Photographed skin and fabric is a
  *   lot of information to draw past; stripped out, a figure reads as form and
  *   value only, which is what it is doing in a scene full of white boxes.
- * - 'ink': not a material at all - the drawing. Line where the form turns away
- *   from the eye, and nothing else: no light, no tone, no cast shadow. Every
- *   other rung answers "what is this made of", which is a question a perspective
- *   study never asks. This one answers "where would the pen go", and it is the
- *   only rung whose output you can put a sheet of paper beside.
- * - 'brush': the same drawing with its blacks spotted in. Everything turned
- *   from the sun is filled solid ink, the pen's own lines run in paper through
- *   the fill, and the cast shadow goes down as a shape rather than a wash -
- *   the finished-page look of a brush-and-ink spread, where 'ink' is the
- *   pen-only underdrawing of it.
- * - 'wire': the twelve edges and nothing else. The construction with the object
- *   taken away.
+ * - 'brush': the drawing itself, and the only question a perspective study
+ *   actually asks - where would the pen go. Line where the form turns away
+ *   from the eye, the terminator that says which way the light is, and the
+ *   blacks spotted in solid. Every other rung answers "what is this made of".
+ * - 'marker': the same page with one flat colour laid in the band between the
+ *   spotted blacks and the bare paper - ink first, then a marker over it,
+ *   which is the order it is really done in. Three values and no fourth.
+ * - 'hatch': the etched page. No fill anywhere: the value is built out of
+ *   ruled strokes that cross a second and a third time as the light goes out,
+ *   and the paper between them does the rest.
  *
- * There was a fifth, 'glass' - translucent and writing no depth, so the far
- * edges came through the near faces. The argument for it was drawing through:
- * if a box's hidden corner is in the wrong place then the whole box is, and on
- * an opaque box there is nothing to check it against. Good argument, and it was
- * answered better elsewhere. A wire box draws through by construction, and on a
- * mesh - where the rung was a wash of overlapping translucency rather than a
- * readable interior - ink already draws the far side's contour wherever the form
- * rolls over. A rung nobody reaches for is a rung in the way of the next one.
+ * Three rungs have been taken away over time and all three for the same
+ * reason: a rung nobody reaches for is a rung in the way of the next one.
+ * 'glass' was translucent and wrote no depth, so the far edges came through
+ * the near faces - answered better by the construction cage, which draws
+ * through by construction. 'wire' was the twelve edges and nothing else, which
+ * is the cage again with the object thrown away. And 'ink' was 'brush' without
+ * the blacks: a real stage of a real drawing, and not a thing anybody stops
+ * at when the finished page is one tap away.
  *
  * Every box and every placed mesh carries its own, so a scene can have a solid
  * car standing inside a wire box on a floor of inked ones - which is exactly the
  * arrangement a study wants and what a single scene-wide setting could never say.
  */
-export type Surface = 'original' | 'matte' | 'ink' | 'brush' | 'wire';
+export type Surface = 'original' | 'matte' | 'brush' | 'marker' | 'hatch';
 
 /**
  * The whole ladder, in order. What the scene-wide control steps through.
@@ -77,16 +75,16 @@ export type Surface = 'original' | 'matte' | 'ink' | 'brush' | 'wire';
  * texture gone, then the light gone too and only the line left, then the object
  * itself.
  */
-export const SURFACES: Surface[] = ['original', 'matte', 'ink', 'brush', 'wire'];
+export const SURFACES: Surface[] = ['original', 'matte', 'brush', 'marker', 'hatch'];
 
 /** What a box steps through: it has no authored material to strip. */
-export const BOX_SURFACES: Surface[] = ['original', 'ink', 'brush', 'wire'];
+export const BOX_SURFACES: Surface[] = ['original', 'brush', 'marker', 'hatch'];
 
 /**
  * What a mesh steps through: it has no cage to fall back on, so taking its
  * surface away entirely would leave nothing on screen to take hold of again.
  */
-export const MESH_SURFACES: Surface[] = ['original', 'matte', 'ink', 'brush'];
+export const MESH_SURFACES: Surface[] = ['original', 'matte', 'brush', 'marker', 'hatch'];
 
 /**
  * The nearest rung a given kind of thing can actually draw.
@@ -97,7 +95,7 @@ export const MESH_SURFACES: Surface[] = ['original', 'matte', 'ink', 'brush'];
  * disappearing - which is the honest neighbour, both being line and no surface.
  */
 export const nearestSurface = (surface: Surface, rungs: Surface[]): Surface =>
-  rungs.includes(surface) ? surface : surface === 'matte' ? 'original' : 'ink';
+  rungs.includes(surface) ? surface : surface === 'matte' ? 'original' : 'brush';
 
 /**
  * A surface read back from something written earlier.
@@ -113,7 +111,24 @@ export const nearestSurface = (surface: Surface, rungs: Surface[]): Surface =>
  * through here, the same way the projection is.
  */
 export const readSurface = (stored: unknown): Surface =>
-  SURFACES.includes(stored as Surface) ? (stored as Surface) : 'ink';
+  SURFACES.includes(stored as Surface)
+    ? (stored as Surface)
+    // The two rungs that were taken away both land on the page that replaced
+    // them, rather than on the top of the ladder: somebody who was drawing in
+    // ink wanted a drawing, not a photograph.
+    : 'brush';
+
+/**
+ * Whether a rung is one of the drawn ones.
+ *
+ * Asked in eight places - the page's own tone, the construction colour, the
+ * cage, the measures, the lamps' marks, the vanishing points - and it was
+ * written out as `surface === 'ink' || surface === 'brush'` in every one of
+ * them, which is a list that has to be found and edited each time the ladder
+ * changes. It changed, twice.
+ */
+export const isSketch = (surface: Surface) =>
+  surface === 'brush' || surface === 'marker' || surface === 'hatch';
 
 /**
  * How much of the *room's* construction is drawn over the world.
@@ -391,6 +406,42 @@ export interface FillState extends SunState {
 }
 
 /**
+ * How the marker page is inked, and how the etched one is ruled.
+ *
+ * Two of the five surface rungs have settings of their own. They are here
+ * rather than inside the material because they are part of the picture: a
+ * saved scene composed in a forty-five degree hatch at six pixels should come
+ * back in a forty-five degree hatch at six pixels, and a value that lives only
+ * in a uniform cannot be written down.
+ */
+export interface MarkerState {
+  /** Degrees round the wheel. The reference sheet's marker is a yellow-green. */
+  hue: number;
+  /**
+   * How much light there has to be before the paper is left bare.
+   *
+   * The one number that decides how much of the drawing the marker covers -
+   * low leaves a thin rim of colour along the shadow, high floods everything
+   * but the highlights.
+   */
+  high: number;
+}
+
+export interface HatchState {
+  /** Which way the first layer runs, in degrees. */
+  angle: number;
+  /** How far the crossing layers are turned off it, in degrees. */
+  cross: number;
+  /** Sheet pixels between neighbouring strokes. */
+  spacing: number;
+  /** Sheet pixels of stroke weight. */
+  width: number;
+  /** Sheet pixels from one stroke's start to the next along its own run.
+   *  Zero is an unbroken rule. */
+  length: number;
+}
+
+/**
  * One placed model, written down.
  *
  * Everything here is plain data: the parsed geometry is rebuilt from `fileUrl`
@@ -541,6 +592,10 @@ export interface SceneState {
   sun: SunState;
   /** A second, shadowless light, for when one is too few. */
   fill: FillState;
+  /** The marker page's own colour and reach. */
+  marker: MarkerState;
+  /** How the etched page is ruled. */
+  hatch: HatchState;
   /** Freeze the walk camera so a framed view stops moving. */
   viewLocked: boolean;
   /** Scenes to step back through. Newest last. */
@@ -585,13 +640,13 @@ export interface SceneState {
   toggleGridX: () => void;
   toggleGridZ: () => void;
   cycleConstruction: () => void;
-  /** Four more of the selection, marching along its own facing. */
-  stampRow: () => void;
   cycleFieldRange: () => void;
   /** Step the page behind the sheet: the sheet itself, black, white. */
   cycleBackdrop: () => void;
   /** Set the page's own tone, 0 to 255 through the paper ramp. */
   setBackdrop: (value: number) => void;
+  setMarker: (marker: Partial<MarkerState>) => void;
+  setHatch: (hatch: Partial<HatchState>) => void;
   cycleRoom: () => void;
   /** Change the floor's two axes, or the ceiling. Clamped to what a room can be. */
   setRoom: (room: Partial<RoomSize>) => void;

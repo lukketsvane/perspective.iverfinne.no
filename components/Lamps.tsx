@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { isSketch } from '../types';
 import * as THREE from 'three';
 import { Line } from '@react-three/drei';
 import { useStore } from '../store';
@@ -44,7 +45,7 @@ const Lamp: React.FC<{ lamp: LampData }> = ({ lamp }) => {
 
   const isSelected = selectedLampId === lamp.id;
   const dark = theme === 'dark';
-  const sketch = sceneSurface === 'ink' || sceneSurface === 'brush';
+  const sketch = isSketch(sceneSurface);
 
   const colour = useMemo(() => temperatureColor(lamp.temperature), [lamp.temperature]);
   const guide = constructionInk(sketch, dark);

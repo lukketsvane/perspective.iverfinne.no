@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useMemo } from 'react';
+import { isSketch } from '../types';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { ContactShadows, Sky } from '@react-three/drei';
 import * as THREE from 'three';
@@ -315,7 +316,7 @@ const SceneContent = () => {
   const backdrop = useStore((state) => state.backdrop);
   // Both sketch rungs draw on the paper; brush also spots its blacks in, so
   // its cast shadow goes down as a near-solid shape rather than a wash.
-  const inkMode = sceneSurface === 'ink' || sceneSurface === 'brush';
+  const inkMode = isSketch(sceneSurface);
   const brushMode = sceneSurface === 'brush';
 
   /*

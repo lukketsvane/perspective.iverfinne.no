@@ -217,6 +217,18 @@ width happened to give was a wall rather than a menu — nothing sat near anythi
 it was related to, and which row a control landed in changed with the phone. A
 band is scanned in one movement and keeps its company at every width.
 
+**Turned sideways, the whole panel turns with it.** A phone on its side has
+about 390 px of height and something like 850 of width. Four stacked bands plus
+the dock plus the selection bar came to more than half that height, over the
+middle of the frame — which is the one part of it the drawing is actually in.
+Nothing was wrong with the panel except that it was laid out for the wrong
+axis: below 560 px of window height the four bands stand side by side in one
+line, the hairlines between them go vertical, and the whole thing is 58 px tall
+instead of 217. It scrolls sideways if eighteen controls will not fit, because
+a row you push sideways is still one row. Keyed on height rather than on
+orientation — a short window is a short window whether it is a landscape phone,
+a split view or a browser with three toolbars in it.
+
 **And it stays up.** It used to dismiss itself: a full-screen catcher sat under
 it and closed it on the first touch anywhere else. Every control in it changes
 what the drawing looks like, and the only way to judge that is to look at the
@@ -570,9 +582,14 @@ estimate fades.
 Pick the pencil up on the dock and a drag on the ground draws a footprint
 where the table is; release, and the next drag pulls its height; release, and
 the box stands — sized by eye, in two strokes, with its dimensions reading
-beside your finger as you draw and the snap applied throughout. The mode
-stays armed, so a room is blocked out in a run of strokes, each box one undo
-step, each landing selected for the usual handles to refine.
+beside your finger as you draw and the snap applied throughout. Each box is one
+undo step and lands selected for the usual handles to refine.
+
+**One press, one box.** The pencil used to stay armed, on the theory that a
+room is blocked out in a run of strokes. In the hand that is wrong: the moment
+a box stands you want to look at it, and every drag you make to look is another
+box. Press again for the next one — the mode is never on when you did not just
+ask for it, and the button says which state you are in.
 
 The library used to carry a block of sized boxes beside it — a seat at 0.45, a
 bed 0.55, a table 0.75, a counter 0.9, a person 1.75, a door 2.1 — one tap
@@ -769,8 +786,7 @@ ordered by how much has been taken away:
 - **matte** — opaque, plain white, no texture. Photographed skin and fabric is a
   lot of information to draw past; stripped out, a figure reads as form and
   value only, which is what it is doing in a scene full of white boxes
-- **ink** — the light gone too, and only the line left. It has its own section
-  below
+
 - **brush** — the same drawing with its blacks spotted in. Everything turned
   from the sun floods solid ink, the pen's own lines run in *paper* through the
   fill — drawn around, not painted over — and the cast shadow goes down as a
@@ -778,8 +794,14 @@ ordered by how much has been taken away:
   brush page: line and flat black and nothing between, which is the page a
   brush-and-ink spread actually is. Swing the sun and the blacks sweep with it,
   live. This is the one the tool opens on
-- **wire** — the twelve edges and nothing else: the construction with the object
-  taken away
+- **marker** — the same page with one flat colour laid in the band between the
+  spotted blacks and the bare paper. Ink first, then a marker over it, which is
+  the order it is really done in and why the colour never has to describe the
+  form: three values on the page and no fourth. Its hue and how far up the light
+  it reaches are two knobs of its own
+- **hatch** — the etched page, with no fill anywhere: the value is built out of
+  ruled strokes that cross a second and a third time as the light goes out, and
+  the paper between them does the rest. Five knobs, and its own section below
 
 There was a fifth, **glass**: translucent and writing no depth, so the far edges
 came through the near faces. The argument for it was drawing through — if a
@@ -848,6 +870,60 @@ the drawing, and the drawing is what the export writes out at three times the
 frame to be printed or dropped into a tablet layer and traced over. Which sheet
 you want is yours to choose — but a *white line on a black field* is not what
 the dark theme should hand you by default, so the two are separate decisions.
+
+### Hatching that describes, rather than shades
+
+The first version of this ruled its strokes on the screen, and it was worth
+throwing away. Screen-space hatching cannot describe anything: the lines run
+dead straight over a sphere, a cliff and a fold alike, so the only thing they
+carry is a value — which is a texture with a tone knob, not a drawing. Look at
+any Zorn plate and the opposite is true: you can read the whole form off the
+line *direction*, with every trace of tone removed. The strokes bend over a
+shoulder, run round a cylinder, crowd where the surface swings away and open
+out where it turns to face you.
+
+So the mechanism here is a burin's. A family of parallel **planes in the
+world**, cut against the surface; the curve where a plane meets the object is
+one stroke. That gives all of it for free and for the right reason:
+
+- on a flat wall the strokes are straight and evenly spaced;
+- on a sphere they are circles of latitude, bunching towards the rim;
+- over a fold they bend exactly as the fold bends;
+- and everywhere they crowd as the surface turns edge-on, because equal steps
+  in the world are shrinking steps on the page. **That crowding is
+  foreshortening, drawn** — it is the thing that makes the shading describe
+  rather than merely darken, and no screen-space rule can produce it.
+
+Three problems have to be solved for it to be usable.
+
+**The planes must not swim.** Their axis is built from the fragment's own ray
+out of the eye and world up — two things that change when you *walk* and not
+when you *turn*. That is also exactly the right dependency for the renderer,
+which redraws the six cube faces on a move and not on a turn, and it means all
+six faces rule one continuous set of strokes with no seam.
+
+**The spacing must hold on the page.** Planes at a fixed spacing in metres
+close into solid black as an object recedes, which is what makes naive
+world-space hatching unusable. An engraver answers that by cutting fewer lines
+on the small far thing and more on the big near one — the same decision taken
+again at every scale — so the spacing is quantised to powers of two of the
+distance and two neighbouring rungs are crossfaded. Every second line simply
+fades in as you walk closer, and no stroke ever slides.
+
+**One direction has to carry the drawing.** Three passes, and only the first is
+laid everywhere there is shade; the second crosses it where the form turns
+away, the third only in the last few per cent. Overlapping those bands is what
+turns hatching into a woven net, which is a mechanical screen and the opposite
+of the thing. The weight rides the value inside each band as well, because a
+needle bites deeper in a dark passage. And every stroke is cut to length and
+tapered at both ends — a needle enters and leaves the wax, and an unbroken rule
+reads as a wire fence.
+
+Five knobs: which way the strokes run, how far the crossing layers are turned
+off them, how far apart they stand, how heavy each one is, and how long it runs
+before it lifts. They are knobs rather than a preset because the difference
+between a good hatch and a bad one is those four numbers, and shipping one
+guess would be shipping one etching.
 
 ### The sheet and the page it is mounted on
 

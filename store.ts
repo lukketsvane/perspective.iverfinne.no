@@ -1,39 +1,19 @@
 import { create } from 'zustand';
-import {
-  Backdrop,
-  BOX_SURFACES,
-  BoxData,
-  ConstructionLevel,
-  LampData,
-  FIELD_RANGES,
-  FieldRange,
-  FillState,
-  GuideLevel,
-  MESH_SURFACES,
-  nearestSurface,
-  PerspectiveMode,
-  ROOM_LIMITS,
-  RoomSize,
-  SavedScene,
-  SceneModel,
-  SceneState,
-  SceneView,
-  SNAP_STEPS,
-  SunState,
-  Surface,
-  ThemeMode,
-  SURFACES,
-  readRoomLevel,
-  readShadows,
-  readSurface,
-  RoomLevel,
-} from './types';
+import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MESH_SURFACES, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
 import { releaseSource, cachedSourceUrls, modelRadius, findFreeSpot, loadModelFromUrl } from './lib/loadModel';
 import { cloneModel } from './lib/modelMaterials';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
 import { MAX_FIELD, wholeSheetField } from './lib/projection';
-import { luminance, mountFor, paperFor, setInkPaper, setPageTone } from './lib/inkMaterial';
+import {
+  luminance,
+  mountFor,
+  paperFor,
+  setHatch as setHatchRule,
+  setInkPaper,
+  setMarker as setMarkerInk,
+  setPageTone,
+} from './lib/inkMaterial';
 import { walkInput } from './lib/walkInput';
 
 // ---------------------------------------------------------------------------
@@ -81,6 +61,33 @@ export const DEFAULT_FOV = 90;
  * the view axis so the two visible vertical faces take different values. That
  * difference is the whole reason for having a light at all.
  */
+/**
+ * The marker, as the reference sheet has it: a yellow-green, flooding
+ * everything but the highlights.
+ *
+ * 88 degrees round the wheel is the colour a green Copic lays over black ink -
+ * far enough off pure green to read as a marker and not as a fill.
+ */
+export const DEFAULT_MARKER: MarkerState = { hue: 88, high: 0.62 };
+
+/**
+ * The etched page's default rule.
+ *
+ * Thirty-five degrees off the horizontal for the first layer and seventy
+ * across it for the second, which is the pair an etcher reaches for because a
+ * shallower crossing moires and a square one reads as a net rather than as
+ * tone. Six pixels apart at a hair under one wide, in strokes of forty-odd
+ * pixels: close enough that the darks read as tone at arm's length, open
+ * enough that every stroke is still a stroke.
+ */
+export const DEFAULT_HATCH: HatchState = {
+  angle: 38,
+  cross: 58,
+  spacing: 5,
+  width: 0.8,
+  length: 90,
+};
+
 export const DEFAULT_SUN: SunState = {
   // Over the viewer's left shoulder, so both faces of a cube you can see are
   // lit - but at different angles, which is the value separation you draw.
@@ -174,7 +181,7 @@ export const pageToneOf = (state: {
   backgroundGray: number;
   surface: Surface;
 }) =>
-  state.backdrop === 'paper' && (state.surface === 'ink' || state.surface === 'brush')
+  state.backdrop === 'paper' && isSketch(state.surface)
     ? paperFor(state.backgroundGray)
     : mountFor(pageGrayOf(state));
 
@@ -252,6 +259,8 @@ const SETTING_KEYS = [
   'construction',
   'fieldRange',
   'backdrop',
+  'marker',
+  'hatch',
   'roomLevel',
   'room',
   'showVanishing',
@@ -293,6 +302,8 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   construction: (v) => v === 0 || v === 1 || v === 2,
   fieldRange: (v) => FIELD_RANGES.includes(v as FieldRange),
   backdrop: (v) => v === 'paper' || (number(v) && (v as number) >= 0 && (v as number) <= 255),
+  marker: object,
+  hatch: object,
   roomLevel: number,
   room: object,
   showVanishing: boolean,
@@ -509,6 +520,10 @@ const remembered = kept({
   roomLevel: loadedSettings.roomLevel ?? (staleView || !legacy.showRoom ? undefined : 2),
   // ...and before the room's floor was two numbers rather than one.
   room: readRoom(loadedSettings.room),
+  // Through the defaults, so a page written by a version with fewer knobs
+  // does not come back with an undefined angle and rule nothing.
+  marker: loadedSettings.marker === undefined ? undefined : { ...DEFAULT_MARKER, ...loadedSettings.marker },
+  hatch: loadedSettings.hatch === undefined ? undefined : { ...DEFAULT_HATCH, ...loadedSettings.hatch },
   /*
    * The sun is the viewer's - bearing, height, strength and warmth all
    * survive - but which shadow the tool OPENS on is the tool's, and it moved
@@ -762,6 +777,8 @@ export const useStore = create<SceneState>((set, get) => ({
   selectedLampId: null,
   surface: OPENING_SURFACE,
   backdrop: OPENING_BACKDROP,
+  marker: DEFAULT_MARKER,
+  hatch: DEFAULT_HATCH,
   sunEnvironment: false,
   viewLocked: false,
   undoStack: [],
@@ -881,9 +898,12 @@ export const useStore = create<SceneState>((set, get) => ({
    * Nothing in the interface calls this. There was a control that did, sitting
    * a thumb-width from the ones you reach for constantly, with a single undo
    * between a mis-tap and an hour's work - and a tool you draw from should not
-   * carry a button that empties it. What is left is the primitive: the one
-   * place that knows what clearing a composition has to touch, kept whole for
-   * whatever asks next, and reached from the console and the tests meanwhile.
+   * carry a button that empties it.
+   *
+   * It has a control again, and where it has one is the whole point: inside
+   * the scene library, next to save and export, where every neighbouring
+   * control is also about the composition as a whole, and behind the same two
+   * taps that deleting a saved scene asks for. Far from the pencil.
    */
   resetScene: () =>
     set((state) => {
@@ -1085,6 +1105,9 @@ export const useStore = create<SceneState>((set, get) => ({
       return { backdrop: gray, ...pageTheme(gray, state.backgroundGray, state.surface) };
     }),
 
+  setMarker: (marker) => set((state) => ({ marker: { ...state.marker, ...marker } })),
+  setHatch: (hatch) => set((state) => ({ hatch: { ...state.hatch, ...hatch } })),
+
   cycleFieldRange: () =>
     set((state) => {
       const range = FIELD_RANGES[(FIELD_RANGES.indexOf(state.fieldRange) + 1) % FIELD_RANGES.length];
@@ -1173,82 +1196,6 @@ export const useStore = create<SceneState>((set, get) => ({
       return {};
     }),
 
-  /**
-   * Stamp the selection into a row, marching along its own facing.
-   *
-   * The diminution lesson in one press: four more of the same thing at the
-   * same spacing, running towards their shared vanishing point - a colonnade
-   * where there was a column. Equal spacing in DEPTH is the exercise every
-   * perspective course sets first, because equal steps on the ground are
-   * shrinking steps on the page, and the rate they shrink at IS the
-   * perspective. The construction's crossed diagonals are how you derive it
-   * by hand; this lays out the answer to check the derivation against.
-   *
-   * Along the selection's own depth axis, so turning the object aims the
-   * row, and one gesture composes the avenue, the fence, the queue, the
-   * street of lamps.
-   */
-  stampRow: () =>
-    set((state) => {
-      const copies = 4;
-
-      if (state.selectedModelId) {
-        const original = state.models.find((m) => m.id === state.selectedModelId);
-        if (!original?.object) return {};
-        const gap = Math.max(0.6, original.size[2] * original.scale * 1.35);
-        const dx = Math.sin(original.rotationY) * gap;
-        const dz = Math.cos(original.rotationY) * gap;
-        const row = Array.from({ length: copies }, (_, i) => ({
-          ...original,
-          id: newId(),
-          object: cloneModel(original.object!),
-          position: [
-            original.position[0] + dx * (i + 1),
-            original.position[1],
-            original.position[2] + dz * (i + 1),
-          ] as [number, number, number],
-        }));
-        return { ...remember(state), models: [...state.models, ...row] };
-      }
-
-      if (state.selectedId) {
-        const original = state.boxes.find((b) => b.id === state.selectedId);
-        if (!original) return {};
-        const gap = Math.max(0.6, original.scale[2] * 1.35);
-        const dx = Math.sin(original.rotation[1]) * gap;
-        const dz = Math.cos(original.rotation[1]) * gap;
-        const row = Array.from({ length: copies }, (_, i) => ({
-          ...original,
-          id: newId(),
-          position: [
-            original.position[0] + dx * (i + 1),
-            original.position[1],
-            original.position[2] + dz * (i + 1),
-          ] as [number, number, number],
-        }));
-        return { ...remember(state), boxes: [...state.boxes, ...row] };
-      }
-
-      if (state.selectedLampId) {
-        const original = state.lamps.find((l) => l.id === state.selectedLampId);
-        if (!original) return {};
-        // A street of lamps: along the aim, three metres apart.
-        const dx = Math.sin(original.aim) * 3;
-        const dz = -Math.cos(original.aim) * 3;
-        const row = Array.from({ length: copies }, (_, i) => ({
-          ...original,
-          id: newId(),
-          position: [
-            original.position[0] + dx * (i + 1),
-            original.position[1],
-            original.position[2] + dz * (i + 1),
-          ] as [number, number, number],
-        }));
-        return { ...remember(state), lamps: [...state.lamps, ...row] };
-      }
-
-      return {};
-    }),
 
   /**
    * The whole scene to the next rung.
@@ -1627,6 +1574,8 @@ export const useStore = create<SceneState>((set, get) => ({
 const syncTones = (state: SceneState) => {
   setInkPaper(state.backgroundGray);
   setPageTone(pageToneOf(state));
+  setMarkerInk(state.marker.hue, state.marker.high);
+  setHatchRule(state.hatch);
 };
 syncTones(useStore.getState());
 useStore.subscribe(syncTones);

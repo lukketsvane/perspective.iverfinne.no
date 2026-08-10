@@ -75,6 +75,24 @@ export const I = {
   lampSpot: (<><path d="M12 2.5v2.6" strokeOpacity="0.5" /><path d="M8.6 6.4h6.8l1.4 4.4H7.2z" /><path d="M8.2 12.6L5 20.5M15.8 12.6L19 20.5M12 12.6V21" strokeOpacity="0.5" /></>),
   power: (<><path d="M12 3.5v7" /><path d="M7.2 6.8a7 7 0 1 0 9.6 0" /></>),
 
+  /**
+   * The drawn page's own knobs.
+   *
+   * Five of them, and each has to say which of the five it is at 20 pixels
+   * across - so each draws the thing it changes: the strokes turned, the
+   * crossing, the gap between them, the weight, and the run.
+   */
+  hue: (<><circle cx="12" cy="12" r="8.6" /><path d="M12 3.4a8.6 8.6 0 0 1 7.4 12.9z" fill="currentColor" fillOpacity="0.5" stroke="none" /><circle cx="12" cy="12" r="3" strokeOpacity="0.6" /></>),
+  wash: (<><path d="M12 3.2c3.4 4.2 5.4 7 5.4 9.4a5.4 5.4 0 0 1-10.8 0c0-2.4 2-5.2 5.4-9.4z" /><path d="M7.1 14.4a5.4 5.4 0 0 0 9.8 0z" fill="currentColor" fillOpacity="0.55" stroke="none" /></>),
+  hatchAngle: (<><path d="M4.5 19 12 5M9 19l7.5-14M13.5 19 21 5" /><path d="M3 21h18" strokeOpacity="0.35" /></>),
+  hatchCross: (<><path d="M4.5 18.5 13 4M8 20 16.5 5.5" strokeOpacity="0.9" /><path d="M4 8.5 19 15M4.8 12.4 19.8 19" strokeOpacity="0.55" /></>),
+  hatchSpacing: (<><path d="M5 4.5v15M12 4.5v15M19 4.5v15" /><path d="M6.6 12h3.8M13.6 12h3.8" strokeOpacity="0.45" /></>),
+  hatchWidth: (<><path d="M5 5.5v13" strokeWidth="0.7" /><path d="M11 5.5v13" strokeWidth="1.7" /><path d="M18 5.5v13" strokeWidth="3.4" /></>),
+  hatchLength: (<><path d="M5 4.5v6M5 13.5v6" /><path d="M12 6.5v11" /><path d="M19 3.5v17" strokeOpacity="0.7" /></>),
+
+  /** An empty grid: the ground with nothing standing on it. */
+  clearScene: (<><path d="M2.5 19.5c4.5-2.2 14.5-2.2 19 0M4.6 15.3c3.6-1.5 11.2-1.5 14.8 0M6.2 11.8c2.8-1 8.8-1 11.6 0" strokeOpacity="0.75" /><path d="M8.5 19.9 11.4 11M15.5 19.9 12.6 11" strokeOpacity="0.4" /><path d="M12 3.2v4.6M9.8 5.4 12 3.2l2.2 2.2" strokeOpacity="0.85" /></>),
+
   /** A sheet mounted on a page: the drawing, and what is behind it. */
   backdrop: (<><rect x="2.5" y="3.5" width="19" height="17" rx="1.6" fill="currentColor" fillOpacity="0.9" stroke="none" /><rect x="7" y="7.5" width="10" height="9" rx="0.8" fill="none" stroke="currentColor" strokeOpacity="0.9" /></>),
 
@@ -170,7 +188,14 @@ export const I = {
    * The line drawing: a form given by its outline and two lines wrapping round
    * it. Not a shaded ball and not a wireframe - the two marks the mode makes.
    */
-  ink: (<><circle cx="12" cy="12" r="9" /><path d="M5.6 8.4a9 9 0 0 0 12.8 0" strokeOpacity="0.7" /><path d="M7.6 15.6a9 9 0 0 0 8.8 0" strokeOpacity="0.45" /></>),
+  /**
+   * The marker: the same sphere with one flat wash across its shadow side and
+   * the paper left bare where the light lands.
+   */
+  marker: (<><circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 0 0 18 12.5 12.5 0 0 1-3.4-9A12.5 12.5 0 0 1 12 3z" fill="currentColor" fillOpacity="0.45" stroke="none" /><path d="M8.6 3.9a12.5 12.5 0 0 0 0 16.2" strokeOpacity="0.6" /></>),
+
+  /** The etched sphere: strokes across the shade, crossed where it is darkest. */
+  hatch: (<><circle cx="12" cy="12" r="9" /><path d="M4.1 15.6 9.2 20.4M3.3 12.2 12.4 20.8M3.6 8.8 15.9 20.3M5 6.1 18.5 18.6M7.2 4 20.3 16.2M10.6 3.2 21 12.7" strokeOpacity="0.55" strokeWidth="1.1" /><path d="M4.6 16.9 8.6 12.6M6.7 19.3 12 13.6M9.8 20.8 14.6 15.6" strokeOpacity="0.55" strokeWidth="1.1" /></>),
   /** The same sphere with its dark half spotted solid: the brush page. */
   brush: (<><circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 0 0 18 14 14 0 0 1-4.6-9A14 14 0 0 1 12 3z" fill="currentColor" stroke="none" /></>),
 
@@ -206,7 +231,7 @@ export const I = {
 export const SURFACE_ICON: Record<Surface, React.ReactNode> = {
   original: I.surfaceSolid,
   matte: I.matte,
-  ink: I.ink,
   brush: I.brush,
-  wire: I.surfaceWire,
+  marker: I.marker,
+  hatch: I.hatch,
 };

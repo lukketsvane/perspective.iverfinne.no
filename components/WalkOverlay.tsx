@@ -5,6 +5,7 @@ import { beginMeasure, clearMeasures, endMeasure, updateMeasure } from '../lib/m
 import { holdRail, releaseRail, showRail, useRail } from '../lib/rail';
 import { SelectionBar } from './SelectionBar';
 import { LightPanel } from './LightPanel';
+import { MaterialPanel } from './MaterialPanel';
 import { Icon, I, SURFACE_ICON } from './icons';
 import { Scrub, useBackdropControl, useGrayThemeControl, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
@@ -49,6 +50,35 @@ const GUIDE_ICON: Record<GuideLevel, React.ReactNode> = {
 /** In the order of SNAP_STEPS: free, 5 cm, 25 cm, 1 m. */
 const SNAP_ICON: React.ReactNode[] = [I.snapFree, I.snapFine, I.snapMedium, I.snapCoarse];
 
+
+/**
+ * How the tools panel lays itself out when the window is short.
+ *
+ * Keyed on HEIGHT, not on orientation. What matters is not which way the phone
+ * is held but how much room there is above the dock, and a short window is a
+ * short window whether it is a landscape phone, a split view, or a browser
+ * with three toolbars in it.
+ *
+ * Written out in full rather than composed from a constant: Tailwind finds
+ * classes by reading the source text, so a variant assembled at runtime is a
+ * variant that never gets a rule generated for it. (Which is exactly what
+ * happened - the panel stayed four rows deep in landscape and measured
+ * identical to portrait, because the CSS simply did not exist.)
+ */
+const SIDEWAYS_PANEL =
+  '[@media(max-height:560px)]:flex-row [@media(max-height:560px)]:items-center ' +
+  '[@media(max-height:560px)]:max-w-[calc(100vw-1.5rem)] ' +
+  // Eighteen controls at 44 px is a little over the width even a phone on its
+  // side has, and one of them wrapping puts the whole panel back to two rows
+  // deep - which is the height this arrangement exists to save. It scrolls
+  // instead: a row you push sideways is still one row.
+  '[@media(max-height:560px)]:overflow-x-auto [@media(max-height:560px)]:scrollbar-none';
+
+/** The hairline between two bands, moved from under them to beside them. */
+const SIDEWAYS_DIVIDER =
+  '[@media(max-height:560px)]:mt-0 [@media(max-height:560px)]:pt-0 ' +
+  '[@media(max-height:560px)]:border-t-0 [@media(max-height:560px)]:ml-1 ' +
+  '[@media(max-height:560px)]:pl-1 [@media(max-height:560px)]:border-l';
 
 const MAX_PITCH = Math.PI / 2 - 0.05;
 const STICK_RADIUS = 64; // px
@@ -139,9 +169,19 @@ const TAP_MS = 700;
 export const WalkOverlay: React.FC<{
   onModels: () => void;
   onScenes: () => void;
-  /** True while a sheet is up: the dock belongs under it, not beside it. */
-  covered?: boolean;
-}> = ({ onModels, onScenes, covered = false }) => {
+  /**
+   * A library, standing in the panel slot: one row, scrolled sideways.
+   *
+   * It used to be a modal sheet drawn over everything, which covered the dock
+   * - so opening the shelf took away the toolbar you were about to use it
+   * with. It is chrome like the tools and the lights are, in the same slot,
+   * and the scene stays live underneath.
+   */
+  shelf?: React.ReactNode;
+  shelfOpen?: boolean;
+  /** Put the shelf away. Opening any of the three panels does. */
+  onShelfAway?: () => void;
+}> = ({ onModels, onScenes, shelf = null, shelfOpen = false, onShelfAway = () => {} }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -169,6 +209,14 @@ export const WalkOverlay: React.FC<{
    * panel, Tools swaps it back.
    */
   const [showLights, setShowLights] = useState(false);
+  /*
+   * ...and the drawn page's own settings, in the same slot again.
+   *
+   * Only two of the five surface rungs have any, so the button that opens this
+   * is only there on those two - a control that does nothing on three rungs
+   * out of five is a control you learn to distrust.
+   */
+  const [showMaterial, setShowMaterial] = useState(false);
   /*
    * Whether the phone's own orientation is driving the view.
    *
@@ -678,10 +726,19 @@ export const WalkOverlay: React.FC<{
             : null;
           if (!box) setBlockReadout(null);
         } else {
-          // The height is set: the box is done, and the mode stays armed for
-          // the next one.
+          /*
+           * The height is set, the box is done, and the pencil goes down.
+           *
+           * It used to stay armed, on the theory that a room is blocked out in
+           * a run of strokes. In the hand that is wrong: the moment a box
+           * stands you want to look at it, and every drag you make to look is
+           * another box. One press, one box, press again for the next - the
+           * mode is never on when you did not just ask for it, and the button
+           * says which state you are in.
+           */
           block.current = null;
           setBlockReadout(null);
+          setBlocking(false);
         }
       }
       return;
@@ -832,16 +889,18 @@ export const WalkOverlay: React.FC<{
           clearMeasures();
           measurePointer.current = null;
           setMeasuring(false);
-        } else if (showLights) setShowLights(false);
+        } else if (shelfOpen) onShelfAway();
+        else if (showMaterial) setShowMaterial(false);
+        else if (showLights) setShowLights(false);
         else if (showTools) setShowTools(false);
-        else if (!covered) useStore.getState().selectBox(null);
+        else useStore.getState().selectBox(null);
         return;
       }
 
       // Not through an open sheet. Backspace is also the reflex "go back"
       // key, and it was deleting the selection behind a library nobody could
       // see past - silently, with the sheet still up.
-      if (!covered && (key === 'delete' || key === 'backspace')) {
+      if (!shelfOpen && (key === 'delete' || key === 'backspace')) {
         const state = useStore.getState();
         if (!state.selectedId && !state.selectedModelId && !state.selectedLampId) return;
         e.preventDefault();
@@ -899,7 +958,6 @@ export const WalkOverlay: React.FC<{
       // Nor is walking, under an open sheet. The sheet swallows pointers and
       // not keys, so holding W while reading the library walked you out of the
       // room you were choosing a chair for.
-      if (covered) return;
 
       keys.add(key);
       apply();
@@ -907,7 +965,6 @@ export const WalkOverlay: React.FC<{
 
     const up = (e: KeyboardEvent) => { keys.delete(e.key.toLowerCase()); apply(); };
     // A sheet opening mid-stride must not leave the walker running.
-    if (covered) drop();
     const hidden = () => { if (document.hidden) drop(); };
 
     window.addEventListener('keydown', down);
@@ -922,16 +979,16 @@ export const WalkOverlay: React.FC<{
       walkInput.forward = 0;
       walkInput.strafe = 0;
     };
-  }, [showTools, showLights, measuring, blocking, undo, redo, covered]);
+  }, [showTools, showLights, showMaterial, shelfOpen, onShelfAway, measuring, blocking, undo, redo]);
 
   // Opening the second row is a statement that the chrome is wanted. It used to
   // fade out from under an open panel six seconds later, leaving twelve
   // controls on screen that could be seen through and not pressed. Closing the
   // row starts the idle count again.
   useEffect(() => {
-    if (showTools || showLights) holdRail();
+    if (showTools || showLights || showMaterial) holdRail();
     else releaseRail();
-  }, [showTools, showLights]);
+  }, [showTools, showLights, showMaterial]);
 
 
   const button = iconButton(isDark);
@@ -939,13 +996,28 @@ export const WalkOverlay: React.FC<{
    * One band of the tools panel: a line of related controls.
    *
    * Hung from the left rather than centred. The hairlines run the full width
-   * of the panel, and bands of six, four, five and two centred under each
-   * other made a diamond - four rows with four different left edges, which is
-   * four places to start reading. Sharing one edge makes them rows of a list.
+   * of the panel, and bands of six, four, six and two centred under each other
+   * made a diamond - four rows with four different left edges, which is four
+   * places to start reading. Sharing one edge makes them rows of a list.
+   *
+   * TURNED SIDEWAYS THE WHOLE PANEL TURNS WITH IT.
+   *
+   * A phone on its side has about 380 px of height and something like a
+   * thousand of width. Four stacked bands plus the dock plus the selection bar
+   * came to more than half of that height, over the middle of the drawing -
+   * which is the one part of the frame the drawing is actually in. There is
+   * nothing wrong with the panel except that it was laid out for the wrong
+   * axis: turned, the four bands stand side by side in one line, the hairlines
+   * between them go vertical, and the whole thing is one row tall. It costs a
+   * fifth of the height it used to and spends width, which is the thing that
+   * screen has too much of.
    */
-  const band = 'flex flex-wrap justify-start gap-1';
-  /** The hairline between two bands, and the air either side of it. */
-  const divider = `mt-1 pt-1 border-t ${isDark ? 'border-white/10' : 'border-black/10'}`;
+  const band = 'flex flex-wrap justify-start gap-1 [@media(max-height:560px)]:flex-nowrap [@media(max-height:560px)]:shrink-0';
+  /**
+   * The hairline between two bands: under them in portrait, beside them when
+   * the screen is short.
+   */
+  const divider = `${isDark ? 'border-white/10' : 'border-black/10'} mt-1 pt-1 border-t ${SIDEWAYS_DIVIDER}`;
   /*
    * The dock stays up when something is selected.
    *
@@ -963,7 +1035,7 @@ export const WalkOverlay: React.FC<{
    * of an 844-pixel frame, and only while something is selected; the tools row
    * already takes a hundred and six in the same column.
    */
-  const dockVisible = railVisible && !covered;
+  const dockVisible = railVisible;
 
   return (
     <>
@@ -1046,7 +1118,7 @@ export const WalkOverlay: React.FC<{
              user's very first Tab landed in the collapsed row, and Enter there
              changed the construction guides with nothing on screen moving. */
           {...(showTools && dockVisible ? {} : { inert: '' })}
-          className={`flex flex-col max-w-[22rem] p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showTools && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
+          className={`flex flex-col max-w-[22rem] ${SIDEWAYS_PANEL} p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showTools && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
         >
           <div className={band}>
           <button
@@ -1117,6 +1189,19 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={SURFACE_ICON[sceneSurface]} className="w-5 h-5" />
           </button>
+          {/* Only on the two rungs that have anything to set. A button that
+              does nothing on three rungs out of five is a button you learn to
+              distrust, so it is absent rather than disabled. */}
+          {(sceneSurface === 'marker' || sceneSurface === 'hatch') && (
+            <button
+              onClick={() => { setShowTools(false); setShowLights(false); setShowMaterial(true); onShelfAway(); }}
+              aria-label={sceneSurface === 'hatch' ? 'How the hatching is ruled' : "The marker's own settings"}
+              aria-expanded={showMaterial}
+              className={button}
+            >
+              <Icon path={sceneSurface === 'hatch' ? I.hatchAngle : I.hue} className="w-5 h-5" />
+            </button>
+          )}
           <button
             {...grayThemeControl}
             aria-label={`Paper tone, ${backgroundGray} of 255 - drag to change`}
@@ -1139,7 +1224,7 @@ export const WalkOverlay: React.FC<{
             <Icon path={I.backdrop} className="w-5 h-5" />
           </button>
           <button
-            onClick={() => { setShowTools(false); setShowLights(true); }}
+            onClick={() => { setShowTools(false); setShowMaterial(false); setShowLights(true); onShelfAway(); }}
             aria-label="Lights"
             aria-expanded={showLights}
             className={button}
@@ -1287,12 +1372,32 @@ export const WalkOverlay: React.FC<{
           </div>
         </div>
 
+        {/* The library, in the same slot: one row, scrolled sideways. */}
+        <div className="absolute bottom-0 inset-x-0 flex justify-center pointer-events-none">
+          <div
+            {...(shelfOpen && dockVisible ? {} : { inert: '' })}
+            className={`max-w-full min-w-0 p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${shelfOpen && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
+          >
+            {shelf}
+          </div>
+        </div>
+
+        {/* And the drawn page's own knobs, in the same slot again. */}
+        <div className="absolute bottom-0 inset-x-0 flex justify-center pointer-events-none">
+          <div
+            {...(showMaterial && dockVisible ? {} : { inert: '' })}
+            className={`max-w-full p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showMaterial && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
+          >
+            <MaterialPanel />
+          </div>
+        </div>
+
         </div>
 
         {/* Primary Dock */}
         {/* What you can do to the thing you are holding, above what you can do
             to the view. */}
-        <SelectionBar raised={covered} />
+        <SelectionBar />
 
         {/*
           * The dock is the verbs, and only the verbs.
@@ -1431,7 +1536,7 @@ export const WalkOverlay: React.FC<{
           <button
             // With the lights up, Tools means "back to the tools": the two
             // share the slot, so this swaps rather than stacks.
-            onClick={() => { setShowTools(showLights ? true : !showTools); setShowLights(false); }}
+            onClick={() => { setShowTools(showLights || showMaterial || shelfOpen ? true : !showTools); setShowLights(false); setShowMaterial(false); onShelfAway(); }}
             aria-label="Tools"
             aria-expanded={showTools}
             className={`${button} ${showTools ? 'bg-black/10 dark:bg-white/10' : ''}`}

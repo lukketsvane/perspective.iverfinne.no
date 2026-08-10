@@ -134,15 +134,57 @@ export const inkUniforms = {
   /** A little flat tone under the lines. 0 is bare paper. */
   tone: { value: 0 },
   toneSteps: { value: 3 },
+
+  /*
+   * The marker.
+   *
+   * One colour, laid flat, in the band between the spotted blacks and the bare
+   * paper - which is exactly what a marker does over an ink drawing. Not a
+   * gradient and not a light model: a marker has one value, it either went on
+   * or it did not, and the drawing underneath is what carries the form.
+   */
+  accent: { value: new THREE.Color('#8ed24a') },
+  /** Above this much light the paper is left bare. */
+  accentHigh: { value: 0.62 },
+
+  /*
+   * The hatching.
+   *
+   * Ruled on the WORLD direction from the eye, not on the screen and not on
+   * the surface. Screen space cannot work here for the same reason an edge
+   * filter cannot - the scene goes onto six cube faces with no neighbours
+   * across a seam - and surface space gives engraving that swims with the
+   * object rather than strokes that sit on a sheet. A direction from the eye
+   * is shared by every face, and because the projection is equidistant, even
+   * angular spacing IS even spacing on the finished page.
+   *
+   * Two latitudes are used, one about the world Y axis and one about X, and
+   * the hatch angle mixes them. Neither wraps, so there is no meridian where
+   * the derivative blows up and paints a seam.
+   */
+  hatchAngle: { value: 0.6 },
+  /** Radians between the first layer and the crossing one. */
+  hatchCross: { value: 1.15 },
+  /** Sheet pixels between neighbouring strokes. */
+  hatchSpacing: { value: 6 },
+  /** Sheet pixels of stroke weight. */
+  hatchWidth: { value: 0.85 },
+  /** Sheet pixels from the start of one stroke to the start of the next along
+   *  its own run. Zero means an unbroken line. */
+  hatchLength: { value: 44 },
 };
 
 const VERTEX = `
   varying vec3 vNormalView;
   varying vec3 vViewPos;
+  varying vec3 vWorldPos;
 
   void main() {
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     vViewPos = mv.xyz;
+    // World space, for the hatching. Every cube face has its own view matrix
+    // and shares one world, so this is the only frame all six agree on.
+    vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
     // The inverse-transpose, so a box scaled unevenly still has honest
     // normals. View space rather than world: a cube face's view matrix turns
     // the normal and the eye vector by the same rotation, and the dot product
@@ -169,9 +211,19 @@ const FRAGMENT = `
   uniform float tone;
   uniform float toneSteps;
   uniform float fill;
+  uniform float marker;
+  uniform float hatch;
+  uniform vec3 accent;
+  uniform float accentHigh;
+  uniform float hatchAngle;
+  uniform float hatchCross;
+  uniform float hatchSpacing;
+  uniform float hatchWidth;
+  uniform float hatchLength;
 
   varying vec3 vNormalView;
   varying vec3 vViewPos;
+  varying vec3 vWorldPos;
 
   /**
    * A line of even weight wherever a value crosses zero.
@@ -199,6 +251,79 @@ const FRAGMENT = `
     float slope = max(fwidth(value), floorSlope);
     float away = abs(fract(value - 0.5) - 0.5) / slope;
     return 1.0 - smoothstep(0.0, widthSourcePx, away);
+  }
+
+  /**
+   * One layer of hatching, CUT AGAINST THE FORM.
+   *
+   * This is the whole difference between a hatching material and a hatching
+   * filter, so it is worth being exact about.
+   *
+   * A filter rules strokes on the screen. It cannot describe anything: the
+   * lines run dead straight over a sphere, a cliff and a fold alike, and the
+   * only thing they carry is a value. What an etcher actually does is lay
+   * strokes ALONG the form, so the strokes themselves say which way the
+   * surface is turning - they bend over a shoulder, run round a cylinder,
+   * crowd where the surface swings away and open out where it faces you. You
+   * can read the form off the line direction alone, with every trace of tone
+   * removed. That is the thing being simulated here.
+   *
+   * The mechanism is a burin's: a family of parallel PLANES in the world, cut
+   * against the surface. The curve where a plane meets the object is one
+   * stroke, so
+   *
+   *   - on a flat wall the strokes are straight and evenly spaced,
+   *   - on a sphere they are circles of latitude, bunching towards the rim,
+   *   - over a fold they bend exactly as the fold bends,
+   *   - and everywhere they crowd as the surface turns edge-on, because equal
+   *     steps in the world are shrinking steps on the page. That crowding IS
+   *     foreshortening, drawn, and it is what makes the shading describe
+   *     rather than merely darken.
+   *
+   * The first argument is the signed distance along the planes shared normal,
+   * in metres; the third is how far apart they stand. Both come from the
+   * caller, which is where the level of detail is decided. (No back quotes
+   * anywhere below: this whole shader is one JS template literal and a single
+   * one of them ends it in the middle of a comment.)
+   *
+   * The stroke is then cut to length along the plane and tapered at both
+   * ends, because a needle enters and leaves the wax and an unbroken rule
+   * reads as a wire fence. The run is a multiple of the spacing rather than a
+   * length of its own, which is what keeps a passage looking like one hand at
+   * every distance.
+   */
+  float hatchCut(float f, float along, float step, float widthSourcePx, float runRatio) {
+    float line = ruledMark(f / step, widthSourcePx, 0.0);
+    if (runRatio > 0.01) {
+      float t = fract(along / (step * runRatio));
+      line *= smoothstep(0.0, 0.14, t) * (1.0 - smoothstep(0.62, 0.80, t));
+    }
+    return line;
+  }
+
+  /**
+   * The same, held to one weight on the page however far away the object is.
+   *
+   * Planes at a fixed spacing in metres would close into solid black as an
+   * object recedes, which is what makes naive world-space hatching unusable.
+   * An engraver answers that by cutting FEWER lines on the small far thing and
+   * more on the big near one - the same decision taken again at every scale -
+   * so the spacing is quantised to powers of two of the distance and two
+   * neighbouring rungs are crossfaded. Every second line simply fades in as
+   * the surface comes closer, and no stroke ever slides.
+   */
+  float hatchAt(
+    float f, float along, float wantMetres, float widthSourcePx, float runRatio
+  ) {
+    float lod = log2(max(wantMetres, 1e-5) / 0.01);
+    float rung = floor(lod);
+    float coarse = 0.01 * exp2(rung + 1.0);
+    float fine = coarse * 0.5;
+    float over = lod - rung;
+    return max(
+      hatchCut(f, along, coarse, widthSourcePx, runRatio),
+      hatchCut(f, along, fine, widthSourcePx, runRatio) * (1.0 - over)
+    );
   }
 
   void main() {
@@ -260,7 +385,103 @@ const FRAGMENT = `
     }
     vec3 ground = mix(paper, ink, shade * 0.16);
 
+    /*
+     * The marker pass.
+     *
+     * One flat colour in the band between the spotted blacks and the bare
+     * paper. A marker has one value: it either went on or it did not, and the
+     * ink underneath is what carries the form - so the edge is a hard one,
+     * antialiased over its own derivative like the fill's is, and there is no
+     * gradient anywhere in it. Three values on the page, which is what the
+     * reference sheet has: black, the colour, and white paper.
+     */
+    if (marker > 0.5) {
+      float wash = 1.0 - smoothstep(accentHigh - max(fwidth(lambert), 1e-4) * 1.5,
+                                    accentHigh + max(fwidth(lambert), 1e-4) * 1.5,
+                                    lambert);
+      ground = mix(ground, accent, wash);
+    }
+
     float pen = clamp(max(max(contour, form), max(terminator, wrap)), 0.0, 1.0);
+
+    /*
+     * The hatching, in three passes that come in as the light goes out.
+     *
+     * An etcher does not draw a tone, they draw a number of lines and let the
+     * paper between them do the rest - so the value here is carried by which
+     * layers are present, not by any wash. The first layer is laid through
+     * everything past the half-light; the second crosses it in the shadow; the
+     * third crosses again in the darkest passages. Each fades in over its own
+     * run rather than switching on, which is the difference between shading
+     * and a contour map of the shading.
+     */
+    float hatchInk = 0.0;
+    if (hatch > 0.5) {
+      /*
+       * The burin's axis: a fixed angle to the horizon, without knowing which
+       * way the head is turned.
+       *
+       * The planes have to be steady while you look around, or the strokes
+       * would swim - and worse, the six cube faces the curvilinear view is
+       * read off would each rule a different set, seams and all. So the frame
+       * is built from the fragment's own ray out of the eye and world up: two
+       * things that change when you WALK and not when you turn. That is also
+       * exactly the right dependency for the renderer, which redraws the cube
+       * on a move and not on a turn.
+       */
+      vec3 toEye = vWorldPos - cameraPosition;
+      float dist = max(length(toEye), 1e-4);
+      vec3 d = toEye / dist;
+      vec3 up = abs(d.y) > 0.98 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+      vec3 su = normalize(up - d * dot(up, d));
+      vec3 sr = normalize(cross(d, su));
+
+      // How far apart the strokes should stand ON THE PAGE, said in metres
+      // out here where the surface is.
+      float wantMetres = hatchSpacing * radPerSheetPixel * dist;
+      float strokeWidth = clamp(hatchWidth * scale, 0.3, 24.0);
+      float runRatio = hatchLength / max(hatchSpacing, 0.001);
+      float dark = 1.0 - clamp(lambert, 0.0, 1.0);
+
+      /*
+       * Three passes, and only the first is laid everywhere there is shade.
+       *
+       * A Zorn passage is one confident direction almost throughout, crossed
+       * once where the form turns away and a third time in the last few per
+       * cent. Overlapping the bands is what turns hatching into a woven net -
+       * a mechanical screen, which is the opposite of the thing.
+       *
+       * The weight rides the value inside each band as well, because a needle
+       * bites deeper in a dark passage: the same stroke is a hair at the top
+       * of its band and a line at the bottom.
+       */
+      float bite = 0.70 + 0.95 * dark;
+      vec3 axis;
+      float f;
+      float along;
+
+      axis = su * cos(hatchAngle) + sr * sin(hatchAngle);
+      f = dot(vWorldPos, axis);
+      along = dot(vWorldPos, su * -sin(hatchAngle) + sr * cos(hatchAngle));
+      hatchInk = hatchAt(f, along, wantMetres, strokeWidth * bite, runRatio)
+        * smoothstep(0.10, 0.34, dark);
+
+      float second = hatchAngle + hatchCross;
+      axis = su * cos(second) + sr * sin(second);
+      f = dot(vWorldPos, axis);
+      along = dot(vWorldPos, su * -sin(second) + sr * cos(second));
+      hatchInk = max(hatchInk, hatchAt(f, along, wantMetres, strokeWidth * bite, runRatio)
+        * smoothstep(0.52, 0.76, dark));
+
+      float third = hatchAngle - hatchCross * 0.55;
+      axis = su * cos(third) + sr * sin(third);
+      f = dot(vWorldPos, axis);
+      along = dot(vWorldPos, su * -sin(third) + sr * cos(third));
+      hatchInk = max(hatchInk, hatchAt(f, along, wantMetres * 0.8, strokeWidth * bite, runRatio)
+        * smoothstep(0.82, 0.99, dark));
+
+      pen = clamp(max(pen, hatchInk), 0.0, 1.0);
+    }
 
     /*
      * The blacks, spotted in.
@@ -306,12 +527,35 @@ const FRAGMENT = `
   }
 `;
 
-const build = (filled: boolean, extra: THREE.ShaderMaterialParameters = {}) => {
+/**
+ * Which of the three drawings this material is.
+ *
+ * One shader and one set of shared uniforms - the paper, the pen, the sun, the
+ * weights are all one setting reaching every material at once - and three
+ * switches on top of it that are each material's own. They are switches rather
+ * than three shaders because everything that makes the line is identical in
+ * all three: they differ only in what is laid UNDER the line.
+ */
+interface Style {
+  /** Spot the blacks: everything turned from the sun goes down solid. */
+  fill?: boolean;
+  /** Lay one flat colour in the band between the blacks and the paper. */
+  marker?: boolean;
+  /** Build the value out of ruled strokes instead of out of a fill. */
+  hatch?: boolean;
+}
+
+const build = (style: Style, extra: THREE.ShaderMaterialParameters = {}) => {
   const material = new THREE.ShaderMaterial({
     // A spread, not the object: the shared uniform holders keep their
-    // identity - one setInkPaper reaches every material - while the fill
-    // switch is this material's own.
-    uniforms: { ...inkUniforms, fill: { value: filled ? 1 : 0 } },
+    // identity - one setInkPaper reaches every material - while the three
+    // style switches are this material's own.
+    uniforms: {
+      ...inkUniforms,
+      fill: { value: style.fill ? 1 : 0 },
+      marker: { value: style.marker ? 1 : 0 },
+      hatch: { value: style.hatch ? 1 : 0 },
+    },
     vertexShader: VERTEX,
     fragmentShader: FRAGMENT,
     ...extra,
@@ -323,11 +567,28 @@ const build = (filled: boolean, extra: THREE.ShaderMaterialParameters = {}) => {
   return material;
 };
 
-/** What a sculpted mesh is drawn with. */
-export const INK = build(false);
+/** The finished brush page: line, and the blacks spotted in. */
+export const BRUSH = build({ fill: true });
 
-/** The same drawing with its blacks spotted in. */
-export const BRUSH = build(true);
+/**
+ * The same page with a marker over it.
+ *
+ * Ink first, then one flat colour laid in the band between the spotted blacks
+ * and the bare paper - which is the order it is actually done in, and why the
+ * colour never has to describe the form. Three values on the page and no
+ * fourth.
+ */
+export const MARKER = build({ fill: true, marker: true });
+
+/**
+ * The etched page: no fill at all, and the value is the strokes.
+ *
+ * Deliberately not `fill`. An etcher's dark is a place where three layers of
+ * line have crossed, and laying a solid black under them would be answering
+ * the question twice - the whole discipline of the medium is that the paper
+ * between the strokes is doing the work.
+ */
+export const HATCH = build({ hatch: true });
 
 /**
  * What a box is drawn with.
@@ -338,14 +599,10 @@ export const BRUSH = build(true);
  * for a box is lay the same paper under them, offset so the edges sit on top
  * rather than fighting the face for the pixel.
  */
-export const INK_BOX = build(false, { polygonOffset: true, polygonOffsetFactor: 1 });
+export const BRUSH_BOX = build({ fill: true }, { polygonOffset: true, polygonOffsetFactor: 1 });
+export const MARKER_BOX = build({ fill: true, marker: true }, { polygonOffset: true, polygonOffsetFactor: 1 });
+export const HATCH_BOX = build({ hatch: true }, { polygonOffset: true, polygonOffsetFactor: 1 });
 
-/**
- * A box with its blacks spotted in. Flat faces make the fill a per-face
- * verdict - a face is lit or it is ink - which is exactly the poster-flat
- * black a brush page spots a box with.
- */
-export const BRUSH_BOX = build(true, { polygonOffset: true, polygonOffsetFactor: 1 });
 
 /**
  * The sheet you are drawing on, from black paper to white.
@@ -357,11 +614,18 @@ export const BRUSH_BOX = build(true, { polygonOffset: true, polygonOffsetFactor:
  * The run between 58 and 88 is deliberately steep. There is no such thing as a
  * mid-value drawing surface: paper is light or the board is dark, and the
  * middle is a place the thumb passes through rather than somewhere to stop.
- * Both ends are what the mode already shipped before this was a control.
+ *
+ * The dark end is warm-neutral and bottoms out at true black. It used to run
+ * #15171b / #24262b - a cool board, chosen because a slate is faintly blue -
+ * and every one of those tones reads as NAVY on a screen full of white line
+ * work. There is nowhere in this tool where a dark blue is the right answer:
+ * a dark sheet should be charcoal, ash and soot, which is what the run below
+ * is, and nothing in the app can now land on a colour anybody would call
+ * blue.
  */
 const PAPER_RAMP: [number, string][] = [
-  [0, '#15171b'],
-  [26, '#24262b'],
+  [0, '#000000'],
+  [26, '#1b1a18'],
   [58, '#3a3630'],
   [72, '#4b453c'],
   [88, '#b9aa8f'],
@@ -476,6 +740,34 @@ export const mountFor = (gray: number): THREE.Color => {
 export const setPageTone = (tone: THREE.Color) => {
   page.tone = tone.clone();
   page.ink = inkFor(page.tone);
+};
+
+/**
+ * The marker's colour, and where it stops.
+ *
+ * A hue rather than a colour, because the value and the saturation are what
+ * make it read as a marker rather than as paint - a marker is a light, very
+ * saturated stain over a drawing, and the two numbers that hold it there are
+ * not choices worth offering.
+ */
+export const setMarker = (hue: number, high: number) => {
+  inkUniforms.accent.value.setHSL(((hue % 360) + 360) % 360 / 360, 0.72, 0.58, THREE.SRGBColorSpace);
+  inkUniforms.accentHigh.value = high;
+};
+
+/** Everything the hatch is ruled by. Angles in degrees, sizes in sheet pixels. */
+export const setHatch = (h: {
+  angle: number;
+  cross: number;
+  spacing: number;
+  width: number;
+  length: number;
+}) => {
+  inkUniforms.hatchAngle.value = (h.angle * Math.PI) / 180;
+  inkUniforms.hatchCross.value = (h.cross * Math.PI) / 180;
+  inkUniforms.hatchSpacing.value = h.spacing;
+  inkUniforms.hatchWidth.value = h.width;
+  inkUniforms.hatchLength.value = h.length;
 };
 
 /** The page's own tone and pen, as hex, for everything outside a shader. */

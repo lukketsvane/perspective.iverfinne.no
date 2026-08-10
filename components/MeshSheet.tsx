@@ -3,7 +3,6 @@ import { useStore } from '../store';
 import { MESH_LIBRARY } from '../lib/meshLibrary';
 import { MODEL_ACCEPT } from '../lib/loadModel';
 import { Icon, I } from './icons';
-import { Sheet } from './Sheet';
 import { tile } from './ui';
 import { generateMeshPreview, getMeshPreview } from '../lib/meshPreview';
 import { focusPoint } from '../lib/focus';
@@ -150,11 +149,16 @@ export const MeshSheet: React.FC<{
   };
 
   return (
-    <Sheet onClose={onClose}>
-      <div
-        data-tile-scroll
-        className="grid grid-cols-3 gap-2 max-h-[50vh] overflow-y-auto overscroll-contain scrollbar-none px-4 pb-4"
-      >
+    /*
+     * A shelf, not a sheet: one row scrolled sideways, standing in the panel
+     * slot above the dock. Sideways rather than a grid because a grid tall
+     * enough to be worth having is a grid that covers the drawing, and what
+     * this is for is putting something INTO the drawing.
+     */
+    <div
+      data-tile-scroll
+      className="flex gap-2 max-w-full min-w-0 overflow-x-auto overscroll-contain scrollbar-none [&>*]:shrink-0 [&>*]:w-[4.75rem]"
+    >
         {/* A light is placed like anything else: it is a scene object, not a
             setting - see components/Lamps.tsx. */}
         <button
@@ -217,8 +221,6 @@ export const MeshSheet: React.FC<{
             onForget={() => forgetMesh(mesh.url)}
           />
         ))}
-      </div>
-
       <input
         ref={importInputRef}
         type="file"
@@ -230,6 +232,6 @@ export const MeshSheet: React.FC<{
           e.target.value = '';
         }}
       />
-    </Sheet>
+    </div>
   );
 };
