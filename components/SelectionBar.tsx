@@ -6,7 +6,7 @@ import { exportScaledModel } from '../lib/exportModel';
 import { SURFACE_ICON } from './icons';
 import { useRail } from '../lib/rail';
 import { selectionRange } from '../lib/focus';
-import { BOX_SURFACES, MESH_SURFACES, nearestSurface } from '../types';
+import { selectionSurface, surfaceHasSettings } from '../types';
 import type { LampData } from '../types';
 
 /** Everything sizes to the centimetre. Below that is not a drawing decision. */
@@ -380,10 +380,12 @@ export const SelectionBar: React.FC<{
    * what is actually being drawn rather than what the scene would draw by
    * default - and it shows it as the cube itself, so the state and the control
    * are the same mark.
+   *
+   * Through the shared reading rather than worked out here, because the overlay
+   * asks the same question to decide which knobs the panel this bar opens
+   * should hold, and the two answers have to be the same answer.
    */
-  const surface = model
-    ? nearestSurface(model.surface ?? sceneSurface, MESH_SURFACES)
-    : nearestSurface(box!.surface ?? sceneSurface, BOX_SURFACES);
+  const surface = selectionSurface({ boxes, models, selectedId, selectedModelId, surface: sceneSurface })!;
 
   const isDark = theme === 'dark';
   const button = `${snugIconButton(isDark)} border border-transparent`;
@@ -528,19 +530,24 @@ export const SelectionBar: React.FC<{
           * exactly when a full-width panel over the drawing is worst. Same
           * panel, same slot, one tap, with the selection still in hand.
           *
-          * Only on the two rungs that have anything to set, and keyed to the
-          * scene's rung rather than this one's because those knobs are the
-          * page's: they rule every stroke in it, not just this object's. A
-          * button that opened an empty panel would be worse than no button.
+          * THIS ONE'S RUNG, NOT THE SCENE'S. It followed the scene at first,
+          * which put the knobs for a hatched object out of reach on any page
+          * that was not itself hatched - and a single object stepped off the
+          * scene's rung is the whole point of the button beside it. The panel
+          * is told which rung it was opened for, so what comes up is always
+          * what this button promised.
+          *
+          * Only on the two rungs that have anything to set. A button that
+          * opened an empty panel would be worse than no button.
           */}
-        {onMaterial && (sceneSurface === 'marker' || sceneSurface === 'hatch') && (
+        {onMaterial && surfaceHasSettings(surface) && (
           <button
             onClick={onMaterial}
-            aria-label={sceneSurface === 'hatch' ? 'How the hatching is ruled' : "The marker's own settings"}
+            aria-label={surface === 'hatch' ? 'How the hatching is ruled' : "The marker's own settings"}
             aria-expanded={materialOpen}
             className={`${button} ${materialOpen ? (isDark ? 'bg-white/10' : 'bg-black/10') : ''}`}
           >
-            <Icon path={sceneSurface === 'hatch' ? I.hatchAngle : I.hue} className="w-5 h-5" />
+            <Icon path={surface === 'hatch' ? I.hatchAngle : I.hue} className="w-5 h-5" />
           </button>
         )}
         {model?.object && (

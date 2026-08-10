@@ -20,7 +20,7 @@ import { directionAt, pickGround, pickObject, pixelsPerMetreAt } from '../lib/pi
 import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
 import { MAX_FIELD, wholeSheetField } from '../lib/projection';
-import { SNAP_STEPS, type GuideLevel, type PerspectiveMode } from '../types';
+import { SNAP_STEPS, selectionSurface, surfaceHasSettings, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
 
 /**
  * The systems the button steps through: bowed horizontals, then the ruled
@@ -279,8 +279,17 @@ export const WalkOverlay: React.FC<{
    * Only two of the five surface rungs have any, so the button that opens this
    * is only there on those two - a control that does nothing on three rungs
    * out of five is a control you learn to distrust.
+   *
+   * WHERE it was opened from, not just whether it is open. There are two ways
+   * in and they ask different questions: the tools band asks what the whole
+   * page is made of, the selection bar asks what the thing in your hand is
+   * drawn on, and an object that overrules the scene makes those two different
+   * rungs. Storing the answer instead of the question would go stale the
+   * moment the rung under it changed - so this holds which one is being
+   * followed, and the rung is read fresh from it on every pass.
    */
-  const [showMaterial, setShowMaterial] = useState(false);
+  const [materialFrom, setMaterialFrom] = useState<'scene' | 'selection' | null>(null);
+  const showMaterial = materialFrom !== null;
 
   /**
    * ONE PANEL IN THE SLOT AT A TIME.
@@ -298,7 +307,7 @@ export const WalkOverlay: React.FC<{
   const swapTo = (open: () => void) => () => {
     setShowTools(false);
     setShowLights(false);
-    setShowMaterial(false);
+    setMaterialFrom(null);
     open();
   };
 
@@ -359,6 +368,21 @@ export const WalkOverlay: React.FC<{
   const [blockReadout, setBlockReadout] = useState<{ x: number; y: number; text: string } | null>(null);
   const railVisible = useRail();
   const sceneSurface = useStore((s) => s.surface);
+  /*
+   * Which rung the page's knobs are showing, read fresh from where they were
+   * opened - see `materialFrom` above. Null when they are shut, and null again
+   * the moment the rung being followed steps onto one with nothing to set,
+   * which the effect below reads as a reason to shut them.
+   */
+  const selectionRung = useStore(selectionSurface);
+  const materialSurface =
+    materialFrom === 'selection' ? selectionRung : materialFrom === 'scene' ? sceneSurface : null;
+  // The panel is faded rather than unmounted, so it is still on screen for a
+  // moment after the rung it was showing has gone. It keeps drawing the last
+  // one it had all the way out; swapping to the scene's, or to nothing, is a
+  // panel that changes or empties as it leaves.
+  const lastMaterialSurface = useRef<Surface>('hatch');
+  if (materialSurface) lastMaterialSurface.current = materialSurface;
   const cycleSurface = useStore((s) => s.cycleSurface);
   const shufflePreset = useStore((s) => s.shufflePreset);
   const roomLevel = useStore((s) => s.roomLevel);
@@ -976,7 +1000,7 @@ export const WalkOverlay: React.FC<{
           measurePointer.current = null;
           setMeasuring(false);
         } else if (shelfOpen) onShelfAway();
-        else if (showMaterial) setShowMaterial(false);
+        else if (showMaterial) setMaterialFrom(null);
         else if (showLights) setShowLights(false);
         else if (showTools) setShowTools(false);
         else useStore.getState().selectBox(null);
@@ -1075,6 +1099,19 @@ export const WalkOverlay: React.FC<{
     if (showTools || showLights || showMaterial) holdRail();
     else releaseRail();
   }, [showTools, showLights, showMaterial]);
+
+  /*
+   * The knobs go when the rung they belong to does.
+   *
+   * They follow a rung rather than hold a copy of one, so stepping the
+   * selection onto brush - or putting it down altogether - while its knobs are
+   * up leaves them describing nothing. An open panel with nothing in it is a
+   * panel that looks broken, and the button that opened it has already gone
+   * from the bar underneath.
+   */
+  useEffect(() => {
+    if (materialFrom && !surfaceHasSettings(materialSurface)) setMaterialFrom(null);
+  }, [materialFrom, materialSurface]);
 
 
   const button = iconButton(isDark);
@@ -1305,12 +1342,16 @@ export const WalkOverlay: React.FC<{
           </button>
           {/* Only on the two rungs that have anything to set. A button that
               does nothing on three rungs out of five is a button you learn to
-              distrust, so it is absent rather than disabled. */}
-          {(sceneSurface === 'marker' || sceneSurface === 'hatch') && (
+              distrust, so it is absent rather than disabled.
+
+              The scene's rung here, this being the scene's band: the copy on
+              the selection bar asks the same question of whatever is in your
+              hand, and either can be the one that has knobs. */}
+          {surfaceHasSettings(sceneSurface) && (
             <button
-              onClick={() => { setShowTools(false); setShowLights(false); setShowMaterial(true); onShelfAway(); }}
+              onClick={() => { setShowTools(false); setShowLights(false); setMaterialFrom('scene'); onShelfAway(); }}
               aria-label={sceneSurface === 'hatch' ? 'How the hatching is ruled' : "The marker's own settings"}
-              aria-expanded={showMaterial}
+              aria-expanded={materialFrom === 'scene'}
               className={button}
             >
               <Icon path={sceneSurface === 'hatch' ? I.hatchAngle : I.hue} className="w-5 h-5" />
@@ -1338,7 +1379,7 @@ export const WalkOverlay: React.FC<{
             <Icon path={I.backdrop} className="w-5 h-5" />
           </button>
           <button
-            onClick={() => { setShowTools(false); setShowMaterial(false); setShowLights(true); onShelfAway(); }}
+            onClick={() => { setShowTools(false); setMaterialFrom(null); setShowLights(true); onShelfAway(); }}
             aria-label="Lights"
             aria-expanded={showLights}
             className={button}
@@ -1501,7 +1542,10 @@ export const WalkOverlay: React.FC<{
             {...(showMaterial && dockVisible ? {} : { inert: '' })}
             className={`max-w-full ${SIDEWAYS_BLOCK} p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showMaterial && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
           >
-            <MaterialPanel />
+            {/* The rung it was opened for, held through the closing fade: read
+                live it would swap knobs on the way out, and `null` would empty
+                the panel before it had finished leaving. */}
+            <MaterialPanel surface={materialSurface ?? lastMaterialSurface.current} />
           </div>
         </div>
 
@@ -1510,20 +1554,22 @@ export const WalkOverlay: React.FC<{
         {/* Primary Dock */}
         {/* What you can do to the thing you are holding, above what you can do
             to the view. The page's own knobs hang off it as well as off the
-            tools row: on the two rungs that have any, they are the settings
-            you reach for with something still selected. It toggles, unlike
-            the copy in the tools band - that one closes the panel it lives in
-            as it opens this one, so there is nothing left to press twice. */}
+            tools row - opened for THIS one's rung, which is why the panel is
+            told where it was opened from rather than left to read the scene.
+            It toggles, unlike the copy in the tools band: that one closes the
+            panel it lives in as it opens this one, so there is nothing left to
+            press twice. Lit only while it is the selection's knobs that are
+            up, so the tools band's are not claimed by a button beside them. */}
         <SelectionBar
-          materialOpen={showMaterial}
+          materialOpen={materialFrom === 'selection'}
           onMaterial={() => {
-            if (showMaterial) {
-              setShowMaterial(false);
+            if (materialFrom === 'selection') {
+              setMaterialFrom(null);
               return;
             }
             setShowTools(false);
             setShowLights(false);
-            setShowMaterial(true);
+            setMaterialFrom('selection');
             onShelfAway();
           }}
         />
@@ -1669,7 +1715,7 @@ export const WalkOverlay: React.FC<{
           <button
             // With the lights up, Tools means "back to the tools": the two
             // share the slot, so this swaps rather than stacks.
-            onClick={() => { setShowTools(showLights || showMaterial || shelfOpen ? true : !showTools); setShowLights(false); setShowMaterial(false); onShelfAway(); }}
+            onClick={() => { setShowTools(showLights || showMaterial || shelfOpen ? true : !showTools); setShowLights(false); setMaterialFrom(null); onShelfAway(); }}
             aria-label="Tools"
             aria-expanded={showTools}
             className={`${button} ${showTools ? 'bg-black/10 dark:bg-white/10' : ''}`}
