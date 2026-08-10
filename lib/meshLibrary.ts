@@ -54,7 +54,7 @@ export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'il-tempo-gigante', name: 'Il Tempo Gigante', url: '/meshes/il-tempo-gigante.glb' },
 
   /*
-   * Three horses and a platypus: the half of the shelf that does not hold
+   * Four horses and a platypus: the half of the shelf that does not hold
    * still.
    *
    * A chair is a box with legs and a car is a long box, and both are things a
@@ -66,26 +66,31 @@ export const MESH_LIBRARY: LibraryMesh[] = [
    * turns the whole mass. Kim Jung Gi drew them constantly for exactly that
    * reason.
    *
-   * Three, deliberately, because one horse is a shape and three are a lesson,
-   * and each is named for the pose it is actually in rather than the pose that
-   * would round the set off. Lying, the foal is folded down on itself and the
-   * whole barrel is read across the back. Leaping, the same animal is off the
-   * ground with the forelegs up, so the near foreleg comes almost straight at
-   * the eye and the perspective does all the work. Rising, the adult horse has
-   * its hind end still down and its neck already vertical, which turns the
-   * spine through nearly a right angle inside one form - the deepest
-   * foreshortening on the shelf, and the reason it is here.
+   * Four, because one horse is a shape and four are a lesson, and each is
+   * named for the pose it is actually in rather than the pose that would round
+   * the set off. Trotting, the foal is the plain case and the one to measure
+   * the others against: four legs at four depths, the barrel square to the
+   * spine, nothing folded. Lying, it is folded down on itself and the whole
+   * barrel is read across the back. Leaping, it is off the ground with the
+   * forelegs up, so the near foreleg comes almost straight at the eye and the
+   * perspective does all the work. Rising, the adult horse has its hind end
+   * still down and its neck already vertical, which turns the spine through
+   * nearly a right angle inside one form - the deepest foreshortening on the
+   * shelf, and the reason it is here.
    *
    * The platypus is not a joke. It is the one thing here with no straight
    * lines and no symmetry to lean on - a soft closed form of the kind that has
    * to be drawn by its contour and its cross-contour or not at all, which is
    * precisely what the drawn rungs are built to show.
    *
-   * They arrive from Tripo at 433,000 triangles and three 4096-square maps
-   * apiece: 268 MB of GPU memory each, on a tool that only samples a texture
-   * on one rung out of five. Shipped, the normal and metallic-roughness maps
-   * are gone entirely, the base colour is 1024, the geometry is down to 60,000
-   * triangles, and each is about 1.5 MB - in line with the chairs.
+   * Four of them arrive from Tripo at 433,000 triangles and three 4096-square
+   * maps apiece: 268 MB of GPU memory each, on a tool that only samples a
+   * texture on one rung out of five. Shipped, the normal and metallic-roughness
+   * maps are gone entirely, the base colour is 1024, the geometry is down to
+   * 60,000 triangles, and each is about 1.5 MB - in line with the chairs. The
+   * trotting foal is a hand-built mesh rather than a scan and came in clean at
+   * 50,000, so it is not decimated at all; only its maps are dropped, and it
+   * ships at 1.07 MB, the smallest thing on the shelf that is not a primitive.
    *
    * The heights are the animal in that pose, measured across the whole of it,
    * not the standing height of the species: a couched foal is not as tall as a
@@ -95,13 +100,16 @@ export const MESH_LIBRARY: LibraryMesh[] = [
    *
    * Checked by WEIGHT, not by eye. A height is easy to argue about and easy to
    * be a foot wrong about; the volume a closed mesh encloses is not, and at
-   * the density of an animal it comes out in kilogrammes. These four displace
-   * 90, 91, 456 and 39 kg - two foals of the same weight, which is the whole
-   * claim of having two of them, and a horse in the middle of the 450 to 550
-   * an adult riding horse weighs. They shipped once with the leaping foal at
-   * 1.35 m and the horse at 1.9, which is 60 kg and 314: a foal half the
-   * weight of the foal beside it, and a pony.
+   * the density of an animal it comes out in kilogrammes. These five displace
+   * 92, 90, 91, 456 and 39 kg - three foals of the same weight, which is the
+   * whole claim of having three of them, and a horse in the middle of the 450
+   * to 550 an adult riding horse weighs. They shipped once with the leaping
+   * foal at 1.35 m and the horse at 1.9, which is 60 kg and 314: a foal half
+   * the weight of the foal beside it, and a pony. The trotting foal's own
+   * authored size is 1.5 m, which would have made it 104 - a heavier animal
+   * than the two it is meant to be the same one as.
    */
+  { id: 'foal-trotting', name: 'Foal, trotting', url: '/meshes/foal-trotting.glb', height: 1.44 },
   { id: 'foal-lying', name: 'Foal, lying', url: '/meshes/foal-lying.glb', height: 0.9 },
   { id: 'foal-leaping', name: 'Foal, leaping', url: '/meshes/foal-leaping.glb', height: 1.55 },
   { id: 'horse-rising', name: 'Horse, rising', url: '/meshes/horse-rising.glb', height: 2.15 },

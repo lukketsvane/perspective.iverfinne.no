@@ -124,12 +124,11 @@ const MeshTile: React.FC<{
  * for. Estimating the box yourself is the exercise; being handed it is not.
  */
 export const MeshSheet: React.FC<{
-  onClose: () => void;
   onPlace: (id: string) => void;
   onPlaceOwn: (url: string, name: string) => void;
   onImport: (files: FileList) => void;
   busyId: string | null;
-}> = ({ onClose, onPlace, onPlaceOwn, onImport, busyId }) => {
+}> = ({ onPlace, onPlaceOwn, onImport, busyId }) => {
   const dark = useStore((s) => s.theme) === 'dark';
   const addCube = useStore((s) => s.addCube);
   const ownMeshes = useStore((s) => s.ownMeshes);
@@ -137,16 +136,19 @@ export const MeshSheet: React.FC<{
   const importInputRef = useRef<HTMLInputElement>(null);
   const busy = busyId !== null;
 
-  const handleAddCube = () => {
-    addCube([focusPoint.x, 0, focusPoint.z]);
-    onClose();
-  };
+  /*
+   * PLACING SOMETHING DOES NOT PUT THE SHELF AWAY.
+   *
+   * It used to, on every one of these - a lamp, a cube, a library mesh, one of
+   * the viewer's own - which made blocking a scene in a loop of open, scroll,
+   * tap, open, scroll, tap. Building a scene is placing several things, not
+   * one, and the shelf is a shelf: you take what you need off it and it stays
+   * where it is. It closes when you close it.
+   */
+  const handleAddCube = () => addCube([focusPoint.x, 0, focusPoint.z]);
 
   const addLamp = useStore((s) => s.addLamp);
-  const handleAddLamp = () => {
-    addLamp([focusPoint.x, focusPoint.z]);
-    onClose();
-  };
+  const handleAddLamp = () => addLamp([focusPoint.x, focusPoint.z]);
 
   return (
     /*
@@ -191,21 +193,11 @@ export const MeshSheet: React.FC<{
           <Icon path={I.upload} className="w-7 h-7" />
         </button>
 
-        {MESH_LIBRARY.map((mesh) => (
-          <MeshTile
-            key={mesh.id}
-            url={mesh.url}
-            name={mesh.name}
-            busy={busy}
-            loading={busyId === mesh.id}
-            dark={dark}
-            onPlace={() => {
-              onPlace(mesh.id);
-              onClose();
-            }}
-          />
-        ))}
-
+        {/* YOUR OWN FIRST, NEWEST FIRST.
+            The shelf is one row pushed sideways, so its far end is the
+            expensive place to be - and that is exactly where an import landed,
+            behind a dozen tiles that ship with the tool. A file you went to the
+            picker for is the file you are about to place. */}
         {ownMeshes.map((mesh) => (
           <MeshTile
             key={mesh.url}
@@ -214,13 +206,23 @@ export const MeshSheet: React.FC<{
             busy={busy}
             loading={busyId === mesh.url}
             dark={dark}
-            onPlace={() => {
-              onPlaceOwn(mesh.url, mesh.name);
-              onClose();
-            }}
+            onPlace={() => onPlaceOwn(mesh.url, mesh.name)}
             onForget={() => forgetMesh(mesh.url)}
           />
         ))}
+
+        {MESH_LIBRARY.map((mesh) => (
+          <MeshTile
+            key={mesh.id}
+            url={mesh.url}
+            name={mesh.name}
+            busy={busy}
+            loading={busyId === mesh.id}
+            dark={dark}
+            onPlace={() => onPlace(mesh.id)}
+          />
+        ))}
+
       <input
         ref={importInputRef}
         type="file"

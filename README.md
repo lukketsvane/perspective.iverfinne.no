@@ -15,7 +15,7 @@ things are, so anything drawn against one is drawn against a real chair. A knee-
 high thing, a seat-high thing and a six-metre thing: between them they cover the
 range a study needs something known to be measured against.
 
-Then **three horses and a platypus** — the half of the shelf that does not hold
+Then **four horses and a platypus** — the half of the shelf that does not hold
 still. A chair is a box with legs and a car is a long box, and both are things
 you can check a construction against, but neither ever asks the question a body
 asks: how a form behaves when it is not square to anything. A horse is the
@@ -24,33 +24,36 @@ different depths, a barrel that is a foreshortened cylinder from every angle
 worth drawing, a neck that turns the whole mass. Kim Jung Gi drew them
 constantly for exactly that reason.
 
-Three of them, because one horse is a shape and three are a lesson — and each is
+Four of them, because one horse is a shape and four are a lesson — and each is
 named for the pose it is actually in rather than the pose that would round the
-set off. Lying, the foal is folded down on itself and the whole barrel is read
-across the back. Leaping, the same animal is off the ground with its forelegs
-up, so the near foreleg comes almost straight at the eye and the perspective
-does all the work. Rising, the adult horse has its hind end still down and its
-neck already vertical, turning the spine through nearly a right angle inside one
-form: the deepest foreshortening on the shelf, and the reason it is here. The
+set off. Trotting, the foal is the plain case and the one to measure the others
+against: four legs at four depths, the barrel square to the spine, nothing
+folded. Lying, it is folded down on itself and the whole barrel is read across
+the back. Leaping, it is off the ground with its forelegs up, so the near
+foreleg comes almost straight at the eye and the perspective does all the work.
+Rising, the adult horse has its hind end still down and its neck already
+vertical, turning the spine through nearly a right angle inside one form: the
+deepest foreshortening on the shelf, and the reason it is here. The
 platypus is not a joke — it is the one thing here with no straight lines and no
 symmetry to lean on, a soft closed form of the kind that has to be drawn by its
 contour and its cross-contour or not at all, which is precisely what the drawn
 surfaces are built to show.
 
-They stand at 0.9, 1.55, 2.15 and 0.95 metres, which is the animal *in that
-pose*, not the standing height of the species. A couched foal is not as tall as
+They stand at 1.44, 0.9, 1.55, 2.15 and 0.95 metres, which is the animal *in
+that pose*, not the standing height of the species. A couched foal is not as tall as
 a standing one, and telling the grid it was would put a wrong number under every
 measurement taken against it.
 
 Those four numbers were settled **by weight**. A height is easy to argue about
 and easy to be a foot wrong about; the volume a closed mesh encloses is not, and
 at the density of an animal it comes out in kilogrammes. All four meshes are
-watertight, so the divergence theorem gives an exact answer: they displace 90,
-91, 456 and 39 kg. Two foals of the same weight, which is the whole claim of
-having two of them, and a horse in the middle of the 450–550 kg an adult riding
-horse weighs. They shipped once with the leaping foal at 1.35 m and the horse at
-1.9, which is 60 kg and 314: a foal half the weight of the foal beside it, and a
-pony.
+watertight, so the divergence theorem gives an exact answer: they displace 92,
+90, 91, 456 and 39 kg. Three foals of the same weight, which is the whole claim
+of having three of them, and a horse in the middle of the 450–550 kg an adult
+riding horse weighs. They shipped once with the leaping foal at 1.35 m and the
+horse at 1.9, which is 60 kg and 314: a foal half the weight of the foal beside
+it, and a pony. The trotting foal's own authored size is 1.5 m, which would have
+made it 104 — a heavier animal than the two it is meant to be the same one as.
 
 Then three **studies**, reconstructed from Kim Jung Gi pages. Each is a single
 sculpted mesh — fifteen figures, the furniture they are on, the animals among
@@ -82,6 +85,16 @@ three from then on, in this browser, so a mesh is imported once and placed as
 often as the drawing wants. An import used to be a one-off: it stood in the
 scene, it was saved with it, and placing it a second time meant finding it on
 disk again.
+
+An import goes on the **front** of the shelf, newest first, ahead of everything
+that ships with the tool. The shelf is one row you push sideways, so its far end
+is the expensive place to be — and that is exactly where a file you had just
+walked to the picker for used to land, behind a dozen tiles you did not ask for.
+
+Taking something off the shelf does not put the shelf away, either. It used to,
+on every tile, which made blocking a scene a loop of open, scroll, tap, open,
+scroll, tap. Building a scene is placing several things, not one. It closes when
+you close it.
 
 The bytes are filed under a hash of themselves, so importing the same file twice
 is one entry. The small mark on a tile takes it off the shelf, twice to confirm,
@@ -953,23 +966,33 @@ the dark theme should hand you by default, so the two are separate decisions.
 
 Everything in this tool is a knob, and a tool that is all knobs is a tool nobody
 ever sees the range of. Most of what it can do lives in *combinations*: the
-etched page wants a low raking sun and no floor grid, the five-point sheet wants
-a wide field and the guides up, the marker wants a light mount. Any one of those
-is a minute of fiddling to find and a second to lose.
+etched page wants a low raking sun, the engraving wants its strokes at six
+pixels and its mount black, the marker wants a light one. Any of those is a
+minute of fiddling to find and a second to lose.
 
-So there are ten whole pages — surface, sheet, mount, light, lens, projection
-and furniture, chosen together — and one control that deals a different one each
-time it is pressed. Brush page on black, the etched plate, silverpoint, green
-marker, blue print, chalk on slate, the five-point sheet, the long frieze, noon
-clay, night study. It is the fastest way to learn what the knobs are *for*: you
-land somewhere good, and then you can see which knob put you there.
+So there are ten whole pages — surface, sheet, mount and light, chosen together
+— and one control that deals a different one each time it is pressed. Brush page
+on black, the etched plate, silverpoint, steel engraving, green marker, blue
+print, sanguine, chalk on slate, noon clay, night study. It is the fastest way
+to learn what the knobs are *for*: you land somewhere good, and then you can see
+which knob put you there.
+
+**Nothing in a page touches the view.** Not the scene, not where you are
+standing, and not the lens, the projection, the guides, the grid, the cage or
+the walls either. They used to carry a lens and a projection each, and dealing
+one threw the view away: you would set up a shot, press the button to see it in
+ink, and get somebody else's 420° cylindrical frieze. Two of the ten existed
+*only* for their lens — a five-point hemisphere and that frieze — and those are
+lessons about the projection, which is a control on the panel with its own name
+on it, not something to be handed a page at a time. In their place are two more
+drawn pages: red chalk on cream, and a fine steel ruling on black. The
+comparison a shuffle is for is the same view drawn ten ways, and that is only a
+comparison if the view holds still.
 
 They are dealt in one `set()`, so a page lands on a single frame rather than
-arriving as nine separate changes the renderer has to chase. Nothing in the
-scene and nothing about where you are standing is touched — what you have built
-and where you stand are yours, and this changes only how it is drawn. And it
-never deals the page you are already on: a shuffle that can hand you back your
-own hand looks broken half the time it is pressed on a list this short.
+arriving as six separate changes the renderer has to chase. And it never deals
+the page you are already on: a shuffle that can hand you back your own hand
+looks broken half the time it is pressed on a list this short.
 
 ### Hatching that describes, rather than shades
 
@@ -1369,7 +1392,10 @@ outright rather than resized — three 4096² maps apiece is 268 MB of video
 memory per animal, every byte of it invisible on four surfaces out of five —
 the base colour comes down to 1024 JPEG, and the geometry is welded and
 decimated to 14 %. Each arrives at 433k triangles and 15 MB and ships at 60k
-and about 1.5 MB, in line with the chairs.
+and about 1.5 MB, in line with the chairs. The trotting foal is a hand-built
+mesh rather than a scan and arrived clean at 50k triangles, so it is not
+decimated at all — only its maps are dropped, and it ships at 1.07 MB, the
+smallest thing on the shelf that is not a primitive.
 
 Dropping a map means owning the **factor it was overriding**, which is the step
 that is easy to miss and turns everything black. glTF defaults `metallicFactor`

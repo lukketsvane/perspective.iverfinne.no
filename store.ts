@@ -1141,15 +1141,6 @@ export const useStore = create<SceneState>((set, get) => ({
         ...pageTheme(p.backdrop, p.paper, p.surface),
         sun: { ...state.sun, ...p.sun },
         fill: { ...state.fill, enabled: p.fill },
-        fov: clampTo(p.fov, [10, MAX_FIELD]),
-        perspectiveMode: p.projection,
-        fieldRange: p.fieldRange,
-        guides: p.guides,
-        gridX: p.gridX,
-        gridZ: p.gridZ,
-        construction: p.construction,
-        showVanishing: p.vanishing,
-        roomLevel: p.room,
         marker: p.marker ? { ...state.marker, ...p.marker } : state.marker,
         hatch: p.hatch ? { ...state.hatch, ...p.hatch } : state.hatch,
         // Everything placed keeps the rung it is on unless it was following
@@ -1187,7 +1178,9 @@ export const useStore = create<SceneState>((set, get) => ({
   rememberMesh: async (url, name) => {
     const mesh = await addToLibrary(url, name);
     set((state) =>
-      state.ownMeshes.some((m) => m.url === url) ? {} : { ownMeshes: [...state.ownMeshes, mesh] }
+      // Onto the front, matching the order they are read back in: what you
+      // just imported is what you are about to place.
+      state.ownMeshes.some((m) => m.url === url) ? {} : { ownMeshes: [mesh, ...state.ownMeshes] }
     );
   },
 
