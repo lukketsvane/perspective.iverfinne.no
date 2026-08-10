@@ -16,12 +16,12 @@ import { Panorama } from './Panorama';
 import { forgetView, registerView } from '../lib/pick';
 import { fieldOf } from '../lib/projection';
 import {
+  brushShadowAlpha,
   constructionInk,
-  inkHex,
   inkShadowAlpha,
-  paperHex,
+  pageHex,
+  pageInkHex,
   setInkLight,
-  setInkPaper,
   setInkScale,
 } from '../lib/inkMaterial';
 
@@ -312,6 +312,7 @@ const SceneContent = () => {
    */
   const sceneSurface = useStore((state) => state.surface);
   const fieldRange = useStore((state) => state.fieldRange);
+  const backdrop = useStore((state) => state.backdrop);
   // Both sketch rungs draw on the paper; brush also spots its blacks in, so
   // its cast shadow goes down as a near-solid shape rather than a wash.
   const inkMode = sceneSurface === 'ink' || sceneSurface === 'brush';
@@ -360,7 +361,13 @@ const SceneContent = () => {
    * bug for the sun as well - drop it at the end of a sweep and the terminator
    * lagged - so both writes moved.)
    */
-  useLayoutEffect(() => setInkPaper(backgroundGray), [backgroundGray]);
+  /*
+   * The sheet and the page are set from the store's own subscription, not from
+   * here - see `syncTones` in store.ts. Both are read during render by half
+   * the tree, and a layout effect runs after that render, so writing them
+   * there left every colour on the page one change behind.
+   */
+  const pageGray = backdrop === 'paper' ? backgroundGray : backdrop;
 
   /*
    * Hard or soft, at runtime.
@@ -388,9 +395,8 @@ const SceneContent = () => {
     });
   }, [hardShadows, gl, scene]);
 
-  const bgColor = inkMode
-    ? paperHex()
-    : `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})`;
+  // The page, not the sheet: a drawing mounted on black stands on black.
+  const bgColor = inkMode ? pageHex() : `rgb(${pageGray}, ${pageGray}, ${pageGray})`;
 
   /**
    * How wide a line is, and which way the light comes from.
@@ -492,7 +498,7 @@ const SceneContent = () => {
         <GroundGrid
           cell={cellSize}
           dark={isDark}
-          ink={inkMode ? inkHex() : undefined}
+          ink={inkMode ? pageInkHex() : undefined}
           along={{ x: gridX, z: gridZ }}
         />
       )}
@@ -520,8 +526,16 @@ const SceneContent = () => {
           <planeGeometry args={[2000, 2000]} />
           <shadowMaterial
             transparent
-            color={inkMode ? inkHex() : '#000000'}
-            opacity={brushMode ? 0.82 : inkMode ? inkShadowAlpha(backgroundGray) : isDark ? 0.55 : 0.42}
+            color={inkMode ? pageInkHex() : '#000000'}
+            opacity={
+              brushMode
+                ? brushShadowAlpha()
+                : inkMode
+                  ? inkShadowAlpha(pageGray)
+                  : isDark
+                    ? 0.55
+                    : 0.42
+            }
           />
         </mesh>
       )}

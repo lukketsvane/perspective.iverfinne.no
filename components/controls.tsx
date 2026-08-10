@@ -62,6 +62,49 @@ const SWEEP = 220;
  * toolbar space, and pointer capture makes the full range available even from
  * a small icon button.
  */
+/**
+ * The page behind the drawing: tap to step it, drag to set its tone.
+ *
+ * Same shape as the sheet's own control below, and deliberately so - the two
+ * decide the two halves of what you are looking at, so they are worked the
+ * same way. Three taps round the presentations that matter (continuous with
+ * the sheet, mounted on black, mounted on white); a drag reaches every tone
+ * between.
+ */
+export const useBackdropControl = () => {
+  const backdrop = useStore((state) => state.backdrop);
+  const setBackdrop = useStore((state) => state.setBackdrop);
+  const cycle = useStore((state) => state.cycleBackdrop);
+  const drag = useRef<{ id: number; x: number; y: number; from: number; moved: boolean } | null>(null);
+
+  return {
+    onPointerDown: (event: React.PointerEvent) => {
+      event.stopPropagation();
+      try { (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); } catch { /* continue uncaptured */ }
+      // Dragging from the sheet's own rung starts where the sheet is, so the
+      // first pixel of travel does not jump the page somewhere else.
+      const from = backdrop === 'paper' ? useStore.getState().backgroundGray : backdrop;
+      drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, from, moved: false };
+    },
+    onPointerMove: (event: React.PointerEvent) => {
+      const held = drag.current;
+      if (held?.id !== event.pointerId) return;
+      const travel = event.clientX - held.x + (held.y - event.clientY);
+      if (Math.abs(travel) > 3) held.moved = true;
+      if (held.moved) setBackdrop(held.from + travel);
+    },
+    onPointerUp: (event: React.PointerEvent) => {
+      const held = drag.current;
+      drag.current = null;
+      if (held?.id !== event.pointerId || held.moved) return;
+      cycle();
+    },
+    onPointerCancel: () => {
+      drag.current = null;
+    },
+  };
+};
+
 export const useGrayThemeControl = (onDoubleTap?: () => void) => {
   const value = useStore((state) => state.backgroundGray);
   const setValue = useStore((state) => state.setBackgroundGray);

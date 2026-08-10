@@ -61,9 +61,18 @@ was rounded the way every real drum's is.
 
 ## Opening
 
-The car is standing on the grid when the tool opens, framed for its size, drawn
-in ink, at a 90° field, with the eye level and the six points ruled and nothing
-else.
+The car is standing on the grid when the tool opens, framed for its size, at a
+90° field, with the eye level and the six points ruled and nothing else — drawn
+as a finished brush page, lit hard, on a black mount.
+
+That last part is three separate decisions and it is worth saying which. The
+**brush** rung rather than plain ink, because line-and-flat-black is what a
+brush-and-ink page looks like and it is the one that shows what the tool can do
+rather than the one with the least in it. **Hard** shadows rather than soft,
+because a hard shadow is a shape you can draw and a penumbra is a thing you can
+only approximate — the rung the whole shadow argument below lands on, so it is
+the one to start on. And the **page black** while the drawing stays on its warm
+paper, which needs its own paragraph.
 
 It used to open at 180°, the whole hemisphere, where the four horizon points
 land exactly on the edge of the frame and the fifth is at its centre — the
@@ -170,17 +179,29 @@ chrome is wanted" between them.
 The controls:
 
 - **Cube** — the mesh library: a 1 m reference cube, then the objects and figures
-- **Frames** — the scene library (below)
 - **Field of view** — drag for any value, tap to step through presets, the last
   of which stands back far enough to see the whole sheet
 - **Horizon** — eye level, from 0.2 m to 12 m
+- **Block out** — the pencil: drag a footprint on the ground, drag its height,
+  and the mode stays armed for the next one
+- **Measure** — the pencil at arm's length: drag across the scene for the visual
+  angle between two directions, in degrees
 - **Projection** — steps through the three systems (below)
 - **Sun / moon** — tap for light and dark, drag through all 256 greys,
   double-tap for the procedural sky
 - **Sliders** — everything else: the room's guides, the floor's two rulings, snap,
   the construction ladder (off, the selection's, everything's), the selection's
-  own vanishing points, view lock, the room (tap to step, drag to size), the
-  surface of everything, the lights, undo, redo, and save the view as a PNG
+  own vanishing points, the lens reach, view lock, the room (tap to step, drag to
+  size), the surface of everything, the lights, the page behind the drawing, the
+  scene library, undo, redo, and save the view as a PNG
+
+The two instruments came **up** into the dock and the scene library went **down**
+into the tools row, which is a straight trade of one slot. The test is how often
+a thing is reached for mid-drawing versus between drawings. Blocking out and
+measuring are the two things you do *while* looking at something you are trying
+to get down; either one behind a menu costs a tap and a re-aim every time the
+mode goes on or off, and both are modes you flip constantly. Loading a saved
+frame is a thing you do once, at the start, and one extra tap for it is nothing.
 
 The **light** control is the one that changes what it does with the mode. On the
 clay it sweeps the page from black to white, as it always did. In ink it sweeps
@@ -190,21 +211,25 @@ contrast against the sheet. The two are equal at a relative luminance of 0.179,
 which is exactly where a sheet stops being paper and becomes a board, so drag
 past that point and the drawing turns to chalk on slate on its own. Paper and
 pen are one decision with a constraint on it, and offering them as two controls
-would be offering a way to make the mode useless.
+would be offering a way to make the mode useless. What it no longer sweeps is
+the *page behind* the drawing, which is a second control in the tools row and
+has its own section below.
 
 **The dock stays up when something is selected**, with the selection bar stacked
 above it. It used to hide — and three of the things it hides do nothing *except*
 when something is selected: the cage, the selection's own vanishing points, and
 the export that would carry them into a picture.
 
-Seven controls plus the glass around them come to 346 px, which is more than the
-narrowest screens still in use have: at 320 px the dock was centred over the
-window and hung six pixels off each end, so the first control and the last were
-half unreachable. Below 360 px they go to 40 px wide with tighter gaps, and the
-whole thing comes to 310. Four pixels off one dimension is a worse target than
-44; a control you cannot get a thumb on at all is not a target. The height does
-not move, and a thumb is wider than it is tall. The two drag readouts stay full
-width, since dragging is what they are for. The selection bar solves the same
+Eight controls at 44 px plus the glass around them come to 392 px, which no
+phone has: measured, a 390 px frame gives the dock 366, and every phone width
+folded it in half over the drawing for want of two pixels. Below 430 px they go
+to 40 px wide with tighter gaps, which brings the row to 360 and puts it back on
+one line at 390 and above; at 320 it still wraps, and wrapping is the right
+failure — a control pushed off the edge of the screen is not a smaller control,
+it is no control. Four pixels off one dimension is a worse target than 44 and a
+better one than nothing. The height does not move, and a thumb is wider than it
+is tall. The two drag readouts stay full width, since dragging is what they are
+for. The selection bar solves the same
 problem the other way — it scrolls sideways, because it is a list of things you
 can do to one object and a list can be as long as it likes.
 
@@ -656,15 +681,15 @@ ordered by how much has been taken away:
 - **matte** — opaque, plain white, no texture. Photographed skin and fabric is a
   lot of information to draw past; stripped out, a figure reads as form and
   value only, which is what it is doing in a scene full of white boxes
-- **ink** — the light gone too, and only the line left. This is the one the tool
-  opens on; it has its own section below
+- **ink** — the light gone too, and only the line left. It has its own section
+  below
 - **brush** — the same drawing with its blacks spotted in. Everything turned
   from the sun floods solid ink, the pen's own lines run in *paper* through the
   fill — drawn around, not painted over — and the cast shadow goes down as a
   near-solid shape. Where ink is the pen underdrawing, this is the finished
   brush page: line and flat black and nothing between, which is the page a
   brush-and-ink spread actually is. Swing the sun and the blacks sweep with it,
-  live
+  live. This is the one the tool opens on
 - **wire** — the twelve edges and nothing else: the construction with the object
   taken away
 
@@ -687,7 +712,7 @@ undoable move.
 
 The other four rungs answer *what is this object made of*. A perspective study
 never asks that. **Ink** answers the only question it does ask — where would the
-pen go — and it is what the tool opens on.
+pen go — and it is the shader everything the tool opens on is drawn with.
 
 It draws three families of line straight out of the surface, per pixel, with no
 extra geometry at all. The **contour** is wherever the form turns edge-on to the
@@ -735,6 +760,46 @@ the drawing, and the drawing is what the export writes out at three times the
 frame to be printed or dropped into a tablet layer and traced over. Which sheet
 you want is yours to choose — but a *white line on a black field* is not what
 the dark theme should hand you by default, so the two are separate decisions.
+
+### The sheet and the page it is mounted on
+
+The sheet the drawing is made of and the field behind it used to be one colour,
+necessarily: paper filled the frame, so the sky *was* the paper. That is one
+picture you can have and it is not the best one. A drawing on white paper
+mounted on black is the oldest way of presenting a drawing there is, and it is
+the strongest — the mount does not compete for value, so the sheet reads as
+lit, the drawing's blacks read as the darkest thing in it, and the edge where
+the two meet is the picture's frame rather than an accident of the window.
+
+So they are two tones now. `backdrop` is either `'paper'`, meaning what it
+always did — the page is the sheet, one colour edge to edge — or a grey from 0
+to 255 that the page takes instead. The sheet keeps `backgroundGray`. The **page
+button** in the tools row taps through *sheet → black → white* and drags for any
+grey in between, exactly like the light control does for the sheet.
+
+Everything that is *furniture* moved onto the page and everything that is
+*drawing* stayed on the sheet. The floor grid, the guides, the construction
+cages, the measure haloes, the cast shadow, the chrome's own light-or-dark and
+the phone's status bar all read against the page, because they are the things
+sitting behind and around the drawing. The pen, the fill, the terminator and the
+paper the object is drawn on read against the sheet. It is the same split a real
+mounted drawing has, and drawing it any other way gives you chalk guides that
+vanish into a white mount or ink guides that disappear into a black one.
+
+The chrome follows the page, not the sheet, which is why sweeping the sheet
+under a black mount leaves the buttons dark: the buttons are over the mount.
+
+**A note on where the two tones are pushed.** Both live in module state inside
+`lib/inkMaterial.ts`, because a hundred materials and a dozen components all
+need the same answer and threading it through props would mean threading it
+through everything. The trap is that `pageHex()` and `constructionInk()` are
+read *during render*, so writing them from a `useLayoutEffect` — which runs
+after — makes every one of them exactly one change stale: tap the page to white
+and the frame stays black until the next unrelated redraw. They are written from
+a `useStore.subscribe` at the bottom of `store.ts` instead, which fires
+synchronously inside the `set` call, strictly before any component re-renders.
+This also fixed a latent version of the same bug on the sheet, where the last
+frame of a drag kept the second-to-last value.
 
 The marks are composited in display space rather than in linear light. Both
 colours are linear, and mixing them linearly is what a camera records of a
@@ -844,6 +909,19 @@ right kind of thing, and the room and the projection are read through functions
 that start from the defaults and only accept what they understand. A setting
 that cannot be read is a setting lost, which is the smallest price there is and
 the only one that cannot take the tool down with it.
+
+There is a second problem underneath that one, and it is not about corrupt
+values: **a returning visitor is holding the old opening in their hands.** When
+the tool changed what it opens on — the brush rung, hard shadows, the black
+mount — everyone who had ever loaded it once would have come back to plain ink
+on white paper and never seen the change, because their browser had faithfully
+kept every one of those fields. So the handful that describe *how the picture
+looks* rather than *what is in it* — the field, the guides, the construction,
+the surface, the eye level, the page — carry a generation number with them. Bump
+it and exactly those go back to the defaults on the next visit, while the scene,
+the room and everything the visitor actually built come back untouched. It is
+the difference between "we changed the tool" and "we threw away your work", and
+the whole mechanism is one integer and a list of six key names.
 
 ## While it is working
 

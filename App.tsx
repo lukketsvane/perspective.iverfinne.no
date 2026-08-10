@@ -24,6 +24,7 @@ export default function App() {
   const theme = useStore((s) => s.theme);
   const backgroundGray = useStore((s) => s.backgroundGray);
   const surface = useStore((s) => s.surface);
+  const backdrop = useStore((s) => s.backdrop);
   const addModel = useStore((s) => s.addModel);
   const standObject = useStore((s) => s.standObject);
   const applyScene = useStore((s) => s.applyScene);
@@ -56,14 +57,16 @@ export default function App() {
     // Derived from the ramp directly, not read off the live ink material: that
     // is set by a layout effect inside the canvas's own reconciler, which
     // flushes on a schedule of its own - reading it from here raced, and lost.
+    // The page, not the sheet - the bar sits over what is behind the drawing.
+    const gray = backdrop === 'paper' ? backgroundGray : backdrop;
     const tone =
       surface === 'ink' || surface === 'brush'
-        ? `#${paperFor(backgroundGray).getHexString()}`
-        : `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})`;
+        ? `#${paperFor(gray).getHexString()}`
+        : `rgb(${gray}, ${gray}, ${gray})`;
     document
       .querySelectorAll('meta[name="theme-color"]')
       .forEach((meta) => meta.setAttribute('content', tone));
-  }, [surface, backgroundGray]);
+  }, [surface, backgroundGray, backdrop]);
 
   /** How much of the frame's height the opening object should fill. */
   const OPENING_SIZE = 0.45;
@@ -294,10 +297,14 @@ export default function App() {
   };
 
   const isDark = theme === 'dark';
+  const pageGray = backdrop === 'paper' ? backgroundGray : backdrop;
   return (
     <div
       className="fixed inset-0 w-screen h-screen font-sans selection:bg-none"
-      style={{ minHeight: '100dvh', backgroundColor: `rgb(${backgroundGray}, ${backgroundGray}, ${backgroundGray})` }}
+      style={{
+        minHeight: '100dvh',
+        backgroundColor: `rgb(${pageGray}, ${pageGray}, ${pageGray})`,
+      }}
     >
       <Scene />
       <Activity />

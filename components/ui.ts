@@ -14,15 +14,20 @@ export const chrome = (dark: boolean) =>
 /**
  * A round 44 px control - the smallest target a thumb can be asked to hit.
  *
- * Forty below 360 px of screen, which is where seven of them in a row stop
- * fitting: measured at 320, the dock came to 346 px and hung six pixels off
- * each end, so the first control and the last one were half unreachable. Four
- * pixels of one dimension is a worse target than 44; a control you cannot put
- * a thumb on at all is not a target. The height does not move, and a thumb is
- * wider than it is tall.
+ * Forty on a phone, forty-four on anything wider.
+ *
+ * It was forty below 360 px, where seven in a row stopped fitting. The dock
+ * carries eight now - the block-out pencil and the measure came up out of the
+ * tools row - and eight at forty-four is 392 px of controls, which no phone
+ * has: measured, a 390 px frame gives the dock 366 and every one of them
+ * wrapped to a second row. At forty they are 360 and it is one row again.
+ *
+ * Four pixels of one dimension is a worse target than 44; a row that has
+ * folded in half over the drawing is worse than either. The height does not
+ * move, and a thumb is wider than it is tall.
  */
 export const iconButton = (dark: boolean) =>
-  `flex items-center justify-center w-11 max-[359px]:w-10 h-11 rounded-full transition-transform active:scale-95 ${
+  `flex items-center justify-center w-11 max-[429px]:w-10 h-11 rounded-full transition-transform active:scale-95 ${
     dark ? 'text-white hover:bg-white/10' : 'text-gray-900 hover:bg-black/5'
   }`;
 
