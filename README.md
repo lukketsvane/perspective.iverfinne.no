@@ -106,6 +106,27 @@ viewer a step outside the front wall, looking in at it through the brickwork.
 Where the tool opens should be one place, whether or not the room is switched
 on; make the room smaller and the opening view comes in with it.
 
+**Framing has to work in both directions**, and getting that wrong is how the
+tool used to open with the car's tail and back wheel off the bottom right of a
+landscape screen. Three things were wrong at once. It measured the object
+against the *vertical* field only, then threw the answer away and stood at the
+object's own length instead — clamped by how much floor the room has, with the
+room switched off, which is the right limit for not standing outside the
+brickwork and the wrong one for an object on an open grid. And it framed on the
+object's *length*, when the opening turns it forty degrees off square, so what
+the frame has to clear is the footprint's diagonal — eight and a half metres,
+not six.
+
+Both conditions are transcendental in the distance, so the distance is searched
+rather than solved: the smallest standing distance at which the footprint fits
+the yaw *and* the near end's drop plus the far end's rise fit the pitch. That
+second one is the subtle half — a long thing seen from a standing eye runs a
+long way *down* the frame, because its near end is close and the angle from the
+horizon to the ground there is most of the vertical field on a phone held
+sideways. The object's own height, which is what the old solve used, has
+nothing to do with it. Sixteen halvings settle it to a centimetre, once, when
+the object is stood up.
+
 Framing solves for two legs, not one: how far back to stand, and how high the
 eye has to be. A chair 0.7 m away from a 1.9 m eye is not 0.7 m away — it is
 1.7 m away and mostly below you, which is why it used to open small however
@@ -951,6 +972,18 @@ on the small far thing and more on the big near one — the same decision taken
 again at every scale — so the spacing is quantised to powers of two of the
 distance and two neighbouring rungs are crossfaded. Every second line simply
 fades in as you walk closer, and no stroke ever slides.
+
+**Two bugs made it a scribble on a real mesh.** The stroke-break period was
+computed as spacing × ratio, which is fine while both coordinates are metres
+and nonsense the moment they are not — on the form field the spacing is in
+facing-ratio units and the run is in metres, so every stroke was chopped at an
+arbitrary interval. And the spacing itself was worked out per pixel from the
+screen derivative of the facing ratio, which jumps at every facet edge of a
+decimated mesh, so the level of detail flipped from pixel to pixel. The break
+period is now given in the same units as the coordinate it measures, and the
+form field is ruled at a **fixed number of strokes** instead — which is also
+the truer idea: an engraver ruling a sphere does not measure a gap, they cut so
+many lines from the rim to the middle and let the form space them.
 
 **Tone must be weight, not opacity.** A burin cut deeper is a cut wider, and
 that is the whole of how an engraved passage darkens: the same lines, in the

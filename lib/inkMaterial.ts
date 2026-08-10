@@ -323,7 +323,7 @@ const FRAGMENT = `
    * blotches diagonally through the midtones.
    */
   float hatchRank(
-    float f, float along, float step, float widthSourcePx, float runRatio, float closed
+    float f, float along, float step, float widthSourcePx, float runPeriod, float closed
   ) {
     if (widthSourcePx < 0.02) return 0.0;
     float v = f / step;
@@ -331,8 +331,18 @@ const FRAGMENT = `
     float grainA = fract(sin(id * 12.9898) * 43758.5453);
     float grainB = fract(sin(id * 78.233) * 24634.6345);
     float line = hatchMark(v, widthSourcePx * (0.82 + 0.36 * grainB));
-    if (runRatio > 0.01) {
-      float t = fract(along / (step * runRatio) + grainA);
+    /*
+     * The break period is given in the same units as ALONG, not derived from
+     * the spacing.
+     *
+     * It used to be step * ratio, which is fine while the two coordinates are
+     * both metres and nonsense the moment they are not: on the form field the
+     * spacing is in facing-ratio units and the run is in metres, so the period
+     * came out arbitrary and every stroke was chopped at a random interval.
+     * That was most of the scribble.
+     */
+    if (runPeriod > 1e-6) {
+      float t = fract(along / runPeriod + grainA);
       // A long stroke with a short lift, tapered at both ends: a needle enters
       // and leaves the wax. The lift closes as the passage darkens, because an
       // engraver's black is continuous cutting and a gap in it is a white
@@ -513,14 +523,26 @@ const FRAGMENT = `
       float open = 1.0;
       float pagePerSource = radPerSourcePixel / max(radPerSheetPixel, 1e-9);
 
-      // Form field: how many strokes between edge-on and face-on.
-      float wantQ = hatchSpacing * open * dq * pagePerSource;
-      float lodQ = log2(max(wantQ, 1e-7));
-      float rungQ = floor(lodQ);
-      float coarseQ = exp2(rungQ + 1.0);
-      float overQ = lodQ - rungQ;
+      /*
+       * The form field is ruled at a FIXED number of strokes, not at a spacing
+       * worked out per pixel.
+       *
+       * Working it out per pixel needs the screen derivative of the facing
+       * ratio, and on a decimated mesh that derivative jumps at every facet
+       * edge - so the level of detail flipped from pixel to pixel and a rank
+       * of long curves came out as a scribble. It is also the wrong idea. An
+       * engraver ruling a sphere does not measure a gap; they cut a fixed
+       * number of lines from the rim to the middle and let the form space
+       * them. That is what this is: so many strokes between edge-on and
+       * face-on, crowding wherever the surface turns away, which is the
+       * foreshortening and the whole point.
+       */
+      float count = max(240.0 / max(hatchSpacing, 1.0), 4.0);
+      float stepQ = 1.0 / count;
 
-      // Flat field: how many metres between strokes.
+      // The flat field keeps its distance ladder: on a plane the spacing IS a
+      // distance, and quantising it to powers of two is what holds it to one
+      // spacing on the page as the wall recedes.
       float wantM = hatchSpacing * open * radPerSheetPixel * dist;
       float lodM = log2(max(wantM, 1e-5) / 0.01);
       float rungM = floor(lodM);
@@ -538,38 +560,36 @@ const FRAGMENT = `
       float wPage = max(hatchWidth, 1.0) * (0.80 + 0.55 * smoothstep(0.26, 0.74, dark))
         * (1.0 + 1.7 * smoothstep(0.70, 1.0, dark));
       float wMax = clamp(wPage * scale, 0.5, 40.0);
-      float runRatio = hatchLength / max(hatchSpacing, 0.001);
+      // How far a stroke runs before the needle lifts, in metres out here.
+      float runMetres = hatchLength * radPerSheetPixel * dist;
       float closed = smoothstep(0.74, 0.98, dark);
 
-      // Both fields are evaluated - a derivative taken inside branchy control
-      // flow is undefined, and every one of these is a derivative - and then
-      // one of them is chosen. Chosen, not blended: mixing two coverages is an
-      // opacity blend, and an opacity blend is a grey.
       /*
        * Where a stroke on the form field breaks.
        *
        * It has to run ALONG the stroke, or the lift chops the line into ticks
-       * across it - which is what it did, turning a rank of long curves into a
-       * comb. The iso-lines of the facing ratio run along the silhouette
+       * across it. The iso-lines of the facing ratio run along the silhouette
        * tangent, so that is the direction: cross(normal, view). It rotates
        * across the surface, and here that costs nothing - a break in slightly
        * the wrong place is a break in slightly the wrong place, where the same
        * rotating axis used for the RULING tore the lines into hairpins.
        */
       vec3 Nw = normalize(vNormalWorld);
-      vec3 side = cross(Nw, view);
-      float grip = length(side);
-      vec3 alongDir = grip > 1e-4 ? side / grip : planeRun;
-      float alongQ = dot(vWorldPos, alongDir);
-      float formInk = max(
-        hatchRank(q, alongQ, coarseQ, wMax, runRatio, closed),
-        hatchRank(q, alongQ, coarseQ * 0.5, wMax * (1.0 - overQ), runRatio, closed)
-      );
+      vec3 sideDir = cross(Nw, view);
+      float grip = length(sideDir);
+      vec3 alongDir = grip > 1e-4 ? sideDir / grip : planeRun;
+
+      // Both fields are evaluated - a derivative taken inside branchy control
+      // flow is undefined, and every one of these is a derivative - and then
+      // one of them is chosen. Chosen, not blended: mixing two coverages is an
+      // opacity blend, and an opacity blend is a grey.
+      float formInk = hatchRank(
+        q, dot(vWorldPos, alongDir), stepQ, wMax, runMetres, closed);
       float fm = dot(vWorldPos, planeAxis);
       float alongM = dot(vWorldPos, planeRun);
       float planeInk = max(
-        hatchRank(fm, alongM, coarseM, wMax, runRatio, closed),
-        hatchRank(fm, alongM, coarseM * 0.5, wMax * (1.0 - overM), runRatio, closed)
+        hatchRank(fm, alongM, coarseM, wMax, runMetres, closed),
+        hatchRank(fm, alongM, coarseM * 0.5, wMax * (1.0 - overM), runMetres, closed)
       );
 
       // Is the form turning enough here to be worth following? Measured as
@@ -724,7 +744,7 @@ export const HATCH_SHADOW = (() => {
           '  float grainB = fract(sin(id * 78.233) * 24634.6345);',
           '  float line = groundMark(v, w * (0.82 + 0.36 * grainB));',
           '  if (runRatio > 0.01) {',
-          '    float t = fract(along / (step * runRatio) + grainA);',
+          '    float t = fract(along / runRatio + grainA);',
           '    line *= smoothstep(0.0, 0.05, t) * (1.0 - smoothstep(0.95, 1.0, t));',
           '  }',
           '  return line;',
@@ -757,7 +777,7 @@ export const HATCH_SHADOW = (() => {
           'float w = clamp(wPage * scale, 0.5, 40.0);',
           'float f = dot(vGround, axis);',
           'float along = dot(vGround, runDir);',
-          'float runRatio = hatchLength / max(hatchSpacing, 0.001);',
+          'float runRatio = hatchLength * radPerSheetPixel * dist;',
           'float ink = max(',
           '  groundRank(f, along, coarse, w, runRatio),',
           '  groundRank(f, along, coarse * 0.5, w * (1.0 - over), runRatio)',

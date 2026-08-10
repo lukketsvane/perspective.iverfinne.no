@@ -67,9 +67,6 @@ export default function App() {
       .forEach((meta) => meta.setAttribute('content', pageHex()));
   }, [surface, backgroundGray, backdrop]);
 
-  /** How much of the frame's height the opening object should fill. */
-  const OPENING_SIZE = 0.45;
-
   /** Above this, it is something you look at standing up. */
   const EYE_TO_EYE = 1.2;
 
@@ -88,37 +85,90 @@ export default function App() {
   /**
    * Stand where the whole of it can be seen, and look at its middle.
    *
-   * Three things decide this. The angle it subtends against the angle the frame
-   * covers - a 180 degree sheet puts nine times as much world on the glass as a
-   * 60 degree lens. Its own size, since a stacking chair is knee high and the
-   * car is six metres long. And how far the eye is *above* it: a chair 0.7 m
-   * away from a 1.9 m eye is not 0.7 m away, it is 1.7 m away and mostly below
-   * you, which is why it used to open small however close the walker was put.
+   * IT HAS TO FIT IN BOTH DIRECTIONS, which is what this used to get wrong.
+   * The old solve measured the object against the VERTICAL field only, and
+   * then threw the answer away: the distance it actually used was the object's
+   * own length, clamped by how much floor the room has. On an upright phone
+   * that happened to look fine. Turned sideways it was a disaster - a landscape
+   * frame has barely twenty degrees of pitch and ninety of yaw, the car is six
+   * metres long, and the tool opened with its tail and its back wheel off the
+   * bottom right of the screen.
    *
-   * Which leaves the question of whether to kneel. Anything taller than about a
-   * metre is something you look at from your own height - a person, a car - and
-   * dropping to its waist would be a strange way to meet it. Anything lower has
-   * to be knelt to, or it is a thing on the floor seen from above.
+   * So both fields are asked, and the binding one wins: how far back the
+   * object's LENGTH has to be to sit inside the horizontal half-field, how far
+   * back its HEIGHT has to be to sit inside the vertical one, and stand at
+   * whichever is greater. A six-metre car cannot fill a portrait phone without
+   * being cropped, and the honest answer there is to stand further back.
+   *
+   * The room's floor still bounds it, but only when there IS a room. Clamping
+   * to it with the walls switched off was the other half of the crop: 3.8 m is
+   * the right limit for not standing outside the brickwork and the wrong one
+   * for an object on an open grid.
+   *
+   * Then whether to kneel. Anything taller than about a metre is something you
+   * meet from your own height - a person, a car - and dropping to its waist
+   * would be a strange way to do it. Anything lower has to be knelt to, or it
+   * is a thing on the floor seen from above.
    */
   const frame = (size: [number, number, number]) => {
-    const { cameraHeight, fov, room, setCameraHeight } = useStore.getState();
-    const vertical = fieldOf(fov, window.innerWidth, window.innerHeight).halfPitch * 2;
+    const { cameraHeight, fov, room, roomLevel, setCameraHeight } = useStore.getState();
+    const field = fieldOf(fov, window.innerWidth, window.innerHeight);
 
-    const longest = Math.max(size[0], size[1], size[2]);
-    const wanted = Math.min(Math.PI * 0.8, vertical * OPENING_SIZE);
-    /** How far the eye has to be from the object's middle, along the view. */
-    const slant = longest / 2 / Math.tan(wanted / 2);
+    /** How much of each half-field the object is allowed to take. */
+    const FILL = 0.86;
+    const halfYaw = Math.min(field.halfYaw, Math.PI * 0.46);
+    const halfPitch = Math.min(field.halfPitch, Math.PI * 0.46);
 
-    // About the object's own length back, never inside arm's reach, and never
-    // further than the room has floor: the car is six metres long, so its own
-    // length put the viewer a step outside the front wall, looking in at it
-    // through the brickwork.
-    const distance = Math.min(standingRoom(room), 14, Math.max(0.9, longest * 0.9));
+    /*
+     * The width to clear is the FOOTPRINT'S radius, not the object's length.
+     *
+     * The opening turns the object forty degrees off square - which is the
+     * whole point, so that all three of its axes run to three separate points -
+     * and a turned six-by-six-metre footprint presents its diagonal, eight and
+     * a half metres, not its length.
+     */
+    const across = Math.hypot(size[0], size[2]) / 2;
     const middle = size[1] / 2;
-    // Whatever is left of the slant after the ground distance is height.
-    const rise = Math.sqrt(Math.max(slant * slant - distance * distance, 0));
-    const eye =
-      size[1] >= EYE_TO_EYE ? cameraHeight : Math.min(cameraHeight, Math.max(0.8, middle + rise));
+    const eye = size[1] >= EYE_TO_EYE ? cameraHeight : Math.max(0.8, middle + 0.55);
+
+    /*
+     * ...and the height to clear is not the object's height either.
+     *
+     * A long thing seen from a standing eye runs a long way DOWN the frame:
+     * its near end is close, and the angle from the horizon down to the ground
+     * at that near end is most of the vertical field on a landscape phone. The
+     * old solve measured the object's own height, which is the one number that
+     * has nothing to do with it, and the tool opened with the front wheel off
+     * the bottom of the screen.
+     *
+     * Both conditions are transcendental in the distance, so they are searched
+     * rather than solved: the smallest standing distance at which the
+     * footprint fits the yaw AND the near end's drop plus the far end's rise
+     * fit the pitch. Sixteen halvings settle it to a centimetre, once, when
+     * the object is stood up.
+     */
+    const fits = (d: number) => {
+      if (Math.atan(across / d) > halfYaw * FILL) return false;
+      const near = Math.max(d - across, 0.35);
+      const drop = Math.atan(eye / near);
+      const rise = Math.atan(Math.max(size[1] - eye, 0.02) / near);
+      return drop + rise <= 2 * halfPitch * FILL;
+    };
+    let low = 0.9;
+    let high = 60;
+    if (!fits(high)) low = high;
+    else {
+      for (let i = 0; i < 16; i++) {
+        const mid = (low + high) / 2;
+        if (fits(mid)) high = mid;
+        else low = mid;
+      }
+    }
+    // The room's floor still bounds it, but only when there IS a room. Clamping
+    // to it with the walls switched off was the other half of the crop: 3.8 m
+    // is the right limit for not standing outside the brickwork and the wrong
+    // one for an object on an open grid.
+    const distance = Math.min(roomLevel > 0 ? standingRoom(room) : Infinity, 60, Math.max(0.9, high));
 
     setCameraHeight(eye);
     walkInput.position.set(0, 0, distance);
