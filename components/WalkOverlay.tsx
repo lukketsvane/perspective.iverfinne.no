@@ -1230,6 +1230,38 @@ export const WalkOverlay: React.FC<{
       )}
 
       {/*
+        * AN ARMED INSTRUMENT SAYS SO.
+        *
+        * The button that arms these promises, in its own comment, that "the
+        * button says which state you are in" - and it cannot keep that promise,
+        * because arming CLOSES the panel the button lives in. So the only
+        * indicator of a mode that swallows every drag on the glass was inside
+        * the thing that had just shut, and an armed pencil was invisible until
+        * your next look-drag turned into a box.
+        *
+        * It is a trap of exactly the kind the Escape ladder was written to
+        * avoid, and a phone has no Escape.
+        *
+        * At the top, because that is the one band this tool's chrome does not
+        * use - the dock, the panel slot and the walk corner are all along the
+        * bottom - and it is the same place the tour's card stands for the same
+        * reason. It takes no pointer: it is a readout, and the way to put the
+        * instrument down is the way it always was.
+        *
+        * Not while a stroke is in progress: the drag has its own live reading
+        * a few pixels from the finger, and two labels for one gesture is one
+        * label too many.
+        */}
+      {(blocking || measuring) && !blockReadout && (
+        <div
+          aria-live="polite"
+          className={`fixed z-40 left-1/2 -translate-x-1/2 top-safe-panel pointer-events-none ${bubble(isDark)}`}
+        >
+          {blocking ? 'Drag on the floor to block a box in' : 'Drag across the scene to measure an angle'}
+        </div>
+      )}
+
+      {/*
         * There is no scrim over the scene, and the panel does not dismiss
         * itself.
         *
