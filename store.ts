@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
+import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
 import { releaseSource, cachedSourceUrls, modelRadius, loadModelFromUrl } from './lib/loadModel';
 import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
 import { cloneModel } from './lib/modelMaterials';
@@ -12,6 +12,7 @@ import {
   paperFor,
   setHatch as setHatchRule,
   setPen as setPenNib,
+  setWash as setWashTone,
   setInkPaper,
   setMarker as setMarkerInk,
   pageInkHex,
@@ -73,7 +74,7 @@ export const DEFAULT_FOV = 90;
  * 88 degrees round the wheel is the colour a green Copic lays over black ink -
  * far enough off pure green to read as a marker and not as a fill.
  */
-export const DEFAULT_MARKER: MarkerState = { hue: 88, high: 0.62 };
+export const DEFAULT_MARKER: MarkerState = { hue: 88, high: 0.62, chroma: 0.72 };
 
 /**
  * The etched page's default rule.
@@ -105,7 +106,17 @@ export const DEFAULT_MARKER: MarkerState = { hue: 88, high: 0.62 };
  */
 export const DEFAULT_GROUND = { on: false, tone: 96 };
 
-export const DEFAULT_PEN: PenState = { outline: 2, formCount: 2, formStrength: 0.18, terminator: 1 };
+export const DEFAULT_PEN: PenState = {
+  outline: 2,
+  formCount: 2,
+  formStrength: 0.18,
+  formWidth: 0.9,
+  terminator: 1,
+  terminatorWidth: 1.3,
+};
+
+/** Bare paper, in three plateaus for when a page asks for any. */
+export const DEFAULT_WASH: WashState = { amount: 0, steps: 3 };
 
 export const DEFAULT_HATCH: HatchState = {
   // Zero: strokes running square across the form, which is the cross-contour
@@ -295,6 +306,7 @@ const SETTING_KEYS = [
   'marker',
   'hatch',
   'pen',
+  'wash',
   'ground',
   'roomLevel',
   'room',
@@ -340,6 +352,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   marker: object,
   hatch: object,
   pen: object,
+  wash: object,
   ground: object,
   roomLevel: number,
   room: object,
@@ -562,6 +575,7 @@ const remembered = kept({
   marker: loadedSettings.marker === undefined ? undefined : { ...DEFAULT_MARKER, ...loadedSettings.marker },
   hatch: loadedSettings.hatch === undefined ? undefined : { ...DEFAULT_HATCH, ...loadedSettings.hatch },
   pen: loadedSettings.pen === undefined ? undefined : { ...DEFAULT_PEN, ...loadedSettings.pen },
+  wash: loadedSettings.wash === undefined ? undefined : { ...DEFAULT_WASH, ...loadedSettings.wash },
   ground: loadedSettings.ground === undefined ? undefined : { ...DEFAULT_GROUND, ...loadedSettings.ground },
   /*
    * The sun is the viewer's - bearing, height, strength and warmth all
@@ -819,6 +833,7 @@ export const useStore = create<SceneState>((set, get) => ({
   marker: DEFAULT_MARKER,
   hatch: DEFAULT_HATCH,
   pen: DEFAULT_PEN,
+  wash: DEFAULT_WASH,
   ground: DEFAULT_GROUND,
   sunEnvironment: false,
   viewLocked: false,
@@ -1259,6 +1274,7 @@ export const useStore = create<SceneState>((set, get) => ({
         // get. Its tone survives, so a floor dragged to a value you liked
         // comes back at that value rather than at the default.
         pen: p.pen ? { ...state.pen, ...p.pen } : state.pen,
+        wash: p.wash ? { ...state.wash, ...p.wash } : state.wash,
         ground: p.ground ?? { on: false, tone: state.ground.tone },
         boxes: state.boxes.map((b) => (following(b.surface) ? { ...b, surface: p.surface } : b)),
         models: state.models.map((m) => (following(m.surface) ? { ...m, surface: p.surface } : m)),
@@ -1268,6 +1284,7 @@ export const useStore = create<SceneState>((set, get) => ({
   setMarker: (marker) => set((state) => ({ marker: { ...state.marker, ...marker } })),
   setHatch: (hatch) => set((state) => ({ hatch: { ...state.hatch, ...hatch } })),
   setPen: (pen) => set((state) => ({ pen: { ...state.pen, ...pen } })),
+  setWash: (wash) => set((state) => ({ wash: { ...state.wash, ...wash } })),
 
   toggleGround: () => set((state) => ({ ground: { ...state.ground, on: !state.ground.on } })),
   // Turning it up from black is also turning it on: dragging a floor into view
@@ -1298,13 +1315,19 @@ export const useStore = create<SceneState>((set, get) => ({
    */
   setSelectionMaterial: (patch) =>
     set((state) => {
-      const page: MaterialSettings = { pen: state.pen, marker: state.marker, hatch: state.hatch };
+      const page: MaterialSettings = {
+        pen: state.pen,
+        marker: state.marker,
+        hatch: state.hatch,
+        wash: state.wash,
+      };
       const merge = (own: MaterialSettings | undefined): MaterialSettings => {
         const from = own ?? page;
         return {
           pen: { ...from.pen, ...patch.pen },
           marker: { ...from.marker, ...patch.marker },
           hatch: { ...from.hatch, ...patch.hatch },
+          wash: { ...from.wash, ...patch.wash },
         };
       };
       if (state.selectedModelId)
@@ -1844,7 +1867,8 @@ const syncTones = (state: SceneState) => {
   // The cut shadow is one shared material rather than a React-managed one, so
   // its two tones are pushed here with everything else's.
   setShadowInk(pageInkHex(), state.surface === 'hatch' ? 0.92 : 0.6);
-  setMarkerInk(state.marker.hue, state.marker.high);
+  setMarkerInk(state.marker);
+  setWashTone(state.wash);
   setHatchRule(state.hatch);
   setPenNib(state.pen);
 };

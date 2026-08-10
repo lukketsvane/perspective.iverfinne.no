@@ -39,12 +39,14 @@ export const MaterialPanel: React.FC<{ surface: Surface; from: 'scene' | 'select
 }) => {
   const dark = useStore((s) => s.theme) === 'dark';
   const scenePen = useStore((s) => s.pen);
+  const sceneWash = useStore((s) => s.wash);
   const sceneMarker = useStore((s) => s.marker);
   const sceneHatch = useStore((s) => s.hatch);
   const own = useStore(selectionMaterial);
   const setSceneMarker = useStore((s) => s.setMarker);
   const setSceneHatch = useStore((s) => s.setHatch);
   const setScenePen = useStore((s) => s.setPen);
+  const setSceneWash = useStore((s) => s.setWash);
   const setSelectionMaterial = useStore((s) => s.setSelectionMaterial);
   const followPageMaterial = useStore((s) => s.followPageMaterial);
   const beginChange = useStore((s) => s.beginChange);
@@ -69,6 +71,7 @@ export const MaterialPanel: React.FC<{ surface: Surface; from: 'scene' | 'select
   const pen = (mine && own?.pen) || scenePen;
   const marker = (mine && own?.marker) || sceneMarker;
   const hatch = (mine && own?.hatch) || sceneHatch;
+  const wash = (mine && own?.wash) || sceneWash;
 
   /*
    * One history step for a whole drag, taken as it starts.
@@ -86,6 +89,8 @@ export const MaterialPanel: React.FC<{ surface: Surface; from: 'scene' | 'select
     mine ? setSelectionMaterial({ marker: m }) : setSceneMarker(m);
   const setHatch = (h: Parameters<typeof setSceneHatch>[0]) =>
     mine ? setSelectionMaterial({ hatch: h }) : setSceneHatch(h);
+  const setWash = (w: Parameters<typeof setSceneWash>[0]) =>
+    mine ? setSelectionMaterial({ wash: w }) : setSceneWash(w);
 
   /*
    * The one control that only exists when the selection has stepped off.
@@ -153,6 +158,23 @@ export const MaterialPanel: React.FC<{ surface: Surface; from: 'scene' | 'select
       <Scrub
         skin={skin}
         onFirstChange={start}
+        icon={I.formLines}
+        // The pen offered a weight for the outline and only a strength for the
+        // other two, which reads as though the other two have no weight. It
+        // does not start at zero: below 0.35 it meets the shader's own clamp
+        // and stops changing, and a dead bottom is the lie the stroke weight
+        // told for a year.
+        label="How heavy those lines are"
+        reading={pen.formWidth.toFixed(2)}
+        value={pen.formWidth}
+        min={0.4}
+        max={3}
+        step={0.05}
+        onChange={(formWidth) => setPen({ formWidth })}
+      />
+      <Scrub
+        skin={skin}
+        onFirstChange={start}
         icon={I.wash}
         label="How dark those lines are"
         reading={`${Math.round(pen.formStrength * 100)}%`}
@@ -173,6 +195,23 @@ export const MaterialPanel: React.FC<{ surface: Surface; from: 'scene' | 'select
         max={1}
         step={0.01}
         onChange={(terminator) => setPen({ terminator })}
+      />
+      <Scrub
+        skin={skin}
+        onFirstChange={start}
+        icon={I.terminator}
+        // A whole mark rather than a thickness on the rungs that spot their
+        // blacks in: the fill's edge sits on the same crossing and the pen runs
+        // in paper inside it, so this widens a paired ink-and-white line into a
+        // drawn core shadow. It cannot be taken to none - the strength beside
+        // it is still the off switch.
+        label="How heavy the light's edge is"
+        reading={pen.terminatorWidth.toFixed(1)}
+        value={pen.terminatorWidth}
+        min={0.5}
+        max={5}
+        step={0.1}
+        onChange={(terminatorWidth) => setPen({ terminatorWidth })}
       />
       {rejoin}
     </div>
@@ -222,9 +261,65 @@ export const MaterialPanel: React.FC<{ surface: Surface; from: 'scene' | 'select
           step={0.01}
           onChange={(high) => setMarker({ high })}
         />
+        <Scrub
+          skin={skin}
+          onFirstChange={start}
+          icon={I.wash}
+          // Not to zero: at nothing the stain is a neutral grey and the hue
+          // beside it stops meaning anything, which is a knob that does nothing
+          // sitting next to one that works.
+          label="How much colour is in it"
+          reading={`${Math.round(marker.chroma * 100)}%`}
+          value={marker.chroma}
+          min={0.05}
+          max={0.85}
+          step={0.01}
+          onChange={(chroma) => setMarker({ chroma })}
+        />
       </>
     );
   }
+
+  /*
+   * The flat tone under the line, on the two rungs it draws on.
+   *
+   * Deliberately NOT on marker: the stain covers everything below its own
+   * threshold and the tone is largest in exactly that band, so the knob would
+   * be a knob that does nothing - which is the complaint this panel has just
+   * been through twice.
+   */
+  const washKnobs = (
+    <>
+      <Scrub
+        skin={skin}
+        onFirstChange={start}
+        icon={I.ground}
+        // Under about 0.2 the shader's own 0.16 ceiling puts it below three per
+        // cent ink and it is invisible, so that is where the reading says none.
+        label="How much flat tone lies under the line"
+        reading={wash.amount < 0.2 ? 'none' : `${Math.round(wash.amount * 100)}%`}
+        value={wash.amount}
+        min={0}
+        max={1}
+        step={0.01}
+        onChange={(amount) => setWash({ amount })}
+      />
+      <Scrub
+        skin={skin}
+        onFirstChange={start}
+        icon={I.hatchWidth}
+        label="How many steps it is laid in"
+        reading={Math.round(wash.steps).toString()}
+        value={wash.steps}
+        min={1}
+        max={6}
+        step={1}
+        onChange={(steps) => setWash({ steps })}
+      />
+    </>
+  );
+
+  if (surface === 'brush') return page(washKnobs);
 
   if (surface === 'hatch') {
     // Both rows wrap: five of these at their smallest were already a whisker
@@ -260,10 +355,15 @@ export const MaterialPanel: React.FC<{ surface: Surface; from: 'scene' | 'select
           skin={skin}
           onFirstChange={start}
           icon={I.hatchWidth}
+          // From ONE, not from a quarter. The shader takes max(hatchWidth, 1.0)
+          // - one page pixel is where a line stops being a suggestion of a line
+          // - so everything from 0.25 to 1.0 drew at one identical weight, and
+          // a quarter of this knob's travel did nothing at all. Two pages in
+          // the old deck sat in that dead band and were the same page.
           label="How heavy each stroke is"
           reading={hatch.width.toFixed(2)}
           value={hatch.width}
-          min={0.25}
+          min={1}
           max={3}
           step={0.05}
           onChange={(width) => setHatch({ width })}
@@ -282,12 +382,12 @@ export const MaterialPanel: React.FC<{ surface: Surface; from: 'scene' | 'select
           step={2}
           onChange={(length) => setHatch({ length })}
         />
+        {washKnobs}
       </>
     );
   }
 
-  // Brush: the pen and nothing else. It lays spotted blacks under the line and
-  // has no numbers of its own, which is why it had no panel at all before the
-  // pen became something you could set.
+  // The two solid rungs: whatever the file says, or that with the texture off.
+  // Neither is drawn, so neither has a pen.
   return page();
 };

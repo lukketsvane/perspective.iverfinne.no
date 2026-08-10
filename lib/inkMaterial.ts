@@ -406,7 +406,13 @@ const FRAGMENT = `
     // And optionally the value contours either side of it.
     float wrap = 0.0;
     if (lightCount > 0.5) {
-      wrap = ruledMark(max(lambert, 0.0) * lightCount, formWidth, gradFloor * lightCount)
+      // step(), because max(lambert, 0.0) is EXACTLY zero across the whole
+      // unlit hemisphere - and there fwidth is zero too, so the width
+      // correction falls back to its floor, the distance to the nearest rule
+      // comes out zero, and ruledMark returns a solid 1. The entire shadow side
+      // would ink as one flat mark. Nothing reaches this axis yet, which is the
+      // only reason it has never been seen.
+      wrap = step(0.0, lambert) * ruledMark(max(lambert, 0.0) * lightCount, formWidth, gradFloor * lightCount)
         * lightStrength;
     }
 
@@ -860,6 +866,10 @@ const OWN_UNIFORMS = [
   'formCount',
   'formStrength',
   'terminatorStrength',
+  'formPx',
+  'terminatorPx',
+  'tone',
+  'toneSteps',
   'accent',
   'accentHigh',
   'hatchAngle',
@@ -914,12 +924,14 @@ export const writeOwnInk = (
     pen: Parameters<typeof writePen>[1];
     marker: Parameters<typeof writeMarker>[1];
     hatch: Parameters<typeof writeHatch>[1];
+    wash: Parameters<typeof writeWash>[1];
   }
 ) => {
   const u = material.uniforms as unknown as Nib;
   writePen(u, settings.pen);
   writeMarker(u, settings.marker);
   writeHatch(u, settings.hatch);
+  writeWash(u, settings.wash);
 };
 
 
@@ -1083,9 +1095,31 @@ type Nib = typeof inkUniforms;
  * saturated stain over a drawing, and the two numbers that hold it there are
  * not choices worth offering.
  */
-export const writeMarker = (u: Nib, m: { hue: number; high: number }) => {
-  u.accent.value.setHSL(((m.hue % 360) + 360) % 360 / 360, 0.72, 0.58, THREE.SRGBColorSpace);
+export const writeMarker = (u: Nib, m: { hue: number; high: number; chroma: number }) => {
+  // The LIGHTNESS stays welded at 0.58, and the argument above still holds for
+  // it: under about 0.3 the stain stops being a stain and competes with the
+  // spotted blacks. The saturation was welded with it and should not have been
+  // - it is the difference between a green marker and a cool grey one, and the
+  // greys are the markers most people actually own.
+  u.accent.value.setHSL(((m.hue % 360) + 360) % 360 / 360, m.chroma, 0.58, THREE.SRGBColorSpace);
   u.accentHigh.value = m.high;
+};
+
+/**
+ * The flat tone under the line.
+ *
+ * Not a gradient - a stepped plateau keyed to the sun, darkest at the
+ * terminator and gone in the highlight, which is what a stopped-out bite, a
+ * tone block and a chalk halftone all actually are. It is the only value in
+ * this material no page has ever set, and on the etched page it is the one
+ * thing that can put anything at all in the gaps between the strokes.
+ *
+ * The steps are rounded for the reason the form count is: the shader guards
+ * only `> 0.5`, and a fractional value puts the top plateau half off the ramp.
+ */
+export const writeWash = (u: Nib, w: { amount: number; steps: number }) => {
+  u.tone.value = w.amount;
+  u.toneSteps.value = Math.round(w.steps);
 };
 
 /**
@@ -1101,12 +1135,25 @@ export const writeMarker = (u: Nib, m: { hue: number; high: number }) => {
  */
 export const writePen = (
   u: Nib,
-  p: { outline: number; formCount: number; formStrength: number; terminator: number }
+  p: {
+    outline: number;
+    formCount: number;
+    formStrength: number;
+    formWidth: number;
+    terminator: number;
+    terminatorWidth: number;
+  }
 ) => {
   u.contourPx.value = p.outline;
   u.formCount.value = Math.round(p.formCount);
   u.formStrength.value = p.formStrength;
+  // How HEAVY the other two marks are, which nothing could say until now: the
+  // pen offered a weight for the outline and only a strength for these, as
+  // though they had no weight of their own. Fine and dark is an engraved
+  // hairline; heavy and faint is a stick dragged on its side.
+  u.formPx.value = p.formWidth;
   u.terminatorStrength.value = p.terminator;
+  u.terminatorPx.value = p.terminatorWidth;
 };
 
 /** Everything the hatch is ruled by. Angles in degrees, sizes in sheet pixels. */
@@ -1121,7 +1168,8 @@ export const writeHatch = (
 };
 
 /** The scene's own: the holders every object that has not been given its own points at. */
-export const setMarker = (hue: number, high: number) => writeMarker(inkUniforms, { hue, high });
+export const setMarker = (m: Parameters<typeof writeMarker>[1]) => writeMarker(inkUniforms, m);
+export const setWash = (w: Parameters<typeof writeWash>[1]) => writeWash(inkUniforms, w);
 export const setPen = (p: Parameters<typeof writePen>[1]) => writePen(inkUniforms, p);
 export const setHatch = (h: Parameters<typeof writeHatch>[1]) => writeHatch(inkUniforms, h);
 
