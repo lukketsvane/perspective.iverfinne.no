@@ -38,7 +38,7 @@ const SceneCard: React.FC<{
         onClick={onOpen}
         disabled={busy}
         aria-label={scene.name}
-        className={`w-full aspect-[4/3] rounded-2xl overflow-hidden transition-all active:scale-[0.98] disabled:opacity-40 ${tile(dark)} ${
+        className={`w-full aspect-[4/3] rounded-xl overflow-hidden transition-all active:scale-[0.98] disabled:opacity-40 ${tile(dark)} ${
           open ? 'ring-2 ring-sky-500' : ''
         }`}
       >

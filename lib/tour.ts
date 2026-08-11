@@ -125,11 +125,19 @@ export interface TourStep {
  */
 export const STEPS: TourStep[] = [
   {
+    /*
+     * The first thing anyone reads, and it has one job: say that the eye is
+     * INSIDE this, not in front of it. Everything else the tool does follows
+     * from that and nothing else on the screen says it.
+     *
+     * "Du står i det" said it and said it badly - a headline whose subject is
+     * "det" is a headline that has not decided what it is about.
+     */
     anchor: null,
     gate: 'look',
     gesture: 'dragFree',
-    headline: 'Du står i det',
-    body: 'Dra på biletet for å sjå deg rundt.',
+    headline: 'Du står i scena',
+    body: 'Dra på biletet for å snu deg.',
   },
   {
     anchor: null,

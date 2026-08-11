@@ -142,9 +142,27 @@ const aim = (clientX: number, clientY: number): boolean => {
   return true;
 };
 
-/** The nearest thing under a point on the glass that can be selected. */
+/**
+ * The nearest thing under a point on the glass that can be selected - except
+ * that A HANDLE ANYWHERE ALONG THE RAY BEATS THE NEAREST BODY.
+ *
+ * The face handles are drawn with depthTest off, on purpose and from the
+ * beginning: a mark that says "this face can be pushed" is no use hidden inside
+ * the form it belongs to. So all six of them are visible, including the three
+ * on the far side - and a picker that took the nearest hit made half of what it
+ * had drawn untouchable. You could see the dot, aim at the dot, press the dot,
+ * and move the box.
+ *
+ * Preferring the handle costs nothing anywhere else. Handles exist only on the
+ * current selection and only where the face has come clear of the middle of its
+ * own box, so the zone in question is a nineteen-pixel circle over a mark that
+ * is already drawn on top of everything. If you can see it, it takes the press:
+ * which is the rule the rest of this app is built on.
+ */
 export const pickObject = (clientX: number, clientY: number): SceneHit | null => {
   if (!aim(clientX, clientY) || !view) return null;
+
+  let nearest: SceneHit | null = null;
 
   for (const hit of raycaster.intersectObjects(view.root.children, true)) {
     let handle: SceneHit['handle'];
@@ -160,15 +178,18 @@ export const pickObject = (clientX: number, clientY: number): SceneHit | null =>
     }
     if (!node) continue;
 
-    return {
+    const found: SceneHit = {
       type: node.userData.selectableType as 'box' | 'model' | 'lamp',
       id: node.userData.selectableId as string,
       handle,
       point: hit.point.clone(),
     };
+    // Hits arrive nearest first, so the first handle found is the nearest one.
+    if (handle) return found;
+    if (!nearest) nearest = found;
   }
 
-  return null;
+  return nearest;
 };
 
 const level = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);

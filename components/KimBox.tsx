@@ -20,9 +20,35 @@ import { BOX_EDGES, usePen } from '../lib/pen';
  * be selected but never moved.
  */
 
-/** The mark, and what you can hit: radius in pixels on the glass. */
-const DOT_PIXELS = 7;
-const TARGET_PIXELS = 16;
+/**
+ * The mark, and what you can hit: radius in pixels on the glass.
+ *
+ * They are not the same number and the gap between them is the whole design.
+ * The dot is a MARK - it says a face can be pushed here, and at four and a half
+ * pixels it says so without becoming a bead sitting on the drawing you are
+ * trying to look at. The target around it is four times the area, because a
+ * thumb is not a pixel, and it is invisible, because a target you can see is a
+ * mark that is too big.
+ *
+ * Seven and sixteen before. The dot came down because six of them on a box the
+ * size of a chair was a constellation over the very form they belong to; the
+ * target went up because that is free - it costs nothing on screen and it is
+ * what a finger actually meets.
+ */
+const DOT_PIXELS = 4.5;
+const TARGET_PIXELS = 19;
+
+/**
+ * How much of a dot is left when its face is turned away.
+ *
+ * Every face is offered now, not just the three you can see - a box you have
+ * walked round is a box whose far side you can want, and the near three are
+ * exactly the three the box itself is in the way of your reaching past. So the
+ * far dots are drawn through the box, as marks always were, and dimmed to say
+ * which side of the form they are on. Not hidden: you cannot aim at what is not
+ * drawn.
+ */
+const BEHIND = 0.4;
 
 /** All six faces. Which of them are offered is the viewer's business. */
 const FACES = ([0, 1, 2] as const).flatMap((axis) =>
@@ -64,13 +90,35 @@ const FaceHandles: React.FC<{ data: BoxData; color: string }> = ({ data, color }
     marks.current.forEach((mark, index) => {
       if (!mark) return;
       const half = data.scale[FACES[index].axis] / 2;
-      eye.copy(camera.position).sub(mark.position);
-      mark.visible = outward[index].dot(eye) > 0 && faceIsReachable(centre, outward[index], half);
+      /*
+       * WHETHER IT IS OFFERED IS NOW ONE QUESTION, NOT TWO.
+       *
+       * It used to be "is this face turned towards you" AND "has it come clear
+       * of the box on the glass". The first is gone: it hid the three faces you
+       * most often want, since the way to want a far face is to have walked
+       * round and looked at the box, and the reason given for hiding them - the
+       * box is in the way of any ray that would reach them - was a fact about
+       * the picker, which now prefers a handle to the body it is behind.
+       *
+       * The second does all the work on its own, and it is the honest test:
+       * a face that has not separated itself from the middle of its own box on
+       * screen cannot be pushed in any direction you could see, whichever way
+       * it happens to be pointing. A face square-on to the eye fails it from
+       * both sides.
+       */
+      mark.visible = faceIsReachable(centre, outward[index], half);
       // A handle that is not offered has no size either. Left at its own scale
       // it would still be a metre-wide sphere of nothing, sitting in front of
       // the box and catching every ray meant for it.
       const perMetre = mark.visible ? pixelsPerMetreAt(at.copy(mark.position)) : 0;
       mark.scale.setScalar(perMetre > 1e-3 ? TARGET_PIXELS / perMetre : 0);
+
+      // Which side of the form it is on, said with paint rather than by
+      // withholding it. The dot is the first child; the target is the second.
+      eye.copy(camera.position).sub(mark.position);
+      const dot = mark.children[0] as THREE.Mesh;
+      const paint = dot?.material as THREE.MeshBasicMaterial | undefined;
+      if (paint) paint.opacity = outward[index].dot(eye) > 0 ? 1 : BEHIND;
     });
   });
 
