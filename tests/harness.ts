@@ -48,9 +48,19 @@ export { expect };
  * only happens on the FIRST load of the tab. A spec that reloads to prove a
  * setting survived the reload must find its own settings still there, and an
  * unguarded init script would quietly wipe them and make that spec a fraud.
+ *
+ * THE PAGE, WHICH IS THE ONE THAT WOULD OTHERWISE BE RANDOM. The tool deals a
+ * page off the deck of twenty-three every time it opens - a different surface,
+ * sheet, mount, light and pen on every load. Unpinned, that is a random input
+ * to every spec in this suite: the fingerprint smoke test would be comparing a
+ * different picture each run, and a material spec would start from whichever
+ * knobs the deal happened to leave. Pinned here to the page the tool used to
+ * open on fixed, so the suite sees exactly the setup it was written against.
+ * A spec that is ABOUT the deal clears this key itself.
  */
 const PRELUDE = () => {
   localStorage.setItem('kjg-perspective-tour', JSON.stringify({ seen: 4 }));
+  localStorage.setItem('kjg-perspective-page', 'Brush page on black');
   if (!sessionStorage.getItem('harness-cleared')) {
     localStorage.removeItem('kjg-perspective-settings');
     sessionStorage.setItem('harness-cleared', '1');

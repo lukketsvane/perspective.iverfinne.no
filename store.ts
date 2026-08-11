@@ -18,7 +18,7 @@ import {
   setPageTone,
   setShadowInk,
 } from './lib/inkMaterial';
-import { nextPreset } from './lib/presets';
+import { nextPreset, PRESETS, type Preset } from './lib/presets';
 import { walkInput } from './lib/walkInput';
 
 // ---------------------------------------------------------------------------
@@ -245,24 +245,99 @@ const pageTheme = (backdrop: Backdrop, backgroundGray: number, surface: Surface)
 });
 
 /**
- * What the tool opens on, named once.
+ * A page pinned by name, which is how the deal is made to hold still.
  *
- * The finished brush page rather than a lighting study of it, and rather than
- * the pen-only underdrawing: line, spotted black, hard shadow. White paper
- * mounted on black, which is how a drawing is presented - the sheet stays warm
- * and light so the ink is still ink, and the page behind it goes black so the
- * drawing is the only thing in the frame with a value. It is also what makes
- * the horizon read: the ground's ruling and the guides are chalk on the dark
- * page, and the object is the one light shape on it.
+ * `window.__forceMesh` does this job for the opening object and is stripped
+ * from the production bundle, which is exactly where it cannot be used from:
+ * the regression suite runs against a real build. This is a key in storage
+ * instead, written before the app's first line of script the same way the
+ * tour's flag is, and it survives minification because it is a string rather
+ * than a global.
  *
- * These are three constants rather than three literals in the state below
- * because the opening has to be stated twice - once as the state, once as the
- * fallback the settings migration lands on - and two copies of it is how you
- * get a returning visitor whose chrome does not match their page.
+ * IT IS NOT A DEBUG HATCH ONLY. A deck of twenty-three pages is a thing you
+ * iterate on, and iterating on one page means opening the tool on that page
+ * over and over rather than nine times out of ten on some other one.
+ *
+ * An unknown name is not an error and not a crash: it deals, which is what the
+ * tool does when nobody has said otherwise.
  */
-const OPENING_SURFACE: Surface = 'brush';
-const OPENING_BACKDROP: Backdrop = 0;
-const OPENING_PAPER = 243;
+const PAGE_KEY = 'kjg-perspective-page';
+
+const pinnedPage = (): Preset | null => {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const name = localStorage.getItem(PAGE_KEY);
+    return PRESETS.find((p) => p.name === name) ?? null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * WHAT THE TOOL OPENS ON: A PAGE OFF THE DECK, DEALT.
+ *
+ * It opened on one fixed page - the finished brush page: line, spotted black,
+ * hard shadow, warm sheet mounted on flat black - and that page is still in the
+ * deck and still the best single answer if only one were allowed. One is not.
+ * There are twenty-three of them, each a whole page somebody would draw from,
+ * and a viewer who opens the tool a hundred times had seen exactly one of them
+ * unless they went looking for the die.
+ *
+ * THIS IS NOT THE ARGUMENT THE OPENING MESH LOST. lib/meshLibrary.ts used to
+ * pick its object at random and was made to stand the racer up every time,
+ * because opening on something different every time is not a room you know -
+ * and that is right, about the OBJECT. The object is what you are drawing; you
+ * need it to hold still to have any idea whether you are getting better. The
+ * page is how it is drawn, and a different one each time is a different lesson
+ * in what the material can do, over a subject that has not moved. The two
+ * decisions look alike and are opposite for the same reason.
+ *
+ * AND IT OVERRULES WHAT WAS REMEMBERED, which is the price and is worth
+ * stating plainly: the page you tuned by hand lasts the session and not the
+ * reload. Everything that is not the page - the guides, the lens, the eye
+ * level, the room, the snap, the floor's tone - is remembered as it always
+ * was, and so is the scene. What you lose on a reload is the deal, and there
+ * is a button that deals another.
+ */
+const OPENING_PAGE = pinnedPage() ?? nextPreset(null);
+
+/**
+ * Every field a page sets, written once.
+ *
+ * The die and the opening deal are the same act and were two copies of this
+ * list - which is how the wash gets added to one of them and not the other.
+ * `from` is what the page is landing on: a page names a pen or a wash or it
+ * does not, and what it does not name is left standing.
+ */
+const pageOf = (
+  p: Preset,
+  from: { sun: SunState; fill: FillState; marker: MarkerState; hatch: HatchState; pen: PenState; wash: WashState; ground: { on: boolean; tone: number } }
+) => ({
+  presetName: p.name,
+  surface: p.surface,
+  backdrop: p.backdrop,
+  backgroundGray: p.paper,
+  ...pageTheme(p.backdrop, p.paper, p.surface),
+  sun: { ...from.sun, ...p.sun },
+  fill: { ...from.fill, enabled: p.fill },
+  marker: p.marker ? { ...from.marker, ...p.marker } : from.marker,
+  hatch: p.hatch ? { ...from.hatch, ...p.hatch } : from.hatch,
+  // The two the pages could not say until the knobs existed.
+  //
+  // The pen is left alone when a page does not name one, like the stain and
+  // the rule above: it shows only on the three drawn rungs, and every page
+  // that lands on one names its own.
+  //
+  // THE FLOOR IS NOT. It shows on every page there is, so leaving it meant one
+  // deal turned it on and it stayed on through pages composed with nothing
+  // under them - measured, nineteen deals out of twenty-two came up standing
+  // on a floor that only two pages asked for. A page is a whole page; what it
+  // does not ask for it does not get. Its tone survives, so a floor dragged to
+  // a value you liked comes back at that value rather than at the default.
+  pen: p.pen ? { ...from.pen, ...p.pen } : from.pen,
+  wash: p.wash ? { ...from.wash, ...p.wash } : from.wash,
+  ground: p.ground ?? { on: false, tone: from.ground.tone },
+});
 
 // ---------------------------------------------------------------------------
 // Remembered settings
@@ -840,8 +915,8 @@ export const useStore = create<SceneState>((set, get) => ({
   selectedModelId: null,
   lamps: [],
   selectedLampId: null,
-  surface: OPENING_SURFACE,
-  backdrop: OPENING_BACKDROP,
+  surface: OPENING_PAGE.surface,
+  backdrop: OPENING_PAGE.backdrop,
   marker: DEFAULT_MARKER,
   hatch: DEFAULT_HATCH,
   pen: DEFAULT_PEN,
@@ -853,7 +928,7 @@ export const useStore = create<SceneState>((set, get) => ({
   redoStack: [],
   // `theme` is not here: it is derived from whatever survives the migration
   // below, since the page it floats over is what decides it.
-  backgroundGray: OPENING_PAPER,
+  backgroundGray: OPENING_PAGE.paper,
   presetName: null,
   currentSceneId: null,
   sceneHistory: [],
@@ -866,22 +941,32 @@ export const useStore = create<SceneState>((set, get) => ({
   // its fields, must not leave the scene with no light in it.
   sun: readSun(remembered.sun),
   fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
+
   /*
-   * The chrome is worked out from the page rather than taken back from storage.
+   * ...AND THE DEAL OVER THE TOP OF ALL OF IT, last, because it has to be.
    *
-   * It is stored - the migration from the old light/dark switch to a continuous
-   * page still reads it - but as a *state* it is derived: every setter here
-   * recomputes it from the page and the surface, so it cannot be an independent
-   * opinion in the live store and must not become one on the way in. The one
-   * time the two disagree is exactly the one that matters. The page moved with
-   * this version and `theme` did not, so a returning visitor with a stored
-   * light theme would have opened light chrome over the new black mount, on the
-   * single load where nothing they did could explain it.
+   * It cannot go with the defaults above: `...remembered` is right there
+   * underneath, and a stored surface would take the page's rung straight back
+   * off again - which is the whole of what a viewer sees, so the deal would
+   * have been a no-op for everybody who had ever opened the tool before.
+   *
+   * It lands on what the two lines above settled rather than on the raw stored
+   * blob, so a page that names no pen keeps the pen that was migrated in, and
+   * a page that names no wash keeps that. This is the same call the die makes.
+   *
+   * `theme` comes out of it too - it is derived from the page, and the page is
+   * now this one. Reading it off `remembered` here was the old code's way of
+   * saying "derived from whatever we ended up with"; what we end up with is
+   * the deal.
    */
-  theme: themeFor({
-    backdrop: remembered.backdrop ?? OPENING_BACKDROP,
-    backgroundGray: remembered.backgroundGray ?? OPENING_PAPER,
-    surface: remembered.surface ?? OPENING_SURFACE,
+  ...pageOf(OPENING_PAGE, {
+    sun: readSun(remembered.sun),
+    fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
+    marker: { ...DEFAULT_MARKER, ...(remembered.marker ?? {}) },
+    hatch: { ...DEFAULT_HATCH, ...(remembered.hatch ?? {}) },
+    pen: { ...DEFAULT_PEN, ...(remembered.pen ?? {}) },
+    wash: { ...DEFAULT_WASH, ...(remembered.wash ?? {}) },
+    ground: { ...DEFAULT_GROUND, ...(remembered.ground ?? {}) },
   }),
 
   /**
@@ -1294,31 +1379,9 @@ export const useStore = create<SceneState>((set, get) => ({
         // not in a history step here any more than the backdrop or the lamps
         // are. Press for another page to change the page.
         ...remember(state),
-        presetName: p.name,
-        surface: p.surface,
-        backdrop: p.backdrop,
-        backgroundGray: p.paper,
-        ...pageTheme(p.backdrop, p.paper, p.surface),
-        sun: { ...state.sun, ...p.sun },
-        fill: { ...state.fill, enabled: p.fill },
-        marker: p.marker ? { ...state.marker, ...p.marker } : state.marker,
-        hatch: p.hatch ? { ...state.hatch, ...p.hatch } : state.hatch,
-        // The two the pages could not say until the knobs existed.
-        //
-        // The pen is left alone when a page does not name one, like the stain
-        // and the rule above: it shows only on the three drawn rungs, and
-        // every page that lands on one names its own.
-        //
-        // THE FLOOR IS NOT. It shows on every page there is, so leaving it
-        // meant one deal turned it on and it stayed on through pages composed
-        // with nothing under them - measured, nineteen deals out of
-        // twenty-two came up standing on a floor that only two pages asked
-        // for. A page is a whole page; what it does not ask for it does not
-        // get. Its tone survives, so a floor dragged to a value you liked
-        // comes back at that value rather than at the default.
-        pen: p.pen ? { ...state.pen, ...p.pen } : state.pen,
-        wash: p.wash ? { ...state.wash, ...p.wash } : state.wash,
-        ground: p.ground ?? { on: false, tone: state.ground.tone },
+        // Every field a page sets lives in pageOf, which the opening deal calls
+        // too - see it for what is overwritten and what is left standing.
+        ...pageOf(p, state),
         boxes: state.boxes.map((b) => (following(b.surface) ? { ...b, surface: p.surface } : b)),
         models: state.models.map((m) => (following(m.surface) ? { ...m, surface: p.surface } : m)),
       };
