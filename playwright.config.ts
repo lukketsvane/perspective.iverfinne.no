@@ -49,13 +49,22 @@ export default defineConfig({
   testDir: './tests',
 
   /*
-   * A test may not decide it has finished before the drawing has: the opening
-   * mesh is three megabytes over the wire and stands up under a software
-   * rasteriser here, and a run under load can spend a couple of seconds inside
-   * a single drag. Sixty seconds is the point past which something is wrong
-   * rather than slow.
+   * A test may not decide it has finished before the drawing has.
+   *
+   * NINETY, AND IT WAS SIXTY. The comment here used to say the opening was
+   * three megabytes over the wire, which was true of the car it opened on two
+   * objects ago. It opens on a yard now: the racer at twenty megabytes and a
+   * quarter of a million triangles, and four more meshes standing round it -
+   * all of it parsed, uploaded and rasterised in SOFTWARE, twice over, because
+   * two workers each run a full chromium.
+   *
+   * The number moved because the work did, and the evidence is that the test
+   * which timed out passes in forty-two seconds when it is the only one
+   * running. That is slow, not wrong, and this is the line between the two -
+   * so it has to move when the thing being timed gets bigger, or it stops
+   * being a bug detector and becomes a load detector.
    */
-  timeout: 60_000,
+  timeout: 90_000,
   expect: { timeout: 10_000 },
 
   /*
