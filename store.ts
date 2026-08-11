@@ -848,7 +848,7 @@ export const useStore = create<SceneState>((set, get) => ({
   wash: DEFAULT_WASH,
   ground: DEFAULT_GROUND,
   sunEnvironment: false,
-  viewLocked: false,
+  instrument: 'none',
   undoStack: [],
   redoStack: [],
   // `theme` is not here: it is derived from whatever survives the migration
@@ -1556,7 +1556,7 @@ export const useStore = create<SceneState>((set, get) => ({
 
   setFill: (fill) => set((state) => ({ fill: { ...state.fill, ...fill } })),
 
-  toggleViewLock: () => set((state) => ({ viewLocked: !state.viewLocked })),
+  setInstrument: (instrument) => set({ instrument }),
 
   /**
    * Step back one scene, and forward again.

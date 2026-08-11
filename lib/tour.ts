@@ -21,7 +21,7 @@ type Listener = () => void;
  * Bumped when the tour is rewritten, so a viewer who has seen the old one is
  * offered the new one - the same trick VIEW_GENERATION plays in store.ts.
  */
-const TOUR_GENERATION = 1;
+const TOUR_GENERATION = 2;
 
 /**
  * Its own key, not a field in the settings blob.
@@ -72,22 +72,21 @@ export const STEPS: TourStep[] = [
     // "Tools" is read by the tour.
     anchor: 'Tools',
     headline: 'The dock is verbs only',
-    body: 'Every setting — the guides, the surface, the page, the projection — is behind this one button. Open it.',
+    body: 'Every setting — the guides, the surface, the page, the projection, how the angle is measured — is behind this one button, in bands of a few. Nothing out here is a setting.',
   },
   {
     /*
      * "Draw boxes on the ground" is read by the tour.
      *
-     * It lives inside the tools panel, so until the viewer's own tap opens that
-     * panel there is nothing on screen to ring - which is why the step before
-     * this one exists and why the tour does not simply open the panel itself.
-     * If the panel is shut when this card is reached, the ring falls back to the
-     * button that opens it rather than circling nothing.
+     * It lives on the model shelf, beside the cube, so until the viewer's own
+     * tap opens that shelf there is nothing on screen to ring - which is why
+     * the ring falls back to the dock button that opens it rather than circling
+     * nothing. The tour does not open the shelf itself: the tap is the lesson.
      */
     anchor: 'Draw boxes on the ground',
-    fallbackAnchor: 'Tools',
+    fallbackAnchor: 'Add model',
     headline: 'Block one in by eye',
-    body: 'The first control in Tools is the block-out pencil. Take it — the panel stands itself down — then drag a footprint on the floor beside the car, let go, and drag up for the height. It puts itself down after each box.',
+    body: 'Open this and take the pencil beside the cube — the shelf stands itself down — then drag a footprint on the floor beside the racer, let go, and drag up for the height. It puts itself down after each box.',
   },
   {
     anchor: null,

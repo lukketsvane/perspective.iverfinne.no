@@ -3,7 +3,7 @@ import { useStore } from '../store';
 import { MESH_LIBRARY } from '../lib/meshLibrary';
 import { MODEL_ACCEPT } from '../lib/loadModel';
 import { Icon, I } from './icons';
-import { tile } from './ui';
+import { ACTIVE, tile } from './ui';
 import { generateMeshPreview, getMeshPreview } from '../lib/meshPreview';
 import { focusPoint } from '../lib/focus';
 
@@ -128,9 +128,13 @@ export const MeshSheet: React.FC<{
   onPlaceOwn: (url: string, name: string) => void;
   onImport: (files: FileList) => void;
   busyId: string | null;
-}> = ({ onPlace, onPlaceOwn, onImport, busyId }) => {
+  /** Taking the pencil off the shelf puts the shelf away. Nothing else does. */
+  onClose: () => void;
+}> = ({ onPlace, onPlaceOwn, onImport, busyId, onClose }) => {
   const dark = useStore((s) => s.theme) === 'dark';
   const addCube = useStore((s) => s.addCube);
+  const instrument = useStore((s) => s.instrument);
+  const setInstrument = useStore((s) => s.setInstrument);
   const ownMeshes = useStore((s) => s.ownMeshes);
   const forgetMesh = useStore((s) => s.forgetMesh);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -178,6 +182,40 @@ export const MeshSheet: React.FC<{
           className={`relative w-full aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${tile(dark)}`}
         >
           <Icon path={I.cube} className="w-8 h-8 opacity-80" />
+        </button>
+        {/*
+          * The block-out pencil, right beside the cube: the same verb, by eye.
+          *
+          * It sat in the tools panel with the measure, the two of them alone in
+          * a band because they are both modes. That is a fact about how they
+          * are implemented, not about what they are for - and it put the one
+          * control that turns standing in a room into a scene of its forms
+          * behind a menu of settings. This is where you already are when you
+          * want something in the drawing: a cube is one tap and comes out a
+          * metre on a side, and this is the same thing sized by your own
+          * judgement in two strokes - a footprint dragged on the floor, then
+          * its height pulled up. The paragraph above about the block of sized
+          * boxes that used to be here is the argument for it standing here.
+          *
+          * The one thing on this shelf that DOES put the shelf away, because
+          * unlike everything else here it does not finish the job - it hands
+          * you an instrument to use on the drawing, and the shelf would be
+          * over the floor you need to draw on. It puts itself down again after
+          * each box: see the pointer handler in WalkOverlay.
+          */}
+        <button
+          onClick={() => {
+            setInstrument(instrument === 'block' ? 'none' : 'block');
+            onClose();
+          }}
+          disabled={busy}
+          aria-label="Draw boxes on the ground"
+          aria-pressed={instrument === 'block'}
+          className={`relative w-full aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${
+            instrument === 'block' ? ACTIVE : ''
+          } ${tile(dark)}`}
+        >
+          <Icon path={I.block} className="w-8 h-8 opacity-80" />
         </button>
 
         {/* Your own files, right beside the cube: the way anything that is not

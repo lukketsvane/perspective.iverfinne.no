@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import type { SceneInstance } from '../types';
-import { test, expect, clickIn, find, readSceneBundle } from './harness';
+import { test, expect, blockOutABox, clickIn, find, openShelf, readSceneBundle } from './harness';
 
 /**
  * NOTHING STANDS INSIDE ANYTHING ELSE.
@@ -53,23 +53,10 @@ const onTheRuling = (v: number) => Math.abs(Math.abs(v - Math.round(v)) - 0.5) <
 const pairs = <T,>(items: T[]): [T, T][] =>
   items.flatMap((a, i) => items.slice(i + 1).map((b) => [a, b] as [T, T]));
 
-/**
- * Open the shelf, and leave it open.
- *
- * Idempotent for the same reason openTools is: "Add model" is a toggle with no
- * aria-expanded to ask, so this asks the shelf itself whether it is there. A
- * second blind click would put it away and send the next tap into the scene.
- *
- * It stays open across placements by design - see MeshSheet.tsx: building a
- * scene is placing several things, so the shelf behaves like a shelf. That is
- * exactly what makes the second and third tap in these tests one tap away, and
- * it is why the bugs below were reachable at all.
+/*
+ * The shelf opener these all lean on lives in the harness now - it grew a
+ * second caller when the block-out pencil moved onto the shelf.
  */
-const openShelf = async (page: Page) => {
-  const cube = find(page, 'anywhere', 'Add cube');
-  if ((await cube.count()) === 0) await clickIn(page, 'anywhere', 'Add model');
-  await expect(cube).toBeVisible();
-};
 
 /**
  * Put a cylinder down and wait until it is actually in the scene.
@@ -103,6 +90,42 @@ const placeCylinder = async (page: Page) => {
  * it is leaned on.
  */
 const dropTheProbe = (page: Page) => clickIn(page, 'anywhere', 'Add light');
+
+/*
+ * The pencil beside the cube, which is where it lives now.
+ *
+ * It spent a release inside the tools panel, in a band of its own with the
+ * measure, and blockOutABox in the harness reached it through there. Nothing
+ * green in the suite went near that path - the four specs that block a box in
+ * are all quarantined - so moving it was a change no test could have caught.
+ * Hence this one: the shortest statement of what the shelf is now claiming,
+ * which is that the by-eye version of the cube is one tap from the cube.
+ */
+test('the pencil is on the shelf beside the cube, and blocks a box in from there', async ({
+  app,
+}) => {
+  await openShelf(app);
+  const pencil = find(app, 'anywhere', 'Draw boxes on the ground');
+  await expect(pencil, 'The block-out pencil is not on the model shelf.').toBeVisible();
+
+  await blockOutABox(app);
+
+  // Taking it put the shelf away, which is the one thing on that shelf that
+  // does - see MeshSheet.tsx. Asked here, before anything else opens a panel:
+  // the floor the pencil needs to draw on is the floor the shelf was over.
+  await expect(
+    find(app, 'anywhere', 'Add cube'),
+    'The shelf is still up over the floor the pencil was handed for.'
+  ).toHaveCount(0);
+
+  const scene = await readSceneBundle(app);
+  expect(scene.boxes, 'Two strokes on the floor and no box stood up.').toHaveLength(1);
+  // Sized by eye, so the numbers are whatever the drag said - but whatever it
+  // said, the box stands ON the floor, with its centre at half its height.
+  const [box] = scene.boxes;
+  expect(box.position[1]).toBeCloseTo(box.scale[1] / 2, 6);
+  expect(box.scale.every((metres) => metres > 0)).toBe(true);
+});
 
 test('three taps on the cube give three cubes, square on the ruling and a metre apart', async ({
   app,

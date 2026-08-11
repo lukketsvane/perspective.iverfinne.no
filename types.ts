@@ -21,6 +21,12 @@ export interface BoxData {
 export type ThemeMode = 'light' | 'dark';
 
 /**
+ * The instrument in your hand: nothing, the block-out pencil, or the pencil
+ * held at arm's length. One at a time, because it is one hand.
+ */
+export type Instrument = 'none' | 'block' | 'measure';
+
+/**
  * How the scene is projected. Three systems, all of them ones you can draw in.
  *
  * - 'cylindrical': four-point. Verticals stay straight and vertical; horizontals
@@ -826,8 +832,21 @@ export interface SceneState {
    * horizon the floor actually meets rather than one the grid implies.
    */
   ground: { on: boolean; tone: number };
-  /** Freeze the walk camera so a framed view stops moving. */
-  viewLocked: boolean;
+  /**
+   * WHICH INSTRUMENT IS IN YOUR HAND, if any.
+   *
+   * The two things in this tool that arm a mode rather than do something: the
+   * block-out pencil, under which a drag on the ground draws a box, and the
+   * pencil at arm's length, under which a drag lays a measure in degrees. They
+   * are one seat of state rather than two flags because they are one hand -
+   * you cannot be holding both, and every site that armed one had to remember
+   * to put the other down. Now arming is the whole of it.
+   *
+   * In the store rather than inside the overlay because the two of them no
+   * longer sit together: the pencil is taken off the model shelf, beside the
+   * cube it is the by-eye version of, and the measure lives with the lens.
+   */
+  instrument: Instrument;
   /** Scenes to step back through. Newest last. */
   undoStack: HistoryStep[];
   /** Scenes stepped back out of, to go forward into again. Newest last. */
@@ -929,7 +948,8 @@ export interface SceneState {
   setSun: (sun: Partial<SunState>) => void;
   /** The same, for the fill. */
   setFill: (fill: Partial<FillState>) => void;
-  toggleViewLock: () => void;
+  /** Pick an instrument up, or put the one in your hand down with 'none'. */
+  setInstrument: (instrument: Instrument) => void;
   /**
    * Draw the line under everything about to change.
    *
