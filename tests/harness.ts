@@ -47,7 +47,7 @@ export { expect };
  * unguarded init script would quietly wipe them and make that spec a fraud.
  */
 const PRELUDE = () => {
-  localStorage.setItem('kjg-perspective-tour', JSON.stringify({ seen: 1 }));
+  localStorage.setItem('kjg-perspective-tour', JSON.stringify({ seen: 2 }));
   if (!sessionStorage.getItem('harness-cleared')) {
     localStorage.removeItem('kjg-perspective-settings');
     sessionStorage.setItem('harness-cleared', '1');
@@ -241,6 +241,24 @@ export const closeTools = async (page: Page) => {
   await expect(tools).toHaveAttribute('aria-expanded', 'false');
 };
 
+/**
+ * Open the model shelf, and leave it open.
+ *
+ * Idempotent for the same reason openTools is: "Add model" is a toggle with no
+ * aria-expanded to ask, so this asks the shelf itself whether it is there. A
+ * second blind click would put it away and send the next tap into the scene.
+ *
+ * It stays open across placements by design - see MeshSheet.tsx: building a
+ * scene is placing several things, so the shelf behaves like a shelf. The one
+ * thing on it that does close it is the block-out pencil, which hands you an
+ * instrument rather than finishing a job.
+ */
+export const openShelf = async (page: Page) => {
+  const cube = find(page, 'anywhere', 'Add cube');
+  if ((await cube.count()) === 0) await clickIn(page, 'anywhere', 'Add model');
+  await expect(cube).toBeVisible();
+};
+
 /* -------------------------------------------------------------------- knobs */
 
 /**
@@ -403,15 +421,15 @@ export const readSceneBundle = async (page: Page): Promise<SceneManifest> => {
  *
  * WHERE IT DRAWS MATTERS. pickGround returns nothing on the sky or past the
  * edge of the sheet, and a stroke that starts on nothing starts no box at all,
- * silently. The app opens framed on a six-metre car in the middle of the
- * frame, so the default footprint is low and off to the right: below the
- * horizon, clear of the car, clear of the dock along the bottom, and out of
+ * silently. The app opens framed on an eight-metre aircraft in the middle of
+ * the frame, so the default footprint is low and off to the right: below the
+ * horizon, clear of the racer, clear of the dock along the bottom, and out of
  * the walk quadrant in the bottom left - which the pencil pre-empts anyway,
  * but a default that only works in one mode is a trap for the next helper.
  *
- * The pencil puts ITSELF down once a box is finished, so its state afterwards
- * is the proof that both strokes landed. Failing here beats failing three
- * assertions later with an empty scene and no clue why.
+ * The pencil puts ITSELF down once a box is finished, so the instrument going
+ * cold afterwards is the proof that both strokes landed. Failing here beats
+ * failing three assertions later with an empty scene and no clue why.
  */
 export const blockOutABox = async (
   page: Page,
@@ -429,10 +447,13 @@ export const blockOutABox = async (
     y: spot.y * frame.height,
   });
 
-  await openTools(page);
-  const pencil = find(page, 'tools', 'Draw boxes on the ground');
+  // The pencil is on the model shelf now, beside the cube it is the by-eye
+  // version of - and taking it puts the shelf away, so the assertion that it
+  // is armed has to be made against the button while it is still on screen.
+  await openShelf(page);
+  const pencil = page.locator('[aria-label="Draw boxes on the ground"]');
+  await expect(pencil).toHaveAttribute('aria-pressed', 'false');
   await pencil.click();
-  await expect(pencil).toHaveAttribute('aria-pressed', 'true');
 
   const start = point(from);
   const end = point(to);
@@ -450,8 +471,19 @@ export const blockOutABox = async (
   await page.mouse.move(end.x, end.y - lift * frame.height, { steps });
   await page.mouse.up();
 
+  /*
+   * The proof that both strokes landed, read off the armed-instrument bubble
+   * rather than off the pencil.
+   *
+   * The pencil itself is unmounted the moment it is taken - it lives on the
+   * model shelf, and arming it puts the shelf away - so there is no button
+   * left to ask. What IS on screen for exactly as long as the instrument is up
+   * is the line telling you what to do with it, and that is the same signal:
+   * gone means the pencil put itself down, which it only does once a box
+   * stands.
+   */
   await expect(
-    pencil,
-    'The pencil is still armed, so a stroke missed the floor: the footprint or the pull landed on sky, on the car, or past the edge of the sheet.'
-  ).toHaveAttribute('aria-pressed', 'false');
+    page.getByText('Drag on the floor to block a box in'),
+    'The pencil is still armed, so a stroke missed the floor: the footprint or the pull landed on sky, on the racer, or past the edge of the sheet.'
+  ).toBeHidden();
 };

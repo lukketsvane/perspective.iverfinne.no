@@ -250,8 +250,8 @@ export const WalkOverlay: React.FC<{
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
-  const viewLocked = useStore((s) => s.viewLocked);
-  const toggleViewLock = useStore((s) => s.toggleViewLock);
+  const instrument = useStore((s) => s.instrument);
+  const setInstrument = useStore((s) => s.setInstrument);
   const fov = useStore((s) => s.fov);
   const setLens = useStore((s) => s.setLens);
   const perspectiveMode = useStore((s) => s.perspectiveMode);
@@ -349,7 +349,7 @@ export const WalkOverlay: React.FC<{
    * the instrument up, take your readings, and put it down. Putting it down
    * clears the sheet.
    */
-  const [measuring, setMeasuring] = useState(false);
+  const measuring = instrument === 'measure';
   const measurePointer = useRef<number | null>(null);
   /*
    * Whether drags are DRAWING BOXES instead of looking.
@@ -361,7 +361,7 @@ export const WalkOverlay: React.FC<{
    * strokes, and every box lands selected with the snap applied, so refining
    * is the same handles as always. One undo step per box.
    */
-  const [blocking, setBlocking] = useState(false);
+  const blocking = instrument === 'block';
   const block = useRef<
     | { stage: 'foot'; pointer: number; id: string; anchor: { x: number; z: number } }
     | { stage: 'pull'; pointer: number | null; id: string; startY: number; h0: number; perMetre: number }
@@ -369,6 +369,23 @@ export const WalkOverlay: React.FC<{
   >(null);
   /** The reading beside the finger while a box is being drawn. */
   const [blockReadout, setBlockReadout] = useState<{ x: number; y: number; text: string } | null>(null);
+  /*
+   * Changing hands drops whatever the old hand was holding.
+   *
+   * The two instruments are armed from opposite ends of the interface now -
+   * the pencil off the model shelf, the measure out of the lens band - so no
+   * single button is in a position to tidy up after the other one. This is:
+   * one effect, on the one piece of state that says which is up, doing the
+   * whole of it. A half-drawn footprint is abandoned, and the sheet of
+   * measures is cleared by anything that is not the measure itself - a
+   * reading is a reading, not a mark of the composition.
+   */
+  useEffect(() => {
+    block.current = null;
+    setBlockReadout(null);
+    measurePointer.current = null;
+    if (instrument !== 'measure') clearMeasures();
+  }, [instrument]);
   const railVisible = useRail();
   /** The tour is drawn over everything, so Escape reaches it first. */
   const tourRunning = useTourStep() >= 0;
@@ -630,9 +647,7 @@ export const WalkOverlay: React.FC<{
        * This comes before walking and before looking, and it is the only thing
        * that does: it can only happen when the finger lands on the thing already
        * selected, which is a deliberate act, while a step or a look can start
-       * anywhere else on the glass. It works with the view locked, too - the
-       * whole point of locking is to arrange a composition without the framing
-       * moving under it.
+       * anywhere else on the glass.
        */
       const grab = grabAt(e.clientX, e.clientY);
       if (grab) {
@@ -642,8 +657,6 @@ export const WalkOverlay: React.FC<{
         return;
       }
     }
-
-    if (viewLocked) return;
 
     if (!stick.current && isStickZone(e.clientX, e.clientY)) {
       stick.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
@@ -874,9 +887,7 @@ export const WalkOverlay: React.FC<{
            * mode is never on when you did not just ask for it, and the button
            * says which state you are in.
            */
-          block.current = null;
-          setBlockReadout(null);
-          setBlocking(false);
+          setInstrument('none');
         }
       }
       return;
@@ -1025,14 +1036,8 @@ export const WalkOverlay: React.FC<{
         // first, and on a desktop this is the keyboard's half of the Skip chip.
         if (tourRunning) {
           endTour();
-        } else if (blocking) {
-          block.current = null;
-          setBlockReadout(null);
-          setBlocking(false);
-        } else if (measuring) {
-          clearMeasures();
-          measurePointer.current = null;
-          setMeasuring(false);
+        } else if (blocking || measuring) {
+          setInstrument('none');
         } else if (shelfOpen) onShelfAway();
         else if (showMaterial) setMaterialFrom(null);
         else if (showLights) setShowLights(false);
@@ -1303,16 +1308,21 @@ export const WalkOverlay: React.FC<{
         <div className="relative w-full h-0">
 
         {/*
-          * Secondary tools, in five bands with a hairline between them.
+          * Secondary tools, in four bands with a hairline between them.
           *
           * Sixteen identical circles wrapped into whatever rows the width
           * happened to give was a wall, not a menu: nothing in it was near
           * anything it was related to, and the row a control sat in changed
           * with the phone. Each band is now its own line and holds one kind of
-          * decision - which instrument is in your hand, what is drawn on the
-          * ground, what the picture is made of, where it is seen from, and
-          * what to do with the session. A band is scanned in one movement, and
-          * a control keeps the company it belongs to at every width.
+          * decision - what is drawn on the ground, what the picture is made
+          * of, where it is seen from, and what to do with the session. A band
+          * is scanned in one movement, and a control keeps the company it
+          * belongs to at every width.
+          *
+          * There were five. The head of the panel was the two instruments,
+          * which are modes rather than settings and are now out where they are
+          * used - and a menu of settings that opens on something that is not a
+          * setting is a menu that has to be read before it can be scanned.
           */}
         <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
         <div
@@ -1324,66 +1334,24 @@ export const WalkOverlay: React.FC<{
           className={`flex flex-col max-w-[22rem] ${SIDEWAYS_PANEL} p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showTools && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
         >
           {/*
-            * THE TWO INSTRUMENTS, first, and off the dock.
+            * THE TWO INSTRUMENTS ARE NOT HERE ANY MORE.
             *
-            * Both used to sit on the dock beside the view controls, where they
-            * were the only two things there that arm a MODE rather than do
-            * something. The dock is the verbs you reach for without looking;
-            * these are the two you pick up, use, and put down, and they read
-            * differently enough to be worth their own line here.
+            * They had a band of their own at the head of this panel - the two
+            * things in the tool that arm a MODE rather than do something, sat
+            * together because of what they have in common rather than because
+            * of what either is for. Four bands of settings under a band of
+            * verbs is a panel you read twice, and the two of them were the only
+            * reason a first-time viewer had to open this menu at all.
             *
-            * They cannot both be up, so each puts the other down, and either
-            * closes this panel as it arms - the instrument is for using on the
-            * drawing, and the menu it was picked from would be in the way.
+            * So they went where the work is. The block-out pencil is on the
+            * model shelf beside the cube it is the by-eye version of - see
+            * components/MeshSheet.tsx - and the measure is down in the band
+            * about where the scene is seen from, which is what a visual angle
+            * is a reading of. Both still stand their own menu down as they arm:
+            * an instrument is for using on the drawing, and the shelf or panel
+            * it came off would be in the way.
             */}
           <div className={band}>
-          {/* The block-out pencil: while it is up, a drag on the ground draws
-              a footprint and the next drag pulls its height - a box, sized by
-              eye, in two strokes. The fastest road from standing in a real
-              place to a scene of its forms.
-
-              It puts itself down when the box is done - see the pointer
-              handler - so a room of six boxes is six trips back in here. That
-              is the cost of the seat it gave up. */}
-          <button
-            onClick={() => {
-              block.current = null;
-              setBlockReadout(null);
-              setBlocking((on) => !on);
-              if (measuring) clearMeasures();
-              measurePointer.current = null;
-              setMeasuring(false);
-              setShowTools(false);
-            }}
-            aria-label="Draw boxes on the ground"
-            aria-pressed={blocking}
-            className={`${button} ${blocking ? ACTIVE : ''}`}
-          >
-            <Icon path={I.block} className="w-5 h-5" />
-          </button>
-          {/* The pencil at arm's length: while it is up, a drag on the scene
-              lays a measure in degrees of visual angle instead of turning the
-              view. Putting the instrument down clears the sheet - a
-              measurement is a reading, not a mark of the composition. */}
-          <button
-            onClick={() => {
-              if (measuring) clearMeasures();
-              measurePointer.current = null;
-              setMeasuring((on) => !on);
-              setBlocking(false);
-              block.current = null;
-              setBlockReadout(null);
-              setShowTools(false);
-            }}
-            aria-label="Measure visual angles"
-            aria-pressed={measuring}
-            className={`${button} ${measuring ? ACTIVE : ''}`}
-          >
-            <Icon path={I.measure} className="w-5 h-5" />
-          </button>
-          </div>
-
-          <div className={`${band} ${divider}`}>
           <button
             onClick={cycleGuides}
             aria-label={`Construction guides, level ${guides} of 2`}
@@ -1528,9 +1496,9 @@ export const WalkOverlay: React.FC<{
 
           {/* Where the drawing is seen from, and on what sheet: the
               projection, how far the lens may open, the room around it,
-              whether the view is pinned, and looking by turning the
-              phone. Set once and drawn from, which is why none of them
-              is on the dock. */}
+              looking by turning the phone - and the pencil held at arm's
+              length, which is how you read an angle off any of it. Set once
+              and drawn from, which is why none of them is on the dock. */}
           <div className={`${band} ${divider}`}>
           {/*
             * The real room, first, because it is the best answer in the band.
@@ -1598,11 +1566,30 @@ export const WalkOverlay: React.FC<{
               </div>
             )}
           </div>
-          <button onClick={toggleViewLock} aria-label="Lock view" aria-pressed={viewLocked} className={`${button} ${viewLocked ? '!text-amber-400' : ''}`}>
-            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="4" y="10.5" width="16" height="10" rx="2" />
-              {viewLocked ? <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /> : <path d="M8 10.5V7a4 4 0 0 1 7.5-2" />}
-            </svg>
+          {/*
+            * The pencil at arm's length, in the band about the eye.
+            *
+            * While it is up, a drag on the scene lays a measure in degrees of
+            * visual angle instead of turning the view - which is a reading of
+            * exactly the thing the other controls in this line set: how much
+            * of the world the lens takes in, and onto what sheet. Every artist
+            * measures this way, a pencil held out at a straight arm; here the
+            * angle is the true one rather than one estimated off a thumb.
+            *
+            * It stands this panel down as it arms, and putting it down clears
+            * the sheet - a measurement is a reading, not a mark of the
+            * composition.
+            */}
+          <button
+            onClick={() => {
+              setInstrument(measuring ? 'none' : 'measure');
+              setShowTools(false);
+            }}
+            aria-label="Measure visual angles"
+            aria-pressed={measuring}
+            className={`${button} ${measuring ? ACTIVE : ''}`}
+          >
+            <Icon path={I.measure} className="w-5 h-5" />
           </button>
           <button
             onClick={async () => {
@@ -1739,11 +1726,12 @@ export const WalkOverlay: React.FC<{
           * where the rest of the "how it is drawn" decisions live, and the two
           * steps of the undo stack came out of it.
           *
-          * The two pencils went into the panel as well, at its head. They were
-          * the only things down here that arm a mode rather than do something,
-          * and six seats leave the row room to breathe on a narrow phone -
-          * though the block-out pencil puts itself down after every box, so
-          * each box now costs the trip back into the panel.
+          * The two pencils came off this row too. They were the only things
+          * down here that arm a mode rather than do something, and six seats
+          * leave the row room to breathe on a narrow phone. Neither went into
+          * the tools panel in the end: the block-out pencil is one tap away
+          * behind "Add model", on the shelf beside the cube it is the by-eye
+          * version of, and the measure is in the panel band about the eye.
           */}
         <div
           {...(dockVisible ? {} : { inert: '' })}
