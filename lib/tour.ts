@@ -13,6 +13,19 @@ import { useSyncExternalStore } from 'react';
  * because the viewer did something or pressed Next. That is the whole of its
  * agreement with the one-panel-in-the-slot rule, and it is why nothing here can
  * leave the tool in a state nobody asked for.
+ *
+ * THE CARDS ARE IN NYNORSK. The comments and every aria-label in this app are
+ * English - the labels are machine-facing names that the tour, the harness and
+ * `document.querySelector` all anchor on, and they are named as such in the
+ * comments beside them. What a first-time viewer READS is a different thing,
+ * and it is the viewer's own language.
+ *
+ * AND EACH CARD NAMES THE CONTROL, by the shape drawn on it: the cone, the cube,
+ * the three sliders. Not by where it sits - the dock is one row in portrait and
+ * two corner clusters in landscape, so "bottom right" is true half the time -
+ * and not by its label, because none of these buttons carries visible text. The
+ * ring points; the sentence has to point too, for anyone reading the card after
+ * the ring has scrolled out from under their thumb.
  */
 
 type Listener = () => void;
@@ -21,7 +34,7 @@ type Listener = () => void;
  * Bumped when the tour is rewritten, so a viewer who has seen the old one is
  * offered the new one - the same trick VIEW_GENERATION plays in store.ts.
  */
-const TOUR_GENERATION = 2;
+const TOUR_GENERATION = 3;
 
 /**
  * Its own key, not a field in the settings blob.
@@ -58,21 +71,23 @@ export const STEPS: TourStep[] = [
   {
     anchor: null,
     markWalkZone: true,
-    headline: 'You are standing in it',
-    body: 'Drag anywhere to look around. Drag inside the marked corner to walk — the two run at once, one thumb each.',
+    headline: 'Du står i det',
+    body: 'Dra kvar som helst for å sjå deg rundt. Dra inne i den stipla ruta for å gå.',
   },
   {
     // "Field of view" is read by the tour. Renaming it leaves this step with a
     // card and no ring.
     anchor: 'Field of view',
-    headline: 'Open the lens right out',
-    body: 'Drag it sideways — every round control here is dragged, not tapped. Past 180° the lines start to bow: that is the sheet this tool draws on.',
+    headline: 'Opne linsa',
+    body: 'Dra kjegla sidelengs — runde knappar blir dregne, ikkje trykte. Forbi 180° buar linjene seg.',
+    // Two facts, and the second is the whole tool: that the sheet is curved.
+    // Anything shorter drops one of them.
   },
   {
     // "Tools" is read by the tour.
     anchor: 'Tools',
-    headline: 'The dock is verbs only',
-    body: 'Every setting — the guides, the surface, the page, the projection, how the angle is measured — is behind this one button, in bands of a few. Nothing out here is a setting.',
+    headline: 'Alt ligg bak éin knapp',
+    body: 'Trykk dei tre skyvarane. Hjelpelinjer, flate, papir, projeksjon — alt er der inne.',
   },
   {
     /*
@@ -82,17 +97,18 @@ export const STEPS: TourStep[] = [
      * tap opens that shelf there is nothing on screen to ring - which is why
      * the ring falls back to the dock button that opens it rather than circling
      * nothing. The tour does not open the shelf itself: the tap is the lesson.
+     * So the card has to name both buttons, in the order they are pressed.
      */
     anchor: 'Draw boxes on the ground',
     fallbackAnchor: 'Add model',
-    headline: 'Block one in by eye',
-    body: 'Open this and take the pencil beside the cube — the shelf stands itself down — then drag a footprint on the floor beside the racer, let go, and drag up for the height. It puts itself down after each box.',
+    headline: 'Teikn ein kasse',
+    body: 'Trykk kuben. Ta blyanten ved sida av kuben på hylla, dra ut grunnflata på golvet, slepp, dra opp høgda.',
   },
   {
     anchor: null,
     releasesRail: true,
-    headline: 'Now it gets out of your way',
-    body: 'Take your hands off. Six seconds and the whole bar dissolves, leaving the drawing on the sheet. Any touch brings it back.',
+    headline: 'No forsvinn alt',
+    body: 'Slepp skjermen. Etter seks sekund er verktøylinja borte. Rør skjermen, så kjem ho att.',
   },
 ];
 
