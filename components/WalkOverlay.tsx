@@ -109,7 +109,7 @@ const SIDEWAYS_PANEL =
 const SIDEWAYS_CLUSTER =
   'contents [@media(max-height:560px)]:flex [@media(max-height:560px)]:items-center ' +
   '[@media(max-height:560px)]:gap-1 [@media(max-height:560px)]:p-1.5 ' +
-  '[@media(max-height:560px)]:rounded-[1.75rem] [@media(max-height:560px)]:border ' +
+  '[@media(max-height:560px)]:rounded-[1.125rem] [@media(max-height:560px)]:border ' +
   '[@media(max-height:560px)]:shadow-2xl';
 
 /** ...and the row itself gives up its glass to them, and spreads to the edges. */
@@ -1333,7 +1333,7 @@ export const WalkOverlay: React.FC<{
              user's very first Tab landed in the collapsed row, and Enter there
              changed the construction guides with nothing on screen moving. */
           {...(showTools && dockVisible ? {} : { inert: '' })}
-          className={`flex flex-col max-w-[22rem] ${SIDEWAYS_PANEL} p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showTools && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
+          className={`flex flex-col max-w-[22rem] ${SIDEWAYS_PANEL} p-1.5 rounded-[1.125rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showTools && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
         >
           {/*
             * THE TWO INSTRUMENTS ARE NOT HERE ANY MORE.
@@ -1662,7 +1662,7 @@ export const WalkOverlay: React.FC<{
         <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
           <div
             {...(showLights && dockVisible ? {} : { inert: '' })}
-            className={`max-w-full ${SIDEWAYS_BLOCK} p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showLights && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
+            className={`max-w-full ${SIDEWAYS_BLOCK} p-1.5 rounded-[1.125rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showLights && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
           >
             <LightPanel />
           </div>
@@ -1672,7 +1672,7 @@ export const WalkOverlay: React.FC<{
         <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
           <div
             {...(shelfOpen && dockVisible ? {} : { inert: '' })}
-            className={`max-w-full min-w-0 ${SIDEWAYS_SHELF} p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${shelfOpen && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
+            className={`max-w-full min-w-0 ${SIDEWAYS_SHELF} p-1.5 rounded-[1.125rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${shelfOpen && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
           >
             {shelf}
           </div>
@@ -1682,7 +1682,7 @@ export const WalkOverlay: React.FC<{
         <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
           <div
             {...(showMaterial && dockVisible ? {} : { inert: '' })}
-            className={`max-w-full ${SIDEWAYS_BLOCK} p-1.5 rounded-[1.75rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showMaterial && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
+            className={`max-w-full ${SIDEWAYS_BLOCK} p-1.5 rounded-[1.125rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showMaterial && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
           >
             {/* The rung it was opened for, held through the closing fade: read
                 live it would swap knobs on the way out, and `null` would empty
@@ -1744,7 +1744,7 @@ export const WalkOverlay: React.FC<{
           // wrapping stays, because it wraps rather than clips when it truly
           // cannot fit, and a control pushed off the edge is not a smaller
           // control.
-          className={`flex flex-wrap items-center justify-center max-w-full p-1.5 gap-1 max-[429px]:p-1 max-[429px]:gap-0.5 rounded-[1.75rem] border shadow-2xl ${SIDEWAYS_DOCK} ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
+          className={`flex flex-wrap items-center justify-center max-w-full p-1.5 gap-1 max-[429px]:p-1 max-[429px]:gap-0.5 rounded-[1.125rem] border shadow-2xl ${SIDEWAYS_DOCK} ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
         >
           <div className={`${SIDEWAYS_CLUSTER} ${surface}`}>
           <button onClick={swapTo(onModels)} aria-label="Add model" className={button}>

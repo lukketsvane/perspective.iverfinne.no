@@ -52,8 +52,17 @@ const MAX_PIXELS_PER_METRE = 3000;
  * the one way you could not move it, because the middle of it was a resize
  * handle. A face that has not separated itself from the box is not offered:
  * grabbing there moves the box, and the mark is not drawn.
+ *
+ * SIXTEEN, NOT THIRTY, and the number is a range as much as a rule. This is the
+ * only thing standing between the viewer and a box across the room: a metre
+ * cube at eight metres is about forty pixels across, so its face centres sit
+ * twenty from the middle, and at thirty every one of them was refused - the box
+ * was selectable, movable, and could not be resized at all until you had walked
+ * back to it. Sixteen reaches roughly twice as far. Below that the two ends of
+ * an axis are closer together than one fingertip and the drag would be a coin
+ * toss between growing and shrinking, which is worse than not being offered.
  */
-export const HANDLE_SEPARATION = 30; // pixels
+export const HANDLE_SEPARATION = 16; // pixels
 
 /** Which way one of a box's faces looks, once the box has been turned. */
 export const faceOutward = (

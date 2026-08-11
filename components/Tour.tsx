@@ -401,7 +401,7 @@ export const Tour: React.FC = () => {
             y={rect.top - 5}
             width={rect.width + 10}
             height={rect.height + 10}
-            rx={radius > 0 ? radius + 5 : 10}
+            rx={radius > 0 ? radius + 5 : 7}
             fill="none"
             stroke="currentColor"
             strokeWidth={2}
@@ -471,7 +471,7 @@ export const Tour: React.FC = () => {
               y={walkZone.y}
               width={walkZone.w}
               height={walkZone.h}
-              rx={24}
+              rx={14}
               fill="none"
               stroke="currentColor"
               strokeWidth={2}
@@ -548,7 +548,7 @@ export const Tour: React.FC = () => {
         ref={card}
         role="status"
         aria-live="polite"
-        className={`absolute top-safe-panel x-safe-panel inset-x-0 mx-auto max-w-[26rem] [@media(max-height:560px)]:mx-0 [@media(max-height:560px)]:mr-auto [@media(max-height:560px)]:max-w-[20rem] rounded-[1.75rem] border p-3 pointer-events-none ${chrome(dark)}`}
+        className={`absolute top-safe-panel x-safe-panel inset-x-0 mx-auto max-w-[26rem] [@media(max-height:560px)]:mx-0 [@media(max-height:560px)]:mr-auto [@media(max-height:560px)]:max-w-[20rem] rounded-[1.125rem] border p-3 pointer-events-none ${chrome(dark)}`}
       >
         <div className="text-xs font-bold uppercase tracking-wide opacity-60">{current.headline}</div>
         <div className="text-sm leading-snug mt-1">{current.body}</div>

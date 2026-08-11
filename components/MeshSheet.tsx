@@ -81,7 +81,7 @@ const MeshTile: React.FC<{
         onClick={onPlace}
         disabled={busy}
         aria-label={name}
-        className={`relative w-full aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 overflow-hidden ${tile(dark)}`}
+        className={`relative w-full aspect-square rounded-xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 overflow-hidden ${tile(dark)}`}
       >
         {preview ? (
           <img src={preview} alt="" className={`w-full h-full object-contain p-2 ${loading ? 'animate-pulse' : ''}`} />
@@ -171,7 +171,7 @@ export const MeshSheet: React.FC<{
           onClick={handleAddLamp}
           disabled={busy}
           aria-label="Add light"
-          className={`relative w-full aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${tile(dark)}`}
+          className={`relative w-full aspect-square rounded-xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${tile(dark)}`}
         >
           <Icon path={I.lampBulb} className="w-8 h-8 opacity-80" />
         </button>
@@ -179,7 +179,7 @@ export const MeshSheet: React.FC<{
           onClick={handleAddCube}
           disabled={busy}
           aria-label="Add cube"
-          className={`relative w-full aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${tile(dark)}`}
+          className={`relative w-full aspect-square rounded-xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${tile(dark)}`}
         >
           <Icon path={I.cube} className="w-8 h-8 opacity-80" />
         </button>
@@ -211,7 +211,7 @@ export const MeshSheet: React.FC<{
           disabled={busy}
           aria-label="Draw boxes on the ground"
           aria-pressed={instrument === 'block'}
-          className={`relative w-full aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${
+          className={`relative w-full aspect-square rounded-xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${
             instrument === 'block' ? ACTIVE : ''
           } ${tile(dark)}`}
         >
@@ -224,7 +224,7 @@ export const MeshSheet: React.FC<{
           onClick={() => importInputRef.current?.click()}
           disabled={busy}
           aria-label="Import a mesh into the library"
-          className={`relative w-full aspect-square rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 border border-dashed ${
+          className={`relative w-full aspect-square rounded-xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 border border-dashed ${
             dark ? 'border-white/25 text-white/70' : 'border-black/20 text-black/60'
           } ${busyId === 'import' ? 'animate-pulse' : ''}`}
         >
