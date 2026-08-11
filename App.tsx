@@ -86,6 +86,50 @@ export default function App() {
   const OPENING_TURN = 0.7;
 
   /**
+   * THE YARD ROUND THE RACER: who else is standing there when the tool opens.
+   *
+   * The aircraft is the subject and the reason these four are not. Alone on the
+   * grid it is a beautiful object and a poor drawing: nothing in the frame says
+   * how big it is except a ruling you have to already believe in, nothing else
+   * is at a different depth, and there is no second form for its own to be read
+   * against. A man at six metres, a truck at eight and a pallet at five fix all
+   * three at once, and every one of them is a size you already know.
+   *
+   * WHERE THEY STAND is chosen against the racer's own box - 8.2 m long, 7.6 m
+   * across the wings, turned forty degrees - and every one of them is clear of
+   * it by more than a wingtip. Laid out by hand rather than handed to
+   * `findFreeSpot`, which answers "somewhere that is not inside something
+   * else"; this is a composition, and the difference between the two is the
+   * difference between a yard and a car park.
+   *
+   * THE PILOT IS NOT IN THE AEROPLANE. He is modelled sitting on a plain chair,
+   * which is a man waiting to fly and not a man flying, and dropping him into
+   * the cockpit would put a chair in there with him. He sits off the port wing
+   * where you can walk round him - and being the one seated figure here, he is
+   * also the only one whose whole mass is folded rather than standing, which is
+   * the harder drawing of the two.
+   *
+   * The bell is not here. It is on the shelf, and what it is for is a lesson in
+   * lathe-turned form rather than a thing an airfield has lying about.
+   */
+  const GROUND_CREW: { id: string; at: [number, number]; turn: number }[] = [
+    // Ahead of the nose and off to port, arms up, facing back at the aircraft:
+    // where a marshaller stands, and the one figure the eye reads as ACTING.
+    { id: 'ground-crew', at: [-5.4, 3.6], turn: 2.2 },
+    // Broadside on the starboard side and set BACK past the aircraft's own
+    // plane, which does two things: it keeps five metres of truck out of the
+    // right edge of an upright phone, and it puts the four of them at four
+    // separate depths - bowser behind, aircraft on the origin, pallet and
+    // pilot in front - which is the whole reason for standing them there.
+    { id: 'fuel-bowser', at: [6.4, -1.8], turn: 1.3 },
+    // Near the eye, right of centre: the small known thing in the foreground
+    // that the whole depth of the picture is measured back from.
+    { id: 'hangar-stores', at: [4.4, 6.2], turn: -0.35 },
+    // Off the port wing, well clear of it, turned to look at the aircraft.
+    { id: 'pilot-seated', at: [-2.8, 7.0], turn: 2.5 },
+  ];
+
+  /**
    * Stand where the whole of it can be seen, and look at its middle.
    *
    * IT HAS TO FIT IN BOTH DIRECTIONS, which is what this used to get wrong.
@@ -309,31 +353,57 @@ export default function App() {
   }, []);
 
   /**
-   * The scene the tool starts from: the car on the origin, framed to fill it.
+   * The scene the tool starts from: the racer on the origin with its yard round
+   * it, framed to fill the frame with the aircraft.
    *
    * Both the opening and the reset go through here, so those two are the same
    * state by construction rather than by two pieces of code agreeing. Reset
    * therefore means "back to how this started", which is a place to draw from,
    * rather than "empty grid", which is a place to look at.
+   *
+   * EVERYTHING IS FETCHED BEFORE ANYTHING STANDS UP. The crew could be stood as
+   * they arrived, which would put the aircraft on the grid a moment sooner - and
+   * would also mean the guard below is asked five separate times, so a viewer
+   * who placed a chair during the load would find half a yard landing on top of
+   * it. One await, one guard, one arrangement: it either all happens or none of
+   * it does. They are fetched in parallel and the four of them come to a fifth
+   * of what the aircraft alone weighs, so the wall clock is the aircraft's
+   * either way.
+   *
+   * Twenty megabytes over the network before anything stands up. The hairline
+   * says so, rather than the grid sitting empty for a second and a half with
+   * nothing to suggest that it will not stay that way. (A reset pays nothing:
+   * the parsed sources are still in hand, kept alive by the undo step.)
    */
   const standOpening = () => {
     const entry = openingMesh();
-    // Three megabytes over the network before anything stands up. The hairline
-    // says so, rather than the grid sitting empty for a second and a half with
-    // nothing to suggest that it will not stay that way. (A reset pays nothing:
-    // the parsed source is still in hand, kept alive by the undo step.)
     const done = beginActivity();
-    return loadModelFromUrl(entry.url, entry.name, [0, 0], entry.height)
-      .then(({ model }) => {
+    return Promise.all([
+      loadModelFromUrl(entry.url, entry.name, [0, 0], entry.height),
+      ...GROUND_CREW.map((who) => {
+        const mesh = MESH_LIBRARY.find((m) => m.id === who.id);
+        if (!mesh) return Promise.resolve(null);
+        return loadModelFromUrl(mesh.url, mesh.name, who.at, mesh.height)
+          .then(({ model }) => ({ ...model, rotationY: who.turn }))
+          // One missing file is a thinner yard, not a tool that failed to open.
+          .catch(() => null);
+      }),
+    ])
+      .then(([{ model }, ...crew]) => {
         // Anything the viewer did in the meantime wins: a scene opened from the
         // library, or a mesh placed by hand, is not something to land on top of.
         const { models, boxes } = useStore.getState();
         if (models.length || boxes.length) return;
         standObject({ ...model, position: [0, 0, 0], rotationY: OPENING_TURN });
+        crew.forEach((who) => who && standObject(who));
         // A scanned figure arrives normalised and is scaled on the way in, so
         // what it will stand at is its authored size times that scale. The turn
         // is not folded in: the framing wants the longest edge either way, and
         // the diagonal it presents when turned is within a few per cent of it.
+        //
+        // Framed on the AIRCRAFT, not on everything standing there. The yard is
+        // for walking into and drawing from inside; a frame solved round the
+        // whole of it would open on a wide shot of four small things.
         frame(model.size.map((metres) => metres * model.scale) as [number, number, number]);
       })
       .catch((error) => {

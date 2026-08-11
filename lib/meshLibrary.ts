@@ -81,6 +81,63 @@ export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'hughes-h1', name: 'Hughes H-1 Racer', url: '/meshes/hughes-h1.glb' },
 
   /*
+   * THE GROUND THE RACER STANDS ON: the four things that turn one aeroplane
+   * into an airfield.
+   *
+   * An aircraft alone on an infinite grid is a beautiful object and a poor
+   * subject. Nothing in the frame says how big it is except the ruling, which
+   * is a convention you have to already believe; nothing is at a different
+   * depth from it; and there is no second form for its own to be drawn
+   * against. A man, a truck, a pallet and a seated figure fix all three at
+   * once - they are known sizes, they stand at four different distances, and
+   * three of the four are forms the aircraft is not.
+   *
+   * They are also the ordinary reason a 1935 racer is sitting still: it is
+   * being marshalled, fuelled and worked on. Kim Jung Gi's pages are full of
+   * exactly this - the vehicle is never the drawing, the yard around it is.
+   *
+   * NONE OF THEM CARRIES A HEIGHT, for the same reason the racer does not: the
+   * real size is baked into the file. Measured, they are 1.44 x 1.68 x 1.26,
+   * 0.63 x 1.30 x 0.85, 1.91 x 2.29 x 5.00 and 0.99 x 0.61 x 2.40 metres - a
+   * man leaning into a signal, a man sitting on a chair, a light-truck tanker,
+   * and a stores pallet. Every one of those was arrived at by fixing the
+   * dimension a real one is known by and checking that the other two came out
+   * right: the bowser was set by its five-metre length and its height fell out
+   * at 2.29, which is what a tanker on a 1930s truck chassis stands at.
+   *
+   * They arrive at fifty thousand triangles apiece with no textures and no UVs
+   * at all, which suits a tool that only samples a texture on one rung out of
+   * five. Shipped, each is about 0.9 MB - in line with the animals, and forty
+   * times lighter than the aircraft they stand around.
+   */
+  { id: 'ground-crew', name: 'Ground crew, signalling', url: '/meshes/ground-crew.glb' },
+  { id: 'pilot-seated', name: 'Pilot, seated', url: '/meshes/pilot-seated.glb' },
+  { id: 'fuel-bowser', name: 'Fuel bowser', url: '/meshes/fuel-bowser.glb' },
+  { id: 'hangar-stores', name: 'Stores pallet', url: '/meshes/hangar-stores.glb' },
+
+  /*
+   * A dome slung from a four-leg chain, and the one thing on this shelf whose
+   * name is a guess.
+   *
+   * What it plainly IS: a closed solid of revolution, near enough as wide as
+   * it is tall, with a slight flare at the rim, a notch cut in that rim on one
+   * side, and a short chain hanging down the middle inside it to a small eye -
+   * all of it hung from a master link by a four-leg sling. The sling is
+   * lifting tackle rather than a light fitting, and a chain down the middle to
+   * an eye is where a clapper goes, so: a bell.
+   *
+   * It is here whatever it turns out to be, because of what it is to DRAW. It
+   * is the only hanging thing in the library and the only pure lathe-turned
+   * form: one profile swept, so the ellipse it presents opens continuously
+   * from the rim to the crown, and a chain above it which is the same small
+   * link over and over at every depth between the eye and the top. That is a
+   * cross-contour lesson and a repetition-in-perspective lesson in one object.
+   *
+   * 1.20 m over the whole of it, which puts the dome about 0.80 across.
+   */
+  { id: 'bell-slung', name: 'Bell on a chain hoist', url: '/meshes/bell-slung.glb' },
+
+  /*
    * Four horses and a platypus: the half of the shelf that does not hold
    * still.
    *
