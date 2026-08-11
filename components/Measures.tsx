@@ -1,73 +1,97 @@
-import React, { useEffect, useReducer } from 'react';
+import React, { useEffect, useMemo, useReducer } from 'react';
+import * as THREE from 'three';
 import { isSketch } from '../types';
 import { useStore } from '../store';
-import { useMeasures, type Measure } from '../lib/measure';
-import { projectDirection } from '../lib/pick';
+import { subtended, useMeasures, type Measure } from '../lib/measure';
+import { eyeAt, project } from '../lib/pick';
 import { constructionInk, pageHex } from '../lib/inkMaterial';
 
 /**
- * The measures, drawn on the glass.
+ * The tape, drawn where it lies.
  *
- * Each is drawn TWICE, and the gap between the two drawings is a lesson no
+ * Each mark is drawn TWICE, and the gap between the two drawings is a lesson no
  * amount of telling teaches:
  *
- * - the GEODESIC, solid: the image of the straight line in the world between
- *   the two marks. On a curved sheet it bows, because that is what straight
- *   things genuinely look like across a wide field.
- * - the CHORD, faint: the ruler-straight line between the same two marks -
- *   the line your flat-page schooling insists on believing in.
+ * - the RUN, solid: the straight line in the room between the two places,
+ *   sampled along its length and projected point by point. On a curved sheet it
+ *   bows, because that is what a straight thing genuinely looks like across a
+ *   wide field.
+ * - the CHORD, faint: the ruler-straight line between the same two ends on the
+ *   page - the line your flat-page schooling insists on believing in.
  *
- * Near the middle of a narrow view the two lie on top of each other, which
- * is why the belief survives; open the field and they part company. Watching
- * them part IS understanding curvilinear perspective - not as a distortion
- * of the real picture, but as the real picture of which the flat page was
- * the local approximation.
+ * Near the middle of a narrow view the two lie on top of each other, which is
+ * why the belief survives; open the field and they part company. Watching them
+ * part IS understanding curvilinear perspective - not as a distortion of the
+ * real picture, but as the real picture of which the flat page was the local
+ * approximation.
  *
- * The angle is written at the line: degrees of visual angle, the unit the
- * pencil at arm's length reads and the only unit sight has.
+ * THE NUMBERS SAY DIFFERENT KINDS OF THING and are written differently. The
+ * metres are a fact about the room: they belong to the mark, they are the same
+ * from everywhere, and every mark carries them. The degrees are a fact about
+ * where you happen to be standing - so they are computed against the eye on
+ * the frame they are drawn, and only while the tape is in your hand. Leaving a
+ * degree reading lying in the scene would be leaving a number that is wrong
+ * from everywhere except the one spot it was taken from.
  */
 
-/** A point along the great arc between two directions from the eye. */
-const along = (a: [number, number, number], b: [number, number, number], t: number): [number, number, number] => {
-  const dot = Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2]));
-  const omega = Math.acos(dot);
-  if (omega < 1e-5) return a;
-  const sa = Math.sin((1 - t) * omega) / Math.sin(omega);
-  const sb = Math.sin(t * omega) / Math.sin(omega);
-  return [a[0] * sa + b[0] * sb, a[1] * sa + b[1] * sb, a[2] * sa + b[2] * sb];
-};
-
+/**
+ * How many pieces the run is broken into.
+ *
+ * It is a straight line in the room, so the samples are evenly spaced along it
+ * and the bow comes entirely out of the projection. Thirty-two was enough for
+ * the arc this replaced and is enough here: at a full-sphere field a two-metre
+ * span crosses a few hundred pixels, which is six or seven pixels a segment.
+ */
 const SAMPLES = 32;
 
-const Arc: React.FC<{ measure: Measure; ink: string; halo: string; held: boolean }> = ({
+const Run: React.FC<{ measure: Measure; ink: string; halo: string; held: boolean; deg?: number }> = ({
   measure,
   ink,
   halo,
   held,
+  deg,
 }) => {
+  const at = useMemo(() => new THREE.Vector3(), []);
   /*
-   * Project the arc, breaking the polyline wherever the sheet has no answer -
+   * Project the run, breaking the polyline wherever the sheet has no answer -
    * and wherever it wraps. The cylindrical sheet meets itself at the bearing
    * behind you, and a projection that wraps never returns null there: two
-   * neighbouring samples land at opposite edges of the frame, and joining
-   * them ruled a spurious streak across the whole picture. A jump wider than
-   * half the frame is a seam, not a line.
+   * neighbouring samples land at opposite edges of the frame, and joining them
+   * ruled a spurious streak across the whole picture. A jump wider than half
+   * the frame is a seam, not a line.
    */
   const seam = window.innerWidth / 2;
   const runs: { x: number; y: number }[][] = [[]];
   for (let i = 0; i <= SAMPLES; i++) {
-    const at = projectDirection(along(measure.a, measure.b, i / SAMPLES));
+    const t = i / SAMPLES;
+    const point = project(
+      at.set(
+        measure.from[0] + (measure.to[0] - measure.from[0]) * t,
+        measure.from[1] + (measure.to[1] - measure.from[1]) * t,
+        measure.from[2] + (measure.to[2] - measure.from[2]) * t
+      )
+    );
     const run = runs[runs.length - 1];
-    if (!at) {
+    if (!point) {
       if (run.length) runs.push([]);
-    } else if (run.length && Math.abs(at.x - run[run.length - 1].x) > seam) {
-      runs.push([at]);
+    } else if (run.length && Math.abs(point.x - run[run.length - 1].x) > seam) {
+      runs.push([point]);
     } else {
-      run.push(at);
+      run.push(point);
     }
   }
-  const ends = [projectDirection(measure.a), projectDirection(measure.b)];
-  const mid = projectDirection(along(measure.a, measure.b, 0.5));
+
+  const ends = [
+    project(at.set(...measure.from)),
+    project(at.set(...measure.to)),
+  ];
+  const mid = project(
+    at.set(
+      (measure.from[0] + measure.to[0]) / 2,
+      (measure.from[1] + measure.to[1]) / 2,
+      (measure.from[2] + measure.to[2]) / 2
+    )
+  );
   const path = runs
     .filter((run) => run.length > 1)
     .map((run) => 'M' + run.map((p) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L'))
@@ -75,8 +99,8 @@ const Arc: React.FC<{ measure: Measure; ink: string; halo: string; held: boolean
 
   return (
     <g>
-      {/* The straight line schooling believes in... skipped when it would
-          have to cross the seam, where no straight page line exists. */}
+      {/* The straight line schooling believes in... skipped when it would have
+          to cross the seam, where no straight page line exists. */}
       {ends[0] && ends[1] && Math.abs(ends[0].x - ends[1].x) <= seam && (
         <line
           x1={ends[0].x}
@@ -88,12 +112,27 @@ const Arc: React.FC<{ measure: Measure; ink: string; halo: string; held: boolean
           opacity={0.3}
         />
       )}
-      {/* ...and the line sight actually draws. */}
+      {/* ...and the line the room actually draws. */}
       {path && <path d={path} fill="none" stroke={ink} strokeWidth={held ? 2 : 1.5} opacity={0.85} />}
+      {/* Ends drawn as rings rather than dots: a measure is pinned BETWEEN two
+          places, and a ring says which point of the drawing it is pinned to
+          where a filled dot covers it. */}
       {ends.map(
-        (end, i) => end && <circle key={i} cx={end.x} cy={end.y} r={held ? 3 : 2.3} fill={ink} opacity={0.85} />
+        (end, i) =>
+          end && (
+            <circle
+              key={i}
+              cx={end.x}
+              cy={end.y}
+              r={held ? 4 : 3.2}
+              fill="none"
+              stroke={ink}
+              strokeWidth={held ? 2 : 1.5}
+              opacity={0.85}
+            />
+          )
       )}
-      {mid && measure.deg >= 0.5 && (
+      {mid && measure.metres >= 0.02 && (
         <text
           x={mid.x + 8}
           y={mid.y - 8}
@@ -103,22 +142,20 @@ const Arc: React.FC<{ measure: Measure; ink: string; halo: string; held: boolean
           fontFamily="system-ui, -apple-system, sans-serif"
           style={{ paintOrder: 'stroke', stroke: halo, strokeWidth: 3 }}
         >
-          {measure.deg >= 10 ? Math.round(measure.deg) : measure.deg.toFixed(1)}°
+          {measure.metres < 10 ? measure.metres.toFixed(2) : measure.metres.toFixed(1)} m
           {/*
-            * And the metres, when both ends of the drag landed on something.
+            * And the angle, while the tape is still in your hand.
             *
-            * Two different questions, and the instrument can answer both from
-            * one gesture. The angle is what sight reads and what a drawing is
-            * made of - it is first, and it is always there. The distance is
-            * what the place is actually made of, and it only exists when both
-            * ends met an object or the floor: a line taken across the sky has
-            * an angle and no length, and inventing one would be worse than
-            * leaving it out.
+            * Two different questions, and the instrument answers both from one
+            * gesture. The metres are what the place is made of and stay with
+            * the mark. The angle is what SIGHT reads - the pencil held up at a
+            * straight arm, one eye shut - and it is true only from where you
+            * are standing this second, which is why it goes when you let go.
             */}
-          {measure.metres !== undefined && measure.metres >= 0.02 && (
+          {deg !== undefined && deg >= 0.5 && (
             <tspan opacity={0.72}>
               {'  '}
-              {measure.metres < 10 ? measure.metres.toFixed(2) : measure.metres.toFixed(1)} m
+              {deg >= 10 ? Math.round(deg) : deg.toFixed(1)}°
             </tspan>
           )}
         </text>
@@ -132,12 +169,13 @@ export const Measures: React.FC = () => {
   const surface = useStore((s) => s.surface);
   const dark = useStore((s) => s.theme) === 'dark';
   const [, redraw] = useReducer((n: number) => n + 1, 0);
+  const eye = useMemo(() => new THREE.Vector3(), []);
 
   /*
-   * The marks are directions in the world, so every turn of the head moves
-   * where they land on the glass: re-projected every frame while any exist,
-   * exactly the vanishing points' own arrangement, and costing nothing when
-   * the instrument is empty.
+   * The marks are places in the room, so every step and every turn of the head
+   * moves where they land on the glass: re-projected every frame while any
+   * exist, exactly the vanishing points' own arrangement, and costing nothing
+   * when the tape is empty.
    */
   const any = list.length > 0 || live !== null;
   useEffect(() => {
@@ -160,6 +198,7 @@ export const Measures: React.FC = () => {
   // The halo is the page, not "white": on a dark board a white halo was the
   // brightest mark on the sheet.
   const halo = sketch ? pageHex() : dark ? 'rgba(16,16,16,0.75)' : 'rgba(255,255,255,0.75)';
+  const from = live ? eyeAt(eye) : null;
 
   return (
     <svg
@@ -168,9 +207,17 @@ export const Measures: React.FC = () => {
       height={window.innerHeight}
     >
       {list.map((measure, i) => (
-        <Arc key={i} measure={measure} ink={ink} halo={halo} held={false} />
+        <Run key={i} measure={measure} ink={ink} halo={halo} held={false} />
       ))}
-      {live && <Arc measure={live} ink={ink} halo={halo} held />}
+      {live && (
+        <Run
+          measure={live}
+          ink={ink}
+          halo={halo}
+          held
+          deg={from ? subtended(live.from, live.to, from) : undefined}
+        />
+      )}
     </svg>
   );
 };
