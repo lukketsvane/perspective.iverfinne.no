@@ -1249,15 +1249,17 @@ export const WalkOverlay: React.FC<{
         *
         * At the top, because that is the one band this tool's chrome does not
         * use - the dock, the panel slot and the walk corner are all along the
-        * bottom - and it is the same place the tour's card stands for the same
-        * reason. It takes no pointer: it is a readout, and the way to put the
-        * instrument down is the way it always was.
+        * bottom. Which is exactly where the tour's card stands, for exactly the
+        * same reason, so the two of them landed on top of each other the moment
+        * the tour reached the card about the pencil. The card wins while it is
+        * up: it says the same thing at more length, with the gesture drawn on
+        * the floor beside it.
         *
-        * Not while a stroke is in progress: the drag has its own live reading
-        * a few pixels from the finger, and two labels for one gesture is one
-        * label too many.
+        * Not while a stroke is in progress either: the drag has its own live
+        * reading a few pixels from the finger, and two labels for one gesture
+        * is one label too many.
         */}
-      {(blocking || measuring) && !blockReadout && (
+      {(blocking || measuring) && !blockReadout && !tourRunning && (
         <div
           aria-live="polite"
           className={`fixed z-40 left-1/2 -translate-x-1/2 top-safe-panel pointer-events-none ${bubble(isDark)}`}

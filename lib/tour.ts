@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 /**
- * The five cards a first-time viewer is shown, and where they are up to.
+ * The nine cards a first-time viewer is shown, and where they are up to.
  *
  * Out here rather than in the scene store, for the same reasons rail.ts gives:
  * this is not part of a composition. It is not saved with a scene, not undone,
@@ -34,7 +34,7 @@ type Listener = () => void;
  * Bumped when the tour is rewritten, so a viewer who has seen the old one is
  * offered the new one - the same trick VIEW_GENERATION plays in store.ts.
  */
-const TOUR_GENERATION = 3;
+const TOUR_GENERATION = 4;
 
 /**
  * Its own key, not a field in the settings blob.
@@ -45,6 +45,48 @@ const TOUR_GENERATION = 3;
  * interrupted again by a tour they had already sat through.
  */
 const KEY = 'kjg-perspective-tour';
+
+/**
+ * WHAT THE CARD IS WAITING FOR.
+ *
+ * Every step but the last names one, and the step does not pass until the
+ * viewer has done it. That is the whole difference between a tour and a stack
+ * of captions: a card that says "trykk kuben" and then advances on a timer has
+ * taught nobody anything, and a card that advances on Next alone is a slide.
+ *
+ * The gates are deliberately coarse - "the panel is open", "a box exists",
+ * "the lens moved a long way" - because a gate that is finicky about HOW is a
+ * gate that strands somebody who did the right thing slightly differently.
+ * They are all evaluated in components/Tour.tsx, which is the one place that
+ * can see both the store and the live DOM.
+ */
+export type Gate =
+  /** The view was turned by a drag. */
+  | 'look'
+  /** The stick in the corner was pushed. */
+  | 'walk'
+  /** The field of view moved a long way from where the card found it. */
+  | 'lens'
+  /** The tools panel is open. */
+  | 'tools'
+  /** A different page was dealt. */
+  | 'page'
+  /** The model shelf is open. */
+  | 'shelf'
+  /** The block-out pencil is in hand. */
+  | 'pencil'
+  /** A box that was not there when the card opened is standing now. */
+  | 'box';
+
+/**
+ * The gesture drawn over the anchor, which is the other half of "trykk".
+ *
+ * Nothing in this tool carries visible text, and half of its controls are
+ * dragged rather than tapped - a distinction no ring can make. So the ring
+ * says WHICH and the glyph says HOW: a tap ripple, an arrow along the axis the
+ * control actually reads, or the two strokes a box is drawn with.
+ */
+export type Gesture = 'tap' | 'dragX' | 'dragFree' | 'blockOut';
 
 export interface TourStep {
   /**
@@ -61,23 +103,47 @@ export interface TourStep {
   fallbackAnchor?: string;
   headline: string;
   body: string;
-  /** Step one draws the walk quadrant instead of ringing a control. */
+  /** What the viewer must do. Absent on the card that ends the tour. */
+  gate?: Gate;
+  /** How they do it, drawn over the anchor. */
+  gesture?: Gesture;
+  /** The walk step draws the stick quadrant instead of ringing a control. */
   markWalkZone?: boolean;
   /** The last card lets the chrome go, and is about what happens next. */
   releasesRail?: boolean;
 }
 
+/*
+ * NINE CARDS, AND EVERY ONE OF THEM IS ONE ACTION.
+ *
+ * There were five, and three of those were a paragraph each: the fourth asked
+ * for two taps and two drags in one breath, which is a card you read twice and
+ * then do the first half of. Nine short ones that each wait for their own tap
+ * is more cards and less reading, and at no point is there a card on screen
+ * describing something that is not in front of you - the menu steps wait for
+ * the menu to be OPEN before the card about what is inside it appears.
+ */
 export const STEPS: TourStep[] = [
   {
     anchor: null,
-    markWalkZone: true,
+    gate: 'look',
+    gesture: 'dragFree',
     headline: 'Du står i det',
-    body: 'Dra kvar som helst for å sjå deg rundt. Dra inne i den stipla ruta for å gå.',
+    body: 'Dra på biletet for å sjå deg rundt.',
+  },
+  {
+    anchor: null,
+    gate: 'walk',
+    markWalkZone: true,
+    headline: 'Gå',
+    body: 'Dra inne i den stipla ruta. Du kan sjå og gå samstundes, ein tommel på kvar.',
   },
   {
     // "Field of view" is read by the tour. Renaming it leaves this step with a
     // card and no ring.
     anchor: 'Field of view',
+    gate: 'lens',
+    gesture: 'dragX',
     headline: 'Opne linsa',
     body: 'Dra kjegla sidelengs — runde knappar blir dregne, ikkje trykte. Forbi 180° buar linjene seg.',
     // Two facts, and the second is the whole tool: that the sheet is curved.
@@ -86,23 +152,53 @@ export const STEPS: TourStep[] = [
   {
     // "Tools" is read by the tour.
     anchor: 'Tools',
+    gate: 'tools',
+    gesture: 'tap',
     headline: 'Alt ligg bak éin knapp',
-    body: 'Trykk dei tre skyvarane. Hjelpelinjer, flate, papir, projeksjon — alt er der inne.',
+    body: 'Trykk dei tre skyvarane.',
+  },
+  {
+    /*
+     * The first card that can only be written because the one before it waited.
+     * This control is inside the panel, so a tour that advanced on a timer would
+     * be ringing a button behind a closed menu by now.
+     */
+    anchor: 'Deal a different page',
+    fallbackAnchor: 'Tools',
+    gate: 'page',
+    gesture: 'tap',
+    headline: 'Del ut ei side',
+    body: 'Trykk terningen. Flate, papir, lys og penn skifter under eitt — trykk igjen for ei ny.',
+  },
+  {
+    anchor: 'Add model',
+    gate: 'shelf',
+    gesture: 'tap',
+    headline: 'Hylla',
+    body: 'Trykk kuben. Stolar, hestar, eit fly — alt er målt, så du teiknar mot verkelege storleikar.',
   },
   {
     /*
      * "Draw boxes on the ground" is read by the tour.
      *
-     * It lives on the model shelf, beside the cube, so until the viewer's own
-     * tap opens that shelf there is nothing on screen to ring - which is why
+     * It lives on the model shelf, beside the cube, so until the step before
+     * this one has been done there is nothing on screen to ring - which is why
      * the ring falls back to the dock button that opens it rather than circling
-     * nothing. The tour does not open the shelf itself: the tap is the lesson.
-     * So the card has to name both buttons, in the order they are pressed.
+     * nothing. The tour opens no shelf itself: the tap is the lesson.
      */
     anchor: 'Draw boxes on the ground',
     fallbackAnchor: 'Add model',
+    gate: 'pencil',
+    gesture: 'tap',
+    headline: 'Ta blyanten',
+    body: 'Trykk blyanten ved sida av kuben. Hylla legg seg bort med det same.',
+  },
+  {
+    anchor: null,
+    gate: 'box',
+    gesture: 'blockOut',
     headline: 'Teikn ein kasse',
-    body: 'Trykk kuben. Ta blyanten ved sida av kuben på hylla, dra ut grunnflata på golvet, slepp, dra opp høgda.',
+    body: 'Dra ut grunnflata på golvet, slepp, og dra opp høgda.',
   },
   {
     anchor: null,
