@@ -438,49 +438,91 @@ test.fixme('dealing a page leaves a rung set by hand alone, and moves one that w
 
 /* ===================================================================== (e) */
 
+/**
+ * What a page puts under itself, whether or not it composed one.
+ *
+ * Six of the twenty-three name a floor; the other seventeen take a fixed step
+ * under their own sheet. This is store.ts's `floorFor` written out a second
+ * time on purpose - a test that imports the function it is checking asserts
+ * only that the function equals itself.
+ */
+const floorOf = (page: { paper: number; ground?: { tone: number } }) =>
+  page.ground ? page.ground.tone : Math.round(page.paper * 0.62);
+
+/**
+ * Drag the floor control, which is not a Scrub and so is not `drag`'s business.
+ *
+ * The Scrubs publish a live bubble that the harness's helper reads back; this
+ * one is a plain button with drag handlers on it, and what it says is in its
+ * own label. So the travel happens here and the reading is taken afterwards.
+ */
+const dragFloor = async (page: Page, dx: number) => {
+  await wake(page);
+  const knob = findByPrefix(page, FLOOR, 'tools');
+  const box = await knob.boundingBox();
+  if (!box) throw new Error('No floor control to drag.');
+  const y = box.y + box.height / 2;
+  await page.mouse.move(box.x + box.width / 2, y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + dx, y, { steps: 8 });
+  await page.mouse.up();
+};
+
 test('the floor a page brought with it does not follow the next page in', async ({ app }) => {
   await openTools(app);
 
-  // A floor put down by hand, so that the very first deal is already being
-  // asked to clear one. The tone it comes up at does not matter here; that it
-  // is THERE does.
-  expect(await floorReads(app)).toBe('none');
-  await press(app, 'tools', FLOOR);
-  expect(await floorReads(app), 'The floor did not come on.').not.toBe('none');
+  /*
+   * A floor dragged somewhere no page would put one, so that the very first
+   * deal is already being asked to REPLACE a floor rather than to put one down.
+   *
+   * Every page stands on a floor now, so "did the last page's floor leak" is no
+   * longer a question about on-or-off - it is a question about the tone, and the
+   * tone it starts from has to be one nothing in the deck could have produced,
+   * or a passing deal proves nothing.
+   */
+  await dragFloor(app, -600);
+  const strange = Number((await floorReads(app)).replace(' of 255', ''));
+  expect(
+    new Set(PRESETS.map(floorOf)).has(strange),
+    `The floor dragged to ${strange}, which is a tone some page in the deck would set anyway - this test cannot tell a leak from a correct deal.`
+  ).toBe(false);
 
   /*
    * Deal, and hold every deal to the dealt page's own answer.
    *
-   * Six of the twenty-three pages stand on a floor and seventeen do not, and
-   * the floor is the one thing in a page that is set by EVERY deal rather than
+   * The floor is the one thing in a page that is set by EVERY deal rather than
    * left alone when unnamed - because it shows on every page there is, so a
-   * page that does not ask for it must not get it. That is what leaked: a floor
-   * from one page stayed under all the pages dealt after it.
+   * floor left standing is a floor under pages composed with nothing under
+   * them. That is what leaked, and the leak is still the thing under test: what
+   * an unnamed page gets is now a function of that page, so a tone carried over
+   * from the page before is as wrong as it ever was and fails just as loudly.
    *
-   * The loop runs until it has seen the case that catches that - a page with no
-   * floor dealt while a floor was standing - which the first deal supplies
-   * better than three times out of four, and every deal along the way is held
-   * to the same exact standard either way.
+   * The loop runs until it has seen the case that catches it - an unnamed page
+   * dealt while some other tone was standing - which the first deal supplies
+   * better than three times out of four.
    */
-  let standing = true;
+  let carried = strange;
   let leakTested = false;
   for (let deals = 0; deals < 12 && !leakTested; deals++) {
-    const before = standing;
+    const before = carried;
     await deal(app);
     const page = await dealtPage(app);
     const floor = await floorReads(app);
+    const wanted = floorOf(page);
 
     expect(
       floor,
-      `"${page.name}" ${page.ground ? `asks for a floor at ${page.ground.tone}` : 'asks for no floor'}, and the control reads ${floor}.`
-    ).toBe(page.ground ? `${page.ground.tone} of 255` : 'none');
+      `"${page.name}" ${
+        page.ground ? `composed a floor at ${page.ground.tone}` : `named no floor, so it takes a step under its own ${page.paper} sheet`
+      }, and the control reads ${floor}.`
+    ).toBe(`${wanted} of 255`);
 
-    standing = Boolean(page.ground);
-    if (before && !standing) leakTested = true;
+    if (!page.ground && before !== wanted) leakTested = true;
+    carried = wanted;
   }
 
   expect(
     leakTested,
-    'Twelve deals and never once a floorless page after a floor - the leak this guards was not exercised.'
+    'Twelve deals and never once an unnamed page after a different tone - the leak this guards was not exercised.'
   ).toBe(true);
 });

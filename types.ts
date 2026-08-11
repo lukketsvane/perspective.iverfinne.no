@@ -825,11 +825,15 @@ export interface SceneState {
   /**
    * A floor under the drawing, and what tone it is.
    *
-   * Off by default, because the tool opens on bare paper and a study of forms
-   * standing in nothing is the honest starting point - the ruling says where
-   * the ground is without anything having to be painted there. On is for when
-   * you want the plane itself: a value for the shadows to land in, and a
-   * horizon the floor actually meets rather than one the grid implies.
+   * On, and part of the page: a value for the shadows to land in, and a horizon
+   * the floor actually meets rather than one the grid implies. Every page the
+   * deck deals stands on one - six compose their own tone, the rest take a
+   * fixed step under their own sheet (see `floorFor` in store.ts).
+   *
+   * It was off by default, on the argument that a study of forms standing in
+   * nothing is the honest starting point and the ruling says where the ground
+   * is without anything painted there. The ruling still does; a page that also
+   * has a floor turned out to be the better page.
    */
   ground: { on: boolean; tone: number };
   /**
