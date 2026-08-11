@@ -1262,7 +1262,7 @@ export const WalkOverlay: React.FC<{
           aria-live="polite"
           className={`fixed z-40 left-1/2 -translate-x-1/2 top-safe-panel pointer-events-none ${bubble(isDark)}`}
         >
-          {blocking ? 'Drag on the floor to block a box in' : 'Drag across the scene to measure an angle'}
+          {blocking ? 'Dra på golvet for å teikne ein kasse' : 'Dra over scena for å måle ein vinkel'}
         </div>
       )}
 

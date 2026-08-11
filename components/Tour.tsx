@@ -220,9 +220,12 @@ export const Tour: React.FC = () => {
         <div className="text-xs font-bold uppercase tracking-wide opacity-60">{current.headline}</div>
         <div className="text-sm leading-snug mt-1">{current.body}</div>
         <div className="flex items-center justify-between mt-2">
-          {/* Same place, same size, every card, from the first frame. */}
+          {/* Same place, same size, every card, from the first frame. The
+              labels are what the viewer reads; the aria-labels are the names
+              the tour and the harness anchor on, and stay English with every
+              other one in the app. */}
           <button onClick={endTour} aria-label="Skip the tour" className={chip}>
-            Skip
+            Hopp over
           </button>
           <span className="text-[11px] opacity-40">
             {step + 1} / {STEPS.length}
@@ -232,7 +235,7 @@ export const Tour: React.FC = () => {
             aria-label={step >= STEPS.length - 1 ? 'Finish the tour' : 'Next step of the tour'}
             className={chip}
           >
-            {step >= STEPS.length - 1 ? 'Done' : 'Next'}
+            {step >= STEPS.length - 1 ? 'Ferdig' : 'Neste'}
           </button>
         </div>
       </div>

@@ -47,7 +47,7 @@ export { expect };
  * unguarded init script would quietly wipe them and make that spec a fraud.
  */
 const PRELUDE = () => {
-  localStorage.setItem('kjg-perspective-tour', JSON.stringify({ seen: 2 }));
+  localStorage.setItem('kjg-perspective-tour', JSON.stringify({ seen: 3 }));
   if (!sessionStorage.getItem('harness-cleared')) {
     localStorage.removeItem('kjg-perspective-settings');
     sessionStorage.setItem('harness-cleared', '1');
@@ -483,7 +483,7 @@ export const blockOutABox = async (
    * stands.
    */
   await expect(
-    page.getByText('Drag on the floor to block a box in'),
+    page.getByText('Dra på golvet for å teikne ein kasse'),
     'The pencil is still armed, so a stroke missed the floor: the footprint or the pull landed on sky, on the racer, or past the edge of the sheet.'
   ).toBeHidden();
 };
