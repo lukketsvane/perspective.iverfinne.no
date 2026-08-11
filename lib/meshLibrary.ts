@@ -98,12 +98,22 @@ export const MESH_LIBRARY: LibraryMesh[] = [
    *
    * NONE OF THEM CARRIES A HEIGHT, for the same reason the racer does not: the
    * real size is baked into the file. Measured, they are 1.44 x 1.68 x 1.26,
-   * 0.63 x 1.30 x 0.85, 1.91 x 2.29 x 5.00 and 0.99 x 0.61 x 2.40 metres - a
+   * 0.63 x 1.30 x 0.85, 1.91 x 2.29 x 5.00 and 0.87 x 2.10 x 0.53 metres - a
    * man leaning into a signal, a man sitting on a chair, a light-truck tanker,
-   * and a stores pallet. Every one of those was arrived at by fixing the
+   * and a workshop rack. Every one of those was arrived at by fixing the
    * dimension a real one is known by and checking that the other two came out
    * right: the bowser was set by its five-metre length and its height fell out
    * at 2.29, which is what a tanker on a 1930s truck chassis stands at.
+   *
+   * THE RACK SHIPPED ONCE LYING ON ITS BACK. Its longest axis is 2.4 in the
+   * file, and a 2.4 m thing full of drums and tyres reads as a pallet, so it
+   * was scaled by that axis as a length and laid on the apron - where it looked
+   * like a crate somebody had dropped. Rendered from all six faces it is
+   * plainly a shelving unit: five shelves, stock standing on every one of them,
+   * X-bracing across the back. The file is authored with its own up along +Z,
+   * so the quarter turn that stands it up is baked into the mesh here rather
+   * than carried as a note, and the 2.4 became 2.10 - the height of a rack you
+   * can reach the top shelf of, which is the only height a workshop rack is.
    *
    * They arrive at fifty thousand triangles apiece with no textures and no UVs
    * at all, which suits a tool that only samples a texture on one rung out of
@@ -113,7 +123,7 @@ export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'ground-crew', name: 'Ground crew, signalling', url: '/meshes/ground-crew.glb' },
   { id: 'pilot-seated', name: 'Pilot, seated', url: '/meshes/pilot-seated.glb' },
   { id: 'fuel-bowser', name: 'Fuel bowser', url: '/meshes/fuel-bowser.glb' },
-  { id: 'hangar-stores', name: 'Stores pallet', url: '/meshes/hangar-stores.glb' },
+  { id: 'hangar-stores', name: 'Stores rack', url: '/meshes/hangar-stores.glb' },
 
   /*
    * A dome slung from a four-leg chain, and the one thing on this shelf whose

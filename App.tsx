@@ -92,7 +92,7 @@ export default function App() {
    * grid it is a beautiful object and a poor drawing: nothing in the frame says
    * how big it is except a ruling you have to already believe in, nothing else
    * is at a different depth, and there is no second form for its own to be read
-   * against. A man at six metres, a truck at eight and a pallet at five fix all
+   * against. A man at six metres, a truck at eight and a rack at seven fix all
    * three at once, and every one of them is a size you already know.
    *
    * WHERE THEY STAND is chosen against the racer's own box - 8.2 m long, 7.6 m
@@ -151,10 +151,13 @@ export default function App() {
     // Half a radian off the square, because a vehicle parked dead on the axis
     // to its subject is the one arrangement that looks arranged.
     { id: 'fuel-bowser', at: [6.4, -1.8], turn: towardsTheRacer([6.4, -1.8], 0) + 0.5 },
-    // Near the eye, right of centre: the small known thing in the foreground
-    // that the whole depth of the picture is measured back from. A crate has no
-    // front, so this angle is composition and nothing else.
-    { id: 'hangar-stores', at: [4.4, 6.2], turn: -0.35 },
+    // Right of centre and a little back, because it stands 2.1 m: the one
+    // upright rectangle in a yard of long low things, and the only thing here
+    // whose height a viewer can check against their own. Its front faces -Z in
+    // the file, so it takes the same treatment as the figures and ends up
+    // showing its shelves to the aircraft - and to the eye, which starts on
+    // roughly the same side.
+    { id: 'hangar-stores', at: [3.1, 6.8], turn: towardsTheRacer([3.1, 6.8], Math.PI) },
     // Off the port wing, well clear of it, watching the aircraft.
     { id: 'pilot-seated', at: [-2.8, 7.0], turn: towardsTheRacer([-2.8, 7.0], 0) },
   ];
