@@ -32,9 +32,12 @@ export { expect };
  * context - which is the only place it CAN be written from, since localStorage
  * needs an origin and the app reads both of these keys as it mounts.
  *
- * THE TOUR: five cards, armed on every fresh visit as soon as models or boxes
- * appear, and the first of them covers the top of the frame. A test that does
- * not set this flag is a test of the tour. The shape is tour.ts's own - a
+ * THE TOUR: nine cards, armed on every fresh visit as soon as models or boxes
+ * appear, and every one of them covers the top of the frame and rings a control
+ * somewhere else. A test that does not set this flag is a test of the tour, and
+ * a badly behaved one: the cards WAIT for real gestures now, so an unsuppressed
+ * tour does not simply sit there - it reads every drag the spec makes. The
+ * shape is tour.ts's own - a
  * generation number, so that bumping the tour re-offers it to real viewers.
  * If that number moves, this line has to move with it, or the tour comes back
  * and every spec starts failing in the same baffling way.
@@ -47,7 +50,7 @@ export { expect };
  * unguarded init script would quietly wipe them and make that spec a fraud.
  */
 const PRELUDE = () => {
-  localStorage.setItem('kjg-perspective-tour', JSON.stringify({ seen: 3 }));
+  localStorage.setItem('kjg-perspective-tour', JSON.stringify({ seen: 4 }));
   if (!sessionStorage.getItem('harness-cleared')) {
     localStorage.removeItem('kjg-perspective-settings');
     sessionStorage.setItem('harness-cleared', '1');
