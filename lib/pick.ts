@@ -78,6 +78,20 @@ export const forgetView = () => {
   view = null;
 };
 
+/**
+ * Where the eye is, in metres.
+ *
+ * Everything else in here answers questions about the glass; this answers the
+ * one question about the room that only the view can settle. A mark laid
+ * between two places in the world subtends an angle at the eye, and the angle
+ * is a different number from every place you could stand - so it cannot be
+ * stored with the mark and has to be asked, from here, on the frame it is
+ * drawn. Written into the caller's vector rather than handed a new one: this
+ * is asked once per mark per frame.
+ */
+export const eyeAt = (into: THREE.Vector3): THREE.Vector3 | null =>
+  view ? into.copy(view.camera.position) : null;
+
 const raycaster = new THREE.Raycaster();
 const direction = new THREE.Vector3();
 const local = new THREE.Vector3();
@@ -257,28 +271,14 @@ export const projectView = (x: number, y: number, z: number): { x: number; y: nu
   return project(heading);
 };
 
-const sight = new THREE.Vector3();
-
-/**
- * The direction out through a point on the glass, in world space.
- *
- * The measure's whole arithmetic: a mark on the sheet IS a direction from the
- * eye, and the span between two marks is the angle between their directions -
- * which is what an artist is estimating every time a pencil goes up at arm's
- * length. Null off the sheet, exactly where `aim` refuses to pick.
+/*
+ * `directionAt` and `projectDirection` used to live here: a mark on the glass
+ * turned into a direction from the eye, and a direction turned back into a
+ * mark. They were the measure's whole arithmetic while a measure was two
+ * directions, and nothing else ever asked - a tape anchored at two PLACES asks
+ * `project` like everything else in the app. Removed rather than left as two
+ * exports with no callers.
  */
-export const directionAt = (clientX: number, clientY: number): [number, number, number] | null => {
-  if (!aim(clientX, clientY)) return null;
-  const d = raycaster.ray.direction;
-  return [d.x, d.y, d.z];
-};
-
-/** Where a world DIRECTION from the eye lands on the glass, in client pixels. */
-export const projectDirection = (dir: [number, number, number]): { x: number; y: number } | null => {
-  if (!view) return null;
-  sight.set(dir[0], dir[1], dir[2]).add(view.camera.position);
-  return project(sight);
-};
 
 const across = new THREE.Vector3();
 

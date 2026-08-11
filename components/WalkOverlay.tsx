@@ -16,7 +16,7 @@ import { captureFileName, captureView } from '../lib/capture';
 import { quickLookAvailable, sceneToUSDZ, openInQuickLook, downloadUSDZ } from '../lib/exportAR';
 import { whileWorking } from '../lib/activity';
 import { ACTIVE, bubble, chrome, iconButton, SIDEWAYS_SLOT } from './ui';
-import { directionAt, pickGround, pickObject, pixelsPerMetreAt } from '../lib/pick';
+import { pickGround, pickObject, pixelsPerMetreAt } from '../lib/pick';
 import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
 import { MAX_FIELD, wholeSheetField } from '../lib/projection';
@@ -342,12 +342,12 @@ export const WalkOverlay: React.FC<{
   /*
    * Whether drags are measuring instead of looking.
    *
-   * The pencil at arm's length: while this is up, a drag on the scene lays a
-   * measure - two directions from the eye and the angle between them - and
-   * nothing else a drag normally does happens. It is a mode, which this tool
-   * avoids, and it earns the exception the way a real pencil does: you pick
-   * the instrument up, take your readings, and put it down. Putting it down
-   * clears the sheet.
+   * The tape: while this is up, a drag on the scene lays a mark between the
+   * two places it started and ended, with the metres between them written at
+   * it, and nothing else a drag normally does happens. It is a mode, which
+   * this tool avoids, and it earns the exception the way a real tape does:
+   * you take it out, lay it on the thing, and put it away. The marks stay
+   * where they were laid - a double tap takes them out again.
    */
   const measuring = instrument === 'measure';
   const measurePointer = useRef<number | null>(null);
@@ -376,15 +376,20 @@ export const WalkOverlay: React.FC<{
    * the pencil off the model shelf, the measure out of the lens band - so no
    * single button is in a position to tidy up after the other one. This is:
    * one effect, on the one piece of state that says which is up, doing the
-   * whole of it. A half-drawn footprint is abandoned, and the sheet of
-   * measures is cleared by anything that is not the measure itself - a
-   * reading is a reading, not a mark of the composition.
+   * whole of it. A half-drawn footprint is abandoned, and a half-drawn measure
+   * with it.
+   *
+   * THE TAPE ITSELF IS NOT ROLLED UP HERE, and it used to be. A measure was
+   * two directions from the eye and could not survive you taking a step, so
+   * putting the instrument down was the honest moment to wipe it. It is two
+   * places in the room now: it stays where it was laid, which is the whole
+   * point of laying it, and the way to clear it is a double tap with the tape
+   * in your hand. See lib/measure.ts.
    */
   useEffect(() => {
     block.current = null;
     setBlockReadout(null);
     measurePointer.current = null;
-    if (instrument !== 'measure') clearMeasures();
   }, [instrument]);
   const railVisible = useRail();
   /** The tour is drawn over everything, so Escape reaches it first. */
@@ -515,17 +520,62 @@ export const WalkOverlay: React.FC<{
   };
 
   /**
-   * Where a measure's end actually is, when it is anywhere.
+   * Where an end of the tape actually is, when it is anywhere.
    *
-   * An object first, then the floor. The instrument reads visual angle, which
-   * every direction has; this is the other half, and only some drags have it -
-   * a line taken across the sky lands on nothing and gets no metres.
+   * An object first, then the floor. A measure is anchored at two PLACES now,
+   * so this is not one half of the reading any more - it is the reading. A
+   * stroke across the sky lands on nothing and lays nothing.
    */
   const placeAt = (x: number, y: number): [number, number, number] | undefined => {
     const hit = pickObject(x, y);
     if (hit) return [hit.point.x, hit.point.y, hit.point.z];
     const ground = pickGround(x, y);
     return ground ? [ground.x, ground.y, ground.z] : undefined;
+  };
+
+  /**
+   * The last stroke that laid nothing, so two of them in a row can be told
+   * apart from one.
+   */
+  const lastTap = useRef<{ at: number; x: number; y: number } | null>(null);
+
+  /**
+   * Lift the tape - and count the stroke, if it left no mark.
+   *
+   * DOUBLE TAP ROLLS THE WHOLE TAPE UP. The marks stay in the scene now, which
+   * means there has to be a way to take them out again, and it cannot be a
+   * button: the instrument is a mode you are already holding, the panel it was
+   * armed from is shut, and a tool whose one destructive act needs three taps
+   * in a menu is a tool nobody clears. Two taps where you are already working
+   * is the gesture the mode is in a position to hear.
+   *
+   * ONLY STROKES THAT LAID NOTHING COUNT. A measurement is a press, a drag and
+   * a release, so a real one can never be half of a double tap however fast it
+   * was made - what counts is the press-and-release that put no mark down,
+   * which is exactly what a tap IS. That also means a tap on the sky counts,
+   * which is the friendliest place to double-tap: nothing there to measure.
+   *
+   * The window is the platform's own, near enough: 400 ms and 28 px, which is
+   * a hair looser than a system double-click because this is a thumb on glass
+   * rather than a mouse.
+   */
+  const liftTape = (e: React.PointerEvent) => {
+    if (endMeasure()) {
+      lastTap.current = null;
+      return;
+    }
+    const now = performance.now();
+    const before = lastTap.current;
+    if (
+      before &&
+      now - before.at < 400 &&
+      Math.hypot(e.clientX - before.x, e.clientY - before.y) < 28
+    ) {
+      clearMeasures();
+      lastTap.current = null;
+      return;
+    }
+    lastTap.current = { at: now, x: e.clientX, y: e.clientY };
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -581,17 +631,17 @@ export const WalkOverlay: React.FC<{
     if (measuring) {
       showRail();
       if (measurePointer.current === null) {
-        const dir = directionAt(e.clientX, e.clientY);
-        if (dir) {
-          // Captured, or a mouse released over the chrome never reports the
-          // release here and the instrument wedges with a live measure that
-          // chases the bare cursor.
-          try {
-            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-          } catch { /* the element still sees the moves */ }
-          measurePointer.current = e.pointerId;
-          beginMeasure(dir, placeAt(e.clientX, e.clientY));
-        }
+        // Captured, or a mouse released over the chrome never reports the
+        // release here and the instrument wedges with a live measure that
+        // chases the bare cursor.
+        try {
+          (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        } catch { /* the element still sees the moves */ }
+        measurePointer.current = e.pointerId;
+        // The stroke is the instrument's whether or not it landed on anything -
+        // that is what makes a tap on the sky a tap the double-tap can count.
+        // Only the end of the TAPE needs somewhere to sit.
+        beginMeasure(placeAt(e.clientX, e.clientY));
       }
       return;
     }
@@ -743,11 +793,10 @@ export const WalkOverlay: React.FC<{
         // that is no longer drawing it.
         if (e.pointerType === 'mouse' && e.buttons === 0) {
           measurePointer.current = null;
-          endMeasure();
+          liftTape(e);
           return;
         }
-        const dir = directionAt(e.clientX, e.clientY);
-        if (dir) updateMeasure(dir, placeAt(e.clientX, e.clientY));
+        updateMeasure(placeAt(e.clientX, e.clientY));
       }
       return;
     }
@@ -895,7 +944,7 @@ export const WalkOverlay: React.FC<{
     if (measuring) {
       if (measurePointer.current === e.pointerId) {
         measurePointer.current = null;
-        endMeasure();
+        liftTape(e);
       }
       return;
     }
@@ -941,7 +990,11 @@ export const WalkOverlay: React.FC<{
     if (measuring) {
       if (measurePointer.current === e.pointerId) {
         measurePointer.current = null;
+        // Cancelled, not lifted: the system took the pointer away. It ends the
+        // stroke but it is not a tap, and counting it as one would let a
+        // stray palm be half of a gesture that empties the tape.
         endMeasure();
+        lastTap.current = null;
       }
       return;
     }
@@ -1264,7 +1317,7 @@ export const WalkOverlay: React.FC<{
           aria-live="polite"
           className={`fixed z-40 left-1/2 -translate-x-1/2 top-safe-panel pointer-events-none ${bubble(isDark)}`}
         >
-          {blocking ? 'Dra på golvet for å teikne ein kasse' : 'Dra over scena for å måle ein vinkel'}
+          {blocking ? 'Dra på golvet for å teikne ein kasse' : 'Dra frå ein stad til ein annan for å måle. Dobbelttrykk for å tømme'}
         </div>
       )}
 
@@ -1569,25 +1622,26 @@ export const WalkOverlay: React.FC<{
             )}
           </div>
           {/*
-            * The pencil at arm's length, in the band about the eye.
+            * The tape, in the band about the eye.
             *
-            * While it is up, a drag on the scene lays a measure in degrees of
-            * visual angle instead of turning the view - which is a reading of
-            * exactly the thing the other controls in this line set: how much
-            * of the world the lens takes in, and onto what sheet. Every artist
-            * measures this way, a pencil held out at a straight arm; here the
-            * angle is the true one rather than one estimated off a thumb.
+            * While it is up, a drag lays a mark between two places in the room
+            * instead of turning the view, with the metres between them at it -
+            * and while the drag is live it also reads the angle those two
+            * places subtend at your eye, which is the pencil held out at a
+            * straight arm and the reading every artist takes. That is why it
+            * is in THIS line: the angle is a reading of exactly what the other
+            * controls here set, how much of the world the lens takes in and
+            * onto what sheet.
             *
-            * It stands this panel down as it arms, and putting it down clears
-            * the sheet - a measurement is a reading, not a mark of the
-            * composition.
+            * It stands this panel down as it arms. What it lays stays laid;
+            * two taps with it in your hand clear the lot.
             */}
           <button
             onClick={() => {
               setInstrument(measuring ? 'none' : 'measure');
               setShowTools(false);
             }}
-            aria-label="Measure visual angles"
+            aria-label="Measure distances in the scene"
             aria-pressed={measuring}
             className={`${button} ${measuring ? ACTIVE : ''}`}
           >
