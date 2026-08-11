@@ -74,7 +74,11 @@ export const MESH_LIBRARY: LibraryMesh[] = [
    * whoever taps it, and on a phone it is the single heaviest thing this tool
    * will ever ask a browser to parse.
    */
-  { id: 'hughes-h1', name: 'Hughes H-1 Racer', url: '/meshes/hughes-h1.glb', height: 2.4 },
+  // No height: this one is authored at its real size and squarely aligned, so
+  // it is placed exactly as it comes. The first copy needed 2.4 m forced onto
+  // it, which is a number somebody has to be right about; a file that measures
+  // itself is better than a file plus a correction.
+  { id: 'hughes-h1', name: 'Hughes H-1 Racer', url: '/meshes/hughes-h1.glb' },
 
   /*
    * Four horses and a platypus: the half of the shelf that does not hold
@@ -165,14 +169,23 @@ export const MESH_LIBRARY: LibraryMesh[] = [
  * What the tool stands up on the empty grid - when it opens, and again whenever
  * the scene is reset.
  *
- * The car, always. It used to be whichever of them the dice picked, on the
+ * THE RACER, always. It used to be whichever of them the dice picked, on the
  * reasoning that a different object each time is a different exercise, but
- * opening on something different every time is not a room you know - and the
- * three are not equal for this. A chair is a box with legs. The car is curved
- * where the box is flat, six metres long so its far end is visibly smaller than
- * its near one, and turned enough that all three of its axes run off to three
- * separate points. It is the object here with the most perspective in it, which
- * makes it the one worth finding on the grid.
+ * opening on something different every time is not a room you know - and they
+ * are not equal for this.
+ *
+ * A chair is a box with legs. The car, which stood here before, is a long box
+ * that is curved where a box is flat - six metres of it, turned enough that all
+ * three of its axes run off to three separate points, and that was the most
+ * perspective in the shelf until the aircraft arrived.
+ *
+ * The H-1 has more. Its fuselage is a solid of revolution tapering in two
+ * directions at once, so the ellipse the cowling presents changes its openness
+ * continuously from nose to tail rather than at the corners of a box; its wings
+ * are one aerofoil section swept and stretched, so the section changes along
+ * the span in a way no box construction predicts; and it stands on three points
+ * at a nose-up angle, which puts its long axis off the ground plane as well as
+ * off square. A box drawn round it is a box you have to think about.
  */
 export const openingMesh = (): LibraryMesh => {
   if (import.meta.env.DEV) {
@@ -181,5 +194,5 @@ export const openingMesh = (): LibraryMesh => {
     const wanted = MESH_LIBRARY.find((mesh) => mesh.id === forced);
     if (wanted) return wanted;
   }
-  return MESH_LIBRARY.find((mesh) => mesh.id === 'il-tempo-gigante') ?? MESH_LIBRARY[0];
+  return MESH_LIBRARY.find((mesh) => mesh.id === 'hughes-h1') ?? MESH_LIBRARY[0];
 };
