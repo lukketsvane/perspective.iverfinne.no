@@ -112,21 +112,51 @@ export default function App() {
    * The bell is not here. It is on the shelf, and what it is for is a lesson in
    * lathe-turned form rather than a thing an airfield has lying about.
    */
+  /**
+   * The turn that points a mesh at the aircraft from wherever it is standing.
+   *
+   * WORKED OUT, NOT EYEBALLED, and the first go at this was eyeballed: the
+   * marshaller stood with his back to the racer, signalling at nobody. It looks
+   * like a thing you can see and fix by nudging a number, and it is not, because
+   * THE TWO FIGURES ARE AUTHORED FACING OPPOSITE WAYS - the ground crew faces
+   * -Z at a turn of zero and the pilot faces +Z. One turn that is right for one
+   * of them is a hundred and eighty degrees wrong for the other, which is
+   * exactly the shape of mistake that survives a glance at a screenshot.
+   *
+   * So each entry says which way its own file faces, measured once by rendering
+   * it from the four cardinal directions and seeing which tile showed a front,
+   * and the angle falls out of that plus where the thing stands. Move one of
+   * them and it goes on looking at the aeroplane.
+   *
+   * `front` is that authored direction as an angle: 0 for a mesh facing +Z at
+   * rest, PI for one facing -Z. The aircraft is on the origin, so the bearing
+   * from a standing place to it is the bearing of the negated position.
+   */
+  const towardsTheRacer = (at: [number, number], front: number) =>
+    Math.atan2(-at[0], -at[1]) - front;
+
   const GROUND_CREW: { id: string; at: [number, number]; turn: number }[] = [
-    // Ahead of the nose and off to port, arms up, facing back at the aircraft:
-    // where a marshaller stands, and the one figure the eye reads as ACTING.
-    { id: 'ground-crew', at: [-5.4, 3.6], turn: 2.2 },
-    // Broadside on the starboard side and set BACK past the aircraft's own
-    // plane, which does two things: it keeps five metres of truck out of the
-    // right edge of an upright phone, and it puts the four of them at four
-    // separate depths - bowser behind, aircraft on the origin, pallet and
-    // pilot in front - which is the whole reason for standing them there.
-    { id: 'fuel-bowser', at: [6.4, -1.8], turn: 1.3 },
+    // Ahead of the nose and off to port, arms up, LOOKING AT THE AIRCRAFT -
+    // which is the whole of what a marshaller is, and the one figure here the
+    // eye reads as acting rather than waiting.
+    { id: 'ground-crew', at: [-5.4, 3.6], turn: towardsTheRacer([-5.4, 3.6], Math.PI) },
+    // Backed in on the starboard side, past the aircraft's own plane. Three
+    // things at once: the working end of a bowser is its rear, so the man on
+    // the hose ends up facing the aeroplane he is fuelling rather than the
+    // empty grid behind him; five metres of truck stays out of the right edge
+    // of an upright phone; and the four of them end up at four separate depths
+    // - bowser behind, aircraft on the origin, pallet and pilot in front -
+    // which is the whole reason for standing them there at all.
+    //
+    // Half a radian off the square, because a vehicle parked dead on the axis
+    // to its subject is the one arrangement that looks arranged.
+    { id: 'fuel-bowser', at: [6.4, -1.8], turn: towardsTheRacer([6.4, -1.8], 0) + 0.5 },
     // Near the eye, right of centre: the small known thing in the foreground
-    // that the whole depth of the picture is measured back from.
+    // that the whole depth of the picture is measured back from. A crate has no
+    // front, so this angle is composition and nothing else.
     { id: 'hangar-stores', at: [4.4, 6.2], turn: -0.35 },
-    // Off the port wing, well clear of it, turned to look at the aircraft.
-    { id: 'pilot-seated', at: [-2.8, 7.0], turn: 2.5 },
+    // Off the port wing, well clear of it, watching the aircraft.
+    { id: 'pilot-seated', at: [-2.8, 7.0], turn: towardsTheRacer([-2.8, 7.0], 0) },
   ];
 
   /**
