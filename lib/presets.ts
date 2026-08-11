@@ -62,14 +62,19 @@ export interface Preset {
    */
   wash?: { amount: number; steps: number };
   /**
-   * A floor, for the pages that stand on one.
+   * The floor this page composed for itself. Six of them did.
    *
-   * Most do not: a study of forms in nothing is what the ruling is for, and a
-   * plane under it is a second value competing with the drawing. It earns its
-   * place where the page is about the LIGHT - a lit floor is what a cast shadow
-   * is read against. Unlike the pen and the wash this is set by EVERY deal:
-   * it shows on every page there is, so a page that does not ask for it does
-   * not get it.
+   * They are the light studies - the pages about a cast shadow, which has to
+   * land on something - and their tones are chosen against their own paper and
+   * their own sun rather than computed: 74 under a bright marker page, 186
+   * under an overcast one, which is a range no formula produces.
+   *
+   * A PAGE WITHOUT ONE STILL STANDS ON A FLOOR. It used to stand on nothing,
+   * on the argument that a study of forms in nothing is what the ruling is for
+   * and a plane under it is a second value competing with the drawing. The
+   * ruling is still there and the argument was not wrong; it was just answering
+   * a different question than the one the deck now asks. See `floorFor` in
+   * store.ts for the tone an unnamed page gets.
    */
   ground?: { on: boolean; tone: number };
 }

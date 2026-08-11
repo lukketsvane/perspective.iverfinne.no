@@ -96,14 +96,20 @@ export const DEFAULT_MARKER: MarkerState = { hue: 88, high: 0.62, chroma: 0.72 }
  * light is.
  */
 /**
- * The floor: absent, at a middle grey for when it is asked for.
+ * The floor: present, a step under the sheet the tool opens on.
  *
- * Off, because the tool opens on bare paper - the ruling already says where the
- * ground is, and painting it there as well is a decision rather than a default.
- * The tone it comes up at is the one a floor is: darker than the sheet, light
- * enough that a cast shadow still reads against it.
+ * It was off, on the reasoning that the tool opens on bare paper and the ruling
+ * already says where the ground is, so painting it there as well is a decision
+ * rather than a default. That held while the opening page was one fixed page;
+ * the tool deals one now, every page stands on a floor, and the floor is part
+ * of what a page IS rather than an extra laid over it.
+ *
+ * 150 is `floorFor(243)`, the opening sheet taken down the same step every
+ * unnamed page takes it down. This value is only ever seen before the deal
+ * lands and by a stored setup that predates the floor existing at all, so what
+ * matters about it is that it agrees with what the deal is about to do.
  */
-export const DEFAULT_GROUND = { on: false, tone: 96 };
+export const DEFAULT_GROUND = { on: true, tone: 150 };
 
 export const DEFAULT_PEN: PenState = {
   outline: 2,
@@ -302,6 +308,34 @@ const pinnedPage = (): Preset | null => {
 const OPENING_PAGE = pinnedPage() ?? nextPreset(null);
 
 /**
+ * THE FLOOR A PAGE STANDS ON WHEN IT DID NOT COMPOSE ONE.
+ *
+ * Six of the twenty-three pages name a floor and seventeen do not, and the
+ * seventeen used to stand on nothing. They stand on this instead: the page's
+ * own sheet, taken down a fixed step.
+ *
+ * A FRACTION OF THE PAPER RATHER THAN A NUMBER, because one number cannot
+ * serve a deck whose sheets run from 18 to 252. A fixed mid-grey is a floor
+ * lighter than the sheet on the dark pages and a hole in the bright ones; a
+ * floor a fixed step under the sheet is in the page's own key wherever the
+ * page happens to sit, and leaves the drawn object the lightest thing standing
+ * on it - which is the whole reason the paper is the value it is.
+ *
+ * 0.62 is the middle of what the six composed pages chose for themselves,
+ * measured against their own paper: 0.66, 0.30, 0.65, 0.62, 0.93, 0.95. It is
+ * a wide spread and that is the argument for those six naming their own rather
+ * than taking this - a floor under a strong raking sun is a different decision
+ * from a floor under an overcast sky, and no ratio knows which it is looking
+ * at. This is for the pages that never thought about it.
+ *
+ * NOTE WHAT IS GIVEN UP. The tone used to survive a deal, so a floor dragged
+ * to a value you liked came back at that value. It cannot both survive and be
+ * in the dealt page's key, and being in the page's key is what makes it
+ * bearable on all seventeen. A drag lasts as long as the page it was made on.
+ */
+const floorFor = (paper: number) => ({ on: true, tone: Math.round(paper * 0.62) });
+
+/**
  * Every field a page sets, written once.
  *
  * The die and the opening deal are the same act and were two copies of this
@@ -328,15 +362,15 @@ const pageOf = (
   // the rule above: it shows only on the three drawn rungs, and every page
   // that lands on one names its own.
   //
-  // THE FLOOR IS NOT. It shows on every page there is, so leaving it meant one
-  // deal turned it on and it stayed on through pages composed with nothing
-  // under them - measured, nineteen deals out of twenty-two came up standing
-  // on a floor that only two pages asked for. A page is a whole page; what it
-  // does not ask for it does not get. Its tone survives, so a floor dragged to
-  // a value you liked comes back at that value rather than at the default.
+  // THE FLOOR IS NOT LEFT ALONE, and never was: it shows on every page there
+  // is, so a floor left standing is a floor under pages composed with nothing
+  // under them. It used to be cleared for the seventeen pages that name none.
+  // Now it is DERIVED for them - see floorFor - which fixes the same leak by
+  // the same means, since what an unnamed page gets is a function of that page
+  // and not of the one before it.
   pen: p.pen ? { ...from.pen, ...p.pen } : from.pen,
   wash: p.wash ? { ...from.wash, ...p.wash } : from.wash,
-  ground: p.ground ?? { on: false, tone: from.ground.tone },
+  ground: p.ground ?? floorFor(p.paper),
 });
 
 // ---------------------------------------------------------------------------
