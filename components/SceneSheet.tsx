@@ -152,7 +152,18 @@ export const SceneSheet: React.FC<{
      * slot above the dock rather than drawn over it.
      */
     <div className="flex items-stretch gap-1 max-w-full min-w-0">
-      <div className="flex items-center gap-1 shrink-0">
+      {/*
+        * The four actions stand two by two, not four in a row.
+        *
+        * A row of four 44 px circles is a hand's width of chrome before the
+        * first saved scene appears, on a shelf whose whole point is the saved
+        * scenes - on a 390 px phone it left room for one and a bit cards. Two
+        * by two, the block is the same height as the cards beside it and half
+        * the width of the row it replaces, so the shelf leads with what it
+        * keeps. Reading order survives: save, then the file pair, then the
+        * one that empties the room.
+        */}
+      <div className="grid grid-cols-2 gap-1 shrink-0 self-center">
         {/*
           * A circle like its three neighbours, with a hairline to say it is
           * the one that MAKES something. It was `flex-1`, left over from when
