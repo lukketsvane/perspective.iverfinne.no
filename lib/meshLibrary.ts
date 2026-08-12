@@ -1,12 +1,16 @@
 /**
- * The objects the tool ships with.
+ * The objects the tool ships with: an aeroplane, the four men working on it,
+ * and a drum.
  *
  * They are true to life - measured, they come in at the sizes the real things
- * are, so anything drawn against one is drawn against a real chair. Two chairs
- * and a car, which between them cover the range a study needs something known
- * to be measured against: a knee-high thing, a seat-high thing and a six-metre
- * thing. Then four animals, which cover the other range - the forms that are
- * not square to anything.
+ * are, so anything drawn against one is drawn against a real man.
+ *
+ * IT WAS THREE TIMES THIS SIZE, and the cut is the point. There were two
+ * chairs, a car, four horses, a platypus, three crowded studies, a bowser, a
+ * rack, a trolley and a bell - twenty megabytes of shelf, most of which was on
+ * it because it was interesting rather than because this drawing needed it.
+ * What is left is one subject and the yard around it, which is the thing the
+ * tool actually opens on and the thing a page gets drawn from.
  *
  * Everything else in the library is the viewer's own. A file dropped in is kept
  * in the browser and listed beside these from then on, so a mesh is imported
@@ -47,32 +51,33 @@ export const MESH_LIBRARY: LibraryMesh[] = [
    * and arch is drawn with, and the one thing a scene of boxes cannot show.
    * A metre round and a metre tall, so both of its circles read against the
    * grid.
+   *
+   * It survived the cut because it is not a file: it is lathed on the spot from
+   * eleven lines in loadModel.ts, so it costs the shelf nothing to keep.
    */
   { id: 'cylinder', name: 'Cylinder', url: 'primitive:cylinder' },
-  { id: 'ekstrem', name: 'Ekstrem', url: '/meshes/ekstrem.glb' },
-  { id: 'balans-variabel', name: 'Balans Variabel', url: '/meshes/balans-variabel.glb' },
-  { id: 'il-tempo-gigante', name: 'Il Tempo Gigante', url: '/meshes/il-tempo-gigante.glb' },
+
   /*
    * The Hughes H-1, 1935: the one form on the shelf that is a solid of
    * revolution with things hung off it.
    *
-   * Every other vehicle here is a long box with wheels, which is a box lesson.
-   * A racer's fuselage is a lathe-turned body tapering in two directions at
-   * once, and its wings are one aerofoil section swept and stretched - so the
-   * cross-section changes along the length in a way no box construction
-   * predicts, and the ellipse the cowling presents changes its openness
-   * continuously from nose to tail. That is the drawing this shelf did not
-   * have.
+   * Every vehicle that used to be here was a long box with wheels, which is a
+   * box lesson. A racer's fuselage is a lathe-turned body tapering in two
+   * directions at once, and its wings are one aerofoil section swept and
+   * stretched - so the cross-section changes along the length in a way no box
+   * construction predicts, and the ellipse the cowling presents changes its
+   * openness continuously from nose to tail. That is the drawing this shelf did
+   * not have, and it is why this is the one thing on it that was never in
+   * question.
    *
-   * Height 2.4 m is the aircraft standing on its own gear with the tail down,
-   * measured over the whole of it the way the animals are - not the wingspan,
-   * which is 7.6, and not the length, which is 8.2.
+   * Measured, it is 9.7 across the wings and 8.8 long, standing 3.2 on its own
+   * gear with the tail down.
    *
-   * IT IS NINETEEN MEGABYTES, which is seven times the largest thing that was
-   * here and half the shelf again on its own. Nothing loads until it is
-   * tapped, so it costs a first visit nothing - but it is a real cost to
-   * whoever taps it, and on a phone it is the single heaviest thing this tool
-   * will ever ask a browser to parse.
+   * IT IS NINETEEN MEGABYTES, twelve times the heaviest figure here and four
+   * fifths of the shelf on its own. Nothing loads until it is tapped, so it
+   * costs a first visit nothing - but it is a real cost to whoever taps it, and
+   * on a phone it is the single heaviest thing this tool will ever ask a
+   * browser to parse.
    */
   // No height: this one is authored at its real size and squarely aligned, so
   // it is placed exactly as it comes. The first copy needed 2.4 m forced onto
@@ -81,195 +86,56 @@ export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'hughes-h1', name: 'Hughes H-1 Racer', url: '/meshes/hughes-h1.glb' },
 
   /*
-   * THE GROUND THE RACER STANDS ON: the four things that turn one aeroplane
-   * into an airfield.
+   * THE FOUR MEN: what turns one aeroplane into an airfield.
    *
    * An aircraft alone on an infinite grid is a beautiful object and a poor
    * subject. Nothing in the frame says how big it is except the ruling, which
    * is a convention you have to already believe; nothing is at a different
    * depth from it; and there is no second form for its own to be drawn
-   * against. A man, a truck, a pallet and a seated figure fix all three at
-   * once - they are known sizes, they stand at four different distances, and
-   * three of the four are forms the aircraft is not.
+   * against. Four men fix all three at once - they are the size every viewer
+   * knows best, they stand at four separate distances, and not one of them is
+   * a shape the aeroplane is.
    *
    * They are also the ordinary reason a 1935 racer is sitting still: it is
-   * being marshalled, fuelled and worked on. Kim Jung Gi's pages are full of
-   * exactly this - the vehicle is never the drawing, the yard around it is.
+   * being checked over, worked on and waited beside. Kim Jung Gi's pages are
+   * full of exactly this - the vehicle is never the drawing, the yard is.
+   *
+   * FOUR POSES, chosen so that no two are the same drawing problem. Two upright
+   * with the mass stacked, one folded down on one knee, one folded right up on
+   * its heels - and the last of those is the hardest thing here to draw, a
+   * whole body compressed into a metre and a bit with every limb foreshortened
+   * at once.
    *
    * NONE OF THEM CARRIES A HEIGHT, for the same reason the racer does not: the
-   * real size is baked into the file. Measured, they are 1.44 x 1.68 x 1.26,
-   * 0.63 x 1.30 x 0.85, 1.91 x 2.29 x 5.00 and 0.87 x 2.10 x 0.53 metres - a
-   * man leaning into a signal, a man sitting on a chair, a light-truck tanker,
-   * and a workshop rack. Every one of those was arrived at by fixing the
-   * dimension a real one is known by and checking that the other two came out
-   * right: the bowser was set by its five-metre length and its height fell out
-   * at 2.29, which is what a tanker on a 1930s truck chassis stands at.
+   * real size is baked into the file. Measured, they are 0.62 x 1.72 x 0.56,
+   * 0.62 x 1.70 x 0.81, 0.85 x 1.68 x 1.21 and 0.81 x 1.20 x 0.71 metres.
    *
-   * THE RACK SHIPPED ONCE LYING ON ITS BACK. Its longest axis is 2.4 in the
-   * file, and a 2.4 m thing full of drums and tyres reads as a pallet, so it
-   * was scaled by that axis as a length and laid on the apron - where it looked
-   * like a crate somebody had dropped. Rendered from all six faces it is
-   * plainly a shelving unit: five shelves, stock standing on every one of them,
-   * X-bracing across the back. The file is authored with its own up along +Z,
-   * so the quarter turn that stands it up is baked into the mesh here rather
-   * than carried as a note, and the 2.4 became 2.10 - the height of a rack you
-   * can reach the top shelf of, which is the only height a workshop rack is.
+   * HOW THOSE SIZES WERE ARRIVED AT, since all four arrived normalised to 0.978
+   * and so said nothing about how big the man was. The one standing upright was
+   * read straight off a ruled post - 1.72 to the top of his cap, a man of about
+   * 1.75 with his head down - and the other three were hung off him by standing
+   * all four against the same post and matching them. Weighing them, which is
+   * how the animals that used to be here were checked, does not work on these:
+   * it puts the man in the leather flying jacket at four times the volume of
+   * the man in a shirt, because a flying jacket is four times the coat.
    *
-   * They arrive at fifty thousand triangles apiece with no textures and no UVs
-   * at all, which suits a tool that only samples a texture on one rung out of
-   * five. Shipped, each is about 0.9 MB - in line with the animals, and forty
-   * times lighter than the aircraft they stand around.
+   * AND EVERY ONE OF THEM FACES +Z. Three of the four were authored looking the
+   * other way, which is exactly the mix that once put a marshaller signalling
+   * at nobody with his back to the aeroplane. The quarter turns are baked into
+   * the files rather than carried as a note, so the scene that stands them up
+   * has one rule instead of a table of exceptions.
+   *
+   * They arrive at ninety thousand triangles apiece with photographic maps.
+   * Shipped, the maps and the UVs are gone entirely and the geometry is welded
+   * on position and re-normalled - four of the five drawing surfaces are ink
+   * and never sample a texture, the fifth is not improved by a photograph of
+   * somebody's face, and a welded mesh is what the contour shader needs to draw
+   * a clean edge. Each is about 1.6 MB.
    */
-  { id: 'ground-crew', name: 'Ground crew, signalling', url: '/meshes/ground-crew.glb' },
-  { id: 'pilot-seated', name: 'Pilot, seated', url: '/meshes/pilot-seated.glb' },
-  { id: 'fuel-bowser', name: 'Fuel bowser', url: '/meshes/fuel-bowser.glb' },
-  { id: 'hangar-stores', name: 'Stores rack', url: '/meshes/hangar-stores.glb' },
-
-  /*
-   * The servicing trolley: a riveted box on two big spoked wheels and two
-   * castors, with a coiled hose down one side, two pressure gauges and a bank
-   * of taps on top, a crank, and a tow bar curving up off one end.
-   *
-   * 1.30 m over the whole of it, which is the tow bar at the height a man pulls
-   * from and puts the box at about chest height and the spoked wheels at about
-   * two thirds of a metre - which is what they look like beside the figures.
-   *
-   * It is the piece of ground equipment that goes right up against an aeroplane
-   * rather than standing off from it, and for drawing it is the one thing in
-   * the yard that is a box, two circles and a curve at once: a riveted slab you
-   * construct like a crate, wheels whose ellipses open as you walk round them,
-   * and a bent tube that obeys neither.
-   */
-  { id: 'service-trolley', name: 'Servicing trolley', url: '/meshes/service-trolley.glb' },
-
-  /*
-   * A man sitting, elbow on knee, hand up at his face - AND HE COMES WITH NO
-   * SEAT.
-   *
-   * The pilot arrived on his own chair; this one arrived sitting on nothing,
-   * which is a fact about the file that has to be said out loud, because the
-   * tool stands everything on the floor. Put him down as he is and his boots
-   * are on the ground and his backside is forty centimetres above it, sitting
-   * on air.
-   *
-   * That is why he is not in the opening yard: there is nothing out there the
-   * right height to sit him on. It is also the useful thing about him. He is
-   * the one figure here you have to COMPOSE rather than place - on a crate, on
-   * a wheel, on the bottom shelf of the rack, on a box you blocked out yourself
-   * at the height his seat wants - and getting a figure to sit convincingly on
-   * a thing you drew is the whole exercise, not an obstacle to it.
-   *
-   * 1.30 m, the same as the seated pilot, checked by standing the two of them
-   * side by side against a metre rule rather than by trusting either number on
-   * its own. His seat wants to be about 0.43 m off the ground.
-   */
-  { id: 'crew-sitting', name: 'Ground crew, sitting', url: '/meshes/crew-sitting.glb' },
-
-  /*
-   * A dome slung from a four-leg chain, and the one thing on this shelf whose
-   * name is a guess.
-   *
-   * What it plainly IS: a closed solid of revolution, near enough as wide as
-   * it is tall, with a slight flare at the rim, a notch cut in that rim on one
-   * side, and a short chain hanging down the middle inside it to a small eye -
-   * all of it hung from a master link by a four-leg sling. The sling is
-   * lifting tackle rather than a light fitting, and a chain down the middle to
-   * an eye is where a clapper goes, so: a bell.
-   *
-   * It is here whatever it turns out to be, because of what it is to DRAW. It
-   * is the only hanging thing in the library and the only pure lathe-turned
-   * form: one profile swept, so the ellipse it presents opens continuously
-   * from the rim to the crown, and a chain above it which is the same small
-   * link over and over at every depth between the eye and the top. That is a
-   * cross-contour lesson and a repetition-in-perspective lesson in one object.
-   *
-   * 1.20 m over the whole of it, which puts the dome about 0.80 across.
-   */
-  { id: 'bell-slung', name: 'Bell on a chain hoist', url: '/meshes/bell-slung.glb' },
-
-  /*
-   * Four horses and a platypus: the half of the shelf that does not hold
-   * still.
-   *
-   * A chair is a box with legs and a car is a long box, and both are things a
-   * construction can be checked against - but neither of them ever asks the
-   * question a body asks, which is how a form behaves when it is not square to
-   * anything. A horse is the classical answer to that and has been since
-   * Uccello: four legs at four different depths, a barrel that is a
-   * foreshortened cylinder from every angle worth drawing, and a neck that
-   * turns the whole mass. Kim Jung Gi drew them constantly for exactly that
-   * reason.
-   *
-   * Four, because one horse is a shape and four are a lesson, and each is
-   * named for the pose it is actually in rather than the pose that would round
-   * the set off. Trotting, the foal is the plain case and the one to measure
-   * the others against: four legs at four depths, the barrel square to the
-   * spine, nothing folded. Lying, it is folded down on itself and the whole
-   * barrel is read across the back. Leaping, it is off the ground with the
-   * forelegs up, so the near foreleg comes almost straight at the eye and the
-   * perspective does all the work. Rising, the adult horse has its hind end
-   * still down and its neck already vertical, which turns the spine through
-   * nearly a right angle inside one form - the deepest foreshortening on the
-   * shelf, and the reason it is here.
-   *
-   * The platypus is not a joke. It is the one thing here with no straight
-   * lines and no symmetry to lean on - a soft closed form of the kind that has
-   * to be drawn by its contour and its cross-contour or not at all, which is
-   * precisely what the drawn rungs are built to show.
-   *
-   * Four of them arrive from Tripo at 433,000 triangles and three 4096-square
-   * maps apiece: 268 MB of GPU memory each, on a tool that only samples a
-   * texture on one rung out of five. Shipped, the normal and metallic-roughness
-   * maps are gone entirely, the base colour is 1024, the geometry is down to
-   * 60,000 triangles, and each is about 1.5 MB - in line with the chairs. The
-   * trotting foal is a hand-built mesh rather than a scan and came in clean at
-   * 50,000, so it is not decimated at all; only its maps are dropped, and it
-   * ships at 1.07 MB, the smallest thing on the shelf that is not a primitive.
-   *
-   * The heights are the animal in that pose, measured across the whole of it,
-   * not the standing height of the species: a couched foal is not as tall as a
-   * standing one and would be wrong on the grid if it were told it was. The
-   * leaping foal's is a diagonal, hind hoof to ear tip, because that is what
-   * its box measures when it is off the ground.
-   *
-   * Checked by WEIGHT, not by eye. A height is easy to argue about and easy to
-   * be a foot wrong about; the volume a closed mesh encloses is not, and at
-   * the density of an animal it comes out in kilogrammes. These five displace
-   * 92, 90, 91, 456 and 39 kg - three foals of the same weight, which is the
-   * whole claim of having three of them, and a horse in the middle of the 450
-   * to 550 an adult riding horse weighs. They shipped once with the leaping
-   * foal at 1.35 m and the horse at 1.9, which is 60 kg and 314: a foal half
-   * the weight of the foal beside it, and a pony. The trotting foal's own
-   * authored size is 1.5 m, which would have made it 104 - a heavier animal
-   * than the two it is meant to be the same one as.
-   */
-  { id: 'foal-trotting', name: 'Foal, trotting', url: '/meshes/foal-trotting.glb', height: 1.44 },
-  { id: 'foal-lying', name: 'Foal, lying', url: '/meshes/foal-lying.glb', height: 0.9 },
-  { id: 'foal-leaping', name: 'Foal, leaping', url: '/meshes/foal-leaping.glb', height: 1.55 },
-  { id: 'horse-rising', name: 'Horse, rising', url: '/meshes/horse-rising.glb', height: 2.15 },
-  { id: 'platypus', name: 'Platypus', url: '/meshes/platypus.glb', height: 0.95 },
-
-  /*
-   * Three studies, reconstructed from Kim Jung Gi pages.
-   *
-   * Each is a single sculpted mesh - the figures, the furniture they are on and
-   * the animals among them, welded into one - so there is nothing in them to
-   * take apart and nothing to select inside. That is the point: they are not a
-   * kit, they are a piece of a room at the density of incident he actually
-   * drew at.
-   *
-   * Placed exactly as authored, like everything else here. Measured, they are
-   * 1.77 x 1.69 x 1.68, 3.00 x 2.22 x 3.01 and 1.70 x 1.05 x 1.33 metres - so
-   * they are objects by this library's own definition, things you stand a known
-   * distance from and draw, and they carry the cage and their own vanishing
-   * points like anything else. A group of figures at arm's length is the best
-   * subject here for a blocking box, a footprint and a pair of points; marking
-   * them as rooms was telling the only figures in the tool that the tool's own
-   * construction did not apply to them.
-   */
-  { id: 'kjg-18', name: 'Study 18', url: '/meshes/kjg-18.glb' },
-  { id: 'kjg-25', name: 'Study 25', url: '/meshes/kjg-25.glb' },
-  { id: 'kjg-27', name: 'Study 27', url: '/meshes/kjg-27.glb' },
+  { id: 'crew-clipboard', name: 'Ground crew, with a clipboard', url: '/meshes/crew-clipboard.glb' },
+  { id: 'crew-standing', name: 'Ground crew, standing', url: '/meshes/crew-standing.glb' },
+  { id: 'crew-kneeling', name: 'Ground crew, kneeling', url: '/meshes/crew-kneeling.glb' },
+  { id: 'pilot-crouched', name: 'Pilot, crouched', url: '/meshes/pilot-crouched.glb' },
 ];
 
 /**
@@ -281,18 +147,13 @@ export const MESH_LIBRARY: LibraryMesh[] = [
  * opening on something different every time is not a room you know - and they
  * are not equal for this.
  *
- * A chair is a box with legs. The car, which stood here before, is a long box
- * that is curved where a box is flat - six metres of it, turned enough that all
- * three of its axes run off to three separate points, and that was the most
- * perspective in the shelf until the aircraft arrived.
- *
- * The H-1 has more. Its fuselage is a solid of revolution tapering in two
- * directions at once, so the ellipse the cowling presents changes its openness
- * continuously from nose to tail rather than at the corners of a box; its wings
- * are one aerofoil section swept and stretched, so the section changes along
- * the span in a way no box construction predicts; and it stands on three points
- * at a nose-up angle, which puts its long axis off the ground plane as well as
- * off square. A box drawn round it is a box you have to think about.
+ * The H-1's fuselage is a solid of revolution tapering in two directions at
+ * once, so the ellipse the cowling presents changes its openness continuously
+ * from nose to tail rather than at the corners of a box; its wings are one
+ * aerofoil section swept and stretched, so the section changes along the span
+ * in a way no box construction predicts; and it stands on three points at a
+ * nose-up angle, which puts its long axis off the ground plane as well as off
+ * square. A box drawn round it is a box you have to think about.
  */
 export const openingMesh = (): LibraryMesh => {
   if (import.meta.env.DEV) {

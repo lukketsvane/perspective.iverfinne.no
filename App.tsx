@@ -134,63 +134,103 @@ export default function App() {
    * lathe-turned form rather than a thing an airfield has lying about.
    */
   /**
-   * The turn that points a mesh at the aircraft from wherever it is standing.
+   * The turn that points a figure at the aircraft from wherever it is standing.
    *
    * WORKED OUT, NOT EYEBALLED, and the first go at this was eyeballed: the
-   * marshaller stood with his back to the racer, signalling at nobody. It looks
-   * like a thing you can see and fix by nudging a number, and it is not, because
-   * THE TWO FIGURES ARE AUTHORED FACING OPPOSITE WAYS - the ground crew faces
-   * -Z at a turn of zero and the pilot faces +Z. One turn that is right for one
-   * of them is a hundred and eighty degrees wrong for the other, which is
-   * exactly the shape of mistake that survives a glance at a screenshot.
+   * marshaller who used to stand here had his back to the racer, signalling at
+   * nobody. It looks like a thing you can see and fix by nudging a number, and
+   * it was not, because the figures on the shelf then were authored facing
+   * opposite ways - so one turn that was right for one of them was a hundred
+   * and eighty degrees wrong for the next, which is exactly the shape of
+   * mistake that survives a glance at a screenshot.
    *
-   * So each entry says which way its own file faces, measured once by rendering
-   * it from the four cardinal directions and seeing which tile showed a front,
-   * and the angle falls out of that plus where the thing stands. Move one of
-   * them and it goes on looking at the aeroplane.
-   *
-   * `front` is that authored direction as an angle: 0 for a mesh facing +Z at
-   * rest, PI for one facing -Z. The aircraft is on the origin, so the bearing
-   * from a standing place to it is the bearing of the negated position.
+   * That is fixed in the files now rather than here: every figure in the
+   * library faces +Z at a turn of zero, measured once by rendering each from
+   * the four cardinal directions and seeing which tile showed a front, and the
+   * quarter turns baked in. So this is just a bearing. The aircraft is on the
+   * origin, so the bearing from a standing place to it is the bearing of the
+   * negated position - and moving anybody leaves them still looking at it.
    */
-  const towardsTheRacer = (at: [number, number], front: number) =>
-    Math.atan2(-at[0], -at[1]) - front;
+  const towardsTheRacer = (at: [number, number]) => Math.atan2(-at[0], -at[1]);
 
+  /*
+   * WHERE THE FOUR OF THEM STAND, AND WHY IT IS THIS TIGHT.
+   *
+   * The yard before this one was laid out for an eye standing seventeen metres
+   * back. The eye stands at SEVEN AND A THIRD now - the lens went to 210 and the
+   * frame solve came in with it - and nobody re-composed the yard, so half of
+   * it was outside the frame and one figure was standing behind the viewer's
+   * own head. That is the shape of mistake a screenshot does not show you,
+   * because what is missing from a picture does not appear in it.
+   *
+   * The frame is the binding constraint and it is worth writing down. Portrait,
+   * the field is measured along the LONG edge, so 210 degrees down the height
+   * leaves about 89 across the width - a half-angle of roughly 44. A figure at
+   * depth d from the eye has to stand within about 0.75 d of the axis to be
+   * comfortably inside that, and outside about six metres from the origin to be
+   * clear of the aeroplane. Those two do not both hold anywhere in the near
+   * half: at three metres in front of the racer there is a metre and a half of
+   * frame either side of it, and no more.
+   *
+   * So the near pair stand INSIDE six metres, in the gap between the port wing
+   * and the nose where the machine does not actually reach, and the far pair
+   * are seen past it. Every one of these was tried in the running app and
+   * looked at; four earlier arrangements put somebody behind the tail, off the
+   * edge, or under a wing.
+   */
   const GROUND_CREW: { id: string; at: [number, number]; turn: number }[] = [
-    // Ahead of the nose and off to port, arms up, LOOKING AT THE AIRCRAFT -
-    // which is the whole of what a marshaller is, and the one figure here the
-    // eye reads as acting rather than waiting. Swung round toward the middle
-    // when FILL went to 0.96: the same six and a half metres from the racer,
-    // but inside a frame that is a sixth tighter than the one he was first
-    // placed in, where he had become an arm at the edge.
-    { id: 'ground-crew', at: [-4.3, 4.6], turn: towardsTheRacer([-4.3, 4.6], Math.PI) },
-    // Backed in on the starboard side, past the aircraft's own plane. Three
-    // things at once: the working end of a bowser is its rear, so the man on
-    // the hose ends up facing the aeroplane he is fuelling rather than the
-    // empty grid behind him; five metres of truck stays out of the right edge
-    // of an upright phone; and the four of them end up at four separate depths
-    // - bowser behind, aircraft on the origin, pallet and pilot in front -
-    // which is the whole reason for standing them there at all.
-    //
-    // Half a radian off the square, because a vehicle parked dead on the axis
-    // to its subject is the one arrangement that looks arranged.
-    { id: 'fuel-bowser', at: [6.4, -1.8], turn: towardsTheRacer([6.4, -1.8], 0) + 0.5 },
-    // Right of centre and a little back, because it stands 2.1 m: the one
-    // upright rectangle in a yard of long low things, and the only thing here
-    // whose height a viewer can check against their own. Its front faces -Z in
-    // the file, so it takes the same treatment as the figures and ends up
-    // showing its shelves to the aircraft - and to the eye, which starts on
-    // roughly the same side.
-    { id: 'hangar-stores', at: [3.1, 6.8], turn: towardsTheRacer([3.1, 6.8], Math.PI) },
-    // Off the port wing, well clear of it, watching the aircraft.
-    { id: 'pilot-seated', at: [-2.8, 7.0], turn: towardsTheRacer([-2.8, 7.0], 0) },
-    // Wheeled RIGHT UP to the aircraft on the port side, which is the whole
-    // difference between servicing equipment and the rest of the yard: a bowser
-    // stands off, a trolley is brought to the machine and left touching it.
-    // Its gauge-and-louvre face is the +Z side of the file, so pointing that at
-    // the racer both turns it to work and shows the eye its most drawable
-    // panel.
-    { id: 'service-trolley', at: [-5.0, -2.8], turn: towardsTheRacer([-5.0, -2.8], 0) },
+    /*
+     * NEAREST, AND DOWN ON ONE KNEE: three and a half metres out, off the port
+     * bow, in front of the wing rather than under it.
+     *
+     * Kneeling is the pose that needs to be near. He is 1.4 m to the top of his
+     * cap where the standing men are 1.7, and a low folded figure at the back
+     * of a yard is a smudge - both of the other short poses tried at depth
+     * vanished behind the tailplane. Near, he is the one who reads as being at
+     * WORK, the only one of the four with a job in his hands, and the line he
+     * is hauling runs from the apron up past his head: the one long straight in
+     * this scene that is neither the aeroplane nor the grid.
+     */
+    { id: 'crew-kneeling', at: [-2.2, 4.4], turn: towardsTheRacer([-2.2, 4.4]) },
+    /*
+     * FOLDED RIGHT UP, five metres out on the starboard side, clear of the
+     * tailplane rather than under it.
+     *
+     * The hardest drawing here - a whole man compressed into 1.2 m with every
+     * limb foreshortened at once - so he goes where he is big enough to be
+     * worth drawing. Staggered two metres deeper than the kneeling man on
+     * purpose: side by side at the same distance the two of them read as a
+     * matched pair flanking the machine, which is an arrangement and not a
+     * yard.
+     *
+     * A pilot squatting beside his aeroplane doing nothing is what waiting for
+     * weather looks like, which is the ordinary reason a racer is standing
+     * still with men round it.
+     */
+    { id: 'pilot-crouched', at: [2.8, 3.2], turn: towardsTheRacer([2.8, 3.2]) },
+    /*
+     * BEHIND THE PORT WING, eleven metres out, seen underneath it.
+     *
+     * There is no room on that side to stand him anywhere else: the wingtip
+     * reaches to within three degrees of the frame edge, so on the left a
+     * figure is either in front of the wing or behind it, and the front is
+     * taken. Behind is the right answer anyway - head down over a board and
+     * perfectly still, he is the far mark the eye measures the near men
+     * against, and being partly occluded is what tells you he is beyond the
+     * wing rather than beside it.
+     */
+    { id: 'crew-clipboard', at: [-6.0, -1.6], turn: towardsTheRacer([-6.0, -1.6]) },
+    /*
+     * FURTHEST, thirteen metres out and well past the aircraft's own plane, so
+     * the four of them end up at four separate depths - three and a half, five,
+     * eleven, thirteen. That spread is the whole reason for standing them
+     * anywhere in particular: it is what makes the yard a measured space rather
+     * than a row.
+     *
+     * Being the far one he is also the smallest, and being upright and still he
+     * is the one that survives being small.
+     */
+    { id: 'crew-standing', at: [7.4, -3.0], turn: towardsTheRacer([7.4, -3.0]) },
   ];
 
   /**
@@ -462,14 +502,15 @@ export default function App() {
    * would also mean the guard below is asked five separate times, so a viewer
    * who placed a chair during the load would find half a yard landing on top of
    * it. One await, one guard, one arrangement: it either all happens or none of
-   * it does. They are fetched in parallel and the four of them come to a fifth
-   * of what the aircraft alone weighs, so the wall clock is the aircraft's
-   * either way.
+   * it does. They are fetched in parallel and the four men come to a third of
+   * what the aircraft alone weighs, so the wall clock is the aircraft's either
+   * way.
    *
-   * Twenty megabytes over the network before anything stands up. The hairline
-   * says so, rather than the grid sitting empty for a second and a half with
-   * nothing to suggest that it will not stay that way. (A reset pays nothing:
-   * the parsed sources are still in hand, kept alive by the undo step.)
+   * Twenty-six megabytes over the network before anything stands up, and
+   * twenty of them are the aeroplane. The hairline says so, rather than the
+   * grid sitting empty for a second and a half with nothing to suggest that it
+   * will not stay that way. (A reset pays nothing: the parsed sources are still
+   * in hand, kept alive by the undo step.)
    */
   const standOpening = () => {
     const entry = openingMesh();
