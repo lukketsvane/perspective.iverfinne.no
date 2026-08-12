@@ -64,8 +64,90 @@
         background-image: none !important;
         box-shadow: none !important;
       }
-      [class*="shadow"] { box-shadow: none !important; }
+      /*
+       * That used to be followed by `[class*="shadow"] { box-shadow: none }`,
+       * which was aimed at buttons and hit every panel in the app as well - so
+       * the shadow-2xl each of them asks for has never once been drawn.
+       *
+       * A shadow on a BUTTON is chrome pretending to be a physical key, and it
+       * is still not wanted; the rule above already removes it, and it says so
+       * on the element type rather than by guessing from a class name. A shadow
+       * under a sheet of GLASS is not decoration at all - it is the only thing
+       * that says the sheet is above the picture rather than painted onto it,
+       * and without it a panel at a third opacity reads as a smear rather than
+       * an object. It is drawn in .glass-light / .glass-dark below.
+       */
       html, body { overscroll-behavior: none; }
+
+      /*
+       * THE GLASS.
+       *
+       * Every panel, bar and dock in this app is one of these two surfaces.
+       * They are here rather than in a Tailwind string because the material is
+       * six declarations that only make sense together, and because the reason
+       * for each of them takes a paragraph.
+       *
+       * IT WAS A FLAT FILL AT 78 PER CENT, and it looked like one. The argument
+       * for that number is in components/ui.ts and it was sound as far as it
+       * went: the page is often black, the drawing is white paper, and a white
+       * line under a lightly-tinted panel is still a white line. Opacity alone
+       * cannot fix that, because opacity dims a line and keeps its STRUCTURE,
+       * and structure is what the eye finds. The answer at the time was to pour
+       * on more paint until nothing came through, which does work, and what you
+       * have at the end is a grey slab with icons on it.
+       *
+       * What Apple's material actually does is not more paint - it is to
+       * REMOVE THE STRUCTURE before the fill goes on:
+       *
+       *   blur      averages the neighbourhood, so lines become broad values
+       *   contrast  collapses those values toward the middle, so what is left
+       *             of the drawing is a narrow band instead of a range
+       *   brightness carries that whole band up toward white (or down toward
+       *             black), so the band lands where the panel wants to live
+       *   saturate  puts back the colour the other two just drained, which is
+       *             what stops it looking like fog
+       *
+       * Then a THIRD of a fill is enough, because there is nothing left under
+       * it to hide. The scene goes on moving under the panel as a value - you
+       * can watch the horizon cross it - and the icons sit on an object.
+       *
+       * The numbers: contrast .42 takes black-to-white down to a span of 0.42
+       * centred on mid grey, brightness lands that span at roughly 0.61-1.0 on
+       * the light surface and 0.14-0.36 on the dark one, and the fill closes
+       * the rest. Measured on 'Brush page on black', which is the widest gap
+       * this tool can produce.
+       *
+       * THE RIM IS NOT DECORATION. One pixel of light along the top edge is
+       * how every real piece of glass announces its own thickness, and it is
+       * what separates a pane from a hole cut in the picture. The drop shadow
+       * does the same job from underneath.
+       *
+       * AND IT GOES INERT FOR A MOMENT AT A TIME. An ancestor at any opacity
+       * other than 1 is a backdrop root, and a backdrop-filter inside one has
+       * nothing behind it to sample - so for the length of the rail's 1500 ms
+       * fade every panel here is a flat third-opacity fill. It cannot be seen:
+       * the same fade has the panel at a fraction of its own opacity for
+       * exactly those milliseconds.
+       */
+      .glass-light,
+      .glass-dark {
+        -webkit-backdrop-filter: blur(36px) saturate(1.9) contrast(0.42) brightness(var(--glass-lift));
+        backdrop-filter: blur(36px) saturate(1.9) contrast(0.42) brightness(var(--glass-lift));
+      }
+      .glass-light {
+        --glass-lift: 1.45;
+        background-color: rgba(255, 255, 255, 0.38);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.75),
+          0 16px 40px -14px rgba(0, 0, 0, 0.3);
+      }
+      .glass-dark {
+        --glass-lift: 0.52;
+        background-color: rgba(18, 18, 20, 0.34);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.14),
+          0 16px 40px -14px rgba(0, 0, 0, 0.55);
+      }
 
       /*
        * Safe areas belong on the floating UI, not on the body: the canvas

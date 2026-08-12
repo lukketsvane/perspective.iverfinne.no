@@ -143,10 +143,15 @@ export const PRESETS: Preset[] = [
      * edge is where the strokes stop - an engraver working in tone lays no line
      * anywhere - and this is the page the outline knob's zero exists for.
      *
-     * The weight is 1.0 rather than 0.8 because 0.8 was never drawn: wPage =
-     * max(hatchWidth, 1.0) at line 567, so the bottom of that knob is a floor
+     * The weight is 1.0 rather than 0.8 because 0.8 was never drawn: the
+     * shader takes max(hatchWidth, 1.0), so the bottom of that knob is a floor
      * and three pages in this file were sitting under it asking for three
      * different rulings and getting one.
+     *
+     * Angle 62 is the bank-note diagonal, and until the ruling was rebuilt it
+     * reached the floor and nothing else - the strokes on the aeroplane itself
+     * were ruled on the facing ratio, which has no angle in it. It rules the
+     * whole page now.
      */
     name: 'Steel engraving',
     surface: 'hatch',
@@ -169,15 +174,21 @@ export const PRESETS: Preset[] = [
      * That is a relief block: it gets its blacks by cutting less, not by
      * flooding.
      *
-     * And length 26, which is the first break in this file anybody will see. At
-     * the 300 to 900 the etched pages ask for, the run is longer than the
-     * object and 0 means the same thing, so the axis read identically at both
-     * ends of its own travel. A needle does not lift. A gouge does, about every
-     * seven centimetres out there.
+     * And a break, which is the first one in this file anybody will see. At the
+     * 300 to 900 the etched pages ask for, the run is longer than the object
+     * and 0 means the same thing, so the knob read identically at both ends of
+     * its own travel. A needle does not lift. A gouge does.
      *
-     * Angle 90 rules the flats and the cast shadow and nothing else - on curved
-     * form the strokes are ruled on the facing ratio, which has no angle in it -
-     * so it is set for the walls. Shadows off: a print stands on nothing.
+     * EIGHTY-FOUR, WHICH WAS TWENTY-SIX. The number is a run on the page in
+     * pixels, and it was set against a ruling that has since been rebuilt: at
+     * 26 against a gap of 15 the cuts came out barely twice as long as they
+     * were wide, which is a field of ticks and not a block. A gouge is pushed
+     * the length of the form it is describing.
+     *
+     * Angle 90 stands the cuts upright. It used to reach the flats and the cast
+     * shadow and nothing else - the strokes on curved form were ruled on the
+     * facing ratio, which has no angle in it - and it rules the whole page now.
+     * Shadows off: a print stands on nothing.
      */
     name: 'Woodcut',
     surface: 'hatch',
@@ -185,7 +196,7 @@ export const PRESETS: Preset[] = [
     paper: 234,
     sun: { azimuth: 328, elevation: 24, intensity: 3.4, temperature: 4400, shadows: 'off' },
     fill: false,
-    hatch: { angle: 90, spacing: 15, width: 2.6, length: 26 },
+    hatch: { angle: 90, spacing: 15, width: 2.6, length: 84 },
     pen: { outline: 4.5, formCount: 0, formStrength: 0, formWidth: 0.9, terminator: 0.3, terminatorWidth: 1.3 },
   },
   {
