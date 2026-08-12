@@ -100,12 +100,12 @@ export const open = async (page: Page) => {
    * Three gates, and each of them catches something the one before it cannot.
    *
    * The response listener goes on before the navigation, because the opening
-   * mesh is fetched by the first effect that runs - il-tempo-gigante, always,
-   * see meshLibrary.ts on why the car is the object worth opening on.
+   * mesh is fetched by the first effect that runs - the Hughes H-1, always,
+   * see meshLibrary.ts on why the racer is the object worth opening on.
    *
-   * But its bytes arriving is not the car standing up: three megabytes still
-   * have to be parsed and framed, and until that happens the frame is an empty
-   * grid that is perfectly still - so a settle check alone would call it ready
+   * But its bytes arriving is not the aircraft standing up: twenty megabytes
+   * still have to be parsed and framed, and until that happens the frame is an
+   * empty grid that is perfectly still - so a settle check alone would call it ready
    * and hand a spec a scene with nothing in it. The hairline is still up at
    * that point (the activity is cleared in a finally, after the stand-up), so
    * waiting for it to go is what closes that window.
