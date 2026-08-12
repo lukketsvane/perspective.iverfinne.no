@@ -271,8 +271,7 @@ export const openTools = async (page: Page) => {
  * app itself, which is a property worth exercising anyway.
  */
 export const clearTheScene = async (page: Page) => {
-  await openTools(page);
-  await clickIn(page, 'tools', 'Scenes');
+  await openScenes(page);
   const clear = page.locator('[aria-label="Clear the scene"]');
   await expect(clear).toBeVisible();
   await clear.click();
@@ -310,6 +309,21 @@ export const openShelf = async (page: Page) => {
   const cube = find(page, 'anywhere', 'Add cube');
   if ((await cube.count()) === 0) await clickIn(page, 'anywhere', 'Add model');
   await expect(cube).toBeVisible();
+};
+
+/**
+ * Open the scene library, and leave it open.
+ *
+ * "Scenes" is on the dock now, beside "Add model" - it used to be inside the
+ * tools panel, so reaching it meant opening a menu first, and these helpers
+ * all did. Idempotent the same way openShelf is: the button is a toggle with
+ * no aria-expanded to ask, so this asks the shelf itself - the export button
+ * only exists while the shelf does.
+ */
+export const openScenes = async (page: Page) => {
+  const exported = page.locator('[aria-label="Export scene file"]');
+  if ((await exported.count()) === 0) await clickIn(page, 'anywhere', 'Scenes');
+  await expect(exported).toBeVisible();
 };
 
 /* -------------------------------------------------------------------- knobs */
@@ -435,8 +449,7 @@ export interface SceneManifest extends SceneFile {
  * block-out pencil armed will find the pencil is what went down.
  */
 export const readSceneBundle = async (page: Page): Promise<SceneManifest> => {
-  await openTools(page);
-  await clickIn(page, 'tools', 'Scenes');
+  await openScenes(page);
 
   const exported = page.locator('[aria-label="Export scene file"]');
   await expect(exported).toBeEnabled();
@@ -458,24 +471,21 @@ export const readSceneBundle = async (page: Page): Promise<SceneManifest> => {
   ) as SceneManifest;
 
   /*
-   * PUT EVERYTHING AWAY, AND WAIT FOR ALL OF IT.
+   * PUT THE SHELF AWAY, AND WAIT FOR IT.
    *
-   * This waited on the export button alone, which is the SHELF - and Escape
-   * closes the shelf and the tools row it was opened from, two panels with a
-   * 300 ms transition each. So the shelf would go, this would return, and the
-   * caller's next tap "in the scene" could still land on a tools row that had
-   * not finished leaving. That is precisely what it did: the specs downstream
-   * of this helper tap at three quarters of the way down the frame, which is
-   * where the tools row sits, and the tap selected nothing.
+   * There used to be two panels to wait out here - the shelf, and the tools
+   * row it could only be opened through, each with a 300 ms transition - and
+   * returning after only the first had gone handed every caller the same
+   * race: their next tap "in the scene" landed on a tools row that had not
+   * finished leaving, and selected nothing. It cost four tests three sessions
+   * on the quarantine list before the wait was written.
    *
-   * It cost four tests three sessions on the quarantine list. They were skipped
-   * as flaky, which they were, and the flake was here rather than in any of
-   * them - a helper that says "the scene, read" while leaving a panel over the
-   * glass is a helper that hands every caller the same race.
+   * The Scenes button is on the dock now, so no menu is opened on the way in
+   * and there is no second panel on the way out. The wait on the shelf itself
+   * stays, for the reason it was added.
    */
   await page.keyboard.press('Escape');
   await expect(exported).toBeHidden();
-  await expect(page.locator('[aria-label="Tools"]')).toHaveAttribute('aria-expanded', 'false');
   return manifest;
 };
 

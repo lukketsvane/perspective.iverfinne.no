@@ -1680,12 +1680,12 @@ export const WalkOverlay: React.FC<{
 
           {/* The session itself. */}
           <div className={`${band} ${divider}`}>
-          {/* The library of compositions, and taking the picture away. The
-              dock is the verbs you use mid-drawing; both of these are things
-              you do between drawings, at the start and at the end. */}
-          <button onClick={swapTo(onScenes)} aria-label="Scenes" className={button}>
-            <Icon path={I.scenes} className="w-5 h-5" />
-          </button>
+          {/* Taking the picture away, and the tour. The scene library headed
+              this band once, on the argument that keeping compositions is a
+              thing you do between drawings - true, and exactly why burying it
+              was wrong: it is how every visit starts and ends, and it sat two
+              taps deep behind a menu of settings. It is on the dock now,
+              beside the model shelf it is the sibling of. */}
           <button
             onClick={() => whileWorking(() => captureView(captureFileName(cameraHeight, fov, perspectiveMode)))}
             aria-label="Save the view as a picture"
@@ -1776,33 +1776,52 @@ export const WalkOverlay: React.FC<{
         {/*
           * The dock is the verbs, and only the verbs.
           *
-          * Add something, choose the lens, choose the eye level, take a step
-          * back or forward, and the way in to everything else. Nothing here is
-          * a setting: the projection and the sheet tone went into the panel,
-          * where the rest of the "how it is drawn" decisions live, and the two
-          * steps of the undo stack came out of it.
+          * Add something, open or keep a composition, choose the lens, choose
+          * the eye level, take a step back or forward, and the way in to
+          * everything else. Nothing here is a setting: the projection and the
+          * sheet tone went into the panel, where the rest of the "how it is
+          * drawn" decisions live, and the two steps of the undo stack came out
+          * of it.
           *
           * The two pencils came off this row too. They were the only things
-          * down here that arm a mode rather than do something, and six seats
-          * leave the row room to breathe on a narrow phone. Neither went into
-          * the tools panel in the end: the block-out pencil is one tap away
-          * behind "Add model", on the shelf beside the cube it is the by-eye
-          * version of, and the measure is in the panel band about the eye.
+          * down here that arm a mode rather than do something. Neither went
+          * into the tools panel in the end: the block-out pencil is one tap
+          * away behind "Add model", on the shelf beside the cube it is the
+          * by-eye version of, and the measure is in the panel band about the
+          * eye.
           */}
         <div
           {...(dockVisible ? {} : { inert: '' })}
           // Tighter on a phone, for the same reason the controls in it are:
-          // eight of these plus the glass came to 368 px against the 366 a
-          // 390 px frame gives the dock, and it folded in half over the
-          // drawing for want of two pixels. Six now, with room to spare - the
+          // eight of these plus the glass once came to 368 px against the 366
+          // a 390 px frame gives the dock, and it folded in half over the
+          // drawing for want of two pixels. Seven now - five circles at forty,
+          // two knobs at forty-four - is 310 px, with room to spare. The
           // wrapping stays, because it wraps rather than clips when it truly
           // cannot fit, and a control pushed off the edge is not a smaller
           // control.
           className={`flex flex-wrap items-center justify-center max-w-full p-1.5 gap-1 max-[429px]:p-1 max-[429px]:gap-0.5 rounded-[1.125rem] border shadow-2xl ${SIDEWAYS_DOCK} ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
         >
           <div className={`${SIDEWAYS_CLUSTER} ${surface}`}>
+          {/*
+            * The two libraries stand together, models then scenes: what goes
+            * INTO the drawing, then the drawings themselves. Both open a
+            * shelf in the same slot above this row, and opening either puts
+            * the other away.
+            *
+            * Scenes lived in the tools panel, in the band about the session,
+            * because keeping and reopening compositions happens between
+            * drawings rather than during them. True, and beside the point:
+            * it is the one verb there a viewer needs every single visit, and
+            * it sat two taps deep behind a menu of settings while this row
+            * had a seat free. A library that takes finding is a library
+            * nobody keeps anything in.
+            */}
           <button onClick={swapTo(onModels)} aria-label="Add model" className={button}>
             <Icon path={I.cube} className="w-5 h-5" />
+          </button>
+          <button onClick={swapTo(onScenes)} aria-label="Scenes" className={button}>
+            <Icon path={I.scenes} className="w-5 h-5" />
           </button>
           <Scrub
             skin={{ dark: isDark, touch: true }}
