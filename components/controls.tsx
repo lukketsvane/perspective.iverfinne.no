@@ -363,7 +363,10 @@ export const Scrub: React.FC<DraggableNumber> = (props) => {
   return (
     <div className="relative flex justify-center items-center">
       <button
-        className={`flex items-center justify-center w-11 h-11 rounded-full touch-none cursor-ew-resize border transition-colors ${surface(skin)}`}
+        // Forty below 430 px, like ui.ts's iconButton and for its reason: the
+        // dock carries eight controls again, and two knobs that refuse to
+        // shrink with their six neighbours are the two that fold the row.
+        className={`flex items-center justify-center w-11 max-[429px]:w-10 h-11 rounded-full touch-none cursor-ew-resize border transition-colors ${surface(skin)}`}
         aria-label={label}
         {...wrapHandlers}
       >
