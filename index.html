@@ -139,8 +139,16 @@
        *
        * THE RIM IS NOT DECORATION. One pixel of light along the top edge is
        * how every real piece of glass announces its own thickness, and it is
-       * what separates a pane from a hole cut in the picture. The drop shadow
-       * does the same job from underneath.
+       * what separates a pane from a hole cut in the picture.
+       *
+       * AND IT IS THE ONLY EDGE. There was a drop shadow under it as well, on
+       * the reasoning that a shadow is what says the sheet is above the picture
+       * rather than painted onto it. It is not wanted: a shadow is the one part
+       * of this that is not glass, it is opaque, and it lands on the drawing -
+       * so a panel that was brought in to stop covering the picture arrived
+       * with a soft grey halo forty pixels deep laid over the very thing it
+       * had just stopped hiding. The rim says the same thing and costs the
+       * drawing nothing.
        *
        * AND IT GOES INERT FOR A MOMENT AT A TIME. An ancestor at any opacity
        * other than 1 is a backdrop root, and a backdrop-filter inside one has
@@ -157,16 +165,12 @@
       .glass-light {
         --glass-lift: 1.45;
         background-color: rgba(255, 255, 255, 0.38);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.75),
-          0 16px 40px -14px rgba(0, 0, 0, 0.3);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
       }
       .glass-dark {
         --glass-lift: 0.52;
         background-color: rgba(18, 18, 20, 0.34);
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.14),
-          0 16px 40px -14px rgba(0, 0, 0, 0.55);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
       }
 
       /*
