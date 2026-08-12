@@ -38,25 +38,33 @@ export const UNIT = 1;
 export const DEFAULT_CAMERA_HEIGHT = 1.9;
 
 /**
- * The field the tool opens on.
+ * The field the tool opens on: TWO HUNDRED AND TEN DEGREES, WHICH IS SIGHT.
  *
- * It used to open at 180, the whole hemisphere, where the four horizon points
- * land exactly on the edge of the frame and the fifth is at its centre - the
- * five-point sheet itself rather than an approximation of it. That is still
- * what the projection is for and it is still one drag of the field away.
+ * A pair of human eyes takes in about 200 to 220 degrees across, and rather
+ * less than half that up and down. 210 is the middle of that and it is the same
+ * number the 'human' lens reach caps at, because it is the same fact.
  *
- * It is not what to open on. At 180 every straight edge in the world is
- * visibly bowed, so there is nothing on the page you can lay a straightedge
- * against and nothing that looks like the perspective anyone was taught first.
- * Someone opening this to learn perspective is handed the hardest case in the
- * subject before the ordinary one. At 90 the equidistant sheet is within a
- * pencil-width of straight-line perspective, and - because the corner of a
- * 16:9 frame then reaches about 52 degrees, inside FLAT_LIMIT - it also drops
- * onto the single flat pass instead of the six-face cube, so it is sharper and
- * a sixth of the cost. Widen it and you watch the straight lines bend, which is
- * the lesson, in the order it can be learned.
+ * IT OPENED AT 90, and the argument for 90 is written out below because it is a
+ * good argument that lost. At 90 the equidistant sheet is within a pencil-width
+ * of straight-line perspective; there is something on the page you can lay a
+ * straightedge against; the corner of a 16:9 frame reaches about 52 degrees,
+ * inside FLAT_LIMIT, so it renders in one flat pass instead of six cube faces
+ * and is both sharper and a sixth of the cost. Someone learning perspective
+ * meets the ordinary case before the hard one.
+ *
+ * What it is not, is what you see. This tool's whole subject is the sheet sight
+ * actually draws on - curved, five-point, wrapping past the edges of anything
+ * you were taught to rule with a straightedge - and opening on the narrow field
+ * where that sheet is indistinguishable from the flat one opens on the one
+ * setting at which the tool has nothing to say. The bowed edge IS the lesson.
+ * At 210 you are standing in the room with the whole of it in front of you, at
+ * the width your own eyes have, and every straight thing in it curves the way
+ * it genuinely does.
+ *
+ * It costs the flat pass and it costs the sharpness that came with it. That is
+ * the price of the picture being the true one.
  */
-export const DEFAULT_FOV = 90;
+export const DEFAULT_FOV = 210;
 
 /**
  * The sun, as it stands when the tool opens.
@@ -505,7 +513,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
  * else in the setup is touched: the theme, the room, the sun, the fill, the eye
  * level and the snap are all still yours.
  */
-const VIEW_GENERATION = 4;
+const VIEW_GENERATION = 5;
 
 /** The keys the reset above drops. Everything else survives it. */
 const VIEW_KEYS = ['fov', 'guides', 'construction', 'surface', 'roomLevel', 'backdrop'] as const;
@@ -954,7 +962,16 @@ export const useStore = create<SceneState>((set, get) => ({
   gridX: true,
   gridZ: true,
   construction: 0,
-  fieldRange: 'sphere',
+  /*
+   * Opened on the human range rather than the whole sphere.
+   *
+   * The range is a ceiling on the lens, not a projection: 'human' stops the
+   * field at 210, which is where sight stops. Opening there means the tool
+   * starts at the widest honest view and will not go wider until you ask it to,
+   * which is one tap on the lens-reach control - and the two settings past it
+   * are both things sight cannot do, so they are worth asking for.
+   */
+  fieldRange: 'human',
   roomLevel: 0,
   room: DEFAULT_ROOM,
   showVanishing: true,

@@ -11,6 +11,8 @@
  * still just a small JPEG of the glass.
  */
 
+import { handOver } from './save';
+
 const sceneCanvas = () => document.querySelector('canvas');
 
 /**
@@ -107,15 +109,10 @@ export const captureView = async (fileName: string): Promise<boolean> => {
   const blob = await new Promise<Blob | null>((resolve) => sheet.toBlob(resolve, 'image/png'));
   if (!blob) return false;
 
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-  return true;
+  // The share sheet where there is one, the download where there is not - see
+  // lib/save.ts for why a picture in particular has to go the first way on a
+  // phone. This used to be the download, unconditionally.
+  return handOver(blob, fileName, 'image/png');
 };
 
 /** perspective-eye1.90m-210deg-2026-07-28.png */

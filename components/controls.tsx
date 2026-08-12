@@ -99,8 +99,8 @@ export const useBackdropControl = () => {
     onPointerMove: (event: React.PointerEvent) => {
       const held = drag.current;
       if (held?.id !== event.pointerId) return;
-      const travel = event.clientX - held.x + (held.y - event.clientY);
-      if (Math.abs(travel) > 3) held.moved = true;
+      const travel = travelled(event, held);
+      if (travel !== 0) held.moved = true;
       if (held.moved) setBackdrop(held.from + travel);
     },
     onPointerUp: (event: React.PointerEvent) => {
@@ -122,6 +122,29 @@ export const useBackdropControl = () => {
  * for the same reason - a band with room for six things should not spend two of
  * them on whether a plane exists and what tone it is.
  */
+/**
+ * How far a tone drag has travelled, past the dead zone rather than including it.
+ *
+ * The three tone controls - the mount, the paper and the floor - all take one
+ * unit per pixel in either of two directions, and all three ignored the first
+ * few pixels so that a tap is a tap. They ignored them for the DECISION and
+ * then applied them anyway: the moment travel passed three, the value jumped by
+ * four. Dragging the floor down from 102 the reading went 102, 98, 97 - and 99,
+ * 100 and 101 could not be landed on at all, from either side, by anyone.
+ *
+ * Subtracting the threshold back out makes the first applied change zero, so
+ * the value comes off its starting point smoothly and every number in the range
+ * is reachable. The dead zone still does its job; it just no longer charges for
+ * itself.
+ */
+const DEAD_ZONE = 3;
+
+const travelled = (event: React.PointerEvent, held: { x: number; y: number }) => {
+  const raw = event.clientX - held.x + (held.y - event.clientY);
+  if (Math.abs(raw) <= DEAD_ZONE) return 0;
+  return raw - Math.sign(raw) * DEAD_ZONE;
+};
+
 export const useGroundControl = () => {
   const ground = useStore((state) => state.ground);
   const setTone = useStore((state) => state.setGroundTone);
@@ -137,8 +160,8 @@ export const useGroundControl = () => {
     onPointerMove: (event: React.PointerEvent) => {
       const held = drag.current;
       if (held?.id !== event.pointerId) return;
-      const travel = event.clientX - held.x + (held.y - event.clientY);
-      if (Math.abs(travel) > 3) held.moved = true;
+      const travel = travelled(event, held);
+      if (travel !== 0) held.moved = true;
       if (held.moved) setTone(held.from + travel);
     },
     onPointerUp: (event: React.PointerEvent) => {
@@ -170,8 +193,8 @@ export const useGrayThemeControl = (onDoubleTap?: () => void) => {
     onPointerMove: (event: React.PointerEvent) => {
       const held = drag.current;
       if (held?.id !== event.pointerId) return;
-      const travel = event.clientX - held.x + (held.y - event.clientY);
-      if (Math.abs(travel) > 3) held.moved = true;
+      const travel = travelled(event, held);
+      if (travel !== 0) held.moved = true;
       if (held.moved) setValue(held.from + travel);
     },
     onPointerUp: (event: React.PointerEvent) => {
