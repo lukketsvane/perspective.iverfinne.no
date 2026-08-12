@@ -236,14 +236,19 @@ test('a knob turned on one box is not turned on its twin', async ({ app }) => {
   await blockOutABox(app, { from: { x: 0.5, y: 0.72 }, to: { x: 0.63, y: 0.81 }, steps: 1 });
   const twinRange = await rangeOfSelection(app);
   await blockOutABox(app, { from: { x: 0.72, y: 0.72 }, to: { x: 0.86, y: 0.81 }, steps: 1 });
-  const subjectRange = await rangeOfSelection(app);
-
-  // The bar carries one number that tells these two apart, and every claim
-  // below about which box is in hand rests on it.
-  expect(
-    subjectRange,
+  /*
+   * RETRIED, NOT READ ONCE. The bar already exists - the twin put it up - so a
+   * plain read the instant the second box lands can catch the twin's number
+   * still on it: the selection moves in the store at once, and the label
+   * follows a React commit later, which under a loaded worker is a visible
+   * gap. The retrying form IS the claim the old one-shot read fed - the bar
+   * carries one number that tells these two apart, and everything below
+   * about which box is in hand rests on it differing here.
+   */
+  await expect(
+    app.locator(HOW_FAR),
     'Both boxes are the same distance away, so nothing in the interface can say which one is selected.'
-  ).not.toBe(twinRange);
+  ).not.toHaveAttribute('aria-label', String(twinRange));
 
   await openOwnSettings(app);
   const pageSpacing = await readingOf(app, SPACING);
@@ -298,10 +303,15 @@ test('a knob turned on one box is not turned on its twin', async ({ app }) => {
    * tap below meets glass rather than a row of knobs.
    */
   await tapInScene(app, { x: 0.56, y: 0.76 });
-  expect(
-    await rangeOfSelection(app),
+  // Retried for the same reason the subject's read above is: the tap selects
+  // in the store immediately and the bar says so one commit later. A one-shot
+  // read in that gap once handed this line the subject's own range and called
+  // the tap a miss - with the twin sitting correctly selected in the failure
+  // screenshot.
+  await expect(
+    app.locator(HOW_FAR),
     'The tap did not land on the twin, so what follows would be about the wrong box.'
-  ).toBe(twinRange);
+  ).toHaveAttribute('aria-label', String(twinRange));
 
   await openOwnSettings(app);
   expect(await readingOf(app, SPACING), 'The twin moved with its neighbour.').toBe(pageSpacing);
