@@ -457,8 +457,25 @@ export const readSceneBundle = async (page: Page): Promise<SceneManifest> => {
     bytes.subarray(12, 12 + bytes.readUInt32LE(8)).toString('utf8')
   ) as SceneManifest;
 
+  /*
+   * PUT EVERYTHING AWAY, AND WAIT FOR ALL OF IT.
+   *
+   * This waited on the export button alone, which is the SHELF - and Escape
+   * closes the shelf and the tools row it was opened from, two panels with a
+   * 300 ms transition each. So the shelf would go, this would return, and the
+   * caller's next tap "in the scene" could still land on a tools row that had
+   * not finished leaving. That is precisely what it did: the specs downstream
+   * of this helper tap at three quarters of the way down the frame, which is
+   * where the tools row sits, and the tap selected nothing.
+   *
+   * It cost four tests three sessions on the quarantine list. They were skipped
+   * as flaky, which they were, and the flake was here rather than in any of
+   * them - a helper that says "the scene, read" while leaving a panel over the
+   * glass is a helper that hands every caller the same race.
+   */
   await page.keyboard.press('Escape');
   await expect(exported).toBeHidden();
+  await expect(page.locator('[aria-label="Tools"]')).toHaveAttribute('aria-expanded', 'false');
   return manifest;
 };
 
