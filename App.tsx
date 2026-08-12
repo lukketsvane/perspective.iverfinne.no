@@ -85,6 +85,27 @@ export default function App() {
    */
   const OPENING_TURN = 0.7;
 
+  /*
+   * THE EYE STANDS ON THE Z AXIS, AND IT WAS WORTH TRYING NOT TO.
+   *
+   * With six things round the racer rather than one, standing on the scene's
+   * own axis looked like the mistake: everything at much the same distance,
+   * spread along the horizon, a team photograph. So the eye was walked
+   * twenty-two degrees round to port, with the racer turned by the same angle
+   * so it went on presenting its three-quarter.
+   *
+   * It is worse, measured rather than argued: the yard is composed for a
+   * viewer on the axis, and moving the viewer reprojects all of it at once.
+   * The stores rack swings across the fuselage and stands in front of the
+   * cockpit; the marshaller and the pilot slide off the left edge; the bowser
+   * loses its cab off the right. Every one of those is a placement that was
+   * chosen against a frame that no longer exists.
+   *
+   * The thing actually wrong with the opening was never the bearing. It is
+   * that half the frame is empty floor, and that is a matter of where the eye
+   * AIMS - see `middle` in the solve below.
+   */
+
   /**
    * THE YARD ROUND THE RACER: who else is standing there when the tool opens.
    *
@@ -138,8 +159,11 @@ export default function App() {
   const GROUND_CREW: { id: string; at: [number, number]; turn: number }[] = [
     // Ahead of the nose and off to port, arms up, LOOKING AT THE AIRCRAFT -
     // which is the whole of what a marshaller is, and the one figure here the
-    // eye reads as acting rather than waiting.
-    { id: 'ground-crew', at: [-5.4, 3.6], turn: towardsTheRacer([-5.4, 3.6], Math.PI) },
+    // eye reads as acting rather than waiting. Swung round toward the middle
+    // when FILL went to 0.96: the same six and a half metres from the racer,
+    // but inside a frame that is a sixth tighter than the one he was first
+    // placed in, where he had become an arm at the edge.
+    { id: 'ground-crew', at: [-4.3, 4.6], turn: towardsTheRacer([-4.3, 4.6], Math.PI) },
     // Backed in on the starboard side, past the aircraft's own plane. Three
     // things at once: the working end of a bowser is its rear, so the man on
     // the hose ends up facing the aeroplane he is fuelling rather than the
@@ -214,8 +238,20 @@ export default function App() {
     const { cameraHeight, fov, room, roomLevel, setCameraHeight } = useStore.getState();
     const field = fieldOf(fov, window.innerWidth, window.innerHeight);
 
-    /** How much of each half-field the object is allowed to take. */
-    const FILL = 0.86;
+    /**
+     * How much of each half-field the object is allowed to take.
+     *
+     * NINETY-SIX PER CENT, AND IT WAS EIGHTY-SIX. Fourteen per cent of margin
+     * on every edge is a lot of air when the subject is the whole reason for
+     * the view: on an upright phone it stood the eye eighteen metres off an
+     * eight-metre aeroplane and left the thing a band across the middle with
+     * empty floor under it and empty page over it. Ninety-six brings the eye
+     * in by about a sixth and the aircraft and its yard grow to match, without
+     * crossing the line this number exists to hold - the whole of the object
+     * is still inside the frame, which is the rule, and the four per cent left
+     * is the honest slack for the corner cases the search is solving against.
+     */
+    const FILL = 0.96;
     const halfYaw = Math.min(field.halfYaw, Math.PI * 0.46);
     const halfPitch = Math.min(field.halfPitch, Math.PI * 0.46);
 
@@ -245,6 +281,8 @@ export default function App() {
      * directly. It is the same trigonometry either way, done in the right
      * place: each corner has its own lateral offset and its own depth.
      */
+    /*
+     */
     const cos = Math.cos(OPENING_TURN);
     const sin = Math.sin(OPENING_TURN);
     const feet = ([1, -1] as const).flatMap((a) =>
@@ -259,6 +297,24 @@ export default function App() {
       Math.max(...feet.map((foot) => Math.atan(Math.abs(foot.x) / Math.max(d - foot.z, 0.35))));
     /** ...and how far the nearest of them is in front of the origin. */
     const deep = Math.max(...feet.map((foot) => foot.z));
+    /*
+     * AIMED AT THE MIDDLE, and raising that was tried and put back.
+     *
+     * Half the opening frame is empty floor, and aiming higher looks like the
+     * fix: lift the aim to seven tenths of the object's height and the horizon
+     * should drop out of the centre. It does not. At the distance an eight
+     * metre aeroplane has to be stood at to fit an upright phone - eighteen
+     * metres - moving the aim point up by sixty centimetres is one degree of
+     * pitch, which is nothing; and because `fits` measures both ends of the
+     * object from the aim, aiming higher puts the FOOT further from it and the
+     * solve answers by standing further back still. Measured: 16.9 m became
+     * 18.3 m for a frame that looked the same.
+     *
+     * The empty floor is not a bug in the aim. It is what standing in a field
+     * at eye height and looking level at something eighteen metres away
+     * genuinely looks like, and the only lever that moves it is how much of the
+     * field the subject is allowed - which is FILL, above.
+     */
     const middle = size[1] / 2;
     const eye = size[1] >= EYE_TO_EYE ? cameraHeight : Math.max(0.8, middle + 0.55);
 
