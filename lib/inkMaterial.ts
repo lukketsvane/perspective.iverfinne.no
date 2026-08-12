@@ -457,110 +457,166 @@ const FRAGMENT = `
     float hatchInk = 0.0;
     if (hatch > 0.5) {
       /*
-       * THE STROKES ARE RULED ON THE FORM ITSELF.
+       * ONE FAMILY OF STROKES: THE HAND'S OWN RULING, BENT BY THE FORM.
        *
-       * The quantity is the facing ratio - how squarely the surface meets the
-       * eye - which is the same number the contour and the form lines are
-       * already built from. Its iso-lines are the curves of constant surface
-       * tilt, and those are exactly the lines an engraver cuts:
+       * IT WAS RULED ON THE FACING RATIO, and the argument for that was good
+       * enough to survive a long time. The facing ratio is a true scalar field,
+       * so its iso-lines cannot tear; those iso-lines are the curves of
+       * constant surface tilt; and on the two shapes anybody reasons about they
+       * are exactly right - rings round a sphere, lines along a cylinder,
+       * crowding toward both silhouettes because equal steps of tilt are
+       * unequal steps on the page, which is foreshortening, drawn.
        *
-       *   - on a sphere, rings concentric with the rim;
-       *   - on a cylinder, lines running the length of it and crowding towards
-       *     both silhouettes;
-       *   - over a fold, curves that turn precisely as the fold turns.
+       * ON ANYTHING ELSE IT DRAWS WOOD GRAIN. The iso-lines of a scalar field
+       * close into loops around every local maximum, and a real object is
+       * covered in them: a canopy, a wing root, a fairing, a panel line, and on
+       * a decimated scan the low bumps of the mesh itself. So a fuselage came
+       * out as a topographic map of its own dents - concentric rings, nested
+       * hairpins, knots exactly where a plank has knots. It was not hatching. A
+       * hand does not lay a stroke round every bump it meets; it holds an angle
+       * and draws through them.
        *
-       * And the crowding is free and correct: equal steps of tilt are unequal
-       * steps on the page wherever the surface swings away, which IS
-       * foreshortening, drawn. It is what makes the shading describe the form
-       * rather than merely darken it.
+       * SO THE FIELD IS THE HAND'S RULING, DISPLACED BY THE SURFACE'S TILT:
        *
-       * An earlier attempt ruled world-space planes on an axis rebuilt per
-       * fragment from cross(normal, view). The direction was right and the
-       * field was not: an axis that rotates across the surface makes
-       * dot(position, axis) a non-integrable quantity, and its iso-lines tore
-       * into nested hairpins wherever the normal swung. The facing ratio is a
-       * true scalar field, so its iso-lines cannot tear.
-       */
-      float q = facing;
-      float dq = max(fwidth(q), 1e-7);
-
-      /*
-       * A flat face has no form to follow, so it gets the hand's own angle.
+       *     q = distance across the ruling / spacing  +  bend * dot(N, axis)
        *
-       * On a plane the facing ratio is constant and its derivative is nothing:
-       * there is no iso-line to rule and none is wanted. What a hand does on a
-       * flat wall is lay parallel strokes at whatever angle it holds the pen,
-       * so that is what happens there - world planes, at the knob's angle,
-       * built from the fragment's ray and world up so that all six cube faces
-       * agree.
+       * The first term alone is a flat ruling at whatever angle the knob holds -
+       * parallel lines on a sheet. The second pushes each line sideways by how
+       * far the surface leans across the ruling, which is precisely what a
+       * thread laid on the form does: over a cylinder the strokes bow, over a
+       * fold they turn with it, and where the surface is flat dot(N, axis) is
+       * constant and they run dead straight again. That last one matters: THE
+       * FLAT CASE IS NOT A SPECIAL CASE ANY MORE. There used to be two fields
+       * here and a threshold picking between them, and a whole paragraph
+       * explaining why the seam between them was acceptable.
+       *
+       * The crowding survives, and it comes for free: where the surface turns
+       * fastest the tilt term's gradient is largest, so the strokes gather
+       * toward the silhouettes exactly as before.
+       *
+       * And the ANGLE KNOB NOW DOES SOMETHING EVERYWHERE. On the old field it
+       * moved the flat walls and had no effect at all on curved form - the
+       * facing ratio has no angle in it - so five of the six hatch pages in
+       * presets.ts were setting a number that only reached the floor.
+       *
+       * (The earlier attempt this replaced is still worth not repeating: ruling
+       * world planes on an axis rebuilt per fragment from cross(normal, view).
+       * That axis ROTATES across the surface, which makes dot(position, axis)
+       * non-integrable, and the iso-lines tore into hairpins wherever the
+       * normal swung. The axis here does not rotate with the surface - it is
+       * fixed by the ray and the knob - and the normal enters as a displacement
+       * rather than as a direction, so there is nothing to tear.)
        */
       vec3 toEye = vWorldPos - cameraPosition;
       float dist = max(length(toEye), 1e-4);
       vec3 view = toEye / dist;
-      vec3 up = abs(view.y) > 0.98 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
-      vec3 su = normalize(up - view * dot(up, view));
-      vec3 sr = normalize(cross(view, su));
-      vec3 planeAxis = su * cos(hatchAngle) + sr * sin(hatchAngle);
-      vec3 planeRun = su * -sin(hatchAngle) + sr * cos(hatchAngle);
-
       float dark = 1.0 - clamp(lambert, 0.0, 1.0);
 
       /*
-       * Spacing, in two ladders that compose.
+       * THE SHEET IS RULED ON THE BEARING OF THE RAY, NOT ON THE WORLD.
        *
-       * The first holds the strokes at one spacing on the PAGE. For the form
-       * field that means counting steps of tilt per source pixel; for the flat
-       * field it means metres per source pixel. Both are quantised to powers
-       * of two and two neighbouring rungs are crossfaded IN WIDTH, so the line
-       * between each pair grows in from nothing and no stroke ever slides.
+       * The uniform block at the top of this file has said so for a long time -
+       * "ruled on the world DIRECTION from the eye... because the projection is
+       * equidistant, even angular spacing IS even spacing on the finished page"
+       * - and the code underneath it was doing something else entirely. It ruled
+       * dot(worldPosition, axis), with the axis rebuilt per fragment from that
+       * fragment's own ray. An axis that swings across the frame turns a ruling
+       * of parallel planes into a family of CONES ROUND THE EYE, and at two
+       * hundred and ten degrees of field the near ones close up hard: a wing two
+       * metres away came out as forty concentric arcs converging on a point off
+       * the bottom of the frame, at a spacing the knob had no influence over.
+       * That, and not the choice of field, is most of what was wrong with this
+       * material.
        *
-       * The second is tone, and it is the whole answer to why this material
-       * used to read as a wash. Weight alone cannot carry a light passage: a
-       * stroke thinner than a page pixel is a grey smear, and a field of grey
-       * smears is a gradient, which is precisely what an etching is not. An
-       * etcher lightens a passage by cutting FEWER lines, never fainter ones.
-       * So the light end doubles the spacing, and doubles it again, and any
-       * stroke drawn at all is drawn at a weight you can see.
+       * Two angles, both properties of the ray alone:
+       *
+       *   lat  how far above the horizon it points        (-90 to 90 degrees)
+       *   az   which way round it points                  (a full turn)
+       *
+       * Their iso-lines are the horizontals and the verticals of a curvilinear
+       * sheet: level bands and upright bands, drawn straight through the middle
+       * of the frame and bowing at its edges exactly as everything else in this
+       * tool does. Neither depends on distance, so a stroke is the same width
+       * apart on the page whether the thing carrying it is at two metres or at
+       * twenty - which is what a ruled sheet MEANS, and it is why the whole
+       * powers-of-two ladder that used to be here is gone.
+       *
+       * THE AZIMUTH WRAPS, AND IT COSTS NOTHING. A full turn is quantised to a
+       * whole number of strokes, so the jump at the back of the world lands
+       * exactly on a stroke boundary and there is no seam to see. The same trick
+       * on the latitude, over the half turn from straight down to straight up.
        */
-      /*
-       * The light passages are BARE PAPER, not thinner strokes.
-       *
-       * An earlier version opened the spacing out as the light came up, which
-       * is what an etcher does and which looked wrong here for a mechanical
-       * reason: the rung changes continuously across a curved surface, so
-       * lines died halfway along themselves and a rank of long curves came out
-       * as a comb of ragged stubs. One spacing throughout, then; tone is
-       * carried by weight between a visible minimum and a merge, and below the
-       * threshold there are no strokes at all. Paper is a value.
-       */
-      float open = 1.0;
-      float pagePerSource = radPerSourcePixel / max(radPerSheetPixel, 1e-9);
+      float lat = asin(clamp(view.y, -1.0, 1.0));
+      float az = atan(view.x, view.z);
+      float wantRad = max(hatchSpacing, 1.0) * radPerSheetPixel;
+      float stepLat = 3.14159265 / max(floor(3.14159265 / wantRad + 0.5), 6.0);
+      float stepAz = 6.28318531 / max(floor(6.28318531 / wantRad + 0.5), 12.0);
 
       /*
-       * The form field is ruled at a FIXED number of strokes, not at a spacing
-       * worked out per pixel.
+       * The knob turns the ruling, and the two bands are combined by SINE AND
+       * COSINE rather than mixed.
        *
-       * Working it out per pixel needs the screen derivative of the facing
-       * ratio, and on a decimated mesh that derivative jumps at every facet
-       * edge - so the level of detail flipped from pixel to pixel and a rank
-       * of long curves came out as a scribble. It is also the wrong idea. An
-       * engraver ruling a sphere does not measure a gap; they cut a fixed
-       * number of lines from the rim to the middle and let the form space
-       * them. That is what this is: so many strokes between edge-on and
-       * face-on, crowding wherever the surface turns away, which is the
-       * foreshortening and the whole point.
+       * A mix would halve the gradient at forty-five degrees and open the gap
+       * between the strokes by half again there; this holds it. The run is the
+       * same pair the other way round, which is the direction along a stroke -
+       * needed by the lift, and got for free.
        */
-      float count = max(240.0 / max(hatchSpacing, 1.0), 4.0);
-      float stepQ = 1.0 / count;
+      float ca = cos(hatchAngle);
+      float sa = sin(hatchAngle);
+      float band = ca * (lat / stepLat) + sa * (az / stepAz);
+      float run = -sa * (lat / stepLat) + ca * (az / stepAz);
 
-      // The flat field keeps its distance ladder: on a plane the spacing IS a
-      // distance, and quantising it to powers of two is what holds it to one
-      // spacing on the page as the wall recedes.
-      float wantM = hatchSpacing * open * radPerSheetPixel * dist;
-      float lodM = log2(max(wantM, 1e-5) / 0.01);
-      float rungM = floor(lodM);
-      float coarseM = 0.01 * exp2(rungM + 1.0);
-      float overM = lodM - rungM;
+      /*
+       * ...AND THEN THE FORM BENDS IT.
+       *
+       * A ruling alone is a ruling: laid over a fuselage it says nothing about
+       * the fuselage. What a hand does is hold the angle and let the surface
+       * carry the stroke - so each line is pushed sideways by how far the
+       * surface leans ACROSS the ruling, which is one dot product.
+       *
+       * Over a cylinder the strokes bow; over a fold they turn with the fold;
+       * on a flat wall the lean is constant and they run dead straight again,
+       * so THE FLAT CASE IS NOT A SPECIAL CASE. There used to be two fields
+       * here and a threshold picking between them.
+       *
+       * The crowding comes with it: where the surface turns fastest the lean
+       * changes fastest, so the strokes gather towards the silhouettes - which
+       * is the foreshortening, drawn, and was the one good property of the
+       * facing-ratio ruling this replaces. That one drew iso-lines of a scalar
+       * field over the whole object, and iso-lines close into loops around
+       * every local maximum: a canopy, a wing root, a panel line, and on a
+       * scanned mesh the low bumps of the mesh itself. A fuselage came out as a
+       * topographic map of its own dents - wood grain, with knots exactly where
+       * a plank has knots. A hand does not lay a stroke round every bump it
+       * meets.
+       *
+       * 2.6 IS NOT A KNOB. A fifth slider for something every page wants the
+       * same answer to is a slider nobody would touch twice, and the four that
+       * are there - angle, gap, weight, run - are the four an engraver has. At
+       * 2.6 a surface turning through a right angle across the ruling carries
+       * its strokes about two and a half gaps sideways: on a fuselage a decided
+       * bow, of the sort a hand makes wrapping a cylinder, and not so far that
+       * neighbours cross, which is what happens past about four and reads as a
+       * mistake because it is one.
+       *
+       * (One earlier attempt is worth not repeating: ruling world planes on an
+       * axis rebuilt per fragment from cross(normal, view). That axis rotates
+       * WITH THE SURFACE, which makes dot(position, axis) non-integrable, and
+       * its iso-lines tore into hairpins wherever the normal swung. Here the
+       * ruling is the ray's own bearing and the normal enters as a
+       * displacement, so there is nothing to tear.)
+       */
+      float bend = 2.6;
+      vec3 upW = vec3(0.0, 1.0, 0.0);
+      // Level, and square to the way this ray is pointing: with world up it
+      // spans the plane the ruling turns in.
+      vec3 fwdW = vec3(view.x, 0.0, view.z);
+      float reach = length(fwdW);
+      vec3 eastW = reach > 1e-4 ? normalize(cross(upW, fwdW / reach)) : vec3(1.0, 0.0, 0.0);
+      vec3 across = upW * ca + eastW * sa;
+      float tilt = dot(normalize(vNormalWorld), across);
+
+      float q = band + bend * tilt;
 
       /*
        * Weight: never below what a pen can draw, and past full into solid.
@@ -573,43 +629,12 @@ const FRAGMENT = `
       float wPage = max(hatchWidth, 1.0) * (0.80 + 0.55 * smoothstep(0.26, 0.74, dark))
         * (1.0 + 1.7 * smoothstep(0.70, 1.0, dark));
       float wMax = clamp(wPage * scale, 0.5, 40.0);
-      // How far a stroke runs before the needle lifts, in metres out here.
-      float runMetres = hatchLength * radPerSheetPixel * dist;
+      // Where the needle lifts, counted in strokes along the run rather than in
+      // metres, so a break is the same length on the page as a gap is wide.
+      float runPeriod = hatchLength / max(hatchSpacing, 1.0);
       float closed = smoothstep(0.74, 0.98, dark);
 
-      /*
-       * Where a stroke on the form field breaks.
-       *
-       * It has to run ALONG the stroke, or the lift chops the line into ticks
-       * across it. The iso-lines of the facing ratio run along the silhouette
-       * tangent, so that is the direction: cross(normal, view). It rotates
-       * across the surface, and here that costs nothing - a break in slightly
-       * the wrong place is a break in slightly the wrong place, where the same
-       * rotating axis used for the RULING tore the lines into hairpins.
-       */
-      vec3 Nw = normalize(vNormalWorld);
-      vec3 sideDir = cross(Nw, view);
-      float grip = length(sideDir);
-      vec3 alongDir = grip > 1e-4 ? sideDir / grip : planeRun;
-
-      // Both fields are evaluated - a derivative taken inside branchy control
-      // flow is undefined, and every one of these is a derivative - and then
-      // one of them is chosen. Chosen, not blended: mixing two coverages is an
-      // opacity blend, and an opacity blend is a grey.
-      float formInk = hatchRank(
-        q, dot(vWorldPos, alongDir), stepQ, wMax, runMetres, closed);
-      float fm = dot(vWorldPos, planeAxis);
-      float alongM = dot(vWorldPos, planeRun);
-      float planeInk = max(
-        hatchRank(fm, alongM, coarseM, wMax, runMetres, closed),
-        hatchRank(fm, alongM, coarseM * 0.5, wMax * (1.0 - overM), runMetres, closed)
-      );
-
-      // Is the form turning enough here to be worth following? Measured as
-      // steps of tilt per page pixel: below a thousandth the surface is flat
-      // to within the width of the pen.
-      float turning = dq * pagePerSource;
-      hatchInk = mix(planeInk, formInk, step(0.0016, turning));
+      hatchInk = hatchRank(q, run, 1.0, wMax, runPeriod, closed);
       // Nothing at all where the light is: bare paper is a value too.
       hatchInk *= step(0.24, dark);
 
@@ -768,33 +793,35 @@ export const HATCH_SHADOW = (() => {
       .replace(
         'gl_FragColor = vec4( color, opacity * ( 1.0 - getShadowMask() ) );',
         [
+          // Ruled on the ray's own bearing, exactly as the objects are - see the
+          // long note in the ink shader. It has to be the same field or the
+          // shadow a thing casts is cut at a different angle from the thing,
+          // which is the one mistake no engraver has ever made.
           'vec3 toEye = vGround - cameraPosition;',
           'float dist = max(length(toEye), 1e-4);',
           'vec3 view = toEye / dist;',
           'float radPerSourcePixel = max(length(dFdx(view)), length(dFdy(view)));',
           'float scale = radPerSheetPixel / max(radPerSourcePixel, 1e-7);',
-          'vec3 up = abs(view.y) > 0.98 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);',
-          'vec3 su = normalize(up - view * dot(up, view));',
-          'vec3 sr = normalize(cross(view, su));',
-          'vec3 axis = su * cos(hatchAngle) + sr * sin(hatchAngle);',
-          'vec3 runDir = su * -sin(hatchAngle) + sr * cos(hatchAngle);',
-          'float wantM = hatchSpacing * radPerSheetPixel * dist;',
-          'float lod = log2(max(wantM, 1e-5) / 0.01);',
-          'float rung = floor(lod);',
-          'float coarse = 0.01 * exp2(rung + 1.0);',
-          'float over = lod - rung;',
+          'float lat = asin(clamp(view.y, -1.0, 1.0));',
+          'float az = atan(view.x, view.z);',
+          'float wantRad = max(hatchSpacing, 1.0) * radPerSheetPixel;',
+          'float stepLat = 3.14159265 / max(floor(3.14159265 / wantRad + 0.5), 6.0);',
+          'float stepAz = 6.28318531 / max(floor(6.28318531 / wantRad + 0.5), 12.0);',
+          'float ca = cos(hatchAngle);',
+          'float sa = sin(hatchAngle);',
+          'float f = ca * (lat / stepLat) + sa * (az / stepAz);',
+          'float along = -sa * (lat / stepLat) + ca * (az / stepAz);',
+          // No bend term: the floor is flat, so its lean across the ruling is
+          // constant and the displacement would be one number added to every
+          // stroke on the page. It is left out rather than multiplied by zero,
+          // because the ground has no normal varying here to read it off.
           'float shade = 1.0 - getShadowMask();',
           // The shadow's own value decides the weight, exactly as the form's
           // does on an object: a grazing shadow is a lighter cut.
           'float wPage = max(hatchWidth, 1.0) * (0.80 + 0.9 * shade);',
           'float w = clamp(wPage * scale, 0.5, 40.0);',
-          'float f = dot(vGround, axis);',
-          'float along = dot(vGround, runDir);',
-          'float runRatio = hatchLength * radPerSheetPixel * dist;',
-          'float ink = max(',
-          '  groundRank(f, along, coarse, w, runRatio),',
-          '  groundRank(f, along, coarse * 0.5, w * (1.0 - over), runRatio)',
-          ');',
+          'float runRatio = hatchLength / max(hatchSpacing, 1.0);',
+          'float ink = groundRank(f, along, 1.0, w, runRatio);',
           'gl_FragColor = vec4( color, opacity * ink * step(0.06, shade) );',
         ].join('\n')
       );

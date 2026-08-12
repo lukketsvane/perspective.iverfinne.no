@@ -10,56 +10,31 @@
 /**
  * Panels, bars and sheets: the surface itself.
  *
- * GLASS. Half a fill, a wide blur, and a little saturation under it - the
- * material iOS and macOS are made of, and the reason it is worth its cost here
- * is the same reason it is worth theirs: it is the only treatment that lets the
- * scene through without letting the DRAWING through.
+ * THE MATERIAL IS IN index.html, under .glass-light and .glass-dark, and the
+ * long argument for it is there too. It is six declarations that only mean
+ * anything together - a fill, a blur, a contrast collapse, a brightness lift,
+ * a saturation recovery and a lit rim - and written out as a Tailwind string
+ * it was a line nobody could read and a set of numbers nobody could relate to
+ * each other.
  *
- * This panel used to be ninety-six per cent opaque with nothing behind it, and
- * the comment here argued the case: the page is black, the drawing is white
- * paper, and that is the widest gap a screen has - eight per cent of 255 laid
- * over a panel that is itself 10 put the racer's lines twenty levels above the
- * panel around them, and the drawing read straight through the menu. Every
- * answer available at the time was a trade between "you can see the scene
- * behind the chrome" and "you can read the chrome", and four more per cent of
- * paint bought the second by giving up the first entirely.
+ * WHAT STAYS HERE is what is genuinely a choice per theme rather than part of
+ * the material: which way the ink runs, and how dark the hairline is.
  *
- * A blur is not on that line at all. Opacity dims the drawing and keeps its
- * structure - a white line at eight per cent is still a white line, and a line
- * is what the eye finds. Forty pixels of blur average the whole neighbourhood
- * into one tone, so what arrives under the panel is not lines at all but the
- * broad value of that part of the picture. There is nothing left to read
- * through, which is why the fill can come down from 96 to the fifties and the
- * panel still reads as a solid object with words on it.
+ * It was a flat fill at 78 per cent until now, on the reasoning that the page
+ * is often black and the drawing is white paper - the widest gap a screen has -
+ * so anything more transparent let the racer's lines read straight through the
+ * menu. That was true of a fill and a blur. It stopped being true once the
+ * backdrop got a contrast collapse in front of it: there is no line left under
+ * the panel to read through, so the paint could come off. See index.html.
  *
- * SEVENTY-EIGHT PER CENT, WHICH IS NOT AN IOS NUMBER. Apple's glass sits over
- * a wallpaper and a page of text - a picture with no white lines on black in
- * it. Measured here at the fifties, the racer read through the tools panel as a
- * pale shape with a hard edge, blur and all: forty pixels of blur turn a white
- * line into a broad white smear, and a broad white smear under a panel that is
- * itself 10 is still the brightest thing on the screen. At 78 the scene is a
- * value that moves under the glass rather than a picture you can make out, and
- * the panel is an object with words on it. That is the trade the material was
- * brought in for, and this is where it actually lands on this page.
- *
- * IT IS NOT FREE, and the old comment was right about the bill: the thing
- * behind every panel here is a live WebGL canvas, so the compositor resamples
- * it every frame a panel is open. That is the cost of the material. It is paid
- * only while something is open - the dock and the bars are the same glass, and
- * they are what the tool looks like.
- *
- * AND IT IS INERT FOR A MOMENT AT A TIME, which is worth knowing before
- * somebody goes looking for the bug. An ancestor at any opacity other than 1 is
- * a backdrop root, and a backdrop-filter inside one has nothing behind it to
- * sample. The whole chrome column fades on the rail's 1500 ms clock, so for the
- * length of that fade every panel in it is a flat fill with a blur that is
- * computed and does nothing. It cannot be seen: the same fade has the panel at
- * a fraction of its own opacity for exactly those milliseconds.
+ * IT IS NOT FREE. The thing behind every panel here is a live WebGL canvas, so
+ * the compositor resamples it every frame a panel is open. That is the cost of
+ * the material, and it is the same cost it always was - the blur is a shade
+ * NARROWER than the 40 px it used to be, and contrast, brightness and
+ * saturation are per-pixel arithmetic on top of it.
  */
 export const chrome = (dark: boolean) =>
-  dark
-    ? 'bg-neutral-950/78 backdrop-blur-2xl backdrop-saturate-150 text-white border-white/15'
-    : 'bg-white/78 backdrop-blur-2xl backdrop-saturate-150 text-black border-black/10';
+  dark ? 'glass-dark text-white border-white/15' : 'glass-light text-black border-black/10';
 
 /**
  * A round 44 px control - the smallest target a thumb can be asked to hit.
@@ -128,9 +103,7 @@ export const readout = (dark: boolean) =>
  * it was written out four times in three files. It is one thing.
  */
 export const bubble = (dark: boolean) =>
-  `px-3 py-1 rounded-full text-xs font-bold tabular-nums border shadow-xl whitespace-nowrap backdrop-blur-xl backdrop-saturate-150 ${
-    dark ? 'bg-neutral-950/80 text-white border-white/15' : 'bg-white/80 text-black border-black/10'
-  }`;
+  `px-3 py-1 rounded-full text-xs font-bold tabular-nums border whitespace-nowrap ${chrome(dark)}`;
 
 /** The one accent colour: a control that is currently doing something. */
 export const ACTIVE = '!text-sky-500';
