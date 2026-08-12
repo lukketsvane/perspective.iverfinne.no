@@ -1187,10 +1187,16 @@ export const WalkOverlay: React.FC<{
   // fade out from under an open panel six seconds later, leaving twelve
   // controls on screen that could be seen through and not pressed. Closing the
   // row starts the idle count again.
+  //
+  // THE SHELVES TOO, and they were missed: the mesh and scene libraries stand
+  // in the same slot as the three panels and faded on the same idle clock -
+  // so reading the shelf for six seconds without touching it took the shelf
+  // away, inert, mid-decision. Browsing is not idleness; a library is open
+  // because it is being read.
   useEffect(() => {
-    if (showTools || showLights || showMaterial) holdRail();
+    if (showTools || showLights || showMaterial || shelfOpen) holdRail();
     else releaseRail();
-  }, [showTools, showLights, showMaterial]);
+  }, [showTools, showLights, showMaterial, shelfOpen]);
 
   /*
    * The knobs go when the rung they belong to does.
