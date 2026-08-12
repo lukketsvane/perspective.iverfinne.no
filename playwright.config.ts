@@ -63,8 +63,17 @@ export default defineConfig({
    * running. That is slow, not wrong, and this is the line between the two -
    * so it has to move when the thing being timed gets bigger, or it stops
    * being a bug detector and becomes a load detector.
+   *
+   * A HUNDRED AND EIGHTY, AND NINETY WAS ABOUT TO BITE. Four specs came back
+   * off the quarantine list, and they are the four heaviest in the suite: each
+   * blocks out a box, opens two panels, drags a knob and exports the scene, on
+   * top of the yard everything else pays for. Measured on two workers they run
+   * at eighty-four seconds against a ninety-second limit, which is a seven per
+   * cent margin - not a passing test, a test that has not failed yet. Alone
+   * they take forty-five, so the whole of that margin is contention, and
+   * contention is the one thing that varies between this machine and the next.
    */
-  timeout: 90_000,
+  timeout: 180_000,
   expect: { timeout: 10_000 },
 
   /*

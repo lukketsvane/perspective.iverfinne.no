@@ -204,9 +204,30 @@ const floorReads = async (page: Page) =>
 
 const deal = (page: Page) => press(page, 'tools', 'Deal a different page');
 
+/*
+ * FOUR OF THE FIVE BELOW SAT ON test.fixme FOR THREE SESSIONS.
+ *
+ * They were quarantined when they were timing out, on the standing rule that a
+ * flaky test is worse than no test - and then nobody came back, so a note
+ * saying "untriaged" was carried forward in three handovers while the suite
+ * reported six green and four skipped as though that were a result.
+ *
+ * They pass. They have passed for some time: what they were timing out against
+ * was the suite's own clock, which had not moved when the opening scene went
+ * from one three-megabyte car to a twenty-megabyte aeroplane with a yard round
+ * it. That was fixed for a different reason and these were never re-run.
+ *
+ * The lesson is about the quarantine and not about the tests. A skip has to
+ * carry the reason it was skipped and the thing that would let it back in, or
+ * it is indistinguishable from a test nobody has the heart to delete - and a
+ * suite with four of those in it is a suite that reports green while four of
+ * its claims go unchecked. These four check the boundary between the page and
+ * the object, which is where three shipped bugs have already come from.
+ */
+
 /* ===================================================================== (a) */
 
-test.fixme('a knob turned on one box is not turned on its twin', async ({ app }) => {
+test('a knob turned on one box is not turned on its twin', async ({ app }) => {
   await toTheEtchedPage(app);
 
   // Two boxes, side by side and both plainly on the floor: the twin first, so
@@ -297,7 +318,7 @@ test.fixme('a knob turned on one box is not turned on its twin', async ({ app })
 
 /* ===================================================================== (b) */
 
-test.fixme('one drag is one step back', async ({ app }) => {
+test('one drag is one step back', async ({ app }) => {
   await toTheEtchedPage(app);
   await blockOutABox(app);
   await openOwnSettings(app);
@@ -331,7 +352,7 @@ test.fixme('one drag is one step back', async ({ app }) => {
 
 /* ===================================================================== (c) */
 
-test.fixme('a box that has stepped off the page can be handed back to it', async ({ app }) => {
+test('a box that has stepped off the page can be handed back to it', async ({ app }) => {
   await toTheEtchedPage(app);
   await blockOutABox(app);
   await openOwnSettings(app);
@@ -364,7 +385,7 @@ test.fixme('a box that has stepped off the page can be handed back to it', async
 
 /* ===================================================================== (d) */
 
-test.fixme('dealing a page leaves a rung set by hand alone, and moves one that was following', async ({
+test('dealing a page leaves a rung set by hand alone, and moves one that was following', async ({
   app,
 }) => {
   // Two boxes on the page the tool opens on. Both are born carrying the scene's

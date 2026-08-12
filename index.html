@@ -9,11 +9,31 @@
 
     <!-- Home Screen install on iOS: full screen, no Safari chrome.
 
-         The status bar is "default", not "black-translucent": translucent means
-         white text whatever is behind it, and what is behind it here is usually
-         paper. Default lets iOS paint the bar from theme-color below - which the
-         app keeps pointed at the live paper tone, so the bar melts into the
-         sheet and the clock stays black-on-paper or chalk-on-board with it. -->
+         The status bar is "default", not "black-translucent", and this is
+         SETTLED rather than pending - it was carried as an open question for
+         several rounds and it should not have been.
+
+         black-translucent puts the canvas under the clock, which is more
+         screen and looks more like an app, and it forces the clock and the
+         battery to WHITE whatever is behind them. What is behind them here is
+         a sheet of paper about three quarters of the time: the deck runs from
+         18 to 252 and most of it is light. White on white is a status bar you
+         cannot read, on the one screen a phone always shows.
+
+         default lets iOS paint the bar from theme-color below, and index.tsx
+         points that at the dealt page's own mount before React mounts while
+         App.tsx keeps it there afterwards - so the bar melts into the sheet
+         and the clock stays black-on-paper or chalk-on-board with it, both
+         ways round, on all twenty-three pages.
+
+         The cost is real and it is the smaller one: viewport-fit=cover and
+         env(safe-area-inset-top) only bite under black-translucent, so at the
+         top of the screen those are inert. They are left in because the SIDES
+         and the BOTTOM use the same insets and do need them in landscape, and
+         because the day this app grows a dark-only page deck is the day the
+         other setting becomes right. -->
+    <!-- (Everything above is about the standalone home-screen app, which is
+         how this tool is used nine times in ten.) -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
