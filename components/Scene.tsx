@@ -532,10 +532,33 @@ const SceneContent = () => {
       {ground.on && (
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} raycast={() => null}>
           <planeGeometry args={[2000, 2000]} />
-          <meshStandardMaterial
+          {/*
+            * LAMBERT, NOT STANDARD, SO THAT ZERO IS BLACK.
+            *
+            * The tone is a value from 0 to 255 and the control says so - "Floor:
+            * 0 of 255". On a standard material it was a lie at the bottom of its
+            * own range: measured with the ruling off, a tone of 0 rendered at 28
+            * and 0, 5 and 10 were the same picture. Nothing was clamping it. A
+            * standard material with metalness 0 still carries the dielectric
+            * specular every real surface has - four per cent, spread wide by a
+            * roughness of 0.95 - and four per cent of a lit scene is exactly the
+            * grey that would not go away, because it does not come from the
+            * albedo the tone sets.
+            *
+            * Lambert has no specular term at all. It still takes the sun, still
+            * darkens away from it, still receives the shadows - everything the
+            * comment above asks of this plane - and at a tone of 0 it is black,
+            * because black is what no albedo means. Every value in between now
+            * moves the picture.
+            *
+            * A floor is the one surface here where that is the right trade. It
+            * is matte ground being read as a value, not a material being
+            * admired, and it is the only thing in the scene big enough that a
+            * few per cent of sheen across all of it is a tone rather than a
+            * highlight.
+            */}
+          <meshLambertMaterial
             color={groundColor}
-            roughness={0.95}
-            metalness={0}
             polygonOffset
             polygonOffsetFactor={3}
             polygonOffsetUnits={3}

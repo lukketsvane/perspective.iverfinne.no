@@ -34,7 +34,7 @@ type Listener = () => void;
  * Bumped when the tour is rewritten, so a viewer who has seen the old one is
  * offered the new one - the same trick VIEW_GENERATION plays in store.ts.
  */
-const TOUR_GENERATION = 4;
+const TOUR_GENERATION = 5;
 
 /**
  * Its own key, not a field in the settings blob.
@@ -152,10 +152,13 @@ export const STEPS: TourStep[] = [
     anchor: 'Field of view',
     gate: 'lens',
     gesture: 'dragX',
-    headline: 'Opne linsa',
-    body: 'Dra kjegla sidelengs — runde knappar blir dregne, ikkje trykte. Forbi 180° buar linjene seg.',
-    // Two facts, and the second is the whole tool: that the sheet is curved.
-    // Anything shorter drops one of them.
+    headline: 'Linsa',
+    body: 'Dra kjegla sidelengs — runde knappar blir dregne, ikkje trykte. Smalare, og linjene rettar seg ut.',
+    // Two facts, and the second is the whole tool: that the sheet is curved,
+    // and that the flat perspective you were taught is the narrow end of it.
+    // It used to say "forbi 180° buar linjene seg", which was the same fact
+    // told from the other end - correct while the tool opened at 90 and
+    // backwards now that it opens at 210 with everything already bowed.
   },
   {
     // "Tools" is read by the tour.

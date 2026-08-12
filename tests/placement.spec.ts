@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import type { SceneInstance } from '../types';
-import { test, expect, blockOutABox, clickIn, find, openShelf, readSceneBundle } from './harness';
+import { test, expect, blockOutABox, clearTheScene, clickIn, find, openShelf, readSceneBundle } from './harness';
 
 /**
  * NOTHING STANDS INSIDE ANYTHING ELSE.
@@ -217,6 +217,8 @@ test('three taps on the light give three lamps that can each be taken hold of', 
 });
 
 test('a mesh placed where a box stands steps around it', async ({ app }) => {
+  // Nothing standing but what this spec stands up - see clearTheScene.
+  await clearTheScene(app);
   await openShelf(app);
   await dropTheProbe(app);
   await clickIn(app, 'anywhere', 'Add cube');
@@ -264,6 +266,7 @@ test('a mesh placed where a box stands steps around it', async ({ app }) => {
 test('a cube placed where a mesh stands steps around it, and stays on the ruling', async ({
   app,
 }) => {
+  await clearTheScene(app);
   await openShelf(app);
   await dropTheProbe(app);
   await placeCylinder(app);

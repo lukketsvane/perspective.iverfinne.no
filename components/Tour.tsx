@@ -316,7 +316,12 @@ export const Tour: React.FC = () => {
     if (!running || !current) return;
     const done =
       sighting.done ||
-      (current.gate === 'lens' && (fov >= 180 || Math.abs(fov - entry.current.fov) > 30)) ||
+      // Moved a long way from where the card found it, and nothing else. It
+      // used to pass on `fov >= 180` as well, which was a shortcut for "wide
+      // enough to have seen the sheet bow" back when the tool opened at 90.
+      // It opens at 210 now, so that clause was true before the card appeared
+      // and the step answered itself.
+      (current.gate === 'lens' && Math.abs(fov - entry.current.fov) > 30) ||
       (current.gate === 'box' && boxes > entry.current.boxes) ||
       (current.gate === 'pencil' && instrument === 'block') ||
       (current.gate === 'page' && presetName !== entry.current.preset);

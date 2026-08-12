@@ -59,7 +59,7 @@ export { expect };
  * A spec that is ABOUT the deal clears this key itself.
  */
 const PRELUDE = () => {
-  localStorage.setItem('kjg-perspective-tour', JSON.stringify({ seen: 4 }));
+  localStorage.setItem('kjg-perspective-tour', JSON.stringify({ seen: 5 }));
   localStorage.setItem('kjg-perspective-page', 'Brush page on black');
   if (!sessionStorage.getItem('harness-cleared')) {
     localStorage.removeItem('kjg-perspective-settings');
@@ -244,6 +244,46 @@ export const openTools = async (page: Page) => {
   await wake(page);
   if ((await tools.getAttribute('aria-expanded')) !== 'true') await tools.click();
   await expect(tools).toHaveAttribute('aria-expanded', 'true');
+};
+
+/**
+ * Empty the scene, through the two taps the app itself asks for.
+ *
+ * FOR THE SPECS THAT ARE ABOUT PLACEMENT AND NOTHING ELSE. The tool opens on a
+ * yard now - an aircraft and five things standing round it - and the eye stands
+ * seven metres off it, while "put one here" drops things two and a half metres
+ * in front of the eye. So the drop point is INSIDE the arrangement, and a spec
+ * asking "did this step around the box I just made" cannot tell that from "did
+ * it step around the stores rack".
+ *
+ * Those specs used to get their clear floor by luck: the tool opened at a
+ * ninety degree field, which stood the eye sixteen metres back, which put the
+ * drop point on empty ground beyond everything. It opens at 210 now and stands
+ * close, so the luck ran out - and the specs said so, loudly, through the
+ * precondition they were already asserting. That is the guard working.
+ *
+ * Clearing is the honest answer rather than a bigger clearance: what those
+ * specs test is `findFreeSpot`, and `findFreeSpot` is best examined in a room
+ * with nothing in it but what the spec put there.
+ *
+ * It goes through the interface rather than the store because the store is not
+ * reachable from a production build - and it is deliberately two taps in the
+ * app itself, which is a property worth exercising anyway.
+ */
+export const clearTheScene = async (page: Page) => {
+  await openTools(page);
+  await clickIn(page, 'tools', 'Scenes');
+  const clear = page.locator('[aria-label="Clear the scene"]');
+  await expect(clear).toBeVisible();
+  await clear.click();
+  // Armed, then done: the label is the state, so this waits for the arming
+  // rather than guessing at it.
+  const confirm = page.locator('[aria-label="Clear the scene for good"]');
+  await expect(confirm).toBeVisible();
+  await confirm.click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[aria-label="Export scene file"]')).toBeHidden();
+  await settled(page);
 };
 
 /** Put the tools panel away, if it is up. */

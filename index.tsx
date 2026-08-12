@@ -49,6 +49,38 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   });
 }
 
+/*
+ * PAINT THE MOUNT BEFORE REACT DOES.
+ *
+ * index.html carries one hardcoded colour for the page and the status bar, and
+ * it has to: it is served before any of this runs. But the tool deals its page
+ * off a deck of twenty-three on every load, and those sheets run from 18 to
+ * 252 - so a good fraction of launches painted a warm near-white, mounted the
+ * app, and snapped to near-black on the first React commit. In a browser tab
+ * that is a blink under the Safari chrome. Opened from the home screen it is
+ * the entire screen and the status bar with it, every time, and it is the first
+ * thing the tool ever shows you.
+ *
+ * The page is already decided by the time this module runs - `store.ts` deals
+ * it at evaluation - so the colour is simply written now, before the root is
+ * created and therefore before anything is painted. App.tsx goes on keeping the
+ * bar in step with the live page from an effect; this is only about the gap
+ * before there is a live page to be in step with.
+ *
+ * The MOUNT rather than the sheet, because the mount is what is behind
+ * everything - the sheet has the drawing on it and does not reach the edges.
+ */
+{
+  const opening = useStore.getState();
+  const tone = opening.backdrop === 'paper' ? opening.backgroundGray : opening.backdrop;
+  const hex = `#${[tone, tone, tone].map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('')}`;
+  document.documentElement.style.backgroundColor = hex;
+  document.body.style.backgroundColor = hex;
+  document
+    .querySelectorAll('meta[name="theme-color"]')
+    .forEach((meta) => meta.setAttribute('content', hex));
+}
+
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
