@@ -138,7 +138,15 @@ export const DEFAULT_HATCH: HatchState = {
   angle: 0,
   spacing: 11,
   width: 1.05,
-  length: 420,
+  // ZERO, WHICH WAS 420. The knob's own range ends at 160, so the old default
+  // was a number the slider could never give back once touched - and at 420
+  // the run is longer than the object anyway, which is what 0 (an unbroken
+  // rule) says honestly.
+  length: 0,
+  // The classical crossing: shy of square, so the second pass reads as a
+  // second decision rather than as a grid, and the third - laid on the
+  // lozenge's diagonal by the shader - lands clearly apart from both.
+  cross: 68,
 };
 
 export const DEFAULT_SUN: SunState = {

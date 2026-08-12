@@ -342,6 +342,22 @@ export const MaterialPanel: React.FC<{ surface: Surface; from: 'scene' | 'select
         <Scrub
           skin={skin}
           onFirstChange={start}
+          icon={I.hatchCross}
+          // Held off 0 and 90's far side: at nothing the second pass lands on
+          // the first and the shadow just thickens, which is the zebra this
+          // crossing exists to replace. Near square is the engraver's lattice,
+          // shallow is a pen's directional weave - the range is the two hands.
+          label="How far the crossing turns"
+          reading={`${Math.round(hatch.cross ?? 68)}°`}
+          value={hatch.cross ?? 68}
+          min={12}
+          max={90}
+          step={1}
+          onChange={(cross) => setHatch({ cross })}
+        />
+        <Scrub
+          skin={skin}
+          onFirstChange={start}
           icon={I.hatchSpacing}
           label="How far apart the strokes are"
           reading={hatch.spacing.toFixed(1)}

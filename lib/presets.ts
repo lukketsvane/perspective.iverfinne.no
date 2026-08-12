@@ -44,7 +44,7 @@ export interface Preset {
   sun: { azimuth: number; elevation: number; intensity: number; temperature: number; shadows: 'off' | 'hard' | 'soft' };
   fill: boolean;
   marker?: { hue: number; high: number; chroma: number };
-  hatch?: { angle: number; spacing: number; width: number; length: number };
+  hatch?: { angle: number; spacing: number; width: number; length: number; cross: number };
   /** The hand it is drawn with. Every page that lands on a drawn rung names one. */
   pen?: {
     outline: number;
@@ -110,7 +110,12 @@ export const PRESETS: Preset[] = [
     paper: 243,
     sun: { azimuth: 58, elevation: 22, intensity: 3.2, temperature: 4200, shadows: 'hard' },
     fill: false,
-    hatch: { angle: 0, spacing: 11, width: 1.05, length: 0 },
+    // Crossed shy of square, which is the etcher's own habit: the second pass
+    // reads as a second decision over the first, not as a woven screen. The
+    // gap came in and the needle gained a little body when the crossing
+    // arrived - at eleven-and-hairline the woven passages read as a pale
+    // mist, and a plate is bitten deeper than that.
+    hatch: { angle: 0, spacing: 9.5, width: 1.2, length: 0, cross: 72 },
     // Light, because a plate is engraved rather than outlined - the needle
     // makes the edge by stopping.
     pen: { outline: 1.2, formCount: 0, formStrength: 0, formWidth: 0.9, terminator: 0.35, terminatorWidth: 1.3 },
@@ -129,7 +134,10 @@ export const PRESETS: Preset[] = [
     paper: 252,
     sun: { azimuth: 120, elevation: 42, intensity: 2.6, temperature: 6200, shadows: 'off' },
     fill: false,
-    hatch: { angle: 24, spacing: 17, width: 1.0, length: 0 },
+    // The shallowest crossing in the deck: silverpoint shadows are turned a
+    // few degrees and laid again, a directional shimmer rather than a
+    // lattice, because the point cannot make a heavy mark and never tries.
+    hatch: { angle: 24, spacing: 17, width: 1.0, length: 0, cross: 20 },
     // A whisper, and the form lines carry it: silverpoint cannot make a heavy
     // mark at all, which is why it is drawn with so many light ones.
     pen: { outline: 0.8, formCount: 3, formStrength: 0.12, formWidth: 0.9, terminator: 0.5, terminatorWidth: 1.3 },
@@ -159,8 +167,65 @@ export const PRESETS: Preset[] = [
     paper: 240,
     sun: { azimuth: 214, elevation: 36, intensity: 3.8, temperature: 5200, shadows: 'hard' },
     fill: false,
-    hatch: { angle: 62, spacing: 6, width: 1.0, length: 0 },
+    // Square, or a shave off it: the bank-note lattice is ruled by machine
+    // and crosses at ninety, and this page is the machine's hand.
+    hatch: { angle: 62, spacing: 6, width: 1.0, length: 0, cross: 88 },
     pen: { outline: 0, formCount: 0, formStrength: 0, formWidth: 0.9, terminator: 0.2, terminatorWidth: 1.3 },
+  },
+  {
+    /*
+     * The reproductive plate: the page the crosshatch was rebuilt FOR.
+     *
+     * A copperplate engraver translating a painting has exactly one
+     * instrument - parallel lines, crossed once through the shadows, crossed
+     * again in the pits - and the whole tonal world has to come out of how
+     * those three families share the paper. This page holds the middle of
+     * every range: a hand's diagonal, a gap wide enough to see the weave at
+     * arm's length, an unbroken line, and the crossing at the classical
+     * seventy-five - open enough to read as lozenges, square enough to sit
+     * still. If one page shows what the three-pass build does, it is this
+     * one; the knobs walk to every other plate in the deck from here.
+     *
+     * The outline is present and light, which is how a reproductive plate
+     * differs from the tonal 'Steel engraving' beside it: the drawing is
+     * stated first and the ranks fill it, rather than the ranks finding the
+     * edges on their own.
+     */
+    name: 'Copperplate',
+    surface: 'hatch',
+    backdrop: 'paper',
+    paper: 249,
+    // From behind the subject's right shoulder, which is the one bearing that
+    // matters on this rung: it stands the whole visible side in the halftone
+    // the ranks are built to carry. Lit from the viewer's side of the sky the
+    // page is an outline drawing - everything the eye can see is squarer to
+    // the sun than the first rank's entry, and the plate never shows.
+    sun: { azimuth: 215, elevation: 28, intensity: 3.4, temperature: 5000, shadows: 'hard' },
+    fill: false,
+    hatch: { angle: 34, spacing: 8.5, width: 1.15, length: 0, cross: 75 },
+    pen: { outline: 1.4, formCount: 0, formStrength: 0, formWidth: 0.9, terminator: 0.3, terminatorWidth: 1.3 },
+  },
+  {
+    /*
+     * A pen in a sketchbook, which is the crosshatch most hands have actually
+     * made: strokes short enough to see where each began, the second layer
+     * turned barely past twenty degrees so the weave stays directional, and a
+     * frank drawn outline around everything - the opposite decision from the
+     * engravers' pages on both counts, made with the same four numbers.
+     *
+     * The lifts are the look. Every plate in the deck rules unbroken because
+     * a needle does not lift; a pen lifts at the end of every stroke, and the
+     * row of blunt ends where a passage of shading stops is how pen shading
+     * is recognised across a room. Shadows off: a sketchbook page floats.
+     */
+    name: 'Crossed pen',
+    surface: 'hatch',
+    backdrop: 236,
+    paper: 251,
+    sun: { azimuth: 150, elevation: 38, intensity: 3.0, temperature: 6000, shadows: 'off' },
+    fill: false,
+    hatch: { angle: 152, spacing: 12, width: 1.25, length: 72, cross: 24 },
+    pen: { outline: 2.4, formCount: 2, formStrength: 0.15, formWidth: 0.9, terminator: 0.45, terminatorWidth: 1.3 },
   },
   {
     /*
@@ -196,7 +261,11 @@ export const PRESETS: Preset[] = [
     paper: 234,
     sun: { azimuth: 328, elevation: 24, intensity: 3.4, temperature: 4400, shadows: 'off' },
     fill: false,
-    hatch: { angle: 90, spacing: 15, width: 2.6, length: 84 },
+    // Duerer crosshatched his blocks and every apprentice cursed him for it -
+    // cutting the second family means carving out every lozenge between the
+    // strokes. Near square, coarse, and the gouge's width welds the darkest
+    // crossings into solid black, which is where a block's blacks come from.
+    hatch: { angle: 90, spacing: 15, width: 2.6, length: 84, cross: 78 },
     pen: { outline: 4.5, formCount: 0, formStrength: 0, formWidth: 0.9, terminator: 0.3, terminatorWidth: 1.3 },
   },
   {
@@ -209,11 +278,11 @@ export const PRESETS: Preset[] = [
      * and everything else follows.
      *
      * Elevation 58 is deliberately against the convention the other hatch pages
-     * keep. They all sit between 22 and 42 because hatchInk *= step(0.24, dark)
-     * leaves bare paper wherever lambert > 0.76, and on white a high sun is an
-     * empty sheet. On black an empty sheet is a solid block, which is exactly
-     * what a white-line vignette is: the cutting crowds only where the form
-     * turns away and the rest stays uncut.
+     * keep. They all sit between 22 and 42 because the first rank only begins
+     * where the light leaves - bare paper wherever lambert is past about 0.84
+     * - and on white a high sun is an empty sheet. On black an empty sheet is
+     * a solid block, which is exactly what a white-line vignette is: the
+     * cutting crowds only where the form turns away and the rest stays uncut.
      *
      * Honest about what it is not. The strokes are ruled on dark, so they land
      * where the light is not, and a scratchboard artist works the other way
@@ -234,7 +303,10 @@ export const PRESETS: Preset[] = [
     paper: 18,
     sun: { azimuth: 132, elevation: 58, intensity: 3.0, temperature: 5000, shadows: 'off' },
     fill: false,
-    hatch: { angle: 45, spacing: 13, width: 1.4, length: 60 },
+    // On a black block the crossing lands in the little dark the high sun
+    // leaves, as chalk over chalk: kept moderate so the deepest turns read as
+    // worked rather than woven - Bewick's tint is parallel almost everywhere.
+    hatch: { angle: 45, spacing: 13, width: 1.4, length: 60, cross: 55 },
     pen: { outline: 2.6, formCount: 3, formStrength: 0.55, formWidth: 0.9, terminator: 0, terminatorWidth: 1.3 },
   },
   {
@@ -262,8 +334,9 @@ export const PRESETS: Preset[] = [
      * page dealt here survives being touched.
      *
      * Elevation 28 keeps it inside the 22-42 every hatch page lives in -
-     * nothing is drawn above lambert 0.76, so a high sun on this rung is an
-     * empty sheet. See 'White-line block' for the one page that wants that.
+     * nothing is ruled above lambert 0.84 or so, so a high sun on this rung
+     * is an empty sheet. See 'White-line block' for the one page that wants
+     * that.
      */
     name: 'Conté on Ingres',
     surface: 'hatch',
@@ -271,7 +344,10 @@ export const PRESETS: Preset[] = [
     paper: 104,
     sun: { azimuth: 262, elevation: 28, intensity: 3.2, temperature: 4400, shadows: 'off' },
     fill: false,
-    hatch: { angle: 20, spacing: 13, width: 1.6, length: 34 },
+    // A stick turns about thirty degrees between passes - enough that the
+    // second layer darkens rather than thickens, shallow enough that the
+    // whole shadow keeps one grain, which is what chalk shading has.
+    hatch: { angle: 20, spacing: 13, width: 1.6, length: 34, cross: 30 },
     wash: { amount: 0.9, steps: 3 },
     pen: { outline: 1, formCount: 2, formStrength: 0.2, formWidth: 0.9, terminator: 0.3, terminatorWidth: 1.3 },
   },

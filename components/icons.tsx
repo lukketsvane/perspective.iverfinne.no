@@ -108,6 +108,8 @@ export const I = {
   hatchSpacing: (<><path d="M5 4.5v15M12 4.5v15M19 4.5v15" /><path d="M6.6 12h3.8M13.6 12h3.8" strokeOpacity="0.45" /></>),
   hatchWidth: (<><path d="M5 5.5v13" strokeWidth="0.7" /><path d="M11 5.5v13" strokeWidth="1.7" /><path d="M18 5.5v13" strokeWidth="3.4" /></>),
   hatchLength: (<><path d="M5 4.5v6M5 13.5v6" /><path d="M12 6.5v11" /><path d="M19 3.5v17" strokeOpacity="0.7" /></>),
+  /** One family full-strength, the crossing one lighter: the second pass. */
+  hatchCross: (<><path d="M4.5 15 15 4.5M9 19.5 19.5 9" /><path d="M4.5 9 15 19.5M9 4.5 19.5 15" strokeOpacity="0.45" /></>),
 
   /**
    * The shuffle: two pages crossing on their way past each other.
