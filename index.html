@@ -132,10 +132,20 @@
        * can watch the horizon cross it - and the icons sit on an object.
        *
        * The numbers: contrast .42 takes black-to-white down to a span of 0.42
-       * centred on mid grey, brightness lands that span at roughly 0.61-1.0 on
-       * the light surface and 0.14-0.36 on the dark one, and the fill closes
-       * the rest. Measured on 'Brush page on black', which is the widest gap
-       * this tool can produce.
+       * centred on mid grey, brightness lands that span at roughly 0.49-0.89
+       * on the light surface and 0.14-0.36 on the dark one, and the fill
+       * closes the rest. Measured on 'Brush page on black', which is the
+       * widest gap this tool can produce.
+       *
+       * THE LIGHT SURFACE WAS WHITER THAN THAT, and it read as paint. A lift
+       * of 1.45 under a 38 per cent white fill put the panel fifty points
+       * above a mid-grey page - which is a white slab standing on grey, not
+       * glass standing over it. The whole argument above is that the collapse
+       * does the hiding, so the tint does not have to: the lift comes down to
+       * 1.2 and the fill to 22 per cent, and the panel now sits a shade above
+       * whatever page it is on rather than at white regardless of it. The
+       * ink is black either way - on the darkest page the light glass can
+       * stand on, the icons still sit at better than five to one.
        *
        * THE RIM IS NOT DECORATION. One pixel of light along the top edge is
        * how every real piece of glass announces its own thickness, and it is
@@ -163,8 +173,8 @@
         backdrop-filter: blur(36px) saturate(1.9) contrast(0.42) brightness(var(--glass-lift));
       }
       .glass-light {
-        --glass-lift: 1.45;
-        background-color: rgba(255, 255, 255, 0.38);
+        --glass-lift: 1.2;
+        background-color: rgba(255, 255, 255, 0.22);
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
       }
       .glass-dark {
