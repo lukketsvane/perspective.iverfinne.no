@@ -160,6 +160,13 @@ export default function App() {
     { id: 'hangar-stores', at: [3.1, 6.8], turn: towardsTheRacer([3.1, 6.8], Math.PI) },
     // Off the port wing, well clear of it, watching the aircraft.
     { id: 'pilot-seated', at: [-2.8, 7.0], turn: towardsTheRacer([-2.8, 7.0], 0) },
+    // Wheeled RIGHT UP to the aircraft on the port side, which is the whole
+    // difference between servicing equipment and the rest of the yard: a bowser
+    // stands off, a trolley is brought to the machine and left touching it.
+    // Its gauge-and-louvre face is the +Z side of the file, so pointing that at
+    // the racer both turns it to work and shows the eye its most drawable
+    // panel.
+    { id: 'service-trolley', at: [-5.0, -2.8], turn: towardsTheRacer([-5.0, -2.8], 0) },
   ];
 
   /**

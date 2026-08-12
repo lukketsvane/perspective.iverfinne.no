@@ -126,6 +126,46 @@ export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'hangar-stores', name: 'Stores rack', url: '/meshes/hangar-stores.glb' },
 
   /*
+   * The servicing trolley: a riveted box on two big spoked wheels and two
+   * castors, with a coiled hose down one side, two pressure gauges and a bank
+   * of taps on top, a crank, and a tow bar curving up off one end.
+   *
+   * 1.30 m over the whole of it, which is the tow bar at the height a man pulls
+   * from and puts the box at about chest height and the spoked wheels at about
+   * two thirds of a metre - which is what they look like beside the figures.
+   *
+   * It is the piece of ground equipment that goes right up against an aeroplane
+   * rather than standing off from it, and for drawing it is the one thing in
+   * the yard that is a box, two circles and a curve at once: a riveted slab you
+   * construct like a crate, wheels whose ellipses open as you walk round them,
+   * and a bent tube that obeys neither.
+   */
+  { id: 'service-trolley', name: 'Servicing trolley', url: '/meshes/service-trolley.glb' },
+
+  /*
+   * A man sitting, elbow on knee, hand up at his face - AND HE COMES WITH NO
+   * SEAT.
+   *
+   * The pilot arrived on his own chair; this one arrived sitting on nothing,
+   * which is a fact about the file that has to be said out loud, because the
+   * tool stands everything on the floor. Put him down as he is and his boots
+   * are on the ground and his backside is forty centimetres above it, sitting
+   * on air.
+   *
+   * That is why he is not in the opening yard: there is nothing out there the
+   * right height to sit him on. It is also the useful thing about him. He is
+   * the one figure here you have to COMPOSE rather than place - on a crate, on
+   * a wheel, on the bottom shelf of the rack, on a box you blocked out yourself
+   * at the height his seat wants - and getting a figure to sit convincingly on
+   * a thing you drew is the whole exercise, not an obstacle to it.
+   *
+   * 1.30 m, the same as the seated pilot, checked by standing the two of them
+   * side by side against a metre rule rather than by trusting either number on
+   * its own. His seat wants to be about 0.43 m off the ground.
+   */
+  { id: 'crew-sitting', name: 'Ground crew, sitting', url: '/meshes/crew-sitting.glb' },
+
+  /*
    * A dome slung from a four-leg chain, and the one thing on this shelf whose
    * name is a guess.
    *
