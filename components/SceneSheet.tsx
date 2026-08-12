@@ -153,11 +153,20 @@ export const SceneSheet: React.FC<{
      */
     <div className="flex items-stretch gap-1 max-w-full min-w-0">
       <div className="flex items-center gap-1 shrink-0">
+        {/*
+          * A circle like its three neighbours, with a hairline to say it is
+          * the one that MAKES something. It was `flex-1`, left over from when
+          * this was a modal sheet with a full-width save bar - and in a shelf
+          * row sized to its own contents there is no free space to grow into,
+          * so the row's one primary action rendered as a 20 px sliver beside
+          * three 44 px circles: the most important button was the smallest
+          * target.
+          */}
         <button
           onClick={() => run(saveCurrentScene)}
           disabled={disabled}
           aria-label="Save this scene"
-          className={`flex-1 h-11 rounded-full border flex items-center justify-center transition-transform active:scale-[0.98] disabled:opacity-40 ${
+          className={`w-11 max-[429px]:w-10 h-11 rounded-full border flex items-center justify-center transition-transform active:scale-95 disabled:opacity-40 ${
             dark ? 'border-white/20 hover:bg-white/10' : 'border-gray-300 hover:bg-black/5'
           }`}
         >
