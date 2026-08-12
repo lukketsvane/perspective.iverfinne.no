@@ -166,10 +166,20 @@ export const inkUniforms = {
   /** Sheet pixels between neighbouring strokes. */
   hatchSpacing: { value: 6 },
   /** Sheet pixels of stroke weight. */
-  hatchWidth: { value: 0.85 },
+  hatchWidth: { value: 1.05 },
   /** Sheet pixels from the start of one stroke to the start of the next along
    *  its own run. Zero means an unbroken line. */
   hatchLength: { value: 44 },
+  /**
+   * How far the second layer turns from the first, in radians.
+   *
+   * The crossing is the material's own angle, not the hand's: an engraver
+   * crosses near square, a pen shader crosses shallow and the weave stays
+   * directional, and that difference is most of what separates a bank-note
+   * from a sketchbook page. The third layer takes the lozenge's diagonal,
+   * which is where Dürer puts it, so one knob places all three.
+   */
+  hatchCross: { value: 1.19 },
 };
 
 const VERTEX = `
@@ -222,6 +232,7 @@ const FRAGMENT = `
   uniform float hatchSpacing;
   uniform float hatchWidth;
   uniform float hatchLength;
+  uniform float hatchCross;
 
   varying vec3 vNormalView;
   varying vec3 vViewPos;
@@ -257,34 +268,30 @@ const FRAGMENT = `
   }
 
   /**
-   * STROKES THAT FOLLOW THE FORM. One family. No crosshatching.
+   * THE VALUE IS BUILT BY CROSSING, NOT BY SWELLING.
    *
-   * Neither Zorn nor Kim Jung Gi crosshatches, and the difference is not a
-   * matter of taste. A lattice of crossing rules is a SCREEN: it has a value
-   * and says nothing else, and two of them crossing say nothing twice. What
-   * both of them actually do is lay a single family of parallel strokes whose
-   * DIRECTION IS DECIDED BY THE FORM - the strokes run round an arm, wrap over
-   * a shoulder, turn with a fold - so that the drawing can be read off the
-   * line direction alone with every trace of tone removed.
+   * This material spent a while as a single family of strokes, on the
+   * argument that neither Zorn nor Kim Jung Gi crosshatches - which is true
+   * and was the wrong precedent. Their single family works because the
+   * DIRECTION carries the form, and a brush page already has that instrument:
+   * the pen's form lines, ruled on the facing ratio, one band per turn of the
+   * surface. This rung is the ETCHED page, and an etcher's value is a count:
+   * one rank of strokes through everything past the half-light, a second
+   * crossing it in the shadow, a third through the darkest passages, and the
+   * paper between them doing the rest. That is what the surface ladder has
+   * promised in its own documentation all along, and what one family could
+   * not deliver: with a single rank the only way down to black was to swell
+   * the strokes until they touched, and a form turning through the shadow
+   * read as a zebra - fat bands of ink with nothing woven under them.
    *
-   * The direction that does that is the CROSS-CONTOUR: the way a stroke would
-   * run if you laid a thread on the surface and pulled it round. Its axis is
-   *
-   *     A = normalize(cross(worldNormal, viewDirection))
-   *
-   * which is the tangent to the silhouette at that point. Ruling planes with
-   * that normal cuts the surface in curves running square across it: round a
-   * cylinder rather than along it, from rim to rim over a sphere, and along
-   * the run of a fold. Because the axis is rebuilt at every fragment from the
-   * surface's own normal, the strokes turn wherever the surface turns - which
-   * is the entire property that was missing while the planes had one fixed
-   * normal for the whole object.
-   *
-   * Where the surface faces the eye dead-on the cross product vanishes: there
-   * is no silhouette direction to be had, and none is wanted - a plane facing
-   * you square has no roundness to describe. There the axis blends to a fixed
-   * angle to the horizon, which is what a hand does when the form stops
-   * telling it anything.
+   * Three ranks, three entries, each fading in over its own run of the value
+   * rather than switching on - the difference between shading and a contour
+   * map of the shading. The first rank enters where the light leaves, the
+   * second past the half shadow at the crossing angle, the third on the
+   * lozenge's diagonal - Duerer's third direction - where the passage goes
+   * truly dark. The weight still breathes with the value, gently, and only
+   * WELDS shut in the last tenth, where an engraver's black really is
+   * continuous cutting.
    *
    * (No back quotes anywhere below: this whole shader is one JS template
    * literal and a single one of them ends it in the middle of a comment.)
@@ -347,6 +354,26 @@ const FRAGMENT = `
       line *= mix(smoothstep(0.0, 0.05, t) * (1.0 - smoothstep(0.95, 1.0, t)), 1.0, closed);
     }
     return line;
+  }
+
+  /**
+   * One full rank at a given bearing: the ruling, bent by the form, cut to
+   * length. The two normalised bands come in precomputed - the bearing only
+   * decides how they mix into a ruling and which way the surface's lean is
+   * read. Called three times with three bearings, which is the whole of the
+   * crosshatch: same hand, same needle, the plate turned between passes.
+   */
+  float rankAt(
+    float bearing, float latN, float azN, vec3 upW, vec3 eastW, vec3 Nw,
+    float bend, float widthSourcePx, float runPeriod, float closed
+  ) {
+    float ca = cos(bearing);
+    float sa = sin(bearing);
+    float band = ca * latN + sa * azN;
+    float run = -sa * latN + ca * azN;
+    vec3 across = upW * ca + eastW * sa;
+    float q = band + bend * dot(Nw, across);
+    return hatchRank(q, run, 1.0, widthSourcePx, runPeriod, closed);
   }
 
   void main() {
@@ -457,7 +484,7 @@ const FRAGMENT = `
     float hatchInk = 0.0;
     if (hatch > 0.5) {
       /*
-       * ONE FAMILY OF STROKES: THE HAND'S OWN RULING, BENT BY THE FORM.
+       * EVERY RANK IS THE HAND'S OWN RULING, BENT BY THE FORM.
        *
        * IT WAS RULED ON THE FACING RATIO, and the argument for that was good
        * enough to survive a long time. The facing ratio is a true scalar field,
@@ -510,7 +537,21 @@ const FRAGMENT = `
       vec3 toEye = vWorldPos - cameraPosition;
       float dist = max(length(toEye), 1e-4);
       vec3 view = toEye / dist;
-      float dark = 1.0 - clamp(lambert, 0.0, 1.0);
+      /*
+       * HALF-LAMBERT, BECAUSE THE SHADOW IS WHERE THE DRAWING HAPPENS.
+       *
+       * Clamped lambert is flat zero across the whole unlit hemisphere, so a
+       * value read off it has no gradation past the terminator: every rank,
+       * and the welding swell with them, arrived AT ONCE on that line, and
+       * the entire shadow side went down as one dense net. An etcher grades
+       * INTO the dark - one rank at the turn, the crossing further round,
+       * the third only in the pit facing dead away from the light - and the
+       * scale that can say so has to keep counting past zero. Half-lambert
+       * does: nought facing the sun, a half at the terminator, one at the
+       * anti-light pole, so the three entries spread through the shadow
+       * instead of stacking on its first line.
+       */
+      float dark = clamp(0.5 - 0.5 * lambert, 0.0, 1.0);
 
       /*
        * THE SHEET IS RULED ON THE BEARING OF THE RAY, NOT ON THE WORLD.
@@ -553,51 +594,36 @@ const FRAGMENT = `
       float stepAz = 6.28318531 / max(floor(6.28318531 / wantRad + 0.5), 12.0);
 
       /*
-       * The knob turns the ruling, and the two bands are combined by SINE AND
-       * COSINE rather than mixed.
-       *
-       * A mix would halve the gradient at forty-five degrees and open the gap
-       * between the strokes by half again there; this holds it. The run is the
-       * same pair the other way round, which is the direction along a stroke -
-       * needed by the lift, and got for free.
+       * The two bands are normalised once and handed to every rank. Inside a
+       * rank they are combined by SINE AND COSINE rather than mixed - a mix
+       * would halve the gradient at forty-five degrees and open the gap
+       * between the strokes by half again there. The run is the same pair the
+       * other way round, the direction along a stroke - needed by the lift,
+       * and got for free.
        */
-      float ca = cos(hatchAngle);
-      float sa = sin(hatchAngle);
-      float band = ca * (lat / stepLat) + sa * (az / stepAz);
-      float run = -sa * (lat / stepLat) + ca * (az / stepAz);
+      float latN = lat / stepLat;
+      float azN = az / stepAz;
 
       /*
-       * ...AND THEN THE FORM BENDS IT.
+       * ...AND THE FORM BENDS EVERY RANK.
        *
        * A ruling alone is a ruling: laid over a fuselage it says nothing about
        * the fuselage. What a hand does is hold the angle and let the surface
        * carry the stroke - so each line is pushed sideways by how far the
-       * surface leans ACROSS the ruling, which is one dot product.
+       * surface leans ACROSS its own ruling, one dot product per rank, read
+       * against that rank's bearing. Over a cylinder the strokes bow; over a
+       * fold they turn with the fold; on a flat wall the lean is constant and
+       * they run dead straight, so THE FLAT CASE IS NOT A SPECIAL CASE. The
+       * crowding comes with it: where the surface turns fastest the lean
+       * changes fastest, so every rank gathers towards the silhouettes - the
+       * foreshortening, drawn, in all three directions at once.
        *
-       * Over a cylinder the strokes bow; over a fold they turn with the fold;
-       * on a flat wall the lean is constant and they run dead straight again,
-       * so THE FLAT CASE IS NOT A SPECIAL CASE. There used to be two fields
-       * here and a threshold picking between them.
-       *
-       * The crowding comes with it: where the surface turns fastest the lean
-       * changes fastest, so the strokes gather towards the silhouettes - which
-       * is the foreshortening, drawn, and was the one good property of the
-       * facing-ratio ruling this replaces. That one drew iso-lines of a scalar
-       * field over the whole object, and iso-lines close into loops around
-       * every local maximum: a canopy, a wing root, a panel line, and on a
-       * scanned mesh the low bumps of the mesh itself. A fuselage came out as a
-       * topographic map of its own dents - wood grain, with knots exactly where
-       * a plank has knots. A hand does not lay a stroke round every bump it
-       * meets.
-       *
-       * 2.6 IS NOT A KNOB. A fifth slider for something every page wants the
-       * same answer to is a slider nobody would touch twice, and the four that
-       * are there - angle, gap, weight, run - are the four an engraver has. At
-       * 2.6 a surface turning through a right angle across the ruling carries
-       * its strokes about two and a half gaps sideways: on a fuselage a decided
-       * bow, of the sort a hand makes wrapping a cylinder, and not so far that
-       * neighbours cross, which is what happens past about four and reads as a
-       * mistake because it is one.
+       * 2.6 IS NOT A KNOB. A slider for something every page wants the same
+       * answer to is a slider nobody would touch twice. At 2.6 a surface
+       * turning through a right angle carries its strokes about two and a
+       * half gaps sideways - a decided bow, and not so far that neighbours
+       * cross, which happens past about four and reads as a mistake because
+       * it is one.
        *
        * (One earlier attempt is worth not repeating: ruling world planes on an
        * axis rebuilt per fragment from cross(normal, view). That axis rotates
@@ -613,30 +639,51 @@ const FRAGMENT = `
       vec3 fwdW = vec3(view.x, 0.0, view.z);
       float reach = length(fwdW);
       vec3 eastW = reach > 1e-4 ? normalize(cross(upW, fwdW / reach)) : vec3(1.0, 0.0, 0.0);
-      vec3 across = upW * ca + eastW * sa;
-      float tilt = dot(normalize(vNormalWorld), across);
-
-      float q = band + bend * tilt;
+      vec3 Nw = normalize(vNormalWorld);
 
       /*
-       * Weight: never below what a pen can draw, and past full into solid.
+       * Weight: never below what a pen can draw, breathing gently with the
+       * value, and WELDING only in the last tenth.
        *
        * One page pixel is where a line stops being an antialiased suggestion
-       * of a line. Above it the weight rides the value, and past its nominal
-       * full weight it keeps swelling, so the darkest passages close on
-       * themselves instead of staying a lattice.
+       * of a line. The swell above it used to be the whole value system - the
+       * only way one family could reach black was to fatten until neighbours
+       * touched, which is the zebra this rung was wearing. The crossing
+       * carries the value now, so the weight only rides it by a quarter, and
+       * the closing swell waits for the passages an engraver genuinely cuts
+       * solid.
        */
-      float wPage = max(hatchWidth, 1.0) * (0.80 + 0.55 * smoothstep(0.26, 0.74, dark))
-        * (1.0 + 1.7 * smoothstep(0.70, 1.0, dark));
+      float wPage = max(hatchWidth, 1.0) * (0.85 + 0.35 * smoothstep(0.35, 0.92, dark))
+        * (1.0 + 1.5 * smoothstep(0.92, 1.0, dark));
       float wMax = clamp(wPage * scale, 0.5, 40.0);
       // Where the needle lifts, counted in strokes along the run rather than in
       // metres, so a break is the same length on the page as a gap is wide.
       float runPeriod = hatchLength / max(hatchSpacing, 1.0);
-      float closed = smoothstep(0.74, 0.98, dark);
+      float closed = smoothstep(0.86, 1.0, dark);
 
-      hatchInk = hatchRank(q, run, 1.0, wMax, runPeriod, closed);
-      // Nothing at all where the light is: bare paper is a value too.
-      hatchInk *= step(0.24, dark);
+      /*
+       * THE THREE PASSES, each fading in over its own run of the value.
+       *
+       * On the half-lambert scale the terminator is 0.5, so: the first rank
+       * enters on the LIT side as the light goes grazing - paper carries
+       * everything squarer to the sun than about lambert 0.3 - and is full
+       * before the turn; the crossing, turned by the cross knob, begins AT
+       * the turn and is in by the early shadow, which is where an etcher
+       * actually lays it; the third direction only in the passages facing
+       * well away, on the lozenge's diagonal - the bearing halfway between
+       * the first two, stood square - which is where Duerer lays it and why
+       * a three-pass black reads as a weave rather than as a grid. Entries
+       * by smoothstep, not step: the old hard gate cut a visible cliff of
+       * stroke-ends along an iso-line of the light, an edge in the picture
+       * that nothing in the scene put there.
+       */
+      float enter1 = smoothstep(0.34, 0.46, dark);
+      float enter2 = smoothstep(0.50, 0.62, dark);
+      float enter3 = smoothstep(0.72, 0.84, dark);
+      float rank1 = rankAt(hatchAngle, latN, azN, upW, eastW, Nw, bend, wMax, runPeriod, closed) * enter1;
+      float rank2 = rankAt(hatchAngle + hatchCross, latN, azN, upW, eastW, Nw, bend, wMax, runPeriod, closed) * enter2;
+      float rank3 = rankAt(hatchAngle + hatchCross * 0.5 + 1.5707963, latN, azN, upW, eastW, Nw, bend, wMax, runPeriod, closed) * enter3;
+      hatchInk = max(rank1, max(rank2, rank3));
 
       pen = clamp(max(pen, hatchInk), 0.0, 1.0);
     }
@@ -753,6 +800,7 @@ export const HATCH_SHADOW = (() => {
     shader.uniforms.hatchSpacing = inkUniforms.hatchSpacing;
     shader.uniforms.hatchWidth = inkUniforms.hatchWidth;
     shader.uniforms.hatchLength = inkUniforms.hatchLength;
+    shader.uniforms.hatchCross = inkUniforms.hatchCross;
 
     shader.vertexShader = shader.vertexShader
       .replace('void main() {', 'varying vec3 vGround;\nvoid main() {')
@@ -768,6 +816,7 @@ export const HATCH_SHADOW = (() => {
           'uniform float hatchSpacing;',
           'uniform float hatchWidth;',
           'uniform float hatchLength;',
+          'uniform float hatchCross;',
           'float groundMark(float value, float widthSourcePx) {',
           '  float slope = max(fwidth(value), 1e-7);',
           '  float away = abs(fract(value - 0.5) - 0.5) / slope;',
@@ -807,10 +856,12 @@ export const HATCH_SHADOW = (() => {
           'float wantRad = max(hatchSpacing, 1.0) * radPerSheetPixel;',
           'float stepLat = 3.14159265 / max(floor(3.14159265 / wantRad + 0.5), 6.0);',
           'float stepAz = 6.28318531 / max(floor(6.28318531 / wantRad + 0.5), 12.0);',
+          'float latN = lat / stepLat;',
+          'float azN = az / stepAz;',
           'float ca = cos(hatchAngle);',
           'float sa = sin(hatchAngle);',
-          'float f = ca * (lat / stepLat) + sa * (az / stepAz);',
-          'float along = -sa * (lat / stepLat) + ca * (az / stepAz);',
+          'float f = ca * latN + sa * azN;',
+          'float along = -sa * latN + ca * azN;',
           // No bend term: the floor is flat, so its lean across the ruling is
           // constant and the displacement would be one number added to every
           // stroke on the page. It is left out rather than multiplied by zero,
@@ -818,11 +869,20 @@ export const HATCH_SHADOW = (() => {
           'float shade = 1.0 - getShadowMask();',
           // The shadow's own value decides the weight, exactly as the form's
           // does on an object: a grazing shadow is a lighter cut.
-          'float wPage = max(hatchWidth, 1.0) * (0.80 + 0.9 * shade);',
+          'float wPage = max(hatchWidth, 1.0) * (0.85 + 0.5 * shade);',
           'float w = clamp(wPage * scale, 0.5, 40.0);',
           'float runRatio = hatchLength / max(hatchSpacing, 1.0);',
           'float ink = groundRank(f, along, 1.0, w, runRatio);',
-          'gl_FragColor = vec4( color, opacity * ink * step(0.06, shade) );',
+          // The core of the shadow is crossed, exactly as a dark passage on
+          // the form is: same second bearing, so the shadow a thing casts is
+          // woven by the same hand that engraved the thing.
+          'float cb = cos(hatchAngle + hatchCross);',
+          'float sb = sin(hatchAngle + hatchCross);',
+          'float f2 = cb * latN + sb * azN;',
+          'float along2 = -sb * latN + cb * azN;',
+          'float ink2 = groundRank(f2, along2, 1.0, w, runRatio) * smoothstep(0.55, 0.85, shade);',
+          'ink = max(ink, ink2);',
+          'gl_FragColor = vec4( color, opacity * ink * smoothstep(0.06, 0.18, shade) );',
         ].join('\n')
       );
   };
@@ -877,7 +937,7 @@ export const HATCH_BOX = build({ hatch: true }, { polygonOffset: true, polygonOf
 /**
  * WHAT AN OBJECT SETS FOR ITSELF, AND WHAT IT CANNOT.
  *
- * These eleven are the ones a material can be given its own copy of. They are
+ * These fifteen are the ones a material can be given its own copy of. They are
  * exactly the ones the three writers above touch - the pen, the marker's stain,
  * the hatch's rule - which is not a coincidence: a number is settable because
  * there is a knob for it, and a knob is per-object because these are.
@@ -903,6 +963,7 @@ const OWN_UNIFORMS = [
   'hatchSpacing',
   'hatchWidth',
   'hatchLength',
+  'hatchCross',
 ] as const;
 
 /** Which of the six a rung and a kind of thing want. */
@@ -922,7 +983,7 @@ const STYLE: Record<'brush' | 'marker' | 'hatch', Style> = {
  *
  * The shared holders come through by reference in the spread, so this still
  * follows the page's paper, the sun and the pixel scale - it has only stepped
- * off the eleven it is allowed to own. Their starting values are copied from
+ * off the fifteen it is allowed to own. Their starting values are copied from
  * the scene's, so the moment before you turn the first knob looks exactly like
  * the moment after you were given the material.
  *
@@ -1186,12 +1247,17 @@ export const writePen = (
 /** Everything the hatch is ruled by. Angles in degrees, sizes in sheet pixels. */
 export const writeHatch = (
   u: Nib,
-  h: { angle: number; spacing: number; width: number; length: number }
+  h: { angle: number; spacing: number; width: number; length: number; cross?: number }
 ) => {
   u.hatchAngle.value = (h.angle * Math.PI) / 180;
   u.hatchSpacing.value = h.spacing;
   u.hatchWidth.value = h.width;
   u.hatchLength.value = h.length;
+  // Defaulted HERE, not only in the store: a per-object rule saved by the
+  // version before the crossing existed comes back through sceneJson verbatim
+  // and lands on this writer with no store merge in between - and an
+  // undefined degree would write NaN into the uniform and rule nothing.
+  u.hatchCross.value = ((h.cross ?? 68) * Math.PI) / 180;
 };
 
 /** The scene's own: the holders every object that has not been given its own points at. */

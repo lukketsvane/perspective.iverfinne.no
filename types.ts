@@ -634,6 +634,16 @@ export interface HatchState {
   /** Sheet pixels from one stroke's start to the next along its own run.
    *  Zero is an unbroken rule. */
   length: number;
+  /**
+   * How far the second layer turns from the first, in degrees.
+   *
+   * The crossing is what separates an engraver's near-square lattice from a
+   * pen's shallow directional weave, and the third layer takes the lozenge's
+   * diagonal from the same number - so one angle places all three passes.
+   * Optional on the way IN only: rules written before the crossing existed
+   * come back without one, and every reader defaults it.
+   */
+  cross: number;
 }
 
 /**
