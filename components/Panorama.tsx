@@ -476,11 +476,22 @@ export const Panorama: React.FC<{
              * which is to say it deleted the crowding that IS the vanishing
              * point and kept the noise everywhere else.
              */
-            float verticals = ruled(worldYaw, 1.0) * 0.30;
+            /*
+             * THE WIDTHS ARE IN RENDER PIXELS, and the render is at device
+             * resolution or above - so 1.6 here was about half a CSS pixel
+             * on a phone, and the construction this tool exists to teach was
+             * a thread you had to hunt for over the drawing. These lines are
+             * the lesson: they are drawn at the weight of a pencil line laid
+             * with a straightedge, clearly over the picture, because reading
+             * the form against them is the entire exercise. The meridians
+             * stay lighter than the horizon - a ruled sheet supports, the eye
+             * level states.
+             */
+            float verticals = ruled(worldYaw, 2.2) * 0.42;
 
             // The eye-level ring is the one that matters most
             float horizon =
-              (1.0 - smoothstep(0.0, 1.6, abs(worldPitch) / max(fwidth(worldPitch), 1e-5))) * 0.85;
+              (1.0 - smoothstep(0.0, 3.0, abs(worldPitch) / max(fwidth(worldPitch), 1e-5))) * 0.92;
 
             /*
              * The five points.
@@ -506,9 +517,10 @@ export const Panorama: React.FC<{
               else towards = vec3(0.0, -1.0, 0.0);
 
               float away = acos(clamp(dot(world, towards), -1.0, 1.0));
-              // A ring, and a dot at the point itself.
-              vp = max(vp, 1.0 - smoothstep(0.0, 1.6, abs(away - 0.052) / max(fwidth(away), 1e-5)));
-              vp = max(vp, 1.0 - smoothstep(0.0, 1.0, away / max(fwidth(away) * 2.2, 1e-5)));
+              // A ring, and a dot at the point itself - at the same weight as
+              // the horizon they punctuate.
+              vp = max(vp, 1.0 - smoothstep(0.0, 3.0, abs(away - 0.052) / max(fwidth(away), 1e-5)));
+              vp = max(vp, 1.0 - smoothstep(0.0, 1.0, away / max(fwidth(away) * 3.2, 1e-5)));
             }
 
             /*

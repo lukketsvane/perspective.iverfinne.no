@@ -1413,14 +1413,11 @@ export const WalkOverlay: React.FC<{
             * it came off would be in the way.
             */}
           <div className={band}>
-          <button
-            onClick={cycleGuides}
-            aria-label={`Construction guides, level ${guides} of 2`}
-            aria-pressed={guides > 0}
-            className={`${button} ${guides ? ACTIVE : ''}`}
-          >
-            <Icon path={GUIDE_ICON[guides]} className="w-5 h-5" />
-          </button>
+          {/* The room's construction guides are not at the head of this band
+              any more: they are on the dock. This is a tool for teaching
+              perspective and those lines are the lesson itself - ruled onto
+              the sheet, read against, put away, ruled again - which is a
+              rhythm of taps, not a setting made once. See the dock. */}
           {/* The floor's two rulings, on ONE seat, tapped through four states.
               They were a switch each - see cycleFloorRuling in store.ts for why
               that was right and why one seat says the same four things. This is
@@ -1799,14 +1796,16 @@ export const WalkOverlay: React.FC<{
         <div
           {...(dockVisible ? {} : { inert: '' })}
           // Tighter on a phone, for the same reason the controls in it are:
-          // eight of these plus the glass once came to 368 px against the 366
-          // a 390 px frame gives the dock, and it folded in half over the
-          // drawing for want of two pixels. Seven now - five circles at forty,
-          // two knobs at forty-four - is 310 px, with room to spare. The
-          // wrapping stays, because it wraps rather than clips when it truly
-          // cannot fit, and a control pushed off the edge is not a smaller
-          // control.
-          className={`flex flex-wrap items-center justify-center max-w-full p-1.5 gap-1 max-[429px]:p-1 max-[429px]:gap-0.5 rounded-[1.125rem] border shadow-2xl ${SIDEWAYS_DOCK} ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
+          // eight at full size plus the glass once came to 368 px against the
+          // 366 a 390 px frame gives the dock, and it folded in half over the
+          // drawing for want of two pixels. Eight seats again now - so below
+          // 430 px every control drops to forty (the Scrub knobs included,
+          // see controls.tsx), which is 344 px against 366; and below 390 the
+          // gap goes entirely, 330 px against the 336 a 360 px frame gives.
+          // The wrapping stays, because it wraps rather than clips when it
+          // truly cannot fit, and a control pushed off the edge is not a
+          // smaller control.
+          className={`flex flex-wrap items-center justify-center max-w-full p-1.5 gap-1 max-[429px]:p-1 max-[429px]:gap-0.5 max-[389px]:gap-0 rounded-[1.125rem] border shadow-2xl ${SIDEWAYS_DOCK} ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
         >
           <div className={`${SIDEWAYS_CLUSTER} ${surface}`}>
           {/*
@@ -1870,6 +1869,26 @@ export const WalkOverlay: React.FC<{
             cycle={EYE_LEVEL_PRESETS.map((p) => p.height)}
             onChange={setCameraHeight}
           />
+          {/*
+            * The room's construction, on the dock. This whole tool exists to
+            * teach perspective, and these lines ARE the lesson - the horizon,
+            * the five points, the ruled sphere. A lesson reaches for them
+            * over and over: rule the sheet, read the form against it, put the
+            * sheet away, draw, rule it again. That rhythm was two taps deep
+            * behind Tools, beside settings that are made once a session. One
+            * tap here steps the ladder instead, and it stands beside the lens
+            * and the eye level because the three of them are one question -
+            * where you stand, how wide you look, and the construction that
+            * says so on the page.
+            */}
+          <button
+            onClick={cycleGuides}
+            aria-label={`Construction guides, level ${guides} of 2`}
+            aria-pressed={guides > 0}
+            className={`${button} ${guides ? ACTIVE : ''}`}
+          >
+            <Icon path={GUIDE_ICON[guides]} className="w-5 h-5" />
+          </button>
           </div>
 
           <div className={`${SIDEWAYS_CLUSTER} ${surface}`}>
