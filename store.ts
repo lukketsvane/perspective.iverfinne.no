@@ -104,12 +104,12 @@ export const DEFAULT_MARKER: MarkerState = { hue: 88, high: 0.62, chroma: 0.72 }
  * the tool deals one now, every page stands on a floor, and the floor is part
  * of what a page IS rather than an extra laid over it.
  *
- * 150 is `floorFor(243)`, the opening sheet taken down the same step every
+ * 102 is `floorFor(243)`, the opening sheet taken down the same step every
  * unnamed page takes it down. This value is only ever seen before the deal
  * lands and by a stored setup that predates the floor existing at all, so what
  * matters about it is that it agrees with what the deal is about to do.
  */
-export const DEFAULT_GROUND = { on: true, tone: 150 };
+export const DEFAULT_GROUND = { on: true, tone: 102 };
 
 export const DEFAULT_PEN: PenState = {
   outline: 2,
@@ -321,19 +321,33 @@ const OPENING_PAGE = pinnedPage() ?? nextPreset(null);
  * page happens to sit, and leaves the drawn object the lightest thing standing
  * on it - which is the whole reason the paper is the value it is.
  *
- * 0.62 is the middle of what the six composed pages chose for themselves,
- * measured against their own paper: 0.66, 0.30, 0.65, 0.62, 0.93, 0.95. It is
- * a wide spread and that is the argument for those six naming their own rather
- * than taking this - a floor under a strong raking sun is a different decision
- * from a floor under an overcast sky, and no ratio knows which it is looking
- * at. This is for the pages that never thought about it.
+ * 0.42, AND IT WAS 0.62. Sixty-two was the middle of what the six composed
+ * pages chose for themselves against their own paper - 0.66, 0.30, 0.65, 0.62,
+ * 0.93, 0.95 - which is a defensible way to pick a number and the wrong number.
+ * Those six are LIGHT STUDIES: pages about a cast shadow, where the floor is
+ * the subject and is meant to come up lit. On the other seventeen the floor is
+ * scenery, and the middle of what the subject-floors chose makes it as light as
+ * the thing standing on it.
+ *
+ * Looked at across the whole deck rather than one page at a time - all
+ * twenty-three rendered on the same yard and laid out side by side - that is
+ * what it did: a big flat mid-grey occupying the bottom half of every frame,
+ * near enough the value of the white-paper aircraft standing on it, so that
+ * the drawing had nothing to be the lightest thing against. The black mount
+ * that pages like "Brush page on black" are built on survived only as a strip
+ * above the horizon.
+ *
+ * Forty-two puts the floor a clear step under the sheet: a 243 sheet gives 102,
+ * so the object reads light against the ground and the ground reads light
+ * against the mount. The spread among the composed six is exactly why they name
+ * their own and this does not try to serve them.
  *
  * NOTE WHAT IS GIVEN UP. The tone used to survive a deal, so a floor dragged
  * to a value you liked came back at that value. It cannot both survive and be
  * in the dealt page's key, and being in the page's key is what makes it
  * bearable on all seventeen. A drag lasts as long as the page it was made on.
  */
-const floorFor = (paper: number) => ({ on: true, tone: Math.round(paper * 0.62) });
+const floorFor = (paper: number) => ({ on: true, tone: Math.round(paper * 0.42) });
 
 /**
  * Every field a page sets, written once.

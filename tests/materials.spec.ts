@@ -447,7 +447,7 @@ test.fixme('dealing a page leaves a rung set by hand alone, and moves one that w
  * only that the function equals itself.
  */
 const floorOf = (page: { paper: number; ground?: { tone: number } }) =>
-  page.ground ? page.ground.tone : Math.round(page.paper * 0.62);
+  page.ground ? page.ground.tone : Math.round(page.paper * 0.42);
 
 /**
  * Drag the floor control, which is not a Scrub and so is not `drag`'s business.
