@@ -42,10 +42,26 @@ import { endTour, nextStep, STEPS, useTourStep, type Gate, type TourStep } from 
  * is off entirely under prefers-reduced-motion, and it is gone the moment the
  * step is satisfied.
  *
- * NO SCRIM, EVER. Every step here needs the viewer to touch the thing
- * underneath it, and this app has no scrims by policy: a dimming layer over a
- * live WebGL canvas either blurs - resampling the whole frame on the device
- * this actually runs on - or hides the drawing the step is about.
+ * AND THE REST OF THE SCREEN IS DIMMED, WHICH THIS FILE USED TO FORBID.
+ *
+ * The old rule was "no scrim, ever", and its reasoning was sound about the
+ * thing it was arguing against: a dimming layer over a live WebGL canvas
+ * either blurs - resampling the whole frame, on the device this actually runs
+ * on - or hides the drawing the step is about. Both are true of a scrim laid
+ * flat over everything, and neither is true of this one. It is a plain fill
+ * with A HOLE CUT IN IT: no filter, no blur, one masked rect; and the hole is
+ * exactly the thing the card is pointing at, so the one part of the picture
+ * the step is about is the one part at full strength.
+ *
+ * What it buys is the whole difficulty this overlay has: the card is pinned to
+ * the top of the screen and the control it names is a small round button among
+ * twenty other small round buttons at the bottom. A ring and a dotted line are
+ * a lot to ask of peripheral vision. Everything else going quiet is not.
+ *
+ * ONLY WHEN THERE IS SOMETHING TO POINT AT. The first card says "drag the
+ * picture" and the eighth says "draw a box on the floor" - the whole frame is
+ * the subject on both, and dimming it would be dimming the lesson. A step with
+ * no ring and no marked zone gets no scrim.
  *
  * IT NEVER TOUCHES THE SLOT. No panel is opened, none is closed, no instrument
  * is armed and nothing is written to the scene. Every card ends because the
@@ -59,15 +75,53 @@ const STICK_FRACTION = 0.45;
 const ACCENT = 'rgb(14 165 233)';
 
 /**
- * The footprint stroke of the block-out glyph, and the way its head is turned.
+ * THE BLOCK-OUT DIAGRAM: the box the two strokes make, and the two strokes.
  *
- * A fixed run rather than a fraction of the window: it is a diagram of a
- * gesture, not a target to hit, and one that stretched with the viewport would
- * be a hand-span on a phone and a stride on a desktop for no reason. Down and
- * to the right, because that is a footprint running away from the eye on a
- * floor drawn in perspective.
+ * It used to be the two strokes ALONE - an arrow down and to the right, an
+ * arrow up, a 1 and a 2 - floating over empty floor. Every one of those marks
+ * was accurate and the picture taught nothing: two arrows in a corner of the
+ * frame are a diagram of a hand moving, and what the viewer needs to know is
+ * what the hand PRODUCES. Nothing on the card said the first drag makes a
+ * rectangle on the floor rather than a line, or that the second one stands
+ * that rectangle up.
+ *
+ * So the box is drawn, faintly, under its own two strokes: drag one is the
+ * DIAGONAL of a footprint, and the footprint appears around it; drag two
+ * raises the walls. The gesture reads off the picture even with the numbers
+ * covered by a thumb.
+ *
+ * `e1` and `e2` are the two floor directions - one running away to the right,
+ * one coming toward the eye - so the footprint is a parallelogram rather than
+ * a rectangle: a rectangle on a floor drawn in perspective is a parallelogram,
+ * and drawing it square would be the one diagram in a perspective tool that
+ * ignores perspective. Their sum is the drag, which is what makes the diagonal
+ * the diagonal.
+ *
+ * Fixed pixels rather than a fraction of the window: it is a picture, not a
+ * target to hit, and one that stretched with the viewport would be a hand-span
+ * on a phone and a stride on a desktop for no reason.
  */
-const DRAG = { x: 86, y: 40, deg: (Math.atan2(40, 86) * 180) / Math.PI };
+const BLOCK = (() => {
+  const e1 = { x: 62, y: 10 };
+  const e2 = { x: 24, y: 30 };
+  const height = 46;
+  const foot = [
+    { x: 0, y: 0 },
+    e1,
+    { x: e1.x + e2.x, y: e1.y + e2.y },
+    e2,
+  ];
+  return {
+    height,
+    foot,
+    /** The far corner: where the first stroke ends and the second begins. */
+    to: foot[2],
+    /** Turned to lie along the drag, so the head does not disagree with it. */
+    deg: (Math.atan2(e1.y + e2.y, e1.x + e2.x) * 180) / Math.PI,
+    path: (offset: number) =>
+      foot.map((c, at) => `${at ? 'L' : 'M'} ${c.x} ${c.y + offset}`).join(' ') + ' Z',
+  };
+})();
 
 /**
  * Which way the viewer is facing, read off the pair a look-drag actually
@@ -100,10 +154,30 @@ interface Sighting {
   radius: number;
   /** Where the card actually ends, so the line leaves it rather than near it. */
   cardBottom: number;
+  /**
+   * Whether the ring is on the step's second choice, so the card can say the
+   * other sentence. See `fallbackBody` in lib/tour.ts.
+   */
+  usingFallback: boolean;
+  /**
+   * The top of the dock, so the walk zone can be drawn where a drag actually
+   * walks. The quadrant runs to the bottom of the window and the dock sits in
+   * the last of it taking every pointer that lands there - so a dashed box
+   * drawn to the window's edge invites a drag on the toolbar, which walks
+   * nobody anywhere. Zero when the dock cannot be found.
+   */
+  dockTop: number;
   done: boolean;
 }
 
-const NOTHING: Sighting = { rect: null, radius: 0, cardBottom: 0, done: false };
+const NOTHING: Sighting = {
+  rect: null,
+  radius: 0,
+  cardBottom: 0,
+  usingFallback: false,
+  dockTop: 0,
+  done: false,
+};
 
 export const Tour: React.FC = () => {
   const step = useTourStep();
@@ -266,8 +340,13 @@ export const Tour: React.FC = () => {
       if (!live) return;
       let rect: DOMRect | null = null;
       let radius = 0;
+      let usingFallback = false;
       if (current.anchor) {
-        const el = find(current.anchor) ?? (current.fallbackAnchor ? find(current.fallbackAnchor) : null);
+        let el = find(current.anchor);
+        if (!el && current.fallbackAnchor) {
+          el = find(current.fallbackAnchor);
+          usingFallback = el !== null;
+        }
         if (el) {
           rect = el.getBoundingClientRect();
           radius = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0;
@@ -282,6 +361,12 @@ export const Tour: React.FC = () => {
       // under the card or begins inside it, and both read as two marks rather
       // than one.
       const cardBottom = card.current ? card.current.getBoundingClientRect().bottom + 6 : 0;
+      // Measured off the dock's own row rather than assumed from a rem value:
+      // the row is one bar in portrait and two corner clusters in landscape,
+      // it grows a second bar whenever something is selected, and every one of
+      // those numbers moves with the safe area. Asked of the button that is
+      // always in it, since that is the same lookup everything else here uses.
+      const dockTop = current.markWalkZone ? find('Tools')?.getBoundingClientRect().top ?? 0 : 0;
       const done = passed(current.gate);
       setSighting((was) =>
         // Same picture, same object: setState with a fresh object every frame
@@ -291,9 +376,11 @@ export const Tour: React.FC = () => {
         was.rect?.width === rect?.width &&
         was.radius === radius &&
         was.cardBottom === cardBottom &&
+        was.usingFallback === usingFallback &&
+        was.dockTop === dockTop &&
         was.done === done
           ? was
-          : { rect, radius, cardBottom, done }
+          : { rect, radius, cardBottom, usingFallback, dockTop, done }
       );
       requestAnimationFrame(tick);
     };
@@ -338,7 +425,7 @@ export const Tour: React.FC = () => {
     dark ? 'border-white/20 text-white/75' : 'border-black/15 text-black/60'
   }`;
 
-  const { rect, radius, cardBottom, done } = sighting;
+  const { rect, radius, cardBottom, usingFallback, dockTop, done } = sighting;
   /*
    * Where the line from the card lands.
    *
@@ -348,12 +435,40 @@ export const Tour: React.FC = () => {
    * pinned to the top band and the other is along the bottom.
    */
   const target = rect ? { x: rect.left + rect.width / 2, y: rect.top - 6 } : null;
+  /*
+   * The stick quadrant, drawn where a drag actually walks.
+   *
+   * Its top and its left edge are `isStickZone` exactly - measured off
+   * window.innerWidth/innerHeight, which is literally what that function reads;
+   * in dvh it would drift as iOS collapses its toolbar, and a mark that lies
+   * about where the stick is is worse than no mark.
+   *
+   * ITS BOTTOM IS THE TOP OF THE DOCK, and that is not a departure from the
+   * quadrant - it is the honest half of it. The zone genuinely reaches the
+   * bottom of the window, and the bottom of the window is where the toolbar
+   * is: a pointer that lands there is the dock's, so the last eighty pixels of
+   * the box the tour was drawing were eighty pixels in which doing what the
+   * card said did nothing at all. The card is teaching a gesture, so it marks
+   * the part of the floor the gesture works on.
+   */
+  const walkBottom = (dockTop > 0 ? dockTop - 12 : frame.h - 16);
   const walkZone = {
     x: 8,
     y: frame.h * STICK_FRACTION + 8,
     w: frame.w * STICK_FRACTION - 16,
-    h: frame.h * (1 - STICK_FRACTION) - 16,
+    h: Math.max(96, walkBottom - (frame.h * STICK_FRACTION + 8)),
   };
+
+  /*
+   * The hole in the dim: whatever this card is pointing at, and nothing on a
+   * card that points at the whole picture. Padded past the ring so the ring
+   * itself stands in clear light rather than on the edge of the shadow.
+   */
+  const spot = rect
+    ? { x: rect.left - 12, y: rect.top - 12, w: rect.width + 24, h: rect.height + 24, r: radius + 12 }
+    : current.markWalkZone
+      ? { x: walkZone.x - 6, y: walkZone.y - 6, w: walkZone.w + 12, h: walkZone.h + 12, r: 20 }
+      : null;
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none" data-tour>
@@ -380,6 +495,54 @@ export const Tour: React.FC = () => {
             .tour-tap { opacity: .35 }
           }
         `}</style>
+
+        {/*
+          * THE DIM, WITH THE TARGET CUT OUT OF IT.
+          *
+          * One rect over the window and one rect knocked out of it through a
+          * mask: white in a mask paints, black hides, so the second rect is
+          * the hole. No filter and no blur - see the note at the head of this
+          * file for why that distinction is the whole of the old no-scrim
+          * rule.
+          *
+          * It fades rather than appearing, and it fades most of the way out
+          * once the step is done: the moment the viewer has made the gesture,
+          * the drawing is the subject again and the tour is on its way to the
+          * next card.
+          *
+          * Not quite black on either theme. Over white paper a black veil is
+          * grey paper; over the black page it mutes white ink to grey, which
+          * is the same statement made the other way round. The dark page needs
+          * more of it, having less to lose.
+          */}
+        {spot && (
+          <>
+            <defs>
+              <mask id="tour-spot">
+                <rect x={0} y={0} width={frame.w} height={frame.h} fill="white" />
+                <rect
+                  x={spot.x}
+                  y={spot.y}
+                  width={spot.w}
+                  height={spot.h}
+                  rx={spot.r}
+                  fill="black"
+                  style={{ transition: 'all 200ms' }}
+                />
+              </mask>
+            </defs>
+            <rect
+              x={0}
+              y={0}
+              width={frame.w}
+              height={frame.h}
+              fill="black"
+              opacity={done ? 0.12 : dark ? 0.52 : 0.42}
+              mask="url(#tour-spot)"
+              style={{ transition: 'opacity 300ms' }}
+            />
+          </>
+        )}
 
         {/* THE LINE. From under the card down to the ring, and a dot where it
             lands, so the eye is delivered rather than pointed. */}
@@ -506,39 +669,64 @@ export const Tour: React.FC = () => {
             and clear of the dock. The same place the harness draws its box, and
             for the same reasons. */}
         {!done && current.gesture === 'blockOut' && (
-          <g transform={`translate(${frame.w * 0.5} ${frame.h * 0.66})`} opacity={0.9}>
-            {/* One: the footprint, dragged out across the floor. The head is
+          <g
+            transform={`translate(${frame.w * 0.5 - BLOCK.to.x / 2} ${
+              frame.h * 0.66 - (BLOCK.to.y - BLOCK.height) / 2
+            })`}
+          >
+            {/* THE BOX THE STROKES MAKE, under the strokes that make it. The
+                footprint the first drag lays, then the four walls and the top
+                the second one raises - faint, because it is the outcome and
+                not the instruction. */}
+            <g opacity={0.5}>
+              <path d={BLOCK.path(0)} fill="currentColor" fillOpacity={0.12} stroke="currentColor" strokeWidth={1.5} />
+              <path d={BLOCK.path(-BLOCK.height)} fill="none" stroke="currentColor" strokeWidth={1.5} />
+              {BLOCK.foot.map((corner) => (
+                <path
+                  key={`${corner.x},${corner.y}`}
+                  d={`M ${corner.x} ${corner.y} L ${corner.x} ${corner.y - BLOCK.height}`}
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  fill="none"
+                />
+              ))}
+            </g>
+
+            {/* One: the diagonal, dragged out across the floor. The head is
                 turned to lie along the stroke - an arrowhead drawn as a fixed
                 little triangle points wherever it was authored, which on a
                 sloping run is a second arrow disagreeing with the first. */}
             <path
               className="tour-run"
-              d={`M 0 0 L ${DRAG.x} ${DRAG.y}`}
+              d={`M 0 0 L ${BLOCK.to.x} ${BLOCK.to.y}`}
               stroke="currentColor"
               strokeWidth={2}
               strokeDasharray="6 6"
               strokeLinecap="round"
               fill="none"
             />
-            <g transform={`translate(${DRAG.x} ${DRAG.y}) rotate(${DRAG.deg})`}>
+            <g transform={`translate(${BLOCK.to.x} ${BLOCK.to.y}) rotate(${BLOCK.deg})`}>
               <path d="M 0 0 l -9 -6 v 12 z" fill="currentColor" />
             </g>
-            <text x={0} y={-10} fill="currentColor" fontSize={13} fontWeight={700} textAnchor="middle">
+            <text x={2} y={16} fill="currentColor" fontSize={13} fontWeight={700} textAnchor="middle">
               1
             </text>
-            {/* Two: the height, pulled straight up from where the first ended. */}
-            <g transform={`translate(${DRAG.x} ${DRAG.y})`}>
+
+            {/* Two: the height, pulled straight up from where the first ended -
+                along the near corner, which is the edge the drag is actually
+                lengthening. */}
+            <g transform={`translate(${BLOCK.to.x} ${BLOCK.to.y})`}>
               <path
                 className="tour-run"
-                d="M 0 0 L 0 -56"
+                d={`M 0 0 L 0 ${-BLOCK.height - 14}`}
                 stroke="currentColor"
                 strokeWidth={2}
                 strokeDasharray="6 6"
                 strokeLinecap="round"
                 fill="none"
               />
-              <path d="M 0 -56 l -6 9 h 12 z" fill="currentColor" />
-              <text x={14} y={-34} fill="currentColor" fontSize={13} fontWeight={700}>
+              <path d={`M 0 ${-BLOCK.height - 14} l -6 9 h 12 z`} fill="currentColor" />
+              <text x={12} y={-BLOCK.height + 4} fill="currentColor" fontSize={13} fontWeight={700}>
                 2
               </text>
             </g>
@@ -556,7 +744,12 @@ export const Tour: React.FC = () => {
         className={`absolute top-safe-panel x-safe-panel inset-x-0 mx-auto max-w-[26rem] [@media(max-height:560px)]:mx-0 [@media(max-height:560px)]:mr-auto [@media(max-height:560px)]:max-w-[20rem] rounded-[1.125rem] border p-3 pointer-events-none ${chrome(dark)}`}
       >
         <div className="text-xs font-bold uppercase tracking-wide opacity-60">{current.headline}</div>
-        <div className="text-sm leading-snug mt-1">{current.body}</div>
+        {/* The sentence that is true right now: a step whose ring has fallen
+            back to the button that OPENS the thing it wanted says so, rather
+            than naming a control nobody can currently see. */}
+        <div className="text-sm leading-snug mt-1">
+          {(usingFallback && current.fallbackBody) || current.body}
+        </div>
         <div className="flex items-center justify-between mt-2">
           {/* Same place, same size, every card, from the first frame. The
               labels are what the viewer reads; the aria-labels are the names

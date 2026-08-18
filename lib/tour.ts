@@ -103,6 +103,21 @@ export interface TourStep {
   fallbackAnchor?: string;
   headline: string;
   body: string;
+  /**
+   * What to say while the ring is on the fallback, because the two are not the
+   * same instruction.
+   *
+   * THE CARD USED TO LIE HERE. The step about dealing a page says "trykk
+   * terningen" and rings the dice - which lives inside the tools panel, so
+   * the moment that panel is shut the ring falls back to the button that opens
+   * it and the viewer is looking at a sentence about a dice with a circle
+   * round three sliders. Nothing on screen resolves that, and the panel shuts
+   * easily: any tap on the drawing puts it away.
+   *
+   * So a step whose ring can move says the other thing too. Same card, same
+   * place, one sentence swapped for the sentence that is true right now.
+   */
+  fallbackBody?: string;
   /** What the viewer must do. Absent on the card that ends the tour. */
   gate?: Gate;
   /** How they do it, drawn over the anchor. */
@@ -180,6 +195,7 @@ export const STEPS: TourStep[] = [
     gesture: 'tap',
     headline: 'Del ut ei side',
     body: 'Trykk terningen. Flate, papir, lys og penn skifter under eitt — trykk igjen for ei ny.',
+    fallbackBody: 'Verktøya lukka seg. Trykk dei tre skyvarane igjen, så terningen inne i panelet.',
   },
   {
     anchor: 'Add model',
@@ -203,6 +219,7 @@ export const STEPS: TourStep[] = [
     gesture: 'tap',
     headline: 'Ta blyanten',
     body: 'Trykk blyanten ved sida av kuben. Hylla legg seg bort med det same.',
+    fallbackBody: 'Hylla er lukka. Trykk kuben, så blyanten som står ved sida av han.',
   },
   {
     anchor: null,
