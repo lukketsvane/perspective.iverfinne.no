@@ -585,6 +585,16 @@ you place it and faintest out where it would otherwise cross the drawing.
 The control on the dock is one number — how much of the world the sheet holds,
 from a long lens to past a full turn — and the frame decides the shape of it.
 
+**The cone glyph is blue while the field is inside sight, and plain past it.**
+About 210° is what a pair of eyes actually takes in, and everything beyond that
+is honest curvilinear drawing of a world nobody can see all of at once. Those
+two states are a digit apart to look at — 210 and 270 read the same in a bubble
+that is only up while a thumb is down — so the one accent this app has says
+which side of realism you are on, at rest, without a word on screen. The number
+lives in one place (`HUMAN_SIGHT` in `lib/projection.ts`): the glyph marks it,
+the human rung of the reach clamps to it, and the migration that decides which
+rung a stored field belongs to reads it.
+
 How far that number may open is a ladder of its own, in the panel: **human
 sight** stops the drag at 210°, about what two eyes cover, so the whole throw
 of the control is spent inside what a standing person could actually see;
