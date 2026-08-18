@@ -965,6 +965,8 @@ export interface SceneState {
   toggleCompanion: (id: string) => void;
   /** Everything in hand, out of the scene, in one step back. */
   removeSelection: () => void;
+  /** Copy everything in hand, offset beside the originals, and hold the copies. */
+  duplicateSelection: () => void;
   /** The same height off the floor for everything in hand. */
   liftSelection: (metres: number) => void;
   /** One axis of every box in hand, to the same metres. */

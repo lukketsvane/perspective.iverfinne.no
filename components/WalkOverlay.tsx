@@ -17,6 +17,7 @@ import { quickLookAvailable, sceneToUSDZ, openInQuickLook, downloadUSDZ } from '
 import { whileWorking } from '../lib/activity';
 import { ACTIVE, bubble, chrome, iconButton, SIDEWAYS_SLOT } from './ui';
 import { pickGround, pickObject, pixelsPerMetreAt } from '../lib/pick';
+import { focusPoint } from '../lib/focus';
 import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
 import { HUMAN_SIGHT, MAX_FIELD, wholeSheetField } from '../lib/projection';
@@ -1626,7 +1627,19 @@ export const WalkOverlay: React.FC<{
           <button
             onClick={() => whileWorking(async () => {
               const { boxes, models } = useStore.getState();
-              const file = await sceneToUSDZ(boxes, models);
+              /*
+               * Preserve what the press means: the point under the middle of
+               * the canvas becomes Quick Look's placement origin. Prefer the
+               * visible form itself; if the ray misses one, use the floor it
+               * meets. Looking level has no floor intersection, so the live
+               * gaze point remains the final, bounded fallback.
+               */
+              const centreX = window.innerWidth / 2;
+              const centreY = window.innerHeight / 2;
+              const ahead = pickObject(centreX, centreY)?.point
+                ?? pickGround(centreX, centreY)
+                ?? focusPoint;
+              const file = await sceneToUSDZ(boxes, models, { x: ahead.x, z: ahead.z });
               const name = `perspective-scene-${new Date().toISOString().slice(0, 10)}.usdz`;
               if (inRoom) openInQuickLook(file, name);
               else downloadUSDZ(file, name);
