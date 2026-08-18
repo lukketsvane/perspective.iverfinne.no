@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { useStore } from '../store';
+import type { HeldRow } from '../types';
 import { pickGround, pickObject, project, screenReach } from './pick';
 
 /**
@@ -27,6 +28,40 @@ export interface Grab {
 
 /** Each pixel of upward drag raises what is held by this much. */
 const LIFT_RATE = 0.02;
+
+/**
+ * Where everything else in the hand stood when the gesture began.
+ *
+ * Taken ONCE, at the start, and handed back on every frame with the primary's
+ * own delta - see `carryCompanions` in store.ts for why a snapshot beats a
+ * per-frame nudge. Anything in the list that is no longer in the scene simply
+ * does not appear here, which is what makes an id list safe to hold onto.
+ */
+const heldWithIt = (): HeldRow[] => {
+  const { companions, boxes, models, lamps } = useStore.getState();
+  return companions.flatMap((id) => {
+    const box = boxes.find((b) => b.id === id);
+    if (box)
+      return [{
+        id,
+        position: [...box.position] as [number, number, number],
+        turn: box.rotation[1],
+        boxScale: [...box.scale] as [number, number, number],
+      }];
+    const model = models.find((m) => m.id === id);
+    if (model)
+      return [{
+        id,
+        position: [...model.position] as [number, number, number],
+        turn: model.rotationY,
+        modelScale: model.scale,
+      }];
+    const lamp = lamps.find((l) => l.id === id);
+    if (lamp)
+      return [{ id, position: [...lamp.position] as [number, number, number], turn: lamp.aim }];
+    return [];
+  });
+};
 
 /** Smallest a box may be pushed down to, whatever the snap is set to. */
 const MIN_BOX_DIM = 0.1;
@@ -119,6 +154,26 @@ const carry = (
   const plane = start[1];
   const grabbed = pickGround(clientX, clientY, plane) ?? new THREE.Vector3(start[0], plane, start[2]);
   const commit = once();
+  const others = heldWithIt();
+
+  /*
+   * The hand travels together, by the PRIMARY'S snapped delta.
+   *
+   * Snapped once, on the thing under the finger, rather than each of them
+   * snapping to the grid on its own: four objects placed against each other
+   * are an arrangement, and an arrangement re-snapped per object is an
+   * arrangement pulled apart by the act of moving it. The one under the finger
+   * lands on the ruling; the rest keep their offsets from it exactly.
+   */
+  const carryRest = (position: [number, number, number]) =>
+    useStore
+      .getState()
+      .carryCompanions(
+        others,
+        [position[0] - start[0], position[1] - start[1], position[2] - start[2]],
+        0,
+        1
+      );
 
   return {
     move: (x, y, lift) => {
@@ -126,13 +181,21 @@ const carry = (
       if (lift) {
         commit();
         const risen = snap(start[1] + (startY - y) * LIFT_RATE);
-        write([start[0], Math.max(held.floor, risen), start[2]]);
+        const to: [number, number, number] = [start[0], Math.max(held.floor, risen), start[2]];
+        write(to);
+        carryRest(to);
         return;
       }
       const now = pickGround(x, y, plane);
       if (!now) return;
       commit();
-      write([snap(start[0] + now.x - grabbed.x), start[1], snap(start[2] + now.z - grabbed.z)]);
+      const to: [number, number, number] = [
+        snap(start[0] + now.x - grabbed.x),
+        start[1],
+        snap(start[2] + now.z - grabbed.z),
+      ];
+      write(to);
+      carryRest(to);
     },
     end: () => undefined,
   };
@@ -317,6 +380,7 @@ export const pinchOn = (ax: number, ay: number, bx: number, by: number): Pinch |
   const plane = startPosition[1];
   const grabbed = pickGround((ax + bx) / 2, (ay + by) / 2, plane);
   const commit = once();
+  const others = heldWithIt();
 
   return {
     move: (nax, nay, nbx, nby) => {
@@ -348,6 +412,27 @@ export const pinchOn = (ax: number, ay: number, bx: number, by: number): Pinch |
         position[2] = snap(startPosition[2] + now.z - grabbed.z);
       }
 
+      /*
+       * Everything else in the hand takes the same three readings.
+       *
+       * The turn and the growth are the gesture's own numbers, so a hand of
+       * four ends up turned by the same angle and grown by the same factor -
+       * each about itself. The slide is the primary's, measured from where it
+       * started, so the arrangement holds its shape.
+       */
+      const slide: [number, number, number] = [
+        position[0] - startPosition[0],
+        position[1] - startPosition[1],
+        position[2] - startPosition[2],
+      ];
+      // Taken BEFORE the box branch below lifts `position[1]` to keep the
+      // primary standing on its base: that correction is the primary's own
+      // height changing, and every companion works out its own inside
+      // carryCompanions. Read afterwards, a box grown to twice its height
+      // would have lifted the whole hand by half of its OWN growth.
+      const carryRest = () =>
+        useStore.getState().carryCompanions(others, slide, -turned, grown);
+
       if (box) {
         const scale = (startSize as [number, number, number]).map((side) =>
           Math.max(MIN_BOX_DIM, side * grown)
@@ -359,6 +444,7 @@ export const pinchOn = (ax: number, ay: number, bx: number, by: number): Pinch |
           position,
           rotation: [box.rotation[0], startTurn - turned, box.rotation[2]],
         });
+        carryRest();
         return;
       }
 
@@ -367,6 +453,7 @@ export const pinchOn = (ax: number, ay: number, bx: number, by: number): Pinch |
         rotationY: startTurn - turned,
         scale: THREE.MathUtils.clamp((startSize as number) * grown, 0.02, 50),
       });
+      carryRest();
     },
     end: () => undefined,
   };

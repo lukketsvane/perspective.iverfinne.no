@@ -624,6 +624,25 @@ export interface MaterialSettings {
   wash: WashState;
 }
 
+/**
+ * Where one thing in the hand stood when a gesture began.
+ *
+ * Kind-agnostic on purpose: a box turns on `rotation[1]` and sizes on three
+ * sides, a mesh turns on `rotationY` and sizes on one factor, and a lamp does
+ * neither - so the snapshot carries whichever of those the thing has and the
+ * store puts back whichever it can use.
+ */
+export interface HeldRow {
+  id: string;
+  position: [number, number, number];
+  /** Its bearing: a box's Y rotation, a mesh's rotationY, a lamp's aim. */
+  turn: number;
+  /** A box's three sides. */
+  boxScale?: [number, number, number];
+  /** A mesh's single factor. */
+  modelScale?: number;
+}
+
 export interface HatchState {
   /** Which way the first layer runs, in degrees. */
   angle: number;
@@ -878,6 +897,20 @@ export interface SceneState {
   /** The saved scene last opened or written, so the library can mark it. */
   currentSceneId: string | null;
   sceneHistory: SavedScene[];
+  /**
+   * Everything picked up ALONGSIDE the primary, by long press.
+   *
+   * Ids of boxes, meshes and lamps mixed together, because that is what the
+   * gesture knows: the picker answers with an id, and which of the three lists
+   * it belongs to is three lookups away. It also means an id that has been
+   * deleted, undone away or loaded over is simply not found by anything that
+   * reads this - which is what every reader wants and none of them has to
+   * write.
+   *
+   * The three `selected...` fields above still hold the ONE that a drag moves
+   * and that the bar reads its numbers from. This is the rest of the hand.
+   */
+  companions: string[];
   /** Meshes the viewer has imported and kept, listed beside the built-in three. */
   ownMeshes: OwnMesh[];
   lamps: LampData[];
@@ -901,6 +934,33 @@ export interface SceneState {
    */
   standObject: (model: Omit<SceneModel, 'id'>) => void;
   selectBox: (id: string | null) => void;
+  /** Long press: take another thing into the hand, or put that one back down. */
+  toggleCompanion: (id: string) => void;
+  /** Everything in hand, out of the scene, in one step back. */
+  removeSelection: () => void;
+  /** The same height off the floor for everything in hand. */
+  liftSelection: (metres: number) => void;
+  /** One axis of every box in hand, to the same metres. */
+  sizeSelection: (axis: 0 | 1 | 2, metres: number) => void;
+  /** Every mesh in hand to the same real height, each scaled by its own size. */
+  heightSelection: (metres: number) => void;
+  /** Turn everything in hand by the same step, each about its own centre. */
+  turnSelection: (step: number) => void;
+  /**
+   * Carry the rest of the hand along with the primary, by the same amounts.
+   *
+   * The gesture snapshots where everything stood when the finger landed and
+   * hands that back on every frame with one move, one turn and one growth
+   * factor - so the arrangement holds its shape however far the drag wanders,
+   * which is the one thing a per-frame relative nudge cannot promise: dropped
+   * frames and clamped values both make it drift.
+   */
+  carryCompanions: (
+    from: HeldRow[],
+    move: [number, number, number],
+    turn: number,
+    grow: number
+  ) => void;
   setLens: (fov: number) => void;
   setPerspectiveMode: (mode: PerspectiveMode) => void;
   setCameraHeight: (height: number) => void;
