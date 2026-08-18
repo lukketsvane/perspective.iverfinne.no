@@ -286,8 +286,8 @@ export const SelectionBar: React.FC<{
   const theme = useStore((s) => s.theme);
   const boxes = useStore((s) => s.boxes);
   const models = useStore((s) => s.models);
-  const showVanishing = useStore((s) => s.showVanishing);
-  const toggleVanishing = useStore((s) => s.toggleVanishing);
+  const selectionGuides = useStore((s) => s.selectionGuides);
+  const cycleSelectionGuides = useStore((s) => s.cycleSelectionGuides);
   const selectedId = useStore((s) => s.selectedId);
   const selectedModelId = useStore((s) => s.selectedModelId);
   const beginChange = useStore((s) => s.beginChange);
@@ -575,13 +575,34 @@ export const SelectionBar: React.FC<{
           * than three through a panel that covers it, and it costs the panel a
           * seat in its widest band.
           */}
+        {/*
+          * A LADDER RATHER THAN A SWITCH, and the rungs are a sequence somebody
+          * actually works through: the rays out to this thing's own points,
+          * then the rectangle it stands on with the diagonals that find the
+          * centre of it, then that rectangle divided in four.
+          *
+          * The diagonals are why the order is this way round. Halving a
+          * receding rectangle by eye is guesswork and the guess is always too
+          * far off; halving it by its own diagonals is exact, needs no
+          * measurement, and holds at any angle on any of these sheets. The tool
+          * could say where a thing's points were and had nothing to say about
+          * dividing the span between them, which is most of what a viewer is
+          * doing when they place the second chair along a table.
+          *
+          * The glyph is the rung, like every other cycle in this app.
+          */}
         <button
-          onClick={toggleVanishing}
-          aria-label="The selection's own vanishing points"
-          aria-pressed={showVanishing}
-          className={`${button} ${showVanishing ? (isDark ? 'bg-white/10' : 'bg-black/10') : ''}`}
+          onClick={cycleSelectionGuides}
+          aria-label={`Construction on this one: ${
+            ['none', 'its own vanishing points', 'the floor under it, halved', 'the floor under it, in four'][selectionGuides]
+          }`}
+          aria-pressed={selectionGuides > 0}
+          className={`${button} ${selectionGuides ? (isDark ? 'bg-white/10' : 'bg-black/10') : ''}`}
         >
-          <Icon path={I.vanishing} className="w-5 h-5" />
+          <Icon
+            path={selectionGuides === 3 ? I.divideFour : selectionGuides === 2 ? I.divideHalf : I.vanishing}
+            className="w-5 h-5"
+          />
         </button>
 
         {onMaterial && surfaceHasSettings(surface) && (

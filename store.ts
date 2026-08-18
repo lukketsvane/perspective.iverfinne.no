@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
+import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, SelectionGuide, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
 import { releaseSource, cachedSourceUrls, loadModelFromUrl } from './lib/loadModel';
 import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
@@ -490,7 +490,7 @@ const SETTING_KEYS = [
   'ground',
   'roomLevel',
   'room',
-  'showVanishing',
+  'selectionGuides',
   'fov',
   'snapStep',
   'surface',
@@ -536,7 +536,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   ground: object,
   roomLevel: number,
   room: object,
-  showVanishing: boolean,
+  selectionGuides: (v) => v === 0 || v === 1 || v === 2 || v === 3,
   fov: number,
   snapStep: number,
   surface: (v) => SURFACES.includes(v as Surface),
@@ -926,7 +926,7 @@ export const currentView = (state: SceneState): SceneView => ({
   ground: { ...state.ground },
   roomLevel: state.roomLevel,
   room: { ...state.room },
-  showVanishing: state.showVanishing,
+  selectionGuides: state.selectionGuides,
   snapStep: state.snapStep,
   camera: {
     x: walkInput.position.x,
@@ -1027,7 +1027,8 @@ const restoreView = (view: SceneView | undefined, range: FieldRange): Partial<Sc
     ground: { ...DEFAULT_GROUND, ...(view.ground ?? {}) },
     roomLevel: readRoomLevel(view.roomLevel ?? view.showRoom),
     room: readRoom(view.room),
-    showVanishing: view.showVanishing ?? true,
+    // A stored boolean is the rung it used to mean: on was the rays.
+    selectionGuides: view.selectionGuides ?? (view.showVanishing === false ? 0 : 1),
     snapStep: view.snapStep ?? 0.25,
   };
 };
@@ -1062,7 +1063,7 @@ export const useStore = create<SceneState>((set, get) => ({
   fieldRange: 'human',
   roomLevel: 0,
   room: DEFAULT_ROOM,
-  showVanishing: true,
+  selectionGuides: 1,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   models: [],
   selectedModelId: null,
@@ -1958,7 +1959,8 @@ export const useStore = create<SceneState>((set, get) => ({
 
   cycleRoom: () => set((state) => ({ roomLevel: ((state.roomLevel + 1) % 3) as RoomLevel })),
 
-  toggleVanishing: () => set((state) => ({ showVanishing: !state.showVanishing })),
+  cycleSelectionGuides: () =>
+    set((state) => ({ selectionGuides: (((state.selectionGuides + 1) % 4) as SelectionGuide) })),
 
   /**
    * Size it.

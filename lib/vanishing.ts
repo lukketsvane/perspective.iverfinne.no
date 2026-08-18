@@ -68,7 +68,19 @@ export const vanishing: {
    * for the selection's. These are the same kind of thing.
    */
   room: VanishingPoint[];
-} = { nonce: 0, points: [], curves: [], room: [] };
+  /**
+   * The construction ON the thing rather than the rays off it: the rectangle
+   * it stands on, its diagonals, and the lines that quarter it.
+   *
+   * Kept apart from `curves` because they are a different kind of mark and are
+   * drawn as one - a ray is a straight edge carried to a point half a screen
+   * away and fades as it goes, while these are short lines lying on a surface
+   * and want one even weight. Same sampling either way: a straight line on a
+   * curved sheet is not straight, and the only honest way to draw one is to
+   * ask the projection about it in a dozen places.
+   */
+  divisions: Curve[];
+} = { nonce: 0, points: [], curves: [], room: [], divisions: [] };
 
 /** The six directions a room's edges run along. */
 const ROOM_AXES = [
@@ -143,10 +155,57 @@ const drawnFor = { key: '' };
 
 export const clearVanishing = () => {
   drawnFor.key = '';
-  if (vanishing.points.length === 0 && vanishing.curves.length === 0) return;
+  if (
+    vanishing.points.length === 0 &&
+    vanishing.curves.length === 0 &&
+    vanishing.divisions.length === 0
+  ) {
+    return;
+  }
   vanishing.points = [];
   vanishing.curves = [];
+  vanishing.divisions = [];
   vanishing.nonce += 1;
+};
+
+/**
+ * A straight line in the WORLD, between two places, drawn as it really lands.
+ *
+ * `carry` above runs a ray out to a vanishing point; this is its finite
+ * cousin, and it exists for the same reason the ray is sampled rather than
+ * drawn as a segment between two projected ends: on any of the curved sheets
+ * here, the image of a straight line is an arc. Two ends and a straight stroke
+ * between them would be a chord across it, and at the fields this tool opens on
+ * that chord can miss the middle of the line by a third of the frame.
+ *
+ * Eight samples. These are short - a side or a diagonal of one object's
+ * footprint - so the arc across one of them is gentle, and every sample is a
+ * projection on the main thread.
+ */
+const SPAN_SAMPLES = 8;
+
+const spanPoint = new THREE.Vector3();
+
+const span = (from: THREE.Vector3, to: THREE.Vector3): Curve[] => {
+  const pieces: Curve[] = [];
+  let run: Curve = [];
+  const cut = () => {
+    if (run.length > 1) pieces.push(run);
+    run = [];
+  };
+  for (let i = 0; i <= SPAN_SAMPLES; i++) {
+    spanPoint.lerpVectors(from, to, i / SPAN_SAMPLES);
+    const at = project(spanPoint);
+    if (!at) {
+      cut();
+      continue;
+    }
+    const last = run[run.length - 1];
+    if (last && Math.hypot(at.x - last[0], at.y - last[1]) > BREAK) cut();
+    run.push([at.x, at.y]);
+  }
+  cut();
+  return pieces;
 };
 
 /**
@@ -191,8 +250,26 @@ const carry = (from: THREE.Vector3, along: THREE.Vector3, scale: number): Curve[
   return pieces;
 };
 
-/** Recompute the overlay for one box. */
-export const updateVanishing = (camera: THREE.Camera, mode: PerspectiveMode, box: VanishingBox) => {
+/**
+ * Recompute the overlay for one box.
+ *
+ * `level` is the rung of the selection's own construction: 1 is the rays to
+ * its points, 2 adds the rectangle it stands on and the diagonals that FIND
+ * the centre of that rectangle in perspective, and 3 adds the two lines
+ * through that centre - the floor under the thing, divided in four.
+ *
+ * The diagonals are the whole reason the rungs are in that order. Halving a
+ * receding rectangle by eye is guesswork and the answer is always too far
+ * away; halving it by its own diagonals is exact, needs no measurement, and
+ * works at any angle on any sheet. It is the first construction anybody is
+ * taught and the one this tool can show being true rather than assert.
+ */
+export const updateVanishing = (
+  camera: THREE.Camera,
+  mode: PerspectiveMode,
+  box: VanishingBox,
+  level: 1 | 2 | 3 = 1
+) => {
   const key = [
     // Everything about the projection, in one number. This used to list the
     // mode and the window size, which is most of what `project` depends on and
@@ -205,6 +282,7 @@ export const updateVanishing = (camera: THREE.Camera, mode: PerspectiveMode, box
     box.centre.x, box.centre.y, box.centre.z,
     box.size.x, box.size.y, box.size.z,
     box.rotationY,
+    level,
   ].join(',');
   if (key === drawnFor.key) return;
   drawnFor.key = key;
@@ -302,28 +380,69 @@ export const updateVanishing = (camera: THREE.Camera, mode: PerspectiveMode, box
     }
   }
 
+  /*
+   * THE FOOTPRINT, AND WHAT IS DRAWN ON IT.
+   *
+   * The rectangle the thing stands on, taken at its base rather than through
+   * its middle: a floor is what you divide when you are placing things at
+   * halves and quarters of a span, and it is the one face of a box that is
+   * always there to be divided whether the object is a box, a chair or a
+   * figure.
+   *
+   * Corners in the order round the rectangle, so consecutive pairs are sides
+   * and the two crossings are the diagonals.
+   */
+  const divisions: Curve[] = [];
+  if (level >= 2) {
+    const A = new THREE.Vector3(cos, 0, -sin).multiplyScalar(box.size.x / 2);
+    const B = new THREE.Vector3(sin, 0, cos).multiplyScalar(box.size.z / 2);
+    const base = new THREE.Vector3().copy(box.centre).addScaledVector(UP, -box.size.y / 2);
+    const at = (a: number, b: number) =>
+      new THREE.Vector3().copy(base).addScaledVector(A, a).addScaledVector(B, b);
+
+    const round = [at(-1, -1), at(1, -1), at(1, 1), at(-1, 1)];
+    for (let i = 0; i < 4; i++) divisions.push(...span(round[i], round[(i + 1) % 4]));
+    // The two diagonals: where they cross IS the centre, on any sheet and at
+    // any angle, without a measurement anywhere in it.
+    divisions.push(...span(round[0], round[2]), ...span(round[1], round[3]));
+
+    if (level >= 3) {
+      // ...and the halving lines through that crossing, which is the rectangle
+      // divided in four. Drawn from side midpoint to side midpoint, which is
+      // exactly what the diagonals just located.
+      divisions.push(...span(at(0, -1), at(0, 1)), ...span(at(-1, 0), at(1, 0)));
+    }
+  }
+
   // Only wake the overlay when something actually moved. Bumping the nonce
   // every frame re-rendered the whole SVG sixty times a second for points that
   // had not shifted a pixel, and that showed up as everything else stuttering.
-  if (settled(points, curves)) return;
+  if (settled(points, curves, divisions)) return;
   vanishing.points = points;
   vanishing.curves = curves;
+  vanishing.divisions = divisions;
   vanishing.nonce += 1;
 };
 
 /** True when the overlay is the same as the one already on screen. */
-const settled = (points: VanishingPoint[], curves: Curve[]) => {
+const settled = (points: VanishingPoint[], curves: Curve[], divisions: Curve[]) => {
   if (vanishing.points.length !== points.length) return false;
   if (vanishing.curves.length !== curves.length) return false;
+  if (vanishing.divisions.length !== divisions.length) return false;
 
   for (let i = 0; i < points.length; i++) {
     if (Math.abs(vanishing.points[i].x - points[i].x) > 0.5) return false;
     if (Math.abs(vanishing.points[i].y - points[i].y) > 0.5) return false;
   }
-  for (let i = 0; i < curves.length; i++) {
-    const before = vanishing.curves[i];
-    const after = curves[i];
-    if (before.length !== after.length) return false;
+  return sameLines(vanishing.curves, curves) && sameLines(vanishing.divisions, divisions);
+};
+
+/** Whether two lists of polylines are the same picture, vertex for vertex. */
+const sameLines = (before: Curve[], after: Curve[]) => {
+  for (let i = 0; i < after.length; i++) {
+    const was = before[i];
+    const now = after[i];
+    if (!was || was.length !== now.length) return false;
     /*
      * Every vertex, not just the ends.
      *
@@ -335,9 +454,9 @@ const settled = (points: VanishingPoint[], curves: Curve[]) => {
      * just produced them, and this only runs at all once the key above has
      * already said something moved.
      */
-    for (let at = 0; at < before.length; at++) {
-      if (Math.abs(before[at][0] - after[at][0]) > 0.5) return false;
-      if (Math.abs(before[at][1] - after[at][1]) > 0.5) return false;
+    for (let at = 0; at < was.length; at++) {
+      if (Math.abs(was[at][0] - now[at][0]) > 0.5) return false;
+      if (Math.abs(was[at][1] - now[at][1]) > 0.5) return false;
     }
   }
   return true;
