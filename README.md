@@ -980,37 +980,47 @@ frame to be printed or dropped into a tablet layer and traced over. Which sheet
 you want is yours to choose — but a *white line on a black field* is not what
 the dark theme should hand you by default, so the two are separate decisions.
 
-### Twenty-three pages, and a shuffle
+### Five pages, and a shuffle
 
 Everything in this tool is a knob, and a tool that is all knobs is a tool nobody
 ever sees the range of. Most of what it can do lives in *combinations*: the
-etched page wants a low raking sun, the engraving wants its strokes at six
-pixels and its mount black, the marker wants a light one. Any of those is a
+etched page wants a low raking sun, the toned sheet wants a stain rather than a
+wash, the lit room wants a floor to throw a shadow across. Any of those is a
 minute of fiddling to find and a second to lose.
 
 So there are whole pages — surface, sheet, mount, light, the pen and the floor,
 chosen together — and one control that deals a different one each time it is
-pressed. The needle four (etched plate, silverpoint, steel engraving, woodcut),
-the toned sheets (conté on Ingres, charcoal with the lights lifted, sanguine,
-aquatint), the two extremes of the pen (notan, which takes it off entirely, and
-clear line, which is nothing but edge), the markers, and four pages about light
-rather than line. Deliberately not counted here: the last count in this file
-said ten while there were sixteen, which is what a number typed into prose looks
-like a year later. It is the fastest way
-to learn what the knobs are *for*: you land somewhere good, and then you can see
-which knob put you there.
+pressed:
+
+| Card | What it is |
+| --- | --- |
+| **Brush page on black** | line and spotted black, white sheet, black mount — where the tool opens |
+| **Copperplate** | the etched page: every value built out of ranks crossing |
+| **Chalk on slate** | the sheet gone dark, and the whole page inverting with it |
+| **Sanguine** | one stain laid over the ink, on a toned sheet |
+| **Long shadows** | not a drawing at all — the objects, lit, standing on a floor |
+
+**It was twenty-five, and that was the problem.** A deck grows by one every
+time a page turns out well, and what it grew into was a button you press four
+times to find the etched page again: five plates apart by a crossing angle,
+five markers apart by a hue, four lit rooms apart by an hour. Every one was a
+real page and none was a different *answer*. Five is one apiece of the things
+this material can be — every rung of the surface ladder but plain `original`, a
+sheet at each end of the ramp and one in the middle, a mount that is the sheet
+itself and mounts that are not. The knobs walk anywhere else from there, which
+is what the panel is for: a card is a place to start from, not a place to
+arrive at.
 
 **Nothing in a page touches the view.** Not the scene, not where you are
 standing, and not the lens, the projection, the guides, the grid, the cage or
 the walls either. They used to carry a lens and a projection each, and dealing
 one threw the view away: you would set up a shot, press the button to see it in
-ink, and get somebody else's 420° cylindrical frieze. Two of the ten existed
-*only* for their lens — a five-point hemisphere and that frieze — and those are
-lessons about the projection, which is a control on the panel with its own name
-on it, not something to be handed a page at a time. In their place are two more
-drawn pages: red chalk on cream, and a fine steel ruling on black. The
-comparison a shuffle is for is the same view drawn ten ways, and that is only a
-comparison if the view holds still.
+ink, and get somebody else's 420° cylindrical frieze. Two of them existed *only*
+for their lens — a five-point hemisphere and that frieze — and those are lessons
+about the projection, which is a control on the panel with its own name on it,
+not something to be handed a page at a time. The comparison a shuffle is for is
+the same view drawn several ways, and that is only a comparison if the view
+holds still.
 
 They are dealt in one `set()`, so a page lands on a single frame rather than
 arriving as six separate changes the renderer has to chase. And it never deals

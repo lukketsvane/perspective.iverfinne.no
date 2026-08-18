@@ -276,9 +276,9 @@ const pageTheme = (backdrop: Backdrop, backgroundGray: number, surface: Surface)
  * tour's flag is, and it survives minification because it is a string rather
  * than a global.
  *
- * IT IS NOT A DEBUG HATCH ONLY. A deck of twenty-three pages is a thing you
- * iterate on, and iterating on one page means opening the tool on that page
- * over and over rather than nine times out of ten on some other one.
+ * IT IS NOT A DEBUG HATCH ONLY. A deck of pages is a thing you iterate on, and
+ * iterating on one page means opening the tool on that page over and over
+ * rather than four times out of five on some other one.
  *
  * An unknown name is not an error and not a crash: it deals, which is what the
  * tool does when nobody has said otherwise.
@@ -301,9 +301,10 @@ const pinnedPage = (): Preset | null => {
  * It opened on one fixed page - the finished brush page: line, spotted black,
  * hard shadow, warm sheet mounted on flat black - and that page is still in the
  * deck and still the best single answer if only one were allowed. One is not.
- * There are twenty-three of them, each a whole page somebody would draw from,
- * and a viewer who opens the tool a hundred times had seen exactly one of them
- * unless they went looking for the die.
+ * There are five of them, each a whole page somebody would draw from and each
+ * a different thing this material can be, and a viewer who opens the tool a
+ * hundred times had seen exactly one of them unless they went looking for the
+ * die.
  *
  * THIS IS NOT THE ARGUMENT THE OPENING MESH LOST. lib/meshLibrary.ts used to
  * pick its object at random and was made to stand the racer up every time,
@@ -326,9 +327,9 @@ const OPENING_PAGE = pinnedPage() ?? nextPreset(null);
 /**
  * THE FLOOR A PAGE STANDS ON WHEN IT DID NOT COMPOSE ONE.
  *
- * Six of the twenty-three pages name a floor and seventeen do not, and the
- * seventeen used to stand on nothing. They stand on this instead: the page's
- * own sheet, taken down a fixed step.
+ * One page of the five names a floor and four do not, and the four used to
+ * stand on nothing. They stand on this instead: the page's own sheet, taken
+ * down a fixed step.
  *
  * A FRACTION OF THE PAPER RATHER THAN A NUMBER, because one number cannot
  * serve a deck whose sheets run from 18 to 252. A fixed mid-grey is a floor
@@ -345,9 +346,8 @@ const OPENING_PAGE = pinnedPage() ?? nextPreset(null);
  * scenery, and the middle of what the subject-floors chose makes it as light as
  * the thing standing on it.
  *
- * Looked at across the whole deck rather than one page at a time - all
- * twenty-three rendered on the same yard and laid out side by side - that is
- * what it did: a big flat mid-grey occupying the bottom half of every frame,
+ * Looked at across the whole deck rather than one page at a time - every card
+ * rendered on the same yard and laid out side by side - that is what it did: a big flat mid-grey occupying the bottom half of every frame,
  * near enough the value of the white-paper aircraft standing on it, so that
  * the drawing had nothing to be the lightest thing against. The black mount
  * that pages like "Brush page on black" are built on survived only as a strip
