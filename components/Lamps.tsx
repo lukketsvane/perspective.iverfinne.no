@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { isSketch } from '../types';
 import * as THREE from 'three';
 import { Line } from '@react-three/drei';
-import { useStore } from '../store';
+import { useHeld, useStore } from '../store';
 import { constructionInk } from '../lib/inkMaterial';
 import { usePen } from '../lib/pen';
 import type { LampData } from '../types';
@@ -38,12 +38,12 @@ const SPOT_TILT = 0.9;
 const SPOT_ANGLE = 0.55;
 
 const Lamp: React.FC<{ lamp: LampData }> = ({ lamp }) => {
-  const selectedLampId = useStore((state) => state.selectedLampId);
+  const held = useHeld(lamp.id);
   const theme = useStore((state) => state.theme);
   const sceneSurface = useStore((state) => state.surface);
   const pen = usePen();
 
-  const isSelected = selectedLampId === lamp.id;
+  const isSelected = held;
   const dark = theme === 'dark';
   const sketch = isSketch(sceneSurface);
 

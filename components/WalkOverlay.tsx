@@ -223,6 +223,24 @@ const HOVER_SLOP = 10;
 const TAP_MS = 700;
 
 /**
+ * How long a finger has to rest on something before it is taken into the hand
+ * alongside whatever is already there.
+ *
+ * FOUR HUNDRED AND FIFTY, which sits between the two things it has to be told
+ * apart from. A tap is well under it - a deliberate one aimed at a chair across
+ * the room takes about 200 ms - and a drag has moved by then, which cancels
+ * this anyway. Longer and the gesture feels broken; shorter and every slightly
+ * considered tap starts adding things nobody asked for.
+ *
+ * The system's own long press is 500 ms, and being a hair under it is
+ * deliberate: on a phone the browser's text-selection and context menus are
+ * already suppressed here, but a viewer's THUMB has been trained by the system,
+ * and a gesture that fires just before the one they know is a gesture that
+ * feels immediate rather than late.
+ */
+const HOLD_MS = 450;
+
+/**
  * Walk-mode controls, built for two thumbs.
  *
  * The left of the screen walks and the right looks, both at once, with the
@@ -480,6 +498,21 @@ export const WalkOverlay: React.FC<{
   const pinch = useRef<Pinch | null>(null);
   const [cursor, setCursor] = useState('default');
   const hovered = useRef({ x: 0, y: 0 });
+  /**
+   * The finger that has not moved yet, and what it would pick up.
+   *
+   * Armed on every press that lands on something and is not already doing
+   * anything else; disarmed by movement, by a second finger, and by the
+   * release. It is the only timer in the gesture layer, and it clears itself
+   * three ways so it cannot outlive the touch that set it.
+   */
+  const holding = useRef<number | null>(null);
+  const dropHold = () => {
+    if (holding.current !== null) {
+      clearTimeout(holding.current);
+      holding.current = null;
+    }
+  };
 
   const isStickZone = (x: number, y: number) =>
     x < window.innerWidth * 0.45 && y > window.innerHeight * 0.45;
@@ -659,6 +692,7 @@ export const WalkOverlay: React.FC<{
     tapStarts.current.set(e.pointerId, { x: e.clientX, y: e.clientY, at: e.timeStamp || performance.now(), cancelled: false });
     if (pointers.current.size > 1) {
       tapStarts.current.forEach((tap) => { tap.cancelled = true; });
+      dropHold();
     }
     try {
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -706,6 +740,35 @@ export const WalkOverlay: React.FC<{
         stopWalking();
         return;
       }
+    }
+
+    /*
+     * ...AND THE HOLD, which is how a second and a third thing are taken into
+     * the hand. See lib/store's `toggleCompanion`.
+     *
+     * Armed here rather than anywhere earlier because everything above this
+     * line has already claimed the finger: two fingers are a pinch, three are
+     * the sun, and one that landed on the SELECTED thing is a drag - and a
+     * drag's whole job is to move what is already held, so a hold inside it
+     * would be a second meaning for a finger that is busy.
+     *
+     * It survives being in the walk quadrant: a stick pushed nowhere walks
+     * nowhere, so a finger resting on a chair down there is still a hold, and
+     * the first pixel of movement drops the timer and leaves the walk alone.
+     */
+    if (pointers.current.size === 1) {
+      const at = { x: e.clientX, y: e.clientY };
+      holding.current = window.setTimeout(() => {
+        holding.current = null;
+        const hit = pickObject(at.x, at.y);
+        if (!hit) return;
+        useStore.getState().toggleCompanion(hit.id);
+        // The release must not then read as a tap and throw the rest of the
+        // hand away - the tap handler is what "select just this one" is.
+        const tap = tapStarts.current.get(e.pointerId);
+        if (tap) tap.cancelled = true;
+        showRail();
+      }, HOLD_MS);
     }
 
     if (!stick.current && isStickZone(e.clientX, e.clientY)) {
@@ -801,7 +864,11 @@ export const WalkOverlay: React.FC<{
       return;
     }
     const tap = tapStarts.current.get(e.pointerId);
-    if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 9) tap.cancelled = true;
+    if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 9) {
+      tap.cancelled = true;
+      // Moved: this is a drag, a look or a walk, and none of them is a hold.
+      dropHold();
+    }
     if (pointers.current.has(e.pointerId)) {
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     } else {
@@ -948,6 +1015,7 @@ export const WalkOverlay: React.FC<{
       }
       return;
     }
+    dropHold();
     const tap = tapStarts.current.get(e.pointerId);
     const wasSinglePointer = pointers.current.size === 1;
     pointers.current.delete(e.pointerId);
@@ -1020,6 +1088,7 @@ export const WalkOverlay: React.FC<{
   useEffect(() => {
     const forget = (event: PointerEvent) => {
       if (!pointers.current.has(event.pointerId)) return;
+      dropHold();
       pointers.current.delete(event.pointerId);
       tapStarts.current.delete(event.pointerId);
       if (held.current?.id === event.pointerId) release();
@@ -1106,9 +1175,8 @@ export const WalkOverlay: React.FC<{
         const state = useStore.getState();
         if (!state.selectedId && !state.selectedModelId && !state.selectedLampId) return;
         e.preventDefault();
-        if (state.selectedModelId) state.removeModel(state.selectedModelId);
-        else if (state.selectedId) state.removeBox(state.selectedId);
-        else if (state.selectedLampId) state.removeLamp(state.selectedLampId);
+        // The whole hand, in one step back - see `removeSelection`.
+        state.removeSelection();
         return;
       }
 
@@ -1135,22 +1203,10 @@ export const WalkOverlay: React.FC<{
         // emptied the redo stack, from a keypress that did nothing.
         if (!state.selectedModelId && !state.selectedId && !state.selectedLampId) return;
         if (!e.repeat) state.beginChange();
-        if (state.selectedLampId) {
-          const lamp = state.lamps.find((l) => l.id === state.selectedLampId);
-          if (lamp) state.updateLamp(lamp.id, { aim: lamp.aim + step });
-          return;
-        }
-        if (state.selectedModelId) {
-          const mesh = state.models.find((m) => m.id === state.selectedModelId);
-          if (mesh) state.updateModel(mesh.id, { rotationY: mesh.rotationY + step });
-        } else if (state.selectedId) {
-          const box = state.boxes.find((b) => b.id === state.selectedId);
-          if (box) {
-            state.updateBox(box.id, {
-              rotation: [box.rotation[0], box.rotation[1] + step, box.rotation[2]],
-            });
-          }
-        }
+        // Everything in hand, each about its own centre. Three branches by
+        // kind used to live here and the store keeps them now, which is where
+        // the two-finger turn reaches them from as well.
+        state.turnSelection(step);
         return;
       }
 

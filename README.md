@@ -239,6 +239,41 @@ of the box's own axis reaches across the screen is measured as it is taken hold
 of. The opposite face stays where it is, which is what makes this sizing rather
 than scaling.
 
+### A hand of several: tap, then hold
+
+**Tap selects one. Hold takes another one as well** — press on a second thing
+for about half a second and it joins what is already in your hand; hold it
+again to put it back down; tap anywhere to go back to holding one. There is no
+modifier key on a phone and no room for a mode button, and a mode button is the
+wrong shape anyway: picking four things out of a scene is four gestures, not a
+switch and four gestures and a switch back.
+
+Everything held is outlined, and the selection bar grows a count in the accent
+so the row of controls beside it cannot quietly be doing four times what it
+looks like it is doing. From there:
+
+- **the numbers are read off one and written to all** — the height, the size of
+  an axis, the height off the floor. Which one they are read from is the one
+  the tap chose, since there is only one row of digits; what a viewer means by
+  dragging the height with four figures held is that the four of them end up
+  the same height
+- **the rung and the page's own knobs** go to all of them, which is the reason
+  most people will reach for this at all
+- **a drag moves the lot**, by the primary's own snapped delta rather than each
+  snapping to the ruling separately — four things placed against each other are
+  an arrangement, and an arrangement re-snapped per object is one pulled apart
+  by the act of moving it
+- **two fingers turn and size the lot**, each about itself rather than about the
+  group: this tool's turning lesson is that a form turned off the grid sends
+  its *own* pair of points somewhere else, and a rigid body swinging round a
+  common pivot would teach the opposite
+- **delete takes the whole hand in one step back**, because undoing a delete of
+  four things is one thought
+
+The one that was tapped stays the primary throughout: it is what a drag moves,
+what the bar reads from, and whose rung decides which knobs the material panel
+shows. The rest are carried.
+
 ## The dock
 
 Along the bottom, fading out a few seconds after the last touch and back on the

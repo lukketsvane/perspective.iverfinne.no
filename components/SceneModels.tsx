@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import * as THREE from 'three';
-import { useStore } from '../store';
+import { useHeld, useStore } from '../store';
 import { isSketch, MESH_SURFACES, nearestSurface, SceneModel } from '../types';
 import { authoredMaterial } from '../lib/modelMaterials';
 import { constructionInk } from '../lib/inkMaterial';
@@ -34,12 +34,12 @@ const MATTE = new THREE.MeshStandardMaterial({
  * when it is the selection.
  */
 const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
-  const selectedModelId = useStore((state) => state.selectedModelId);
+  const held = useHeld(model.id);
   const theme = useStore((state) => state.theme);
 
   const sceneSurface = useStore((state) => state.surface);
   const construction = useStore((state) => state.construction);
-  const isSelected = selectedModelId === model.id;
+  const isSelected = held;
   const dark = theme === 'dark';
 
   const surface = nearestSurface(model.surface ?? sceneSurface, MESH_SURFACES);

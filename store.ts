@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
+import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
 import { releaseSource, cachedSourceUrls, loadModelFromUrl } from './lib/loadModel';
 import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
@@ -130,6 +130,26 @@ export const DEFAULT_PEN: PenState = {
 
 /** Bare paper, in three plateaus for when a page asks for any. */
 export const DEFAULT_WASH: WashState = { amount: 0, steps: 3 };
+
+/**
+ * Whether one thing is in the hand at all - the one that was tapped, or one
+ * long-pressed onto it afterwards.
+ *
+ * ONE ANSWER, ASKED IN THREE PLACES. A box, a mesh and a lamp each draw their
+ * own selected state, and each used to compare against its own field. A second
+ * source of "and these as well" would have had to be added to all three
+ * separately, which is exactly how two of them end up agreeing and the third
+ * quietly does not - a mesh in the hand that is not outlined is a mesh that is
+ * about to be moved by a drag nobody aimed at it.
+ */
+export const useHeld = (id: string): boolean =>
+  useStore(
+    (s) =>
+      s.selectedId === id ||
+      s.selectedModelId === id ||
+      s.selectedLampId === id ||
+      s.companions.includes(id)
+  );
 
 export const DEFAULT_HATCH: HatchState = {
   // Zero: strokes running square across the form, which is the cross-contour
@@ -768,6 +788,44 @@ const pruneSafely = async (keep: Iterable<string>) => {
   await pruneAssets(keep);
 };
 
+/**
+ * EVERYTHING IN HAND: the one that was tapped, and anything long-pressed onto
+ * it afterwards.
+ *
+ * The selection was one of three fields - a box, a mesh, or a lamp, and never
+ * two at once - which is exactly right for the question "what do the handles
+ * belong to" and useless for the question everybody actually arrives at, which
+ * is "make these four the same". So the three fields stay as they are, holding
+ * the PRIMARY: the thing a drag moves, the thing the bar reads its numbers
+ * from, the thing whose rung decides which knobs the material panel shows.
+ * Beside them is a plain list of ids picked up alongside it.
+ *
+ * Kept as ids rather than as three typed lists because that is what a long
+ * press knows - the picker answers with an id and a kind, and the kind is
+ * findable from the id in three lookups. It also means a companion that has
+ * been deleted, undone away or loaded over is simply not found, which is the
+ * behaviour every reader here wants and none of them has to write.
+ */
+const handOf = (state: SceneState) => {
+  const ids = new Set(
+    [state.selectedId, state.selectedModelId, state.selectedLampId, ...state.companions].filter(
+      (id): id is string => !!id
+    )
+  );
+  return ids;
+};
+
+/** Nothing in hand at all, for the actions that end by putting it all down. */
+const EMPTY_HAND = {
+  selectedId: null,
+  selectedModelId: null,
+  selectedLampId: null,
+  companions: [] as string[],
+};
+
+/** The smallest a box may be pushed down to - the same floor manipulate.ts holds. */
+const MIN_BOX_SIDE = 0.1;
+
 /** How many steps back you can take. */
 const UNDO_DEPTH = 25;
 
@@ -1010,6 +1068,7 @@ export const useStore = create<SceneState>((set, get) => ({
   selectedModelId: null,
   lamps: [],
   selectedLampId: null,
+  companions: [],
   surface: OPENING_PAGE.surface,
   backdrop: OPENING_PAGE.backdrop,
   marker: DEFAULT_MARKER,
@@ -1102,6 +1161,7 @@ export const useStore = create<SceneState>((set, get) => ({
         selectedId: id,
         selectedModelId: null,
         selectedLampId: null,
+        companions: [],
       };
     }),
 
@@ -1183,9 +1243,7 @@ export const useStore = create<SceneState>((set, get) => ({
         boxes: [],
         models: [],
         lamps: [],
-        selectedId: null,
-        selectedModelId: null,
-        selectedLampId: null,
+        ...EMPTY_HAND,
         currentSceneId: null,
       };
       releaseUnreferenced(next);
@@ -1204,9 +1262,17 @@ export const useStore = create<SceneState>((set, get) => ({
   standObject: (model) =>
     set((state) => ({ models: [...state.models, { id: newId(), surface: state.surface, ...model }] })),
 
-  selectBox: (id) => set({ selectedId: id, selectedModelId: null, selectedLampId: null }),
+  /*
+   * A TAP IS A FRESH HAND. Long press is what adds to one - see
+   * `toggleCompanion` - so a plain tap has to be the way back to holding one
+   * thing, or there would be no way to put three of them down short of tapping
+   * the sky.
+   */
+  selectBox: (id) =>
+    set({ selectedId: id, selectedModelId: null, selectedLampId: null, companions: [] }),
 
-  selectLamp: (id) => set({ selectedLampId: id, selectedId: null, selectedModelId: null }),
+  selectLamp: (id) =>
+    set({ selectedLampId: id, selectedId: null, selectedModelId: null, companions: [] }),
 
   /**
    * Hang a lamp where the viewer is looking.
@@ -1239,9 +1305,7 @@ export const useStore = create<SceneState>((set, get) => ({
             enabled: true,
           },
         ],
-        selectedLampId: null,
-        selectedId: null,
-        selectedModelId: null,
+        ...EMPTY_HAND,
       };
     }),
 
@@ -1280,6 +1344,7 @@ export const useStore = create<SceneState>((set, get) => ({
         models: [...state.models, placed],
         selectedModelId: placed.id,
         selectedId: null,
+        companions: [],
       };
     }),
 
@@ -1322,7 +1387,8 @@ export const useStore = create<SceneState>((set, get) => ({
       return next;
     }),
 
-  selectModel: (id) => set({ selectedModelId: id, selectedId: null, selectedLampId: null }),
+  selectModel: (id) =>
+    set({ selectedModelId: id, selectedId: null, selectedLampId: null, companions: [] }),
 
   updateModel: (id, updates) =>
     set((state) => ({
@@ -1531,19 +1597,20 @@ export const useStore = create<SceneState>((set, get) => ({
           wash: { ...from.wash, ...patch.wash },
         };
       };
-      if (state.selectedModelId)
-        return {
-          models: state.models.map((m) =>
-            m.id === state.selectedModelId ? { ...m, material: merge(m.material) } : m
-          ),
-        };
-      if (state.selectedId)
-        return {
-          boxes: state.boxes.map((b) =>
-            b.id === state.selectedId ? { ...b, material: merge(b.material) } : b
-          ),
-        };
-      return {};
+      // Every one in hand, each merging over ITS OWN settings rather than over
+      // one copy taken from the primary: a knob turned on four things should
+      // change that one number on all four and leave everything else about
+      // each of them alone.
+      const hand = handOf(state);
+      if (!hand.size) return {};
+      return {
+        models: state.models.map((m) =>
+          hand.has(m.id) ? { ...m, material: merge(m.material) } : m
+        ),
+        boxes: state.boxes.map((b) =>
+          hand.has(b.id) ? { ...b, material: merge(b.material) } : b
+        ),
+      };
     }),
 
   /*
@@ -1555,21 +1622,13 @@ export const useStore = create<SceneState>((set, get) => ({
    */
   followPageMaterial: () =>
     set((state) => {
-      if (state.selectedModelId)
-        return {
-          ...remember(state),
-          models: state.models.map((m) =>
-            m.id === state.selectedModelId ? { ...m, material: undefined } : m
-          ),
-        };
-      if (state.selectedId)
-        return {
-          ...remember(state),
-          boxes: state.boxes.map((b) =>
-            b.id === state.selectedId ? { ...b, material: undefined } : b
-          ),
-        };
-      return {};
+      const hand = handOf(state);
+      if (!hand.size) return {};
+      return {
+        ...remember(state),
+        models: state.models.map((m) => (hand.has(m.id) ? { ...m, material: undefined } : m)),
+        boxes: state.boxes.map((b) => (hand.has(b.id) ? { ...b, material: undefined } : b)),
+      };
     }),
 
   cycleFieldRange: () =>
@@ -1641,27 +1700,260 @@ export const useStore = create<SceneState>((set, get) => ({
     }),
 
   /** Just this one, through the rungs its own kind has. */
+  /**
+   * Step the rung of everything in hand.
+   *
+   * THE PRIMARY DECIDES WHERE THE STEP LANDS, and then the rest are put on the
+   * same rung rather than each stepping from wherever it happened to be. Four
+   * things on four rungs, each stepped one along, are still four things on four
+   * rungs - which is the one outcome nobody presses this for. What the button
+   * shows is the primary's rung, so what it does is make that reading true of
+   * the whole hand.
+   *
+   * Each kind answers with the nearest rung it can actually draw: a box has no
+   * authored material to strip, so a box asked for matte is already plain white.
+   */
   cycleSelectionSurface: () =>
     set((state) => {
-      if (state.selectedModelId) {
-        const model = state.models.find((m) => m.id === state.selectedModelId);
-        if (!model) return {};
-        const next = stepSurface(MESH_SURFACES, model.surface ?? state.surface);
-        return {
-          ...remember(state),
-          models: state.models.map((m) => (m.id === model.id ? { ...m, surface: next } : m)),
-        };
+      const hand = handOf(state);
+      const model = state.selectedModelId
+        ? state.models.find((m) => m.id === state.selectedModelId)
+        : undefined;
+      const box = state.selectedId
+        ? state.boxes.find((b) => b.id === state.selectedId)
+        : undefined;
+      if (!model && !box) return {};
+      const next = model
+        ? stepSurface(MESH_SURFACES, model.surface ?? state.surface)
+        : stepSurface(BOX_SURFACES, box!.surface ?? state.surface);
+      return {
+        ...remember(state),
+        models: state.models.map((m) =>
+          hand.has(m.id) ? { ...m, surface: nearestSurface(next, MESH_SURFACES) } : m
+        ),
+        boxes: state.boxes.map((b) =>
+          hand.has(b.id) ? { ...b, surface: nearestSurface(next, BOX_SURFACES) } : b
+        ),
+      };
+    }),
+
+  /**
+   * A LONG PRESS TAKES ANOTHER ONE INTO THE HAND, or puts it back down.
+   *
+   * Tap to select, hold to add: two gestures on the same target, and the
+   * second is the one every touch interface reserves for "and this as well".
+   * There is no modifier key on a phone and no room for a mode button, and a
+   * mode button is the wrong shape anyway - picking four things out of a scene
+   * is four gestures, not a switch, four gestures and a switch back.
+   *
+   * Holding the PRIMARY does nothing. It is already held, and the alternative
+   * - dropping it - would make the most likely misfire (a thumb resting on the
+   * thing you just tapped) undo the tap that put it there.
+   *
+   * With nothing in hand at all, a long press is just a slow tap: it selects.
+   * Anything else would be a gesture that silently does nothing the first time
+   * you try it, which is how a gesture gets a reputation for not working.
+   */
+  toggleCompanion: (id) =>
+    set((state) => {
+      const primary = state.selectedId ?? state.selectedModelId ?? state.selectedLampId;
+      if (!primary) {
+        if (state.boxes.some((b) => b.id === id))
+          return { ...EMPTY_HAND, selectedId: id };
+        if (state.models.some((m) => m.id === id))
+          return { ...EMPTY_HAND, selectedModelId: id };
+        if (state.lamps.some((l) => l.id === id))
+          return { ...EMPTY_HAND, selectedLampId: id };
+        return {};
       }
-      if (state.selectedId) {
-        const box = state.boxes.find((b) => b.id === state.selectedId);
-        if (!box) return {};
-        const next = stepSurface(BOX_SURFACES, box.surface ?? state.surface);
-        return {
-          ...remember(state),
-          boxes: state.boxes.map((b) => (b.id === box.id ? { ...b, surface: next } : b)),
-        };
-      }
-      return {};
+      if (id === primary) return {};
+      return {
+        companions: state.companions.includes(id)
+          ? state.companions.filter((held) => held !== id)
+          : [...state.companions, id],
+      };
+    }),
+
+  /**
+   * Take the whole hand out of the scene, in ONE step back.
+   *
+   * One step, not four: undoing a delete of four things is one thought, and a
+   * viewer who has to press undo four times to get their arrangement back has
+   * been told that the tool counted differently from the way they were
+   * working.
+   */
+  removeSelection: () =>
+    set((state) => {
+      const hand = handOf(state);
+      if (!hand.size) return {};
+      const next = {
+        ...remember(state),
+        boxes: state.boxes.filter((b) => !hand.has(b.id)),
+        models: state.models.filter((m) => !hand.has(m.id)),
+        lamps: state.lamps.filter((l) => !hand.has(l.id)),
+        ...EMPTY_HAND,
+      };
+      // Instances share their buffers with the parsed original, so the GPU side
+      // only goes back when nothing live - and nothing undoable - needs it.
+      releaseUnreferenced(next);
+      return next;
+    }),
+
+  /**
+   * The same height off the floor for everything in hand.
+   *
+   * An ABSOLUTE, not a nudge, and that is the point of it: what you want from
+   * four things at four heights is usually that they stop being at four
+   * heights. A box is held by its centre and a mesh by its feet, so the same
+   * number means two sums - which is exactly the arithmetic nobody should be
+   * doing by eye across four objects.
+   *
+   * No history step: this is written on every frame of a drag, and the bar
+   * takes one as the drag starts.
+   */
+  liftSelection: (metres) =>
+    set((state) => {
+      const hand = handOf(state);
+      const risen = Math.max(0, metres);
+      return {
+        boxes: state.boxes.map((b) =>
+          hand.has(b.id)
+            ? { ...b, position: [b.position[0], risen + b.scale[1] / 2, b.position[2]] as [number, number, number] }
+            : b
+        ),
+        models: state.models.map((m) =>
+          hand.has(m.id)
+            ? { ...m, position: [m.position[0], risen, m.position[2]] as [number, number, number] }
+            : m
+        ),
+      };
+    }),
+
+  /** One axis of every box in hand, to the same metres. Boxes only have axes. */
+  sizeSelection: (axis, metres) =>
+    set((state) => {
+      const hand = handOf(state);
+      return {
+        boxes: state.boxes.map((b) => {
+          if (!hand.has(b.id)) return b;
+          const scale = [...b.scale] as [number, number, number];
+          scale[axis] = metres;
+          const position = [...b.position] as [number, number, number];
+          // Growing upwards keeps it standing on whatever it stands on.
+          if (axis === 1) position[1] = b.position[1] - b.scale[1] / 2 + metres / 2;
+          return { ...b, scale, position };
+        }),
+      };
+    }),
+
+  /**
+   * Every mesh in hand to the same real height.
+   *
+   * Scaled per mesh rather than given one scale factor, because a scale factor
+   * is meaningless across two different files: what a viewer means by making
+   * three figures 1.8 m is that they end up the same size as each other, and
+   * that is a different multiplier for each of them.
+   */
+  heightSelection: (metres) =>
+    set((state) => {
+      const hand = handOf(state);
+      return {
+        models: state.models.map((m) =>
+          hand.has(m.id) && !m.lockedScale && m.size[1] > 1e-6
+            ? { ...m, scale: Math.max(0.02, Math.min(50, metres / m.size[1])) }
+            : m
+        ),
+      };
+    }),
+
+  /**
+   * Turn everything in hand by the same step, each about its own centre.
+   *
+   * About their own centres rather than about the group's, which is the other
+   * reading and the wrong one here: this tool's turning lesson is that a form
+   * turned off the grid sends its own pair of points somewhere else, and four
+   * things swung around a common pivot would be one rigid body rotating rather
+   * than four things being turned.
+   */
+  turnSelection: (step) =>
+    set((state) => {
+      const hand = handOf(state);
+      return {
+        boxes: state.boxes.map((b) =>
+          hand.has(b.id)
+            ? { ...b, rotation: [b.rotation[0], b.rotation[1] + step, b.rotation[2]] as [number, number, number] }
+            : b
+        ),
+        models: state.models.map((m) =>
+          hand.has(m.id) ? { ...m, rotationY: m.rotationY + step } : m
+        ),
+        lamps: state.lamps.map((l) => (hand.has(l.id) ? { ...l, aim: l.aim + step } : l)),
+      };
+    }),
+
+  /**
+   * The rest of the hand, carried along with the primary.
+   *
+   * FROM THE SNAPSHOT EVERY FRAME, not nudged frame by frame. A relative nudge
+   * is the obvious way to write this and it drifts: any frame that is dropped,
+   * any value that meets a clamp, any rounding, and the group quietly loses its
+   * shape over the length of a drag with no way to get it back. Given where
+   * everything stood when the finger landed, the same sum lands on the same
+   * answer however many frames it took to get there.
+   *
+   * Each turns and grows about ITSELF rather than about the group - see
+   * `turnSelection` for why that is the right reading of a hand full of
+   * separate objects rather than one rigid body.
+   *
+   * No history step: a gesture takes one as it begins.
+   */
+  carryCompanions: (from, move, turn, grow) =>
+    set((state) => {
+      if (!from.length) return {};
+      const held = new Map(from.map((row) => [row.id, row]));
+      const moved = (row: HeldRow): [number, number, number] => [
+        row.position[0] + move[0],
+        row.position[1] + move[1],
+        row.position[2] + move[2],
+      ];
+      return {
+        boxes: state.boxes.map((b) => {
+          const row = held.get(b.id);
+          if (!row) return b;
+          const scale = (row.boxScale ?? b.scale).map((side) =>
+            Math.max(MIN_BOX_SIDE, side * grow)
+          ) as [number, number, number];
+          const position = moved(row);
+          // Sized about its base, so a box standing on the floor stays on it -
+          // the same correction the primary gets.
+          position[1] += (scale[1] - (row.boxScale ?? b.scale)[1]) / 2;
+          return {
+            ...b,
+            position,
+            scale,
+            rotation: [b.rotation[0], row.turn + turn, b.rotation[2]] as [number, number, number],
+          };
+        }),
+        models: state.models.map((m) => {
+          const row = held.get(m.id);
+          if (!row) return m;
+          return {
+            ...m,
+            position: moved(row),
+            rotationY: row.turn + turn,
+            scale: m.lockedScale
+              ? m.scale
+              : Math.max(0.02, Math.min(50, (row.modelScale ?? m.scale) * grow)),
+          };
+        }),
+        lamps: state.lamps.map((l) => {
+          const row = held.get(l.id);
+          // A lamp has no size, and never goes into the floor.
+          return row
+            ? { ...l, position: moved(row), aim: row.turn + turn }
+            : l;
+        }),
+      };
     }),
 
   cycleRoom: () => set((state) => ({ roomLevel: ((state.roomLevel + 1) % 3) as RoomLevel })),
@@ -1985,9 +2277,7 @@ export const useStore = create<SceneState>((set, get) => ({
         boxes: scene.boxes.map((box) => ({ ...box, id: newId() })),
         models: restored,
         lamps: (scene.lamps ?? []).map((lamp) => ({ ...lamp, id: newId() })),
-        selectedId: null,
-        selectedModelId: null,
-        selectedLampId: null,
+        ...EMPTY_HAND,
         currentSceneId: scene.id,
         ...restoreView(scene.view, state.fieldRange),
       };
@@ -2034,9 +2324,7 @@ export const useStore = create<SceneState>((set, get) => ({
           surface: model.surface === undefined ? undefined : readSurface(model.surface),
         })),
         lamps: (lamps ?? []).map((lamp) => ({ ...lamp, id: newId() })),
-        selectedId: null,
-        selectedModelId: null,
-        selectedLampId: null,
+        ...EMPTY_HAND,
         currentSceneId: null,
         ...restoreView(view, state.fieldRange),
       };

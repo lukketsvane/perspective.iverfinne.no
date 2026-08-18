@@ -292,10 +292,6 @@ export const SelectionBar: React.FC<{
   const selectedModelId = useStore((s) => s.selectedModelId);
   const beginChange = useStore((s) => s.beginChange);
   const scaleModel = useStore((s) => s.scaleModel);
-  const updateBox = useStore((s) => s.updateBox);
-  const removeBox = useStore((s) => s.removeBox);
-  const removeModel = useStore((s) => s.removeModel);
-  const selectBox = useStore((s) => s.selectBox);
   const sceneSurface = useStore((s) => s.surface);
   const cycleSelectionSurface = useStore((s) => s.cycleSelectionSurface);
   const toggleModelLock = useStore((s) => s.toggleModelLock);
@@ -308,7 +304,11 @@ export const SelectionBar: React.FC<{
   const [exporting, setExporting] = useState(false);
   const range = useRange();
 
-  const updateModel = useStore((s) => s.updateModel);
+  const liftSelection = useStore((s) => s.liftSelection);
+  const sizeSelection = useStore((s) => s.sizeSelection);
+  const heightSelection = useStore((s) => s.heightSelection);
+  const removeSelection = useStore((s) => s.removeSelection);
+  const companions = useStore((s) => s.companions);
 
   const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
   const model = selectedModelId ? models.find((m) => m.id === selectedModelId) : null;
@@ -319,11 +319,8 @@ export const SelectionBar: React.FC<{
   const height = model ? model.size[1] * model.scale : 0;
 
   const setHeight = useCallback(
-    (metres: number) => {
-      if (!model || model.size[1] < 1e-6) return;
-      scaleModel(model.id, clampTo(metres, MIN_HEIGHT, MAX_HEIGHT) / model.size[1]);
-    },
-    [model, scaleModel]
+    (metres: number) => heightSelection(clampTo(metres, MIN_HEIGHT, MAX_HEIGHT)),
+    [heightSelection]
   );
 
   /** Whether this one's size is pinned. Only a mesh has the question. */
@@ -337,34 +334,29 @@ export const SelectionBar: React.FC<{
    */
   const lift = model ? model.position[1] : box ? box.position[1] - box.scale[1] / 2 : 0;
 
+  /*
+   * THE NUMBERS ARE READ OFF THE ONE IN HAND AND WRITTEN TO ALL OF THEM.
+   *
+   * Which is the whole use of picking up a second thing: what a viewer means
+   * by holding four figures and dragging the height is that the four of them
+   * end up the same height. The reading has to come from one of them - there
+   * is one row of digits - and the one it comes from is the one the tap
+   * chose, which is also the one the drag moves and the one whose rung the
+   * material panel follows. Every other reading here would need a rule for
+   * disagreement; this one needs none.
+   *
+   * The clamps stay here because they are about what the control may ask for.
+   * What the store does with the number is the same for one object or four.
+   */
   const setLift = useCallback(
-    (metres: number) => {
-      const risen = clampTo(metres, 0, MAX_LIFT);
-      if (model) {
-        updateModel(model.id, { position: [model.position[0], risen, model.position[2]] });
-      } else if (box) {
-        updateBox(box.id, {
-          position: [box.position[0], risen + box.scale[1] / 2, box.position[2]],
-        });
-      }
-    },
-    [box, model, updateBox, updateModel]
+    (metres: number) => liftSelection(clampTo(metres, 0, MAX_LIFT)),
+    [liftSelection]
   );
 
   const setBoxDim = useCallback(
-    (axis: 0 | 1 | 2, metres: number) => {
-      if (!box) return;
-      const snapped = clampTo(metres, MIN_BOX_DIM, MAX_BOX_DIM);
-      const scale = [...box.scale] as [number, number, number];
-      scale[axis] = snapped;
-      const position = [...box.position] as [number, number, number];
-      // Growing a box upwards keeps it standing on whatever it stands on -
-      // which is the floor unless it has been lifted off it, and used to be the
-      // floor either way, so resizing a raised box dropped it.
-      if (axis === 1) position[1] = box.position[1] - box.scale[1] / 2 + snapped / 2;
-      updateBox(box.id, { scale, position });
-    },
-    [box, updateBox]
+    (axis: 0 | 1 | 2, metres: number) =>
+      sizeSelection(axis, clampTo(metres, MIN_BOX_DIM, MAX_BOX_DIM)),
+    [sizeSelection]
   );
 
   const activeDim = box ? box.scale[activeAxis] : 0;
@@ -392,13 +384,16 @@ export const SelectionBar: React.FC<{
   const isDark = theme === 'dark';
   const button = `${snugIconButton(isDark)} border border-transparent`;
 
-  const remove = () => {
-    if (model) removeModel(model.id);
-    else if (box) {
-      removeBox(box.id);
-      selectBox(null);
-    }
-  };
+  /*
+   * Everything in hand, gone, in one step back.
+   *
+   * It used to be two branches and a deselect - a mesh went through
+   * removeModel, a box through removeBox and then a selectBox(null) to put
+   * down what no longer existed. The store's own action does the putting down
+   * as part of the removal, which is where that belonged: nothing outside it
+   * can know whether the hand it just emptied still holds anything.
+   */
+  const remove = () => removeSelection();
 
   const exportModel = async () => {
     if (!model?.object || exporting) return;
@@ -440,6 +435,32 @@ export const SelectionBar: React.FC<{
             {range < 100 ? metres(range) : Math.round(range)}
           </span>
         </div>
+
+        {/*
+          * HOW MANY ARE IN THE HAND, and only when it is more than one.
+          *
+          * Every control to the right of this reads its number off one object
+          * and writes to all of them, which is a promise the bar has to make
+          * out loud - otherwise dragging the height with four figures held is
+          * a control doing four times what it looks like it is doing. It is
+          * the accent, because the accent in this app means "this is doing
+          * something right now", and it is the same mark the extra objects
+          * carry in the scene.
+          *
+          * A count rather than a list: they are named nowhere else either, and
+          * which four they are is answered by looking at the drawing, where
+          * all four are outlined.
+          */}
+        {companions.length > 0 && (
+          <div
+            className={`${readout(isDark)} !min-w-0 px-2.5 cursor-default select-none !border-sky-500/50`}
+            aria-label={`${companions.length + 1} things in hand`}
+          >
+            <span className="text-[13px] font-bold tabular-nums tracking-wide text-sky-500">
+              {companions.length + 1}
+            </span>
+          </div>
+        )}
 
         {model ? (
           <>

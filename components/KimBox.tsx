@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { BOX_SURFACES, BoxData, isSketch, nearestSurface } from '../types';
-import { useStore } from '../store';
+import { useHeld, useStore } from '../store';
 import { faceIsReachable, faceOutward } from '../lib/manipulate';
 import { constructionInk, inkHex, paperHex } from '../lib/inkMaterial';
 import { useObjectMaterial } from '../lib/ownMaterial';
@@ -155,7 +155,7 @@ const FaceHandles: React.FC<{ data: BoxData; color: string }> = ({ data, color }
 };
 
 export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
-  const selectedId = useStore((state) => state.selectedId);
+  const held = useHeld(data.id);
   const theme = useStore((state) => state.theme);
   const sceneSurface = useStore((state) => state.surface);
 
@@ -164,7 +164,7 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
   // the picture is being rendered into - see lib/pen.ts.
   const pen = usePen();
 
-  const isSelected = selectedId === data.id;
+  const isSelected = held;
   const isDark = theme === 'dark';
 
   /** Half the footprint, which every mark below is placed off. */
