@@ -368,9 +368,6 @@ export const SelectionBar: React.FC<{
   const boxScrub = useScrub(activeDim, (v) => setBoxDim(activeAxis, v));
   const liftScrub = useLift(lift, setLift);
 
-  if (lamp) return <LampBar lamp={lamp} raised={raised} />;
-  if (!box && !model) return null;
-
   /*
    * Which rung this one is on.
    *
@@ -382,14 +379,25 @@ export const SelectionBar: React.FC<{
    * Through the shared reading rather than worked out here, because the overlay
    * asks the same question to decide which knobs the panel this bar opens
    * should hold, and the two answers have to be the same answer.
+   *
+   * ABOVE THE TWO RETURNS BELOW, and this is not tidiness. It feeds a hook,
+   * and a hook after a conditional return is a hook that is called on some
+   * renders and not others - which React does not survive: the first frame
+   * with something in your hand threw "rendered more hooks than during the
+   * previous render" and took the whole app down with it. Nothing selected
+   * gives no rung, which is a real answer and a safe one, because nothing that
+   * reads it renders in that case.
    */
-  const surface = selectionSurface({ boxes, models, selectedId, selectedModelId, surface: sceneSurface })!;
+  const surface = selectionSurface({ boxes, models, selectedId, selectedModelId, surface: sceneSurface });
 
   /* This one's rung and its drawer, on one seat: tap steps, hold opens. */
   const ownSurfaceControl = useHoldable({
     onTap: cycleSelectionSurface,
-    onHold: onMaterial && surfaceHasSettings(surface) ? onMaterial : undefined,
+    onHold: onMaterial && surface && surfaceHasSettings(surface) ? onMaterial : undefined,
   });
+
+  if (lamp) return <LampBar lamp={lamp} raised={raised} />;
+  if (!box && !model || !surface) return null;
 
   const isDark = theme === 'dark';
   const button = `${snugIconButton(isDark)} border border-transparent`;
