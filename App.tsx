@@ -773,7 +773,6 @@ export default function App() {
               onPlaceOwn={placeOwnMesh}
               onImport={importModels}
               busyId={busy}
-              onClose={() => setSheet(null)}
             />
           ) : sheet === 'scenes' ? (
             <SceneSheet

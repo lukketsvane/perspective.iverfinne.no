@@ -128,9 +128,7 @@ export const MeshSheet: React.FC<{
   onPlaceOwn: (url: string, name: string) => void;
   onImport: (files: FileList) => void;
   busyId: string | null;
-  /** Taking the pencil off the shelf puts the shelf away. Nothing else does. */
-  onClose: () => void;
-}> = ({ onPlace, onPlaceOwn, onImport, busyId, onClose }) => {
+}> = ({ onPlace, onPlaceOwn, onImport, busyId }) => {
   const dark = useStore((s) => s.theme) === 'dark';
   const addCube = useStore((s) => s.addCube);
   const instrument = useStore((s) => s.instrument);
@@ -141,13 +139,17 @@ export const MeshSheet: React.FC<{
   const busy = busyId !== null;
 
   /*
-   * PLACING SOMETHING DOES NOT PUT THE SHELF AWAY.
+   * NOTHING ON THIS SHELF PUTS THE SHELF AWAY.
    *
-   * It used to, on every one of these - a lamp, a cube, a library mesh, one of
-   * the viewer's own - which made blocking a scene in a loop of open, scroll,
-   * tap, open, scroll, tap. Building a scene is placing several things, not
-   * one, and the shelf is a shelf: you take what you need off it and it stays
-   * where it is. It closes when you close it.
+   * Placing used to, on every one of these - a lamp, a cube, a library mesh,
+   * one of the viewer's own - which made blocking a scene in a loop of open,
+   * scroll, tap, open, scroll, tap. Building a scene is placing several
+   * things, not one, and the shelf is a shelf: you take what you need off it
+   * and it stays where it is.
+   *
+   * The block-out pencil was the last exception and is not one any more - see
+   * the note on it below. The shelf closes when you close it: the button that
+   * opened it, Escape, or a tap on the drawing.
    */
   const handleAddCube = () => addCube([focusPoint.x, 0, focusPoint.z]);
 
@@ -197,17 +199,27 @@ export const MeshSheet: React.FC<{
           * its height pulled up. The paragraph above about the block of sized
           * boxes that used to be here is the argument for it standing here.
           *
-          * The one thing on this shelf that DOES put the shelf away, because
-          * unlike everything else here it does not finish the job - it hands
-          * you an instrument to use on the drawing, and the shelf would be
-          * over the floor you need to draw on. It puts itself down again after
-          * each box: see the pointer handler in WalkOverlay.
+          * AND IT LEAVES THE SHELF WHERE IT IS, which it did not.
+          *
+          * Taking the pencil used to put the shelf away, on the argument that
+          * an instrument is for using on the drawing and the shelf would be
+          * over the floor you need to draw on. Half of that is true - it does
+          * cover the bottom of the frame - and the half that is not is the
+          * half you feel: the pencil puts ITSELF down after every box, by
+          * design, so a run of boxes was pencil, box, open the shelf, scroll
+          * to the pencil, box, open the shelf. Three taps of overhead for
+          * every second box, to save a strip of floor that the drawing is
+          * rarely in anyway.
+          *
+          * The floor above the shelf is where these boxes get drawn, which is
+          * where they were being drawn already: the horizon sits near the
+          * middle of the frame and the shelf occupies the last quarter of it.
+          * So the shelf stays, the pencil is one tap away for as long as you
+          * are blocking things in, and the way to be rid of both is the tap on
+          * the drawing that puts every panel away.
           */}
         <button
-          onClick={() => {
-            setInstrument(instrument === 'block' ? 'none' : 'block');
-            onClose();
-          }}
+          onClick={() => setInstrument(instrument === 'block' ? 'none' : 'block')}
           disabled={busy}
           aria-label="Draw boxes on the ground"
           aria-pressed={instrument === 'block'}

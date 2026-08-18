@@ -76,18 +76,26 @@ export const snugIconButton = (dark: boolean) =>
 /**
  * A square in a grid of things you can pick.
  *
- * The fill alone was not enough to see. A tenth of white over a panel that is
- * itself 92 per cent black is about four values of separation, so a shelf of
- * them read as icons floating on glass rather than as a grid of targets - and
- * the only tile anybody could actually see the edges of was the import one,
- * because it happens to carry a dashed border. An edge is what makes a tile a
- * tile: the hairline does the work the fill was failing to do, and the fill
- * stays low so the picture on it is the brightest thing in the square.
+ * AN EDGE, AND NO FILL AT REST.
+ *
+ * The fill came first and was never enough on its own: a tenth of white over a
+ * panel that is itself 92 per cent black is about four values of separation, so
+ * a shelf of them read as icons floating on glass rather than as a grid of
+ * targets. The hairline was added to fix that and did - an edge is what makes a
+ * tile a tile - which left the fill doing nothing except making every tile look
+ * like a key to be pressed. That is the one thing this interface is not: a
+ * global rule strips the background off every button in the app precisely so
+ * that shape, border and glyph carry it, and a grid of filled rectangles was
+ * the last place still arguing with that rule.
+ *
+ * The fill survives where it means something: under a finger and under a
+ * cursor, which is feedback rather than decoration, and it is gone the moment
+ * either leaves.
  */
 export const tile = (dark: boolean) =>
   dark
-    ? 'bg-white/[0.07] border border-white/15 hover:bg-white/[0.12] active:bg-white/20'
-    : 'bg-black/[0.04] border border-black/10 hover:bg-black/[0.08] active:bg-black/15';
+    ? 'border border-white/15 hover:bg-white/[0.08] active:bg-white/15'
+    : 'border border-black/10 hover:bg-black/[0.06] active:bg-black/12';
 
 /** A readout you can drag: the number *is* the control. */
 export const readout = (dark: boolean) =>
