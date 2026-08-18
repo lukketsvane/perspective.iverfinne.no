@@ -36,13 +36,73 @@ export type Instrument = 'none' | 'block' | 'measure';
  *   what makes a ruled sphere of it and what Kim Jung Gi draws on.
  * - 'stereographic': the conformal one. See `lib/projection.ts`.
  *
- * There used to be two more. 'linear' was straight-line perspective, kept only
- * for a session standing in a real room, and that went with the room. '5-point'
- * was the equidistant sheet opened past the hemisphere - which, once the sheet
- * was cut properly at its own edge, turned out to be the equidistant sheet
- * exactly. Two names for one mapping is one name too many.
+ * - 'rectilinear': one, two and three point. A straight line in the world is
+ *   a straight line on the page, everywhere, which is the defining property
+ *   and the entire reason it is what every camera, every draughtsman's board
+ *   and every perspective lesson since Alberti uses. It is also the ONE system
+ *   here that sight is not: it cannot reach 180 degrees at any size of paper,
+ *   and it stretches the corners of a wide frame without limit, which is why
+ *   the other three exist.
+ *
+ * It came back for two reasons. A camera is a rectilinear instrument, so a
+ * mode that frames the view as a lens has to be one; and one, two and three
+ * point perspective cannot be shown in a system that bows straight lines -
+ * a lesson about vanishing points drawn on a curved sheet is a lesson about
+ * a different sheet.
+ *
+ * There used to be one more. '5-point' was the equidistant sheet opened past
+ * the hemisphere - which, once the sheet was cut properly at its own edge,
+ * turned out to be the equidistant sheet exactly. Two names for one mapping is
+ * one name too many.
  */
-export type PerspectiveMode = 'cylindrical' | 'equidistant' | 'stereographic';
+export type PerspectiveMode = 'rectilinear' | 'cylindrical' | 'equidistant' | 'stereographic';
+
+/**
+ * The view as a LENS rather than as a pair of eyes.
+ *
+ * Everything else in this tool frames the world the way sight does: a field
+ * measured in degrees, opened as wide as two hundred and ten because that is
+ * what a person takes in, on a curved sheet because sight has no straight
+ * edges in it. That is the honest model of standing somewhere and looking, and
+ * it is the wrong model of the other thing people compose with, which is a
+ * camera.
+ *
+ * A camera is four numbers and none of them is "how much can you see". It is a
+ * focal length on a frame of a known size, an aperture, a distance it is
+ * focused at, and the shape of the gate - and what those four produce is not a
+ * wider or narrower version of sight but a different picture: rectilinear, so
+ * straight edges stay straight; bounded by a gate you compose INTO rather than
+ * by the edge of the screen; and, above all, only sharp at one distance.
+ *
+ * Depth of field is the part that cannot be faked with a knob. It is the one
+ * thing in a photograph that says where the photographer was standing and what
+ * they were looking at, it is a physical consequence of the other three
+ * numbers rather than a setting of its own, and every drawing decision a
+ * camera-framed composition makes runs through it.
+ */
+export interface CameraState {
+  /** Whether the view is a lens rather than a pair of eyes. */
+  on: boolean;
+  /**
+   * Focal length in millimetres, on a 36 mm frame.
+   *
+   * The frame is full-frame 35 mm because it is the one sensor size whose
+   * focal lengths everybody already has a feel for: fifty is normal, twenty-
+   * four is wide, eighty-five is a portrait. A number that needs a crop factor
+   * applied before it means anything is a number nobody can compose with.
+   */
+  focal: number;
+  /** The f-number. Small is a wide hole, a bright lens and a thin focus. */
+  aperture: number;
+  /**
+   * What the lens is focused on, in metres - or 0 for whatever is under the
+   * middle of the frame, which is what a camera with one focus point does and
+   * what anybody pointing one actually means.
+   */
+  focus: number;
+  /** The gate's shape, width over height: 3:2, 4:3, 16:9, square. */
+  gate: number;
+}
 
 /**
  * How solidly one thing in the scene is drawn.
@@ -785,6 +845,16 @@ export interface SceneView {
    * with the simulation off - which is exactly what those scenes were.
    */
   sky?: SkyState;
+  /**
+   * The lens the composition was framed with, if it was framed with one.
+   *
+   * Called `lens` here and `camera` in the live state, which is not sloppiness:
+   * a SceneView has carried a `camera` since long before there was a lens, and
+   * what it means there is WHERE YOU WERE STANDING. Renaming that would break
+   * every scene file anybody has ever written. So the new field takes the name
+   * that was free, and the two agree about everything except the word.
+   */
+  lens?: CameraState;
   sunEnvironment: boolean;
   guides: GuideLevel;
   /** Written by a version that had one guides switch instead of levels. */
@@ -946,6 +1016,8 @@ export interface SceneState {
   fill: FillState;
   /** The place, the moment and the weather that can aim that sun instead. */
   sky: SkyState;
+  /** The view as a lens rather than as a pair of eyes. */
+  camera: CameraState;
   /** The marker page's own colour and reach. */
   marker: MarkerState;
   /** How the etched page is ruled. */
@@ -1063,6 +1135,16 @@ export interface SceneState {
   ) => void;
   setLens: (fov: number) => void;
   setPerspectiveMode: (mode: PerspectiveMode) => void;
+  /**
+   * Change the lens, and let the field follow it.
+   *
+   * The field of view stays the one number everything downstream reads - the
+   * picker, the vanishing points, the ink's line weight, the panorama's own
+   * sheet - and a focal length is a way of SETTING it, not a second copy of
+   * it. So this writes both, and the lens control reads back in millimetres
+   * while the camera is on and in degrees while it is not.
+   */
+  setCamera: (camera: Partial<CameraState>) => void;
   setCameraHeight: (height: number) => void;
   /** Step down through the room's construction: everything, less, none, round. */
   cycleGuides: () => void;

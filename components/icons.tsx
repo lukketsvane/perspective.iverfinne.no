@@ -24,6 +24,9 @@ export const I = {
 
   /** A road running to a vanishing point on the horizon, its edges bowed. */
   curved: (<><path d="M2 12c4-1.6 16-1.6 20 0" strokeOpacity="0.45" /><path d="M2 21C5 15 8 12 12 10.7M22 21c-3-6-6-9-10-10.3" /><circle cx="12" cy="10.5" r="1.3" fill="currentColor" stroke="none" /></>),
+  /** One, two, three point: a flat board, ruled to a point on the horizon. */
+  rectilinear: (<><path d="M2.5 10.5h19" strokeOpacity="0.45" /><circle cx="19" cy="10.5" r="1.2" fill="currentColor" stroke="none" /><path d="M4 17.4 19 10.5M4 21 19 10.5M12.5 19.6 19 10.5" strokeOpacity="0.35" /><path d="M4 6.5v14.2M12.5 9.6v10" /><path d="M4 6.5 12.5 9.6M4 20.7l8.5-1.1" /></>),
+
   cylindrical: (<><path d="M5 4h14v16H5z" /><path d="M5 8c2.2-1.3 4.5-2 7-2s4.8.7 7 2M5 16c2.2-1.3 4.5-2 7-2s4.8.7 7 2" strokeOpacity="0.45" /><line x1="12" y1="4" x2="12" y2="20" /></>),
 
   /**
