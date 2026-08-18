@@ -699,7 +699,14 @@ export default function App() {
     const done = beginActivity();
     try {
       const state = useStore.getState();
-      await downloadSceneFile(toSceneFile(state.boxes, state.models, state.lamps, currentView(state)));
+      // Filed under whatever the open project is called, which is the whole
+      // point of it having a name: an export used to land as `scene.perspective`
+      // however many of them you wrote, so a folder of them was a folder of
+      // one filename with numbers after it.
+      const open = state.sceneHistory.find((scene) => scene.id === state.currentSceneId);
+      await downloadSceneFile(
+        toSceneFile(state.boxes, state.models, state.lamps, currentView(state), open?.name)
+      );
     } catch (error) {
       console.error('Could not write the scene file:', error);
       reportFailure();

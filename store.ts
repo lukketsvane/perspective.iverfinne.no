@@ -429,6 +429,28 @@ const newId = (): string =>
         b.toString(16).padStart(2, '0')
       ).join('');
 
+/**
+ * What to call a project nobody has named.
+ *
+ * COUNTED, NOT DATED. The name used to be the minute it was saved, on the
+ * grounds that it was never drawn - and now that it is drawn, a shelf of
+ * "2026-08-12 21:03" is a shelf of one string repeated with the last two
+ * digits different, which is exactly as hard to tell apart as the thumbnails
+ * it was meant to help with. A short count reads at a glance and is easy to
+ * type over, which is what the name is for.
+ *
+ * One past the highest number already taken rather than the length of the
+ * shelf: deleting Scene 2 out of three must not hand the next save a name
+ * that is already on a card.
+ */
+const nextSceneName = (history: SavedScene[]): string => {
+  const highest = history.reduce((most, scene) => {
+    const numbered = /^Scene (\d+)$/.exec(scene.name.trim());
+    return numbered ? Math.max(most, Number(numbered[1])) : most;
+  }, 0);
+  return `Scene ${highest + 1}`;
+};
+
 const SETTINGS_KEY = 'kjg-perspective-settings';
 
 const SETTING_KEYS = [
@@ -1810,21 +1832,38 @@ export const useStore = create<SceneState>((set, get) => ({
   // -------------------------------------------------------------------------
 
   /**
-   * Write the composition down.
+   * Write the composition down - INTO THE OPEN PROJECT, not beside it.
    *
-   * Every save is a new one. Naming and overwriting both want words on screen
-   * and a decision before the thing is safe; a roll of views wants neither -
-   * the thumbnail says which is which, and nothing is ever lost by saving.
+   * Every save used to be a new one, and the argument for that was that naming
+   * and overwriting both want words on screen while a roll of views wants
+   * neither. Half of it was right and the half that was wrong is the half you
+   * meet: a scene is not photographed once, it is worked on. Save, walk round
+   * it, move a figure, save again - and the shelf grew a fourth near-identical
+   * thumbnail of one drawing, so the row you keep your work in filled up with
+   * versions of the last five minutes and the thing that tells them apart is
+   * one you have to squint at.
+   *
+   * So this writes over the project that is open, keeping its name and the day
+   * it was started, and moving it to the front because the shelf is ordered by
+   * what was touched last. With nothing open it makes one, and `asNew` makes
+   * one on purpose - which is the plus tile at the head of the shelf, and the
+   * only way a save ever costs a seat now.
+   *
+   * Nothing is lost by saving in either case: an update is over the top of the
+   * SAME thing, which is what the viewer meant by pressing save a second time.
    */
-  saveCurrentScene: async () => {
+  saveCurrentScene: async (asNew) => {
     const state = get();
     const saved = Date.now();
+    const open = asNew
+      ? undefined
+      : state.sceneHistory.find((s) => s.id === state.currentSceneId);
 
     const scene: SavedScene = {
-      id: newId(),
-      // Never drawn: it names the exported file and the accessible control.
-      name: new Date(saved).toISOString().slice(0, 16).replace('T', ' '),
-      createdAt: saved,
+      id: open?.id ?? newId(),
+      // Drawn on the card now, and it names the file an export writes.
+      name: open?.name ?? nextSceneName(state.sceneHistory),
+      createdAt: open?.createdAt ?? saved,
       updatedAt: saved,
       boxes: state.boxes.map((box) => ({ ...box })),
       lamps: state.lamps.map((lamp) => ({ ...lamp })),
@@ -1848,8 +1887,50 @@ export const useStore = create<SceneState>((set, get) => ({
 
     await writeScene(scene);
     set((current) => ({
-      sceneHistory: [scene, ...current.sceneHistory],
+      // Filtered, because an update is the same id twice: without this the
+      // shelf would show the project it just wrote in two places, one of them
+      // holding a picture and a name that no longer exist anywhere.
+      sceneHistory: [scene, ...current.sceneHistory.filter((s) => s.id !== scene.id)],
       currentSceneId: scene.id,
+    }));
+
+    /*
+     * An update can be the last thing holding a mesh.
+     *
+     * Only an update: a new project adds a version and takes none away, so
+     * nothing it writes can have orphaned anything. Overwriting one is
+     * different - take a figure out of a scene, save, and the version that
+     * named the file is gone, while the file itself is still sitting in this
+     * browser at a few megabytes with nothing pointing at it.
+     *
+     * `pruneSafely` is the guarded form: it does nothing at all if the read
+     * that built the shelf never reached storage, because an empty list from a
+     * failed read looks exactly like a viewer who has saved nothing - and
+     * pruning against that would delete every mesh they own. See readScenes.
+     */
+    if (open) await pruneSafely(referenced(get()));
+  },
+
+  /**
+   * Give a project a name.
+   *
+   * NOT A TOUCH, so it does not move. `updatedAt` orders the shelf, and
+   * bumping it here would slide the card out from under the thumb that is
+   * typing into it. Naming a thing is not working on it.
+   *
+   * An empty name is a refusal rather than an empty card: the name is the only
+   * thing on the shelf that says which drawing a thumbnail belongs to once you
+   * have four of the same room.
+   */
+  renameScene: async (id, name) => {
+    const scene = get().sceneHistory.find((s) => s.id === id);
+    if (!scene) return;
+    const tidy = name.trim().slice(0, 48) || scene.name;
+    if (tidy === scene.name) return;
+    const renamed: SavedScene = { ...scene, name: tidy };
+    await writeScene(renamed);
+    set((state) => ({
+      sceneHistory: state.sceneHistory.map((s) => (s.id === id ? renamed : s)),
     }));
   },
 
