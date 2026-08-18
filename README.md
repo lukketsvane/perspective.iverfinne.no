@@ -331,6 +331,35 @@ width happened to give was a wall rather than a menu — nothing sat near anythi
 it was related to, and which row a control landed in changed with the phone. A
 band is scanned in one movement and keeps its company at every width.
 
+### Hold a control, and it says what it is
+
+Nothing in this tool carries visible text — there is no room for eight captions
+on a phone, a label under a control is read once and never again, and the shape
+is what you learn. That has one honest cost: three weeks later, the difference
+between the sphere and the endless band is a glyph you half remember.
+
+**So hold any control and its name appears above it**, two or three words, in the
+same language the tour is written in. Let go and it is gone — and the control
+does not fire, because reading what something is must never be the same gesture
+as doing it. Holding *deal a page* to remember what it does and getting a new
+page is the exact opposite of an answer, so the click is swallowed in the capture
+phase and the handful of controls that act on pointer-up rather than click ask
+whether a hint is up before they act. A press that moves is a drag and cancels
+the hint on the way, since half the controls here are dragged and a slow drag
+starts with a finger sitting still.
+
+It is **one listener for forty buttons**, keyed on the `aria-label` each of them
+already carries — the same names the tour rings by and the harness clicks by, so
+there is no second register of names to keep in step. A control added tomorrow
+gets a hint by being named, which it has to be anyway. Labels that carry a live
+value (`Snap to 0.25 m`, `Floor: 128 of 255…`) are matched by their stem, longest
+key first.
+
+Always on, rather than something the tour switches on: the tour is nine cards you
+see once on your first visit, and the question this answers is one you have long
+after. A gesture that only works inside a mode you have already left is a gesture
+nobody finds.
+
 **Turned sideways, the dock splits in two.** A phone held in landscape is held
 in *two hands*, and the two places a thumb actually rests are the bottom
 corners — not the middle of the bottom edge, which is where the row sat and
@@ -558,11 +587,6 @@ a chair or a figure. Each line is sampled and asked where it lands, like the ray
 are: the image of a straight line on a curved sheet is an arc, and a stroke drawn
 between two projected ends would be a chord that misses the middle of it by a
 third of the frame.
-
-That is the whole lesson, and it is invisible until somebody draws it: a box has
-its own points, decided by how *it* is turned relative to you, not by the scene
-being "in two-point perspective". Turn one off the grid and its pair moves off
-the scene's.
 
 That is the whole lesson, and it is invisible until somebody draws it: a box has
 its own points, decided by how *it* is turned relative to you, not by the scene

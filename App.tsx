@@ -19,6 +19,7 @@ import { holdPreviews, resumePreviews } from './lib/meshPreview';
 import { downloadSceneFile, readSceneFile, toSceneFile } from './lib/sceneJson';
 import { beginActivity, reportFailure } from './lib/activity';
 import { Activity } from './components/Activity';
+import { Hints } from './components/Hints';
 import { Tour } from './components/Tour';
 import { beginTour, tourSeen } from './lib/tour';
 import type { SceneModel } from './types';
@@ -748,6 +749,8 @@ export default function App() {
     >
       <Scene />
       <Activity />
+      {/* Hold any control to be told what it is. */}
+      <Hints />
       <Tour />
       <VanishingPoints color={constructionInk(isSketch(surface), isDark)} />
       <Measures />

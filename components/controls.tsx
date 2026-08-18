@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { Icon } from './icons';
 import { useStore } from '../store';
 import { ACTIVE, bubble } from './ui';
+import { suppressing, useHinting } from './Hints';
 import type { RoomSize } from '../types';
 
 /**
@@ -116,7 +117,8 @@ export const useBackdropControl = () => {
     onPointerUp: (event: React.PointerEvent) => {
       const held = drag.current;
       drag.current = null;
-      if (held?.id !== event.pointerId || held.moved) return;
+      // A press long enough to have opened a hint was a question, not a tap.
+      if (held?.id !== event.pointerId || held.moved || suppressing()) return;
       cycle();
     },
     onPointerCancel: () => {
@@ -177,7 +179,8 @@ export const useGroundControl = () => {
     onPointerUp: (event: React.PointerEvent) => {
       const held = drag.current;
       drag.current = null;
-      if (held?.id !== event.pointerId || held.moved) return;
+      // A press long enough to have opened a hint was a question, not a tap.
+      if (held?.id !== event.pointerId || held.moved || suppressing()) return;
       toggle();
     },
     onPointerCancel: () => {
@@ -210,7 +213,8 @@ export const useGrayThemeControl = (onDoubleTap?: () => void) => {
     onPointerUp: (event: React.PointerEvent) => {
       const held = drag.current;
       drag.current = null;
-      if (held?.id !== event.pointerId || held.moved) return;
+      // A press long enough to have opened a hint was a question, not a tap.
+      if (held?.id !== event.pointerId || held.moved || suppressing()) return;
       const now = performance.now();
       if (onDoubleTap && now - lastTap.current < 300) {
         if (tapTimer.current !== undefined) window.clearTimeout(tapTimer.current);
@@ -294,7 +298,7 @@ export const useRoomControl = () => {
         const held = drag.current;
         drag.current = null;
         setSizing(false);
-        if (held?.id === event.pointerId && !held.moved) cycleRoom();
+        if (held?.id === event.pointerId && !held.moved && !suppressing()) cycleRoom();
       },
       onPointerCancel: () => {
         drag.current = null;
@@ -340,7 +344,7 @@ const useScrub = (
     onPointerUp: (e: React.PointerEvent) => {
       const held = drag.current;
       drag.current = null;
-      if (held?.id !== e.pointerId || held.moved || !cycle?.length) return;
+      if (held?.id !== e.pointerId || held.moved || !cycle?.length || suppressing()) return;
       // A tap steps to the next preset up, and round to the bottom again.
       onChange(cycle.find((v) => v > value + 0.001) ?? cycle[0]);
     },
@@ -362,6 +366,9 @@ export const Scrub: React.FC<DraggableNumber> = (props) => {
   const handlers = useScrub(props, 'x');
   const { skin, icon, label, reading, accent } = props;
   const [active, setActive] = React.useState(false);
+  // A hold over this control is a question about what it is, and the answer is
+  // already in a bubble over it - see components/Hints.tsx.
+  const hinting = useHinting();
 
   const wrapHandlers = {
     onPointerDown: (e: React.PointerEvent) => { setActive(true); handlers.onPointerDown(e); },
@@ -388,7 +395,7 @@ export const Scrub: React.FC<DraggableNumber> = (props) => {
           <Icon path={icon} className="w-5 h-5" />
         </span>
       </button>
-      {active && (
+      {active && !hinting && (
         <div className={`absolute -top-12 ${bubble(skin.dark)}`}>
           {reading}
         </div>
