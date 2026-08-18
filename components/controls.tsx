@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { Icon } from './icons';
 import { useStore } from '../store';
 import { ACTIVE, bubble } from './ui';
-import { suppressing, useHinting } from './Hints';
+import { HOLD_MS, suppressing, useHinting } from './Hints';
 import type { RoomSize } from '../types';
 
 /**
@@ -231,6 +231,74 @@ export const useGrayThemeControl = () => {
       toggle();
     },
     onPointerCancel: () => { drag.current = null; },
+  };
+};
+
+/**
+ * A seat with a drawer under it: tap to step it, hold to open what is inside.
+ *
+ * TWO SEATS BECAME ONE. The surface and the surface's own settings were a
+ * button each, side by side, in the two places this app asks "what is this
+ * drawn with" - the panel band for the page and the bar for the thing in your
+ * hand. They read as two decisions and they are one: the second is a drawer in
+ * the first, it only exists on the rungs that have anything to set, and a band
+ * that vanishes and reappears a seat wider as you step through the ladder is a
+ * band whose controls move under your thumb.
+ *
+ * So it is one seat. Tap steps the ladder as it always did; hold opens the
+ * drawer. Which costs the hold this control used to answer a question with -
+ * see components/Hints.tsx - and that is the right trade twice over: the
+ * drawer is a better answer to "what is this" than two words in a bubble, and
+ * a control whose hold does something must not also be a control whose hold
+ * explains something. There is no hint on this label for exactly that reason.
+ *
+ * Everything is on the pointer rather than on click, because the hold has to
+ * fire while the finger is still down - a drawer that opens on release is a
+ * drawer you have to guess the length of.
+ */
+export const useHoldable = ({
+  onTap,
+  onHold,
+}: {
+  onTap: () => void;
+  /** Absent on the rungs with nothing to set, where the hold is just a tap. */
+  onHold?: () => void;
+}) => {
+  const held = useRef<{ id: number; x: number; y: number; timer: number; fired: boolean } | null>(
+    null
+  );
+
+  const stop = () => {
+    if (held.current) window.clearTimeout(held.current.timer);
+    held.current = null;
+  };
+
+  return {
+    onPointerDown: (event: React.PointerEvent) => {
+      event.stopPropagation();
+      try { (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); } catch { /* continue uncaptured */ }
+      const timer = window.setTimeout(() => {
+        const press = held.current;
+        if (!press) return;
+        press.fired = true;
+        onHold?.();
+      }, HOLD_MS);
+      held.current = { id: event.pointerId, x: event.clientX, y: event.clientY, timer, fired: false };
+    },
+    onPointerMove: (event: React.PointerEvent) => {
+      const press = held.current;
+      if (press?.id !== event.pointerId || press.fired) return;
+      // The same nine pixels of slop the scene's own tap allows: a finger
+      // resting still is a hold, a finger that travels was going somewhere.
+      if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > 9) stop();
+    },
+    onPointerUp: (event: React.PointerEvent) => {
+      const press = held.current;
+      stop();
+      if (press?.id !== event.pointerId || press.fired || suppressing()) return;
+      onTap();
+    },
+    onPointerCancel: stop,
   };
 };
 

@@ -928,6 +928,15 @@ export interface SceneState {
    */
   sunEnvironment: boolean;
   /**
+   * The back camera, faintly, under the drawing - see components/CameraFeed.
+   *
+   * Never persisted and never saved into a scene, unlike every other flag near
+   * it. A camera that comes back on because a browser remembered a setting is
+   * a camera nobody asked for; this one is armed by a gesture and dies with
+   * the session.
+   */
+  cameraFeed: boolean;
+  /**
    * The sun. It is the only light in the scene - no ambient, no environment -
    * so a face turned away from it is genuinely unlit, which is what makes a
    * box read as a box.
@@ -1118,6 +1127,8 @@ export interface SceneState {
   /** Step only the selection, through the rungs its own kind can draw. */
   cycleSelectionSurface: () => void;
   toggleSunEnvironment: () => void;
+  /** Put the room you are in under the drawing, or take it away. */
+  setCameraFeed: (on: boolean) => void;
   /**
    * Change the sky, and let the sun follow it.
    *

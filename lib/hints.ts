@@ -52,7 +52,6 @@ const HINTS: Record<string, string> = {
   'Snap to': 'Fest til rutenettet',
   'Snap off': 'Fest til rutenettet',
   'Construction around': 'Kassar rundt tinga',
-  'Surface of everything': 'Kva alt er teikna med',
   'Paper tone': 'Arket — dra for tone',
   'Page behind the drawing': 'Bakgrunnen bak arket',
   Lights: 'Lyset',
@@ -64,7 +63,7 @@ const HINTS: Record<string, string> = {
   'Lens reach': 'Kor vidt linsa får opnast',
   'Room,': 'Rommet rundt — dra for storleik',
   'Measure distances in the scene': 'Målebandet',
-  'Look by turning the phone': 'Sjå ved å snu telefonen',
+  'Look by turning the phone': 'Snu telefonen for å sjå — dobbelttrykk for rommet under',
   'Save the view as a picture': 'Lagre biletet',
   'Take the tour again': 'Ta omvisinga på nytt',
 
@@ -130,13 +129,26 @@ const HINTS: Record<string, string> = {
   'Height off the floor': 'Høgd over golvet — dra',
   'Lock the size': 'Lås storleiken',
   'Size locked': 'Storleiken er låst',
-  'Surface of this one': 'Kva denne er teikna med',
   'Construction on this one': 'Punkt, diagonalar, firedelt golv',
-  'Export this mesh at its current size': 'Skriv meshen til fil',
   Delete: 'Slett',
   'things in hand': 'Så mange du held — hald på ein til for å leggje han i handa',
   'metres away': 'Så langt unna',
 };
+
+/*
+ * TWO CONTROLS ARE DELIBERATELY ABSENT FROM THE LIST ABOVE.
+ *
+ * The rung seats - "Surface of everything" and "Surface of this one" - open
+ * their own settings on a hold, so a hold on them cannot also put a name in a
+ * bubble. That is the trade useHoldable describes and it is the right one: a
+ * drawer that opens and shows you the knobs is a better answer to "what is
+ * this" than two words, and a control whose hold does something must never be
+ * a control whose hold explains something.
+ *
+ * Anything else missing from the list is missing by omission and should be
+ * added. These two are missing on purpose, and adding them would silently take
+ * the drawer away.
+ */
 
 /** The keys, longest first, so a stem never wins over a fuller match. */
 const KEYS = Object.keys(HINTS).sort((a, b) => b.length - a.length);

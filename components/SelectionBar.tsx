@@ -2,11 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { Icon, I } from './icons';
 import { bubble, chrome, readout, SIDEWAYS_SLOT, snugIconButton } from './ui';
-import { exportScaledModel } from '../lib/exportModel';
-import { SETTINGS_ICON, SURFACE_ICON } from './icons';
+import { SURFACE_ICON } from './icons';
+import { useHoldable } from './controls';
 import { useRail } from '../lib/rail';
 import { selectionRange } from '../lib/focus';
-import { selectionSurface, surfaceHasSettings, surfaceSettingsLabel } from '../types';
+import { selectionSurface, surfaceHasSettings } from '../types';
 import type { LampData } from '../types';
 
 /** Everything sizes to the centimetre. Below that is not a drawing decision. */
@@ -305,7 +305,6 @@ export const SelectionBar: React.FC<{
   const railVisible = useRail();
 
   const [activeAxis, setActiveAxis] = useState<0 | 1 | 2>(1);
-  const [exporting, setExporting] = useState(false);
   const range = useRange();
 
   const liftSelection = useStore((s) => s.liftSelection);
@@ -386,6 +385,12 @@ export const SelectionBar: React.FC<{
    */
   const surface = selectionSurface({ boxes, models, selectedId, selectedModelId, surface: sceneSurface })!;
 
+  /* This one's rung and its drawer, on one seat: tap steps, hold opens. */
+  const ownSurfaceControl = useHoldable({
+    onTap: cycleSelectionSurface,
+    onHold: onMaterial && surfaceHasSettings(surface) ? onMaterial : undefined,
+  });
+
   const isDark = theme === 'dark';
   const button = `${snugIconButton(isDark)} border border-transparent`;
 
@@ -399,18 +404,6 @@ export const SelectionBar: React.FC<{
    * can know whether the hand it just emptied still holds anything.
    */
   const remove = () => removeSelection();
-
-  const exportModel = async () => {
-    if (!model?.object || exporting) return;
-    setExporting(true);
-    try {
-      await exportScaledModel(model);
-    } catch (error) {
-      console.error('Failed to export model:', error);
-    } finally {
-      setExporting(false);
-    }
-  };
 
   return (
     <div
@@ -542,10 +535,17 @@ export const SelectionBar: React.FC<{
             </div>
           )}
         </div>
+        {/* ONE SEAT, tap to step the rung and hold to open the rung's own
+            settings - the same seat the panel band carries for the page, and
+            for the reasons written on useHoldable. It matters more here than
+            there: this bar grows with what you can do to a thing, and a seat
+            that comes and goes with the rung is a seat that shoves its
+            neighbours under your thumb. */}
         <button
-          onClick={cycleSelectionSurface}
-          className={button}
+          {...ownSurfaceControl}
+          className={`${button} touch-none`}
           aria-label={`Surface of this one: ${surface}`}
+          aria-expanded={onMaterial && surfaceHasSettings(surface) ? materialOpen : undefined}
         >
           <Icon path={SURFACE_ICON[surface]} className="w-5 h-5" />
         </button>
@@ -610,25 +610,15 @@ export const SelectionBar: React.FC<{
           />
         </button>
 
-        {onMaterial && surfaceHasSettings(surface) && (
-          <button
-            onClick={onMaterial}
-            aria-label={surfaceSettingsLabel(surface)}
-            aria-expanded={materialOpen}
-            className={`${button} ${materialOpen ? (isDark ? 'bg-white/10' : 'bg-black/10') : ''}`}
-          >
-            <Icon path={SETTINGS_ICON[surface]} className="w-5 h-5" />
-          </button>
-        )}
-        {model?.object && (
-          <button
-            onClick={exportModel}
-            className={`${button} ${exporting ? 'opacity-40 animate-pulse' : ''}`}
-            aria-label="Export this mesh at its current size"
-          >
-            <Icon path={I.upload} className="w-5 h-5 rotate-180" />
-          </button>
-        )}
+        {/* THE SCALED-MESH EXPORT IS NOT HERE ANY MORE.
+
+            It wrote the selected mesh back out as a .glb at whatever size it
+            had been dragged to, and it was the one seat on this bar that was
+            not about the drawing at all - a file operation, on a bar whose
+            every other control moves, sizes, rules or deletes the thing in
+            your hand. The scene file already carries every mesh at its placed
+            size, which is the export anybody actually wants, and it is on the
+            shelf where the other file operations live. */}
         {/* Copy is a selection verb, so it stays beside delete where it is
             available the moment an object is picked up. */}
         <button onClick={duplicateSelection} className={button} aria-label="Duplicate selection">

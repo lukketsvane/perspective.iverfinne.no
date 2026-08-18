@@ -126,6 +126,10 @@ export const I = {
   measure: (<><path d="M12 3.5L5.5 20M12 3.5L18.5 20" /><circle cx="12" cy="4.6" r="1.5" /><path d="M6.8 16.6a11.5 11.5 0 0 1 10.4 0" strokeOpacity="0.55" /></>),
 
   /** A phone held up, and the turn that steers the view. */
+  /** The same phone, with the room coming through it: the feed is under the
+      drawing. A lens where the screen was, and the frame drawn open. */
+  roomFeed: (<><rect x="8.5" y="4.5" width="7" height="13" rx="1.4" strokeDasharray="2.6 2" /><circle cx="12" cy="10.6" r="2.6" /><circle cx="12" cy="10.6" r="0.9" fill="currentColor" stroke="none" /><path d="M12 21.8a9.5 9.5 0 0 0 7.8-4M12 21.8l2.6-.4M12 21.8l-.9-2.4" strokeOpacity="0.7" /></>),
+
   arLook: (<><rect x="8.5" y="4.5" width="7" height="13" rx="1.4" /><path d="M12 21.8a9.5 9.5 0 0 0 7.8-4M12 21.8l2.6-.4M12 21.8l-.9-2.4" strokeOpacity="0.7" /><circle cx="12" cy="15.3" r="0.8" fill="currentColor" stroke="none" /></>),
 
   /**

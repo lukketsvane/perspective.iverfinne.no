@@ -6,8 +6,8 @@ import { holdRail, releaseRail, showRail, useRail } from '../lib/rail';
 import { SelectionBar } from './SelectionBar';
 import { LightPanel } from './LightPanel';
 import { MaterialPanel } from './MaterialPanel';
-import { Icon, I, SETTINGS_ICON, SURFACE_ICON } from './icons';
-import { Scrub, useBackdropControl, useGrayThemeControl, useGroundControl, useRoomControl } from './controls';
+import { Icon, I, SURFACE_ICON } from './icons';
+import { Scrub, useBackdropControl, useGrayThemeControl, useGroundControl, useHoldable, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
 // One import rather than a static one for the capability check and a dynamic
 // one for the work: the heavy part of this - the USDZ exporter itself - is
@@ -21,7 +21,7 @@ import { focusPoint } from '../lib/focus';
 import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
 import { HUMAN_SIGHT, MAX_FIELD, wholeSheetField } from '../lib/projection';
-import { SNAP_STEPS, selectionSurface, surfaceHasSettings, surfaceSettingsLabel, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
+import { SNAP_STEPS, selectionSurface, surfaceHasSettings, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
 import { beginTour, endTour, useTourStep } from '../lib/tour';
 
 /**
@@ -282,6 +282,12 @@ export const WalkOverlay: React.FC<{
   const backdropControl = useBackdropControl();
   const ground = useStore((s) => s.ground);
   const groundControl = useGroundControl();
+  const cameraFeed = useStore((s) => s.cameraFeed);
+  const setCameraFeed = useStore((s) => s.setCameraFeed);
+  /* Read inside the tap handler, where a re-render has not happened yet: the
+     second tap of a double tap arrives before React has seen the first. */
+  const arLookRef = useRef(false);
+  const lastLookTap = useRef(0);
   const [showTools, setShowTools] = useState(false);
   /*
    * The lights stand in the tools row's own slot, over a live dock.
@@ -432,6 +438,13 @@ export const WalkOverlay: React.FC<{
   const lastMaterialFrom = useRef<'scene' | 'selection'>('scene');
   if (materialFrom) lastMaterialFrom.current = materialFrom;
   const cycleSurface = useStore((s) => s.cycleSurface);
+  /* The page's rung and its drawer, on one seat: tap steps, hold opens. */
+  const pageSurfaceControl = useHoldable({
+    onTap: cycleSurface,
+    onHold: surfaceHasSettings(sceneSurface)
+      ? () => { setShowTools(false); setShowLights(false); setMaterialFrom('scene'); onShelfAway(); }
+      : undefined,
+  });
   const roomLevel = useStore((s) => s.roomLevel);
   const room = useStore((s) => s.room);
   const roomControl = useRoomControl();
@@ -1546,30 +1559,23 @@ export const WalkOverlay: React.FC<{
               row of a menu two taps down, which is to say it was only ever
               found by people who already knew the knobs. It deals itself now,
               in the gaps between working: see lib/autoDeal.ts. */}
+          {/* ONE SEAT, AND IT USED TO BE TWO.
+
+              The rung and the rung's own settings sat side by side, and they
+              read as two decisions when they are one: the settings are a
+              drawer in the rung, they only exist on the rungs that have
+              anything to set, and a band that grew and shrank by a seat as you
+              stepped the ladder was a band whose controls moved under your
+              thumb. Tap steps the ladder; hold opens the drawer. See
+              useHoldable for what that costs. */}
           <button
-            onClick={cycleSurface}
+            {...pageSurfaceControl}
             aria-label={`Surface of everything: ${sceneSurface}`}
-            className={`${button} ${sceneSurface !== 'original' ? ACTIVE : ''}`}
+            aria-expanded={surfaceHasSettings(sceneSurface) ? materialFrom === 'scene' : undefined}
+            className={`${button} touch-none ${sceneSurface !== 'original' ? ACTIVE : ''}`}
           >
             <Icon path={SURFACE_ICON[sceneSurface]} className="w-5 h-5" />
           </button>
-          {/* Only on the two rungs that have anything to set. A button that
-              does nothing on three rungs out of five is a button you learn to
-              distrust, so it is absent rather than disabled.
-
-              The scene's rung here, this being the scene's band: the copy on
-              the selection bar asks the same question of whatever is in your
-              hand, and either can be the one that has knobs. */}
-          {surfaceHasSettings(sceneSurface) && (
-            <button
-              onClick={() => { setShowTools(false); setShowLights(false); setMaterialFrom('scene'); onShelfAway(); }}
-              aria-label={surfaceSettingsLabel(sceneSurface)}
-              aria-expanded={materialFrom === 'scene'}
-              className={button}
-            >
-              <Icon path={SETTINGS_ICON[sceneSurface]} className="w-5 h-5" />
-            </button>
-          )}
           {/* The sheet: tap it between the ends of the ramp, drag it anywhere
               between. It used to carry the SKY as well, on a double tap - a
               second, invisible gesture on a control about paper tone, arming
@@ -1717,16 +1723,55 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.measure} className="w-5 h-5" />
           </button>
+          {/*
+            * Turn the phone to look - and tap it twice to put the room you are
+            * actually in under the drawing.
+            *
+            * The two belong on one seat because they are one gesture: the
+            * phone comes up in front of your face either way, and the feed is
+            * only worth anything while the scene is turning with it. Hold it
+            * up in a real corridor and the ruled sphere, the horizon and the
+            * five points land over the real corridor's own edges, which is the
+            * fastest way there is to see where a room's points actually are.
+            *
+            * THE SECOND TAP DOES NOT WAIT FOR THE FIRST TO EXPIRE, and it
+            * cannot. Every other double tap in this app used to hold the
+            * single one back 300 ms to see whether a second was coming - which
+            * is why there are no others left. Here it would not merely be slow,
+            * it would be broken: iOS grants the orientation sensor only from
+            * inside the tap that asked for it, and a permission requested from
+            * a timer three tenths of a second later is a permission refused.
+            * So the first tap acts at once and the second ADDS to it, which is
+            * also what "also overlay" means.
+            */}
           <button
             onClick={async () => {
-              if (arLook) {
+              const now = performance.now();
+              const quick = now - lastLookTap.current < 350;
+              lastLookTap.current = now;
+
+              // A second quick tap while the phone is already tracking: the
+              // camera, on top of what the first tap just armed.
+              if (quick && arLookRef.current) {
+                lastLookTap.current = 0;
+                setCameraFeed(!useStore.getState().cameraFeed);
+                return;
+              }
+
+              if (arLookRef.current) {
                 disableDeviceOrientation();
+                arLookRef.current = false;
                 setArLook(false);
+                // The feed goes with it: it is only ever a backing sheet for a
+                // view that turns, and a camera left running under a still
+                // frame is a camera nobody remembers switching on.
+                setCameraFeed(false);
                 return;
               }
               // iOS grants the sensor only from inside a tap, which is why
               // the permission ask lives here and nowhere else.
               const granted = await enableDeviceOrientation();
+              arLookRef.current = granted;
               setArLook(granted);
               if (granted) {
                 setTimeout(() => {
@@ -1735,16 +1780,18 @@ export const WalkOverlay: React.FC<{
                   // by switching back off rather than pretending.
                   if (!walkInput.useDeviceOrientation) {
                     disableDeviceOrientation();
+                    arLookRef.current = false;
                     setArLook(false);
+                    setCameraFeed(false);
                   }
                 }, 1500);
               }
             }}
-            aria-label="Look by turning the phone"
+            aria-label={`Look by turning the phone${cameraFeed ? ', with the room under it' : ''}`}
             aria-pressed={arLook}
             className={`${button} ${arLook ? ACTIVE : ''}`}
           >
-            <Icon path={I.arLook} className="w-5 h-5" />
+            <Icon path={cameraFeed ? I.roomFeed : I.arLook} className="w-5 h-5" />
           </button>
           </div>
 

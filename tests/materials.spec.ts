@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import {
   blockOutABox,
   clickIn,
@@ -103,16 +103,33 @@ const readingOf = (page: Page, label: string) => drag(page, label, 0, { steps: 1
 /* --------------------------------------------------------------- the panels */
 
 /**
+ * Hold a control until its drawer opens.
+ *
+ * The rung and its settings are one seat now: tap steps the ladder, hold opens
+ * the knobs. Playwright has no hold, so it is spelled out - down, wait past
+ * the app's own 450 ms threshold without moving, up. Moving would make it a
+ * drag, which the control deliberately treats as neither.
+ */
+const hold = async (page: Page, button: Locator) => {
+  const box = await button.boundingBox();
+  if (!box) throw new Error('Nothing to hold: the control is not on screen.');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(650);
+  await page.mouse.up();
+};
+
+/**
  * The knobs for the thing in your hand, from its own bar.
  *
  * Idempotent through aria-expanded, for the same reason openTools is: this
  * button toggles, and a helper that assumes the panel is shut closes it for the
  * spec that had just opened it.
  */
-const openOwnSettings = async (page: Page, label = HATCH_SETTINGS) => {
+const openOwnSettings = async (page: Page, _label = HATCH_SETTINGS) => {
   await wake(page);
-  const button = find(page, 'selection', label);
-  if ((await button.getAttribute('aria-expanded')) !== 'true') await button.click();
+  const button = findByPrefix(page, OWN_RUNG, 'selection');
+  if ((await button.getAttribute('aria-expanded')) !== 'true') await hold(page, button);
   await expect(button).toHaveAttribute('aria-expanded', 'true');
 };
 
@@ -125,11 +142,11 @@ const openOwnSettings = async (page: Page, label = HATCH_SETTINGS) => {
 // Exported rather than deleted: the page's own knobs are the other half of this
 // file's subject, and the spec that reaches for them next should not have to
 // write this again.
-export const openPageSettings = async (page: Page, label = HATCH_SETTINGS) => {
+export const openPageSettings = async (page: Page, _label = HATCH_SETTINGS) => {
   await openTools(page);
   await wake(page);
-  const button = find(page, 'tools', label);
-  if ((await button.getAttribute('aria-expanded')) !== 'true') await button.click();
+  const button = findByPrefix(page, PAGE_RUNG, 'tools');
+  if ((await button.getAttribute('aria-expanded')) !== 'true') await hold(page, button);
   await expect(button).toHaveAttribute('aria-expanded', 'true');
 };
 
