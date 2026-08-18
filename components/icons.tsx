@@ -116,7 +116,7 @@ export const I = {
   /**
    * The shuffle: two pages crossing on their way past each other.
    *
-   * Not dice. A die is chance for its own sake; this deals one of ten pages
+   * Not dice. A die is chance for its own sake; this deals one of five pages
    * somebody chose, which is a different promise.
    */
   shuffle: (<><path d="M3 7.5h3.2c1.5 0 2.4.8 3.4 2.2l3.8 5.4c1 1.4 1.9 2.2 3.4 2.2H21" /><path d="M3 16.6h3.2c1.5 0 2.4-.8 3.4-2.2" strokeOpacity="0.6" /><path d="M14.4 8.8c1-1 1.8-1.3 2.6-1.3H21" strokeOpacity="0.6" /><path d="M18.6 5.1 21 7.5l-2.4 2.4M18.6 14.9 21 17.3l-2.4 2.4" /></>),
