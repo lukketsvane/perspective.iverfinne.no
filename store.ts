@@ -1801,6 +1801,53 @@ export const useStore = create<SceneState>((set, get) => ({
     }),
 
   /**
+   * Copy the whole hand and put the copies in the hand instead.
+   *
+   * Duplication belongs to the selection, not the model shelf: it preserves
+   * every decision already made about size, turn, material and lift. A small
+   * diagonal step keeps the result close enough to compare while making it
+   * visible immediately instead of leaving two objects exactly superimposed.
+   * One press is one history step, however many things were held.
+   */
+  duplicateSelection: () =>
+    set((state) => {
+      const hand = handOf(state);
+      if (!hand.size) return {};
+
+      const ids = new Map<string, string>();
+      hand.forEach((id) => ids.set(id, newId()));
+      const offset = 0.5;
+      const boxes = state.boxes.filter((box) => hand.has(box.id)).map((box) => ({
+        ...box,
+        id: ids.get(box.id)!,
+        position: [box.position[0] + offset, box.position[1], box.position[2] + offset] as [number, number, number],
+      }));
+      const models = state.models.filter((model) => hand.has(model.id)).map((model) => ({
+        ...model,
+        id: ids.get(model.id)!,
+        position: [model.position[0] + offset, model.position[1], model.position[2] + offset] as [number, number, number],
+      }));
+      const lamps = state.lamps.filter((lamp) => hand.has(lamp.id)).map((lamp) => ({
+        ...lamp,
+        id: ids.get(lamp.id)!,
+        position: [lamp.position[0] + offset, lamp.position[1], lamp.position[2] + offset] as [number, number, number],
+      }));
+
+      const primary = state.selectedId ?? state.selectedModelId ?? state.selectedLampId;
+      const copiedPrimary = primary ? ids.get(primary) ?? null : null;
+      return {
+        ...remember(state),
+        boxes: [...state.boxes, ...boxes],
+        models: [...state.models, ...models],
+        lamps: [...state.lamps, ...lamps],
+        selectedId: state.selectedId ? copiedPrimary : null,
+        selectedModelId: state.selectedModelId ? copiedPrimary : null,
+        selectedLampId: state.selectedLampId ? copiedPrimary : null,
+        companions: state.companions.flatMap((id) => ids.get(id) ?? []),
+      };
+    }),
+
+  /**
    * The same height off the floor for everything in hand.
    *
    * An ABSOLUTE, not a nudge, and that is the point of it: what you want from
