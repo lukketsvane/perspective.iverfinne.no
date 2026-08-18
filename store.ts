@@ -1216,6 +1216,7 @@ export const useStore = create<SceneState>((set, get) => ({
   wash: DEFAULT_WASH,
   ground: DEFAULT_GROUND,
   sunEnvironment: false,
+  cameraFeed: false,
   instrument: 'none',
   undoStack: [],
   redoStack: [],
@@ -2192,6 +2193,8 @@ export const useStore = create<SceneState>((set, get) => ({
     }),
 
   toggleSunEnvironment: () => set((state) => ({ sunEnvironment: !state.sunEnvironment })),
+
+  setCameraFeed: (cameraFeed) => set({ cameraFeed }),
 
   /**
    * Change the sky, and let the sun follow.

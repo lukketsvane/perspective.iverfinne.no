@@ -28,8 +28,13 @@ import { bubble } from './ui';
  * inside a mode you have already left is a gesture nobody finds.
  */
 
-/** The same hold the scene uses to take a second thing into the hand. */
-const HOLD_MS = 450;
+/**
+ * The same hold the scene uses to take a second thing into the hand - and now
+ * the same hold that opens a control's own settings, which is why it is
+ * exported. A control that does something on a hold must not also answer a
+ * question on one, and the two have to agree about how long a hold is.
+ */
+export const HOLD_MS = 450;
 
 /**
  * Whether a hint has just fired, so the control under it does not also act.
