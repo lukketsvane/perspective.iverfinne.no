@@ -188,6 +188,7 @@ const LampBar: React.FC<{ lamp: LampData; raised: boolean }> = ({ lamp, raised }
   const theme = useStore((s) => s.theme);
   const updateLamp = useStore((s) => s.updateLamp);
   const removeLamp = useStore((s) => s.removeLamp);
+  const duplicateSelection = useStore((s) => s.duplicateSelection);
   const beginChange = useStore((s) => s.beginChange);
   const railVisible = useRail();
   const isDark = theme === 'dark';
@@ -262,6 +263,9 @@ const LampBar: React.FC<{ lamp: LampData; raised: boolean }> = ({ lamp, raised }
             'Aim - drag to swing it',
             aimScrub
           )}
+        <button onClick={duplicateSelection} className={button} aria-label="Duplicate selection">
+          <Icon path={I.duplicate} className="w-5 h-5" />
+        </button>
         <button onClick={() => removeLamp(lamp.id)} className={`${button} !text-red-500`} aria-label="Delete">
           <Icon path={I.trash} className="w-5 h-5" />
         </button>
@@ -308,6 +312,7 @@ export const SelectionBar: React.FC<{
   const sizeSelection = useStore((s) => s.sizeSelection);
   const heightSelection = useStore((s) => s.heightSelection);
   const removeSelection = useStore((s) => s.removeSelection);
+  const duplicateSelection = useStore((s) => s.duplicateSelection);
   const companions = useStore((s) => s.companions);
 
   const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
@@ -624,6 +629,11 @@ export const SelectionBar: React.FC<{
             <Icon path={I.upload} className="w-5 h-5 rotate-180" />
           </button>
         )}
+        {/* Copy is a selection verb, so it stays beside delete where it is
+            available the moment an object is picked up. */}
+        <button onClick={duplicateSelection} className={button} aria-label="Duplicate selection">
+          <Icon path={I.duplicate} className="w-5 h-5" />
+        </button>
         <button onClick={remove} className={`${button} !text-red-500`} aria-label="Delete">
           <Icon path={I.trash} className="w-5 h-5" />
         </button>
