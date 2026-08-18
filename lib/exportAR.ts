@@ -50,9 +50,27 @@ const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
  * Look lights the scene from an estimate of the real light, which is a better
  * answer than any lamp placed against a virtual sun.
  */
-export const sceneForAR = (boxes: BoxData[], models: SceneModel[]): THREE.Group => {
+export interface ARAnchor {
+  x: number;
+  z: number;
+}
+
+export const sceneForAR = (
+  boxes: BoxData[],
+  models: SceneModel[],
+  anchor: ARAnchor = { x: 0, z: 0 }
+): THREE.Group => {
   const group = new THREE.Group();
   group.name = 'PerspectiveScene';
+
+  /*
+   * Quick Look puts the USDZ origin on the plane it finds in front of the
+   * phone. Make that origin the place at the centre of our canvas, rather
+   * than the drawing's arbitrary world origin. Thus the form the viewer was
+   * sighting when they pressed AR is the form that arrives straight ahead.
+   * Y deliberately stays on the composed ground plane.
+   */
+  group.position.set(-anchor.x, 0, -anchor.z);
 
   boxes.forEach((box) => {
     const mesh = new THREE.Mesh(boxGeometry, blockMaterial());
@@ -84,8 +102,12 @@ export const sceneForAR = (boxes: BoxData[], models: SceneModel[]): THREE.Group 
  * chunk: it is a zip writer and a USD serialiser for a path most sessions
  * never walk, and the tool has to be on screen in one download.
  */
-export const sceneToUSDZ = async (boxes: BoxData[], models: SceneModel[]): Promise<Blob> => {
-  const group = sceneForAR(boxes, models);
+export const sceneToUSDZ = async (
+  boxes: BoxData[],
+  models: SceneModel[],
+  anchor?: ARAnchor
+): Promise<Blob> => {
+  const group = sceneForAR(boxes, models, anchor);
   if (group.children.length === 0) throw new Error('There is nothing standing on the grid to look at.');
 
   const { USDZExporter } = await import('three/examples/jsm/exporters/USDZExporter.js');
