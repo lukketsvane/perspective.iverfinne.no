@@ -547,10 +547,24 @@ export const blockOutABox = async (
       return panel ? panel.getBoundingClientRect().top - 30 : window.innerHeight;
     })) as number;
 
-  const point = async (spot: { x: number; y: number }) => ({
-    x: spot.x * frame.width,
-    y: Math.min(spot.y * frame.height, await ceiling()),
-  });
+  /**
+   * The stroke, lifted clear of the panel WITHOUT CHANGING ITS SHAPE.
+   *
+   * Clamping each end to the ceiling separately is the obvious thing and it is
+   * wrong: a caller that asks for a footprint running from 0.72 to 0.81 down
+   * the frame, with the ceiling at 0.72, gets both ends on one line and a box
+   * with no depth - and the spec that asked for two boxes a hand apart quietly
+   * got two slivers on top of each other. The whole stroke moves up by however
+   * much its lowest end overshoots, so what the caller drew is what lands, a
+   * little further off across the floor.
+   */
+  const stroke = async (a: { x: number; y: number }, b: { x: number; y: number }) => {
+    const drop = Math.max(0, Math.max(a.y, b.y) * frame.height - (await ceiling()));
+    return [a, b].map((spot) => ({
+      x: spot.x * frame.width,
+      y: spot.y * frame.height - drop,
+    })) as [{ x: number; y: number }, { x: number; y: number }];
+  };
 
   // The pencil is on the model shelf, beside the cube it is the by-eye version
   // of, and taking it leaves the shelf where it is - so unlike before, the
@@ -562,10 +576,8 @@ export const blockOutABox = async (
   await pencil.click();
   await expect(pencil, 'The pencil did not arm.').toHaveAttribute('aria-pressed', 'true');
 
-  const start = await point(from);
-  const end = await point(to);
-
   // One: the footprint, on the floor.
+  const [start, end] = await stroke(from, to);
   await page.mouse.move(start.x, start.y);
   await page.mouse.down();
   await page.mouse.move(end.x, end.y, { steps });
@@ -575,7 +587,7 @@ export const blockOutABox = async (
   // because the box the first stroke just stood up is now selected and the bar
   // that says so has pushed the shelf up over where that stroke ended. Only the
   // vertical travel is read, so beginning a little higher costs nothing.
-  const pull = await point(to);
+  const [pull] = await stroke(to, to);
   await page.mouse.move(pull.x, pull.y);
   await page.mouse.down();
   await page.mouse.move(pull.x, pull.y - lift * frame.height, { steps });
