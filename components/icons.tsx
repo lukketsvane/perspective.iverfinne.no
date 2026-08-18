@@ -205,7 +205,6 @@ export const I = {
   vanishing: (<><path d="M2.5 9h19" strokeOpacity="0.3" /><circle cx="2.5" cy="9" r="1.4" fill="currentColor" stroke="none" /><circle cx="21.5" cy="9" r="1.4" fill="currentColor" stroke="none" /><path d="M9 12.2 2.5 9M9 19 2.5 9M15 10.9 21.5 9M15 17.7 21.5 9" strokeOpacity="0.4" strokeDasharray="2.5 2.5" /><path d="M9 12.2l6-1.3v6.8L9 19z" /></>),
 
   surfaceSolid: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" fill="currentColor" fillOpacity="0.7" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" strokeOpacity="0.3" /></>),
-  matte: (<path d="M12 3s6 6.4 6 10a6 6 0 0 1-12 0c0-3.6 6-10 6-10z" />),
   surfaceWire: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" strokeOpacity="0.75" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" strokeOpacity="0.75" /><path d="M12 11.5V3M12 11.5l8 5.3M12 11.5l-8 5.3" strokeOpacity="0.75" /></>),
 
   /**
@@ -269,7 +268,6 @@ export const I = {
 /** Which cube goes on the button, for the rung the thing is currently on. */
 export const SURFACE_ICON: Record<Surface, React.ReactNode> = {
   original: I.surfaceSolid,
-  matte: I.matte,
   brush: I.brush,
   marker: I.marker,
   hatch: I.hatch,
@@ -284,7 +282,8 @@ export const SURFACE_ICON: Record<Surface, React.ReactNode> = {
  * brush the pen itself - which is all a brush page has, and all the other two
  * have above what they lay under it.
  */
-export const SETTINGS_ICON: Record<'brush' | 'marker' | 'hatch', React.ReactNode> = {
+export const SETTINGS_ICON: Record<Surface, React.ReactNode> = {
+  original: I.surfaceSolid,
   brush: I.outline,
   marker: I.hue,
   hatch: I.hatchAngle,
