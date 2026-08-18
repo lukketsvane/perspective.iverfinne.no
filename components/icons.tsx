@@ -194,6 +194,14 @@ export const I = {
    * The selection's own points: a box with its edges carried off to a pair of
    * them on the eye line, which is the whole of what the switch turns on.
    */
+  /**
+   * The two rungs past the rays: the footprint with its diagonals, and the
+   * same rectangle divided in four. Drawn as a receding plane rather than a
+   * square, because that is the only shape in which the lesson is not obvious
+   * - halving a rectangle you are looking straight at needs no construction.
+   */
+  divideHalf: (<><path d="M4 19h16l-3.4-9H7.4z" /><path d="M4 19 16.6 10M20 19 7.4 10" strokeOpacity="0.5" /></>),
+  divideFour: (<><path d="M4 19h16l-3.4-9H7.4z" /><path d="M4 19 16.6 10M20 19 7.4 10" strokeOpacity="0.28" /><path d="M12 10v9M5.7 14.5h12.6" /></>),
   vanishing: (<><path d="M2.5 9h19" strokeOpacity="0.3" /><circle cx="2.5" cy="9" r="1.4" fill="currentColor" stroke="none" /><circle cx="21.5" cy="9" r="1.4" fill="currentColor" stroke="none" /><path d="M9 12.2 2.5 9M9 19 2.5 9M15 10.9 21.5 9M15 17.7 21.5 9" strokeOpacity="0.4" strokeDasharray="2.5 2.5" /><path d="M9 12.2l6-1.3v6.8L9 19z" /></>),
 
   surfaceSolid: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" fill="currentColor" fillOpacity="0.7" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" strokeOpacity="0.3" /></>),

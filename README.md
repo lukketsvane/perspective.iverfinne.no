@@ -526,11 +526,43 @@ whole panoramic band, top edge, bottom edge and both ends.
 
 Select anything and its own vanishing points are drawn, with its edges carried
 out to them — in every one of the three systems, not only the flat one. **On its
-own switch**, not a rung of the guides: the guides are the construction of the
+own control**, not a rung of the guides: the guides are the construction of the
 *room* — the horizon, the floor, the sheet — and are wanted or not wanted for a
 whole session, while this is the construction of the one thing in your hand, and
 it is wanted while you work out where that thing's edges run and in the way the
 moment you have.
+
+**Four rungs, tapped through**, and they are a sequence somebody works in rather
+than four unrelated looks:
+
+| | |
+| --- | --- |
+| **off** | nothing |
+| **points** | its own edges carried out to its own vanishing points |
+| **halved** | …and the rectangle it stands on, with the two diagonals that *find* the centre of that rectangle |
+| **quartered** | …and the two lines through that centre: the floor under it, in four |
+
+The diagonals are why the rungs are in that order. Halving a receding rectangle
+by eye is guesswork and the guess is always too far away; halving it by its own
+diagonals is exact, needs no measurement, and holds at any angle on any of these
+sheets — it is the first construction anybody is taught, and the one thing this
+tool can *show being true* rather than assert. The tool could say where a thing's
+points were and had nothing to say about dividing the span between them, which is
+most of what a viewer is doing when they place the second chair along a table or
+set a window in the middle of a wall.
+
+They are drawn on the **footprint** — the rectangle the thing stands on, taken at
+its base — because a floor is what you divide when you are placing things at
+halves and quarters, and it is the one face every object has whether it is a box,
+a chair or a figure. Each line is sampled and asked where it lands, like the rays
+are: the image of a straight line on a curved sheet is an arc, and a stroke drawn
+between two projected ends would be a chord that misses the middle of it by a
+third of the frame.
+
+That is the whole lesson, and it is invisible until somebody draws it: a box has
+its own points, decided by how *it* is turned relative to you, not by the scene
+being "in two-point perspective". Turn one off the grid and its pair moves off
+the scene's.
 
 That is the whole lesson, and it is invisible until somebody draws it: a box has
 its own points, decided by how *it* is turned relative to you, not by the scene

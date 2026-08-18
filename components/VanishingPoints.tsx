@@ -56,8 +56,8 @@ export const VanishingPoints: React.FC<{ color: string }> = ({ color }) => {
     return () => { running = false; };
   }, []);
 
-  const { points, curves, room } = vanishing;
-  if (points.length === 0 && room.length === 0) return null;
+  const { points, curves, room, divisions } = vanishing;
+  if (points.length === 0 && room.length === 0 && divisions.length === 0) return null;
 
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -105,6 +105,30 @@ export const VanishingPoints: React.FC<{ color: string }> = ({ color }) => {
           );
         })
       )}
+
+      {/*
+        * THE CONSTRUCTION ON THE THING: the rectangle it stands on, the
+        * diagonals that find the centre of that rectangle, and the two lines
+        * through the centre that divide it in four.
+        *
+        * One even weight, unlike the rays. A ray fades as it leaves because
+        * most of its length is a statement about somewhere else on the page;
+        * these lie on one surface, every part of them is about that surface,
+        * and a fade along them would read as one end mattering more than the
+        * other. Lighter than the rays overall, because they are the answer and
+        * the rays are the question.
+        */}
+      {divisions.map((line, index) => (
+        <polyline
+          key={`d${index}`}
+          points={line.map(([x, y]) => `${x},${y}`).join(' ')}
+          fill="none"
+          stroke={color}
+          strokeWidth={1}
+          strokeLinecap="round"
+          opacity={0.5}
+        />
+      ))}
 
       {/*
         * The room's own points, pinned where the sheet runs out.

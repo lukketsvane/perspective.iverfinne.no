@@ -240,6 +240,27 @@ export const isSketch = (surface: Surface) =>
 export type GuideLevel = 0 | 1 | 2;
 
 /**
+ * How much construction is drawn around the thing in your hand.
+ *
+ * A ladder rather than a switch, because the constructions it steps through
+ * are a sequence somebody actually works in rather than four unrelated looks:
+ *
+ *   0  nothing
+ *   1  the rays: its own edges carried out to its own vanishing points
+ *   2  ...and the rectangle it stands on, with the diagonals that FIND the
+ *      centre of that rectangle - the one construction in perspective that
+ *      needs no measurement and is exact at any angle on any sheet
+ *   3  ...and the two lines through that centre: the floor under it, in four
+ *
+ * Two and three are what a viewer is doing when they place a second chair
+ * halfway along a table or set a window in the middle of a wall, and until now
+ * the tool could show where a thing's points were and not how to divide the
+ * span between them.
+ */
+export type SelectionGuide = 0 | 1 | 2 | 3;
+export const SELECTION_GUIDES: SelectionGuide[] = [0, 1, 2, 3];
+
+/**
  * Whose things get their construction drawn: nobody's, the selection's, or
  * everybody's.
  *
@@ -749,7 +770,9 @@ export interface SceneView {
   /** Written by the version that had one switch for the room. */
   showRoom?: boolean;
   room?: RoomSize;
+  /** Written by every version before the selection's construction was a ladder. */
   showVanishing?: boolean;
+  selectionGuides?: SelectionGuide;
   snapStep: number;
   /** Where the walker stands, and which way it faces. */
   camera: { x: number; z: number; yaw: number; pitch: number };
@@ -828,7 +851,11 @@ export interface SceneState {
    * while you work out where that thing's edges run and in the way the moment
    * you have.
    */
-  showVanishing: boolean;
+  /**
+   * How much construction is drawn round the selection. Was a boolean called
+   * `showVanishing`, which is still what a stored 1 means.
+   */
+  selectionGuides: SelectionGuide;
   /** Metres that edits snap to while dragging. 0 is free. */
   snapStep: number;
   models: SceneModel[];
@@ -999,7 +1026,8 @@ export interface SceneState {
   cycleRoom: () => void;
   /** Change the floor's two axes, or the ceiling. Clamped to what a room can be. */
   setRoom: (room: Partial<RoomSize>) => void;
-  toggleVanishing: () => void;
+  /** Step the construction round the selection: off, rays, diagonals, quarters. */
+  cycleSelectionGuides: () => void;
   /** Read the viewer's own shelf back out of the browser. */
   loadOwnMeshes: () => Promise<void>;
   /** Put an imported mesh on it, or leave it there if it already is. */

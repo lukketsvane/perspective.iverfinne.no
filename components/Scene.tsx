@@ -50,7 +50,7 @@ const VanishingTracker = () => {
   const perspectiveMode = useStore((state) => state.perspectiveMode);
   // Its own switch, not a rung of the guides: the room's construction and the
   // selection's construction are wanted at different moments.
-  const showVanishing = useStore((state) => state.showVanishing);
+  const selectionGuides = useStore((state) => state.selectionGuides);
   const guides = useStore((state) => state.guides);
 
   const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
@@ -74,17 +74,22 @@ const VanishingTracker = () => {
     // and its three axes are the world's, which the construction sheet already
     // marks. Ruling them again round the whole room is fifteen figures' worth
     // of red over the drawing, saying what the horizon said.
-    if (!showVanishing || (!box && !model) || model?.kind === 'scene') {
+    if (selectionGuides === 0 || (!box && !model) || model?.kind === 'scene') {
       clearVanishing();
       return;
     }
 
     if (box) {
-      updateVanishing(camera, perspectiveMode, {
-        centre: new THREE.Vector3(...box.position),
-        size: new THREE.Vector3(...box.scale),
-        rotationY: box.rotation[1],
-      });
+      updateVanishing(
+        camera,
+        perspectiveMode,
+        {
+          centre: new THREE.Vector3(...box.position),
+          size: new THREE.Vector3(...box.scale),
+          rotationY: box.rotation[1],
+        },
+        selectionGuides
+      );
       return;
     }
 
@@ -101,7 +106,7 @@ const VanishingTracker = () => {
         model!.size[2] * model!.scale
       ),
       rotationY: model!.rotationY,
-    });
+    }, selectionGuides);
   });
 
   useEffect(() => clearVanishing, []);
