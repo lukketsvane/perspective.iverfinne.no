@@ -91,6 +91,25 @@ const placeCylinder = async (page: Page) => {
  */
 const dropTheProbe = (page: Page) => clickIn(page, 'anywhere', 'Add light');
 
+test('the selection bar duplicates the selected object beside its original', async ({ app }) => {
+  await openShelf(app);
+  await clickIn(app, 'anywhere', 'Add cube');
+
+  const before = await readSceneBundle(app);
+  expect(before.boxes).toHaveLength(1);
+  await clickIn(app, 'anywhere', 'Duplicate selection');
+
+  const after = await readSceneBundle(app);
+  expect(after.boxes).toHaveLength(2);
+  expect(after.boxes[1].scale).toEqual(after.boxes[0].scale);
+  expect(after.boxes[1].rotation).toEqual(after.boxes[0].rotation);
+  expect(after.boxes[1].position[0] - after.boxes[0].position[0]).toBeCloseTo(0.5, 6);
+  expect(after.boxes[1].position[2] - after.boxes[0].position[2]).toBeCloseTo(0.5, 6);
+
+  await clickIn(app, 'anywhere', 'Undo');
+  expect((await readSceneBundle(app)).boxes).toHaveLength(1);
+});
+
 /*
  * The pencil beside the cube, which is where it lives now.
  *
