@@ -19,6 +19,8 @@ export const Icon: React.FC<{ path: React.ReactNode; className?: string }> = ({
 
 export const I = {
   close: (<><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>),
+  /** One more of something: the new-project tile on the scene shelf. */
+  plus: (<><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></>),
 
   /** A road running to a vanishing point on the horizon, its edges bowed. */
   curved: (<><path d="M2 12c4-1.6 16-1.6 20 0" strokeOpacity="0.45" /><path d="M2 21C5 15 8 12 12 10.7M22 21c-3-6-6-9-10-10.3" /><circle cx="12" cy="10.5" r="1.3" fill="currentColor" stroke="none" /></>),
@@ -79,11 +81,11 @@ export const I = {
    * The drawn page's own knobs.
    *
    * Each has to say which one it is at 20 pixels across, so each draws the
-   * thing it changes: the strokes turned, the gap between them, the weight,
-   * and the run. There was a fifth, for the angle the crossing layers were
-   * turned off the first, and it went when the knob did - the shader stopped
-   * crossing anything three changes before anyone noticed the control was
-   * still there.
+   * thing it changes: the strokes turned, the crossing, the gap between them,
+   * the weight, and the run. The crossing one was taken away once, when the
+   * shader had quietly stopped crossing anything and the knob was left behind
+   * pointing at nothing. Both are back, and this time the icon draws what the
+   * shader does - one family full strength, the second one lighter over it.
    */
   hue: (<><circle cx="12" cy="12" r="8.6" /><path d="M12 3.4a8.6 8.6 0 0 1 7.4 12.9z" fill="currentColor" fillOpacity="0.5" stroke="none" /><circle cx="12" cy="12" r="3" strokeOpacity="0.6" /></>),
   wash: (<><path d="M12 3.2c3.4 4.2 5.4 7 5.4 9.4a5.4 5.4 0 0 1-10.8 0c0-2.4 2-5.2 5.4-9.4z" /><path d="M7.1 14.4a5.4 5.4 0 0 0 9.8 0z" fill="currentColor" fillOpacity="0.55" stroke="none" /></>),

@@ -739,7 +739,14 @@ export interface SceneView {
 /** A composition kept in the browser, thumbnail and all. */
 export interface SavedScene {
   id: string;
-  /** Never drawn - it names the exported file and the accessible control. */
+  /**
+   * What it is called on its card, and what an export of it is filed under.
+   *
+   * It used to be the minute it was saved and was never drawn, back when every
+   * save made a new entry and the thumbnail was the only thing telling four of
+   * them apart. Saving writes into the open project now, so a project lasts -
+   * and a thing that lasts is a thing you refer to by name.
+   */
   name: string;
   createdAt: number;
   updatedAt: number;
@@ -977,8 +984,13 @@ export interface SceneState {
   redo: () => void;
   toggleTheme: () => void;
   setBackgroundGray: (value: number) => void;
-  /** Write the whole composition to the browser, thumbnail and viewpoint included. */
-  saveCurrentScene: () => Promise<void>;
+  /**
+   * Write the whole composition to the browser, thumbnail and viewpoint
+   * included - over the open project, or as a new one when asked.
+   */
+  saveCurrentScene: (asNew?: boolean) => Promise<void>;
+  /** Call a saved project something. */
+  renameScene: (id: string, name: string) => Promise<void>;
   /** Restore a saved composition, re-fetching every mesh it names. */
   loadScene: (id: string) => Promise<string[]>;
   deleteScene: (id: string) => Promise<void>;

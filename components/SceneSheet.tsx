@@ -6,11 +6,22 @@ import { beginActivity, reportFailure } from '../lib/activity';
 import type { SavedScene } from '../types';
 
 /**
- * One saved composition: the frame it was saved from, and nothing else.
+ * One saved project: the frame it was saved from, and what it is called.
  *
- * A picture of the room is how you recognise the room. A name would have to be
- * typed, a date read - both of them words on a screen that is otherwise only
- * scene and controls.
+ * THE NAME IS NEW, AND SO IS THE REASON FOR IT. This card carried a picture
+ * and nothing else, on the argument that a picture of the room is how you
+ * recognise the room and that a name would have to be typed. That held while
+ * every save made a NEW card: four saves of four different sittings do look
+ * different. Saving writes into the open project now, so the shelf is a row of
+ * things you come back to over days - and the thumbnail of a scene you have
+ * worked on twice is a picture of the same room from a slightly different
+ * spot, which the eye cannot file. A name can be read at a glance, and it is
+ * the one you gave it.
+ *
+ * Typed only when you want to. Every project is born with a name already on
+ * it, so the shelf is never a row of blanks waiting to be filled in; tapping
+ * the name is what turns it into a field, and that is the only keyboard in
+ * this app.
  *
  * Deleting takes two taps. There is no undo behind it, the target is small, and
  * it sits in the corner of the thing you meant to open - so the first tap only
@@ -23,8 +34,11 @@ const SceneCard: React.FC<{
   dark: boolean;
   onOpen: () => void;
   onDelete: () => void;
-}> = ({ scene, open, busy, dark, onOpen, onDelete }) => {
+  onRename: (name: string) => void;
+}> = ({ scene, open, busy, dark, onOpen, onDelete, onRename }) => {
   const [armed, setArmed] = useState(false);
+  const [naming, setNaming] = useState(false);
+  const [draft, setDraft] = useState(scene.name);
 
   useEffect(() => {
     if (!armed) return;
@@ -32,8 +46,43 @@ const SceneCard: React.FC<{
     return () => clearTimeout(timer);
   }, [armed]);
 
+  // The field opens on whatever it is called NOW - including a rename made
+  // somewhere else while this card sat there.
+  useEffect(() => setDraft(scene.name), [scene.name]);
+
+  const commit = () => {
+    setNaming(false);
+    onRename(draft);
+  };
+
+  /*
+   * COMMITTED ON THE WAY OUT TOO.
+   *
+   * A field commits when it loses focus, and unmounting is not losing focus:
+   * the shelf is put away by a tap on the drawing, which takes this whole card
+   * with it, and React fires no blur on the way. So a name typed and then
+   * dismissed - which is the same gesture as "done, now let me see it" - was
+   * quietly thrown away. Nothing else in this tool loses work to a panel
+   * closing.
+   *
+   * Through a ref, because the cleanup of an effect that runs once holds the
+   * first render's variables and the draft is on the last one.
+   */
+  const latest = useRef({ naming, draft, name: scene.name });
+  latest.current = { naming, draft, name: scene.name };
+  useEffect(
+    () => () => {
+      const held = latest.current;
+      if (held.naming && held.draft.trim() && held.draft.trim() !== held.name) {
+        onRename(held.draft);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
   return (
-    <div className="relative">
+    <div className="relative w-32 flex flex-col gap-1">
       <button
         onClick={onOpen}
         disabled={busy}
@@ -50,6 +99,53 @@ const SceneCard: React.FC<{
           </span>
         )}
       </button>
+
+      {/*
+        * The name, and the field it becomes.
+        *
+        * Escape puts the old name back rather than committing the draft, which
+        * is what escape means everywhere else in this tool - and it has to be
+        * handled here, because the app's own key handler steps aside for
+        * anything typed into an input and would otherwise never see it. Enter
+        * and stepping away both commit: there is no third state for a name.
+        */}
+      {naming ? (
+        <input
+          autoFocus
+          value={draft}
+          maxLength={48}
+          aria-label={`Name for ${scene.name}`}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commit();
+            if (e.key === 'Escape') {
+              setDraft(scene.name);
+              setNaming(false);
+            }
+          }}
+          className={`w-full h-6 px-1.5 rounded-md text-[11px] text-center border outline-none ${
+            dark
+              ? 'bg-white/10 border-white/25 text-white'
+              : 'bg-black/5 border-black/20 text-black'
+          }`}
+        />
+      ) : (
+        <button
+          onClick={() => setNaming(true)}
+          aria-label={`Rename ${scene.name}`}
+          className={`w-full h-6 px-1 rounded-md text-[11px] truncate transition-colors ${
+            open
+              ? 'text-sky-500 font-semibold'
+              : dark
+                ? 'text-white/70 hover:text-white'
+                : 'text-black/60 hover:text-black'
+          }`}
+        >
+          {scene.name}
+        </button>
+      )}
+
       {/* The pill's colour lives on the span: a global rule strips backgrounds
           from every button, so the armed state would otherwise be invisible. */}
       <button
@@ -77,8 +173,14 @@ const SceneCard: React.FC<{
  * later puts the same room back - furniture, eye level, and the spot you were
  * standing on.
  *
- * Saving always makes a new one. There is no naming and no overwriting: this is
- * a roll of views, and the way to lose one is to delete it on purpose.
+ * SAVING WRITES INTO THE PROJECT THAT IS OPEN. It used to make a new entry
+ * every time, and the sentence that stood here said so proudly - a roll of
+ * views, nothing ever overwritten. What that actually produced was a shelf of
+ * near-duplicates: the same drawing at four moments of one afternoon, four
+ * thumbnails of one room, and no way to say "this is the one I am working on".
+ * A project is a thing you return to. The plus tile at the head of the row is
+ * how you deliberately start another one, and it is the only way a save ever
+ * takes a new seat.
  */
 export const SceneSheet: React.FC<{
   onClose: () => void;
@@ -92,6 +194,8 @@ export const SceneSheet: React.FC<{
   const saveCurrentScene = useStore((s) => s.saveCurrentScene);
   const loadScene = useStore((s) => s.loadScene);
   const deleteScene = useStore((s) => s.deleteScene);
+  const renameScene = useStore((s) => s.renameScene);
+  const openScene = scenes.find((s) => s.id === currentSceneId);
 
   const fileInput = useRef<HTMLInputElement>(null);
   const [working, setWorking] = useState(false);
@@ -174,9 +278,13 @@ export const SceneSheet: React.FC<{
           * target.
           */}
         <button
-          onClick={() => run(saveCurrentScene)}
+          onClick={() => run(() => saveCurrentScene())}
           disabled={disabled}
-          aria-label="Save this scene"
+          // It says which of the two things it is about to do, because they
+          // are different things: with a project open this writes over it, and
+          // a control that says "save this scene" while overwriting Scene 3 is
+          // a control that lies to the one person who cannot see the shelf.
+          aria-label={openScene ? `Update ${openScene.name}` : 'Save this scene'}
           className={`w-11 max-[429px]:w-10 h-11 rounded-full border flex items-center justify-center transition-transform active:scale-95 disabled:opacity-40 ${
             dark ? 'border-white/20 hover:bg-white/10' : 'border-gray-300 hover:bg-black/5'
           }`}
@@ -214,21 +322,51 @@ export const SceneSheet: React.FC<{
         </button>
       </div>
 
-      {scenes.length > 0 && (
-        <div className="flex gap-2 min-w-0 overflow-x-auto overscroll-contain scrollbar-none [&>*]:shrink-0 [&>*]:w-32">
-          {scenes.map((scene) => (
-            <SceneCard
-              key={scene.id}
-              scene={scene}
-              dark={dark}
-              busy={disabled}
-              open={scene.id === currentSceneId}
-              onOpen={() => open(scene.id)}
-              onDelete={() => deleteScene(scene.id)}
-            />
-          ))}
-        </div>
-      )}
+      {/* The width lives on the children now rather than on the row: a card is
+          a card wide, and the plus beside it is a button wide. Sized as one,
+          the plus spent a whole card's worth of a 390 px phone on a glyph and
+          pushed the second project off the edge - which is a control for
+          making projects standing in front of the projects. */}
+      <div className="flex gap-2 min-w-0 overflow-x-auto overscroll-contain scrollbar-none [&>*]:shrink-0">
+        {/*
+          * START ANOTHER ONE, and the only control here that adds a card.
+          *
+          * It is at the HEAD of the row rather than in the block of four,
+          * because it belongs to the row: what it makes is a card, it lands
+          * immediately to its right, and the row is the row of projects. In
+          * the block it would have been a fifth circle beside four that all
+          * act on the scene rather than on the shelf - and a second disk icon
+          * a thumb's width from the first is how you overwrite the wrong
+          * thing.
+          *
+          * Dashed, like the import tile on the model shelf, which is the
+          * other place in this app where a tile means "one that is not here
+          * yet".
+          */}
+        <button
+          onClick={() => run(() => saveCurrentScene(true))}
+          disabled={disabled}
+          aria-label="Save this as a new scene"
+          className={`w-11 h-24 self-start rounded-xl border border-dashed flex items-center justify-center transition-transform active:scale-95 disabled:opacity-40 ${
+            dark ? 'border-white/25 text-white/70' : 'border-black/20 text-black/60'
+          }`}
+        >
+          <Icon path={I.plus} className="w-6 h-6" />
+        </button>
+
+        {scenes.map((scene) => (
+          <SceneCard
+            key={scene.id}
+            scene={scene}
+            dark={dark}
+            busy={disabled}
+            open={scene.id === currentSceneId}
+            onOpen={() => open(scene.id)}
+            onDelete={() => deleteScene(scene.id)}
+            onRename={(name) => renameScene(scene.id, name)}
+          />
+        ))}
+      </div>
 
       <input
         ref={fileInput}
