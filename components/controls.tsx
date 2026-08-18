@@ -189,13 +189,26 @@ export const useGroundControl = () => {
   };
 };
 
-export const useGrayThemeControl = (onDoubleTap?: () => void) => {
+/**
+ * The sheet: tap it between the ends of the tone ramp, drag it anywhere
+ * between.
+ *
+ * IT USED TO CARRY A SECOND GESTURE. A double tap armed the sky - the whole
+ * procedural atmosphere, on a hidden second press of a control about how light
+ * the paper is. Two things were wrong with that and only one of them was
+ * discoverability. The other was the delay it cost: a single tap could not be
+ * acted on until 300 ms had passed without a second one, so the ONE gesture
+ * this control is for was a third of a second late, every time, to leave room
+ * for a gesture almost nobody made.
+ *
+ * The sky is in the light panel now, next to the sun, with the hour and the
+ * weather that make it mean something. This is a tap again.
+ */
+export const useGrayThemeControl = () => {
   const value = useStore((state) => state.backgroundGray);
   const setValue = useStore((state) => state.setBackgroundGray);
   const toggle = useStore((state) => state.toggleTheme);
   const drag = useRef<{ id: number; x: number; y: number; from: number; moved: boolean } | null>(null);
-  const lastTap = useRef(0);
-  const tapTimer = useRef<number | undefined>(undefined);
 
   return {
     onPointerDown: (event: React.PointerEvent) => {
@@ -215,22 +228,7 @@ export const useGrayThemeControl = (onDoubleTap?: () => void) => {
       drag.current = null;
       // A press long enough to have opened a hint was a question, not a tap.
       if (held?.id !== event.pointerId || held.moved || suppressing()) return;
-      const now = performance.now();
-      if (onDoubleTap && now - lastTap.current < 300) {
-        if (tapTimer.current !== undefined) window.clearTimeout(tapTimer.current);
-        tapTimer.current = undefined;
-        lastTap.current = 0;
-        onDoubleTap();
-        return;
-      }
-      lastTap.current = now;
-      // Wait briefly before applying the single tap so a double tap changes
-      // only the environment and does not flash the light/dark theme twice.
-      tapTimer.current = window.setTimeout(() => {
-        tapTimer.current = undefined;
-        lastTap.current = 0;
-        toggle();
-      }, onDoubleTap ? 300 : 0);
+      toggle();
     },
     onPointerCancel: () => { drag.current = null; },
   };

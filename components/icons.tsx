@@ -113,14 +113,6 @@ export const I = {
   /** One family full-strength, the crossing one lighter: the second pass. */
   hatchCross: (<><path d="M4.5 15 15 4.5M9 19.5 19.5 9" /><path d="M4.5 9 15 19.5M9 4.5 19.5 15" strokeOpacity="0.45" /></>),
 
-  /**
-   * The shuffle: two pages crossing on their way past each other.
-   *
-   * Not dice. A die is chance for its own sake; this deals one of five pages
-   * somebody chose, which is a different promise.
-   */
-  shuffle: (<><path d="M3 7.5h3.2c1.5 0 2.4.8 3.4 2.2l3.8 5.4c1 1.4 1.9 2.2 3.4 2.2H21" /><path d="M3 16.6h3.2c1.5 0 2.4-.8 3.4-2.2" strokeOpacity="0.6" /><path d="M14.4 8.8c1-1 1.8-1.3 2.6-1.3H21" strokeOpacity="0.6" /><path d="M18.6 5.1 21 7.5l-2.4 2.4M18.6 14.9 21 17.3l-2.4 2.4" /></>),
-
   /** An empty grid: the ground with nothing standing on it. */
   clearScene: (<><path d="M2.5 19.5c4.5-2.2 14.5-2.2 19 0M4.6 15.3c3.6-1.5 11.2-1.5 14.8 0M6.2 11.8c2.8-1 8.8-1 11.6 0" strokeOpacity="0.75" /><path d="M8.5 19.9 11.4 11M15.5 19.9 12.6 11" strokeOpacity="0.4" /><path d="M12 3.2v4.6M9.8 5.4 12 3.2l2.2 2.2" strokeOpacity="0.85" /></>),
 
@@ -252,6 +244,51 @@ export const I = {
   light: (<><circle cx="12" cy="12" r="5" /><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></>),
   dark: (<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />),
   sky: (<><path d="M3 17.5h18" /><path d="M5 17.5a7 7 0 0 1 14 0" /><circle cx="12" cy="8" r="2.5" /><path d="M12 2.5v2M5.8 5.2l1.4 1.4M18.2 5.2l-1.4 1.4" /></>),
+
+  /* ------------------------------------------------------- the simulated sky
+   *
+   * Eight marks for the panel that answers "what will this look like here, at
+   * four o'clock, in October". They are drawn as INSTRUMENTS rather than as
+   * pictures of weather - a dial, a calendar, a vane - because every one of
+   * them is a reading being set, and a fluffy cloud on a button is a decoration
+   * where a number belongs. The one exception is the cover, which IS a picture
+   * of weather, because the quantity it sets is literally how much of the sky
+   * you cannot see through.
+   */
+
+  /** The simulation itself: a globe with a sun's track ruled across it. */
+  simulate: (<><circle cx="12" cy="13" r="7.6" /><path d="M4.4 13h15.2M12 5.4c3.6 3.9 3.6 11.5 0 15.2M12 5.4c-3.6 3.9-3.6 11.5 0 15.2" strokeOpacity="0.45" /><path d="M3 8.2a11 11 0 0 1 18 0" strokeOpacity="0.7" strokeDasharray="2.6 2.4" /><circle cx="17.6" cy="4.8" r="1.7" fill="currentColor" stroke="none" /></>),
+
+  /** The hour: a clock face, hands at four. */
+  hour: (<><circle cx="12" cy="12" r="8.6" /><path d="M12 6.6V12l3.8 2.6" /><path d="M12 2.6v1.4M12 20v1.4M2.6 12H4M20 12h1.4" strokeOpacity="0.45" /></>),
+
+  /** The date: a leaf of a calendar, one day ringed. */
+  day: (<><rect x="3.2" y="5" width="17.6" height="15.4" rx="1.8" /><path d="M3.2 9.6h17.6" strokeOpacity="0.7" /><path d="M8 2.8v3.6M16 2.8v3.6" /><circle cx="12" cy="15" r="2.2" fill="currentColor" stroke="none" /></>),
+
+  /** How fast the hour runs: a clock hand with the sweep drawn behind it. */
+  rate: (<><circle cx="12" cy="12" r="8.6" strokeOpacity="0.5" /><path d="M12 6.6V12l4.6 2.2" /><path d="M12 3.4a8.6 8.6 0 0 1 7.4 4.3" strokeWidth="2.2" /><path d="M17.4 6.6l2.4 1.4-.6 2.7" /></>),
+
+  /** Time standing still, and time running: the two faces of one seat. */
+  play: (<><path d="M8.5 5.2 19 12 8.5 18.8z" fill="currentColor" stroke="none" /></>),
+  pause: (<><rect x="7" y="5" width="3.6" height="14" rx="1" fill="currentColor" stroke="none" /><rect x="13.4" y="5" width="3.6" height="14" rx="1" fill="currentColor" stroke="none" /></>),
+
+  /** Where you are: the map pin every phone has taught everybody to read. */
+  place: (<><path d="M12 21.5s7-6.4 7-11.3A7 7 0 0 0 5 10.2c0 4.9 7 11.3 7 11.3z" /><circle cx="12" cy="10" r="2.6" /></>),
+
+  /** How much sky is covered: cloud over a sun that is half behind it. */
+  cover: (<><circle cx="8.6" cy="8.6" r="3.2" strokeOpacity="0.55" /><path d="M8.6 3.4v1.4M4.6 4.6l1 1M3.4 8.6h1.4" strokeOpacity="0.45" /><path d="M8.2 18.6a3.6 3.6 0 0 1 .5-7.2 5 5 0 0 1 9.4 1.3 3 3 0 0 1-.5 5.9z" fill="currentColor" fillOpacity="0.35" /></>),
+
+  /** The wind: a vane's streamers, running before it. */
+  wind: (<><path d="M3 8.4h11a2.8 2.8 0 1 0-2.8-2.8" /><path d="M3 13h14.6a2.8 2.8 0 1 1-2.8 2.8" strokeOpacity="0.8" /><path d="M3 17.6h6.4" strokeOpacity="0.5" /></>),
+
+  /** The air itself: a shell of atmosphere standing over the ground. */
+  air: (<><path d="M2 19.5h20" /><path d="M4.2 19.5a7.8 7.8 0 0 1 15.6 0" strokeOpacity="0.85" /><path d="M7.4 19.5a4.6 4.6 0 0 1 9.2 0" strokeOpacity="0.4" /><path d="M1.6 15.4a12 12 0 0 1 20.8 0" strokeOpacity="0.3" /></>),
+
+  /** How high the deck sits: a cloud, and the height it is carried at. */
+  cloudBase: (<><path d="M7.6 11.4a3.2 3.2 0 0 1 .4-6.4 4.4 4.4 0 0 1 8.3 1.1 2.7 2.7 0 0 1-.4 5.3z" /><path d="M3 20.5h18" strokeOpacity="0.5" /><path d="M12 19.4v-4.6M10 16.6 12 14.6l2 2" strokeOpacity="0.75" /></>),
+
+  /** Asking the sky what it is doing: an aerial putting out a reading. */
+  observe: (<><circle cx="12" cy="16.6" r="2" fill="currentColor" stroke="none" /><path d="M8.8 13.4a4.6 4.6 0 0 1 6.4 0" strokeOpacity="0.85" /><path d="M6.2 10.4a8.4 8.4 0 0 1 11.6 0" strokeOpacity="0.55" /><path d="M3.6 7.4a12.2 12.2 0 0 1 16.8 0" strokeOpacity="0.3" /></>),
 
   /** Committing a scene to the browser: a floppy, still the clearest mark for it. */
   save: (<><path d="M4 5.6A1.6 1.6 0 0 1 5.6 4h9.6L20 8.8v9.6a1.6 1.6 0 0 1-1.6 1.6H5.6A1.6 1.6 0 0 1 4 18.4z" /><path d="M8 4v5h7" /><rect x="8" y="13" width="8" height="7" rx="1" /></>),

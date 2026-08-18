@@ -521,6 +521,57 @@ export interface FillState extends SunState {
 }
 
 /**
+ * The sky the scene stands under, as a set of conditions rather than knobs.
+ *
+ * The two knobs that aim the key light are the right control for a DRAWING -
+ * you put the light where the drawing needs it. They are the wrong control for
+ * a QUESTION, and the question people bring to a perspective tool is not "what
+ * does 286 degrees at 14 look like", it is "what will this look like here, at
+ * four o'clock, in October".
+ *
+ * So this is the other half of the same light: a place, a moment, and what the
+ * sky over that place was doing at it. With `simulate` on, the sun's bearing,
+ * height, strength and colour are all WORKED OUT from these rather than set -
+ * the knobs go read-only and say what the sun is doing, which is the honest
+ * thing for a control that is no longer in charge.
+ *
+ * It is deliberately not a mode. Everything downstream - the shadows, the sky
+ * shader, the cloud deck - reads the same `sun` it always did, so a simulated
+ * hour and a hand-set light produce pictures made the same way.
+ */
+export interface SkyState {
+  /** Whether the place and the moment below are what aim the sun. */
+  simulate: boolean;
+  /** The moment being drawn, in epoch milliseconds. */
+  time: number;
+  /** Whether that moment runs on by itself. */
+  running: boolean;
+  /** How many seconds of sky pass per second of clock while it runs. */
+  rate: number;
+  latitude: number;
+  longitude: number;
+  /** Whether the place came from the device rather than being the default. */
+  located: boolean;
+  /** Fraction of the sky covered, 0 to 1. */
+  cover: number;
+  /** How high the cloud deck sits, in metres. */
+  base: number;
+  /** Wind at the deck, in metres per second. */
+  wind: number;
+  /** The bearing the wind comes from, in the scene's own convention. */
+  windBearing: number;
+  /**
+   * Where the four numbers above came from.
+   *
+   * 'off' means they are yours; 'live' means they are the real readings for
+   * this place and this hour. Touching any of them by hand drops it back to
+   * 'off', because a number you have overwritten is not an observation any
+   * more and a panel that goes on claiming it is, is lying.
+   */
+  observed: 'off' | 'asking' | 'live' | 'failed';
+}
+
+/**
  * How the marker page is inked, and how the etched one is ruled.
  *
  * Two of the five surface rungs have settings of their own. They are here
@@ -728,6 +779,12 @@ export interface SceneView {
   theme: ThemeMode;
   sun: SunState;
   fill?: FillState;
+  /**
+   * The hour and the weather the scene was composed under. Absent in scenes
+   * saved before the sky could be simulated, which read as the default place
+   * with the simulation off - which is exactly what those scenes were.
+   */
+  sky?: SkyState;
   sunEnvironment: boolean;
   guides: GuideLevel;
   /** Written by a version that had one guides switch instead of levels. */
@@ -865,7 +922,10 @@ export interface SceneState {
    * Each box and mesh carries its own; this is only where a new one starts.
    */
   surface: Surface;
-  /** Use the directional sun to generate a full-frame sky gradient. */
+  /**
+   * Draw the sky behind the scene: the air, and the cloud deck under it, both
+   * aimed by the key light. Not a gradient any more - see components/Sky.tsx.
+   */
   sunEnvironment: boolean;
   /**
    * The sun. It is the only light in the scene - no ambient, no environment -
@@ -875,6 +935,8 @@ export interface SceneState {
   sun: SunState;
   /** A second, shadowless light, for when one is too few. */
   fill: FillState;
+  /** The place, the moment and the weather that can aim that sun instead. */
+  sky: SkyState;
   /** The marker page's own colour and reach. */
   marker: MarkerState;
   /** How the etched page is ruled. */
@@ -1056,6 +1118,19 @@ export interface SceneState {
   /** Step only the selection, through the rungs its own kind can draw. */
   cycleSelectionSurface: () => void;
   toggleSunEnvironment: () => void;
+  /**
+   * Change the sky, and let the sun follow it.
+   *
+   * One action rather than a setter per field, because none of these fields
+   * means anything alone: a new moment is a new sun, and a new cloud cover is
+   * a different strength of the same sun. Working out the light is part of
+   * setting the sky, not a thing a caller has to remember to do afterwards.
+   */
+  setSky: (sky: Partial<SkyState>) => void;
+  /** Ask the device where it is, and move the sky there. */
+  locateSky: () => Promise<void>;
+  /** Ask what the sky over that place is really doing at that moment. */
+  observeSky: (force?: boolean) => Promise<void>;
   /** Move the sun, or change how hard it burns. */
   setSun: (sun: Partial<SunState>) => void;
   /** The same, for the fill. */

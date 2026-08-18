@@ -322,7 +322,7 @@ and ends.
 
 **The panel, in four bands**, hairline-separated and hung from one left edge:
 what is drawn on the ground (the floor's two rulings, the floor itself, snap,
-the construction ladder); what the picture is made of (the deal, the surface,
+the construction ladder); what the picture is made of (the surface,
 its settings, the sheet, the page, the lamps); where it is seen from (standing
 it in the real room, the projection, the lens reach, the room, the measure,
 looking by turning the phone); and the session (save the view as a PNG, and the
@@ -341,10 +341,10 @@ between the sphere and the endless band is a glyph you half remember.
 **So hold any control and its name appears above it**, two or three words, in the
 same language the tour is written in. Let go and it is gone — and the control
 does not fire, because reading what something is must never be the same gesture
-as doing it. Holding *deal a page* to remember what it does and getting a new
-page is the exact opposite of an answer, so the click is swallowed in the capture
-phase and the handful of controls that act on pointer-up rather than click ask
-whether a hint is up before they act. A press that moves is a drag and cancels
+as doing it. Holding *clear the scene* to remember what it does and losing the
+scene is the exact opposite of an answer, so the click is swallowed in the
+capture phase and the handful of controls that act on pointer-up rather than
+click ask whether a hint is up before they act. A press that moves is a drag and cancels
 the hint on the way, since half the controls here are dragged and a slow drag
 starts with a finger sitting still.
 
@@ -698,16 +698,87 @@ a face turned away from it is genuinely unlit, and that separation is the thing
 being drawn. Its bearing, height, strength and colour temperature are four
 drags in the light sheet, and its shadows can be switched off.
 
-The panel is ten knobs in two rows and is exactly ten knobs wide — it hugs its
-contents rather than stretching to the edge of the screen, and each knob's
-reading floats clear of it rather than being kept inside by 40 px of empty
-headroom. It covers about a tenth of a phone where it used to cover a quarter,
-which matters for a control whose whole purpose is watching the scene change
-while you drag it.
+The panel hugs its contents rather than stretching to the edge of the screen,
+and each knob's reading floats clear of it rather than being kept inside by
+40 px of empty headroom — which matters for a control whose whole purpose is
+watching the scene change while you drag it. A rail across the top is every
+light there is, the key and the fill and each lamp you have stood somewhere,
+and whichever you tap comes under the same four knobs, because a light is a
+light.
 
 A **second light** lives under it, off until asked for: shadowless, cooler and
 weaker by default, the way a studio or an overcast sky answers the problem of
 one light leaving half of everything black.
+
+### The sky, which is the other way of aiming the sun
+
+Those four drags are the right control for a *drawing*: you put the light where
+the drawing needs it. They are the wrong control for a *question*, and the
+question people bring to a perspective tool is not "what does 286° at 14 look
+like" — it is **"what will this look like here, at four o'clock, in October"**.
+
+So the light rail carries a third seat that is not a light. Give it a place and
+a moment and the sun goes and stands where the sun actually stands:
+
+- **A place.** One press of the pin takes the device's own fix, sets the hour to
+  now and fetches the forecast for it, all together — a place moved under an
+  hour left over from a previous session is half an answer, and the wrong half
+  decides where the shadows go. Until that press it is Greenwich at noon, which
+  is deliberately somebody else's: a default that quietly guessed at your
+  latitude would be a location fix taken without a prompt. Nothing here asks the
+  browser for a permission except that one button.
+- **A moment**, as an hour and a date, both read and written in local time. The
+  position is the NOAA solar equations — a hundredth of a degree over any date
+  this tool will see — and it is checkable by eye: at Greenwich at noon the sun
+  is due south.
+- **A clock that runs.** Real time is in the rate list and is nearly useless to
+  watch, the sun crossing a quarter of a degree a minute — but it is the only
+  rate at which the picture is *true*, and a simulation that cannot be set to
+  true is a toy. The ones worth watching are between: a minute a second walks
+  the light across an afternoon while you draw, an hour a second runs a whole
+  day in half a minute.
+- **The real weather.** Cloud cover, how high the deck sits and what the wind is
+  doing to it, fetched from a public hourly forecast for that place and that
+  hour. One fetch covers two days back and three forward, so scrubbing across an
+  afternoon reads hour after hour out of what is already in hand rather than
+  asking again — and a sky left up on a desk asks again every half hour, so it
+  goes on being the sky outside. Put a hand on any of those four numbers and it
+  stops calling itself live: a reading you have overwritten is a sky you
+  composed, and a panel that goes on claiming otherwise is lying about where its
+  numbers came from.
+
+**Cover is not a dimmer.** It moves the deck overhead, which throws its own
+shadows across the scene; and it changes the sun underneath, which gets weaker
+*and less warm* — a covered noon is both, because the reddening happens along a
+path the cloud has already scattered. One number, three consequences, which is
+what makes it a condition rather than a knob.
+
+**And the cloud is a deck, not a backdrop.** It is a shader on the inside of a
+dome, and every pixel of it asks one question: follow this ray out to the height
+the cloud base is at, and see what is there. That is what makes it read as a
+*plane overhead* — the puffs get smaller and crowd together toward the horizon
+because they are further away, which is the perspective this whole tool is
+about, and no arrangement of sprites on a dome will do it. Its shape comes out
+of a coverage threshold fitted to the noise field's own distribution, so sixty
+per cent cover is sixty per cent of the sky. It is lit by a second reading of
+the same field taken a short way toward the sun — what the light met before it
+got here — which is a very cheap self-shadowing and the whole reason the deck
+has form rather than being a stencil. It drifts at the real wind speed on the
+real bearing, and a cloud shadow crossing a courtyard at four metres a second is
+the one thing in the scene that says the picture is a moment rather than a
+diagram.
+
+While the sky is in charge, the sun's four knobs go dead and go on showing what
+the sun is doing — they are readings now, and a knob that silently loses its
+value the moment you let go is worse than one that plainly is not yours to turn.
+The shadows switch stays live either way: whether and how a shadow falls is a
+drawing decision, and a simulated overcast noon with hard shadows is a
+perfectly reasonable thing to want to draw.
+
+Nothing downstream knows any of this happened. The shadow map, the sky shader,
+the ink shader's terminator and the cloud deck all go on reading the one `sun`
+they always read; the simulation only writes it. `lib/sky.ts`,
+`lib/skyClock.ts`, `components/Sky.tsx`.
 
 ### Placed lamps
 
@@ -1099,7 +1170,7 @@ frame to be printed or dropped into a tablet layer and traced over. Which sheet
 you want is yours to choose — but a *white line on a black field* is not what
 the dark theme should hand you by default, so the two are separate decisions.
 
-### Five pages, and a shuffle
+### Five pages, dealt to you
 
 Everything in this tool is a knob, and a tool that is all knobs is a tool nobody
 ever sees the range of. Most of what it can do lives in *combinations*: the
@@ -1108,8 +1179,7 @@ wash, the lit room wants a floor to throw a shadow across. Any of those is a
 minute of fiddling to find and a second to lose.
 
 So there are whole pages — surface, sheet, mount, light, the pen and the floor,
-chosen together — and one control that deals a different one each time it is
-pressed:
+chosen together:
 
 | Card | What it is |
 | --- | --- |
@@ -1118,6 +1188,23 @@ pressed:
 | **Chalk on slate** | the sheet gone dark, and the whole page inverting with it |
 | **Sanguine** | one stain laid over the ink, on a toned sheet |
 | **Long shadows** | not a drawing at all — the objects, lit, standing on a floor |
+
+**There was a button for this, and it was the wrong shape for what it did.**
+The argument above is about somebody who does not yet know the knobs exist, and
+it was answered with a control in the fourth row of a menu two taps down — which
+is to say, with a control only somebody who already knew the knobs would ever
+find. Everyone it was for pressed it zero times; everyone it was not for pressed
+it once, wondered what had happened to their page, and never pressed it again.
+
+So it deals itself. Not while you are working — that would be the tool changing
+the drawing under your hand, which is the one thing it must never do — but in
+the gaps: put the phone down, look at the model, come back, and it is the same
+scene from the same place drawn a different way. Which is exactly the comparison
+the deck was always for, arriving when it *is* a comparison rather than an
+interruption. Four minutes between deals, and only after three quarters of a
+minute with nothing touched, nothing selected and no panel open. It takes a
+history step like any other page change, so one undo puts back the rungs it
+moved. `lib/autoDeal.ts`.
 
 **It was twenty-five, and that was the problem.** A deck grows by one every
 time a page turns out well, and what it grew into was a button you press four
@@ -1137,14 +1224,20 @@ one threw the view away: you would set up a shot, press the button to see it in
 ink, and get somebody else's 420° cylindrical frieze. Two of them existed *only*
 for their lens — a five-point hemisphere and that frieze — and those are lessons
 about the projection, which is a control on the panel with its own name on it,
-not something to be handed a page at a time. The comparison a shuffle is for is
+not something to be handed a page at a time. The comparison a deal is for is
 the same view drawn several ways, and that is only a comparison if the view
 holds still.
 
+**Nor does a page move a simulated sun.** Every card names a light, and that is
+most of what makes a card a card — but with the sky simulated the light is not a
+look, it is a reading, and a page that moved it would be a page that changed the
+hour. The card keeps the one part of the light that is a drawing decision —
+whether and how the shadows fall — and the rest stays the sky's.
+
 They are dealt in one `set()`, so a page lands on a single frame rather than
 arriving as six separate changes the renderer has to chase. And it never deals
-the page you are already on: a shuffle that can hand you back your own hand
-looks broken half the time it is pressed on a list this short.
+the page you are already on: a deal that can hand you back your own hand looks
+broken half the time on a list this short.
 
 ### Hatching that describes, rather than shades
 
@@ -1610,6 +1703,13 @@ of them rather than working around them:
   dev-only handles this README describes above (`window.__store`, `__pick`,
   `__forceMesh`) are **not** there: the suite runs against a production build,
   which is the thing that ships.
+- **Some of it happens on a timer.** The deck deals itself, so for a spec the
+  page can change while it waits for anything at all. There is a localStorage
+  key for it (`kjg-perspective-deal`), the same seam the opening page's own pin
+  already uses: the harness stands the dealer down for every spec, and the two
+  specs that are *about* the deck step it one deal at a time through the same
+  key. That is also the only way in — there is no button any more, and no store
+  handle in a production build.
 
 The rest of `harness.ts` is a list of ways this app can be tested wrongly, each
 with the reason attached: the tour has to be suppressed before the app reads

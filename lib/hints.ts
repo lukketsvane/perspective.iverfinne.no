@@ -52,7 +52,6 @@ const HINTS: Record<string, string> = {
   'Snap to': 'Fest til rutenettet',
   'Snap off': 'Fest til rutenettet',
   'Construction around': 'Kassar rundt tinga',
-  'Deal a different page': 'Del ut ei ny side',
   'Surface of everything': 'Kva alt er teikna med',
   'Paper tone': 'Arket — dra for tone',
   'Page behind the drawing': 'Bakgrunnen bak arket',
@@ -68,6 +67,41 @@ const HINTS: Record<string, string> = {
   'Look by turning the phone': 'Sjå ved å snu telefonen',
   'Save the view as a picture': 'Lagre biletet',
   'Take the tour again': 'Ta omvisinga på nytt',
+
+  // ------------------------------------------------------------- the lights
+  //
+  // The one panel in the tool with no words anywhere near it and the most to
+  // say: four knobs that are the same four knobs for every light there is, and
+  // then a whole sky behind them.
+  'The key light': 'Hovudlyset — sola',
+  'The fill light': 'Utfyllingslys, utan skygge',
+  'The sky, the hour and the weather': 'Himmelen: stad, tid og vêr',
+  Bearing: 'Kva leid lyset kjem frå',
+  'Height above the horizon': 'Kor høgt over horisonten',
+  Strength: 'Kor sterkt lyset er',
+  'Colour temperature': 'Fargen på lyset — varm til kald',
+  'Cast shadows': 'Skygge: av, hard, mjuk',
+  'Lamp on': 'Slå lampa av og på',
+  'A spot, throwing a cone': 'Spot — kastar ein kjegle',
+  'A bulb, shining every way': 'Pære — lyser alle vegar',
+
+  // --------------------------------------------------------- the real sky
+  'Aim the sun from a place and a moment': 'Lat stad og tid styre sola',
+  'Time of day': 'Klokkeslettet',
+  'Day of the year': 'Datoen',
+  'Let the hour run': 'Lat tida gå',
+  'Stop the clock': 'Stopp tida',
+  'How fast the hour runs': 'Kor fort tida går',
+  'Use where this device is': 'Bruk staden du er på',
+  'Using where this device is': 'Bruk staden du er på',
+  'Draw the sky': 'Teikn himmelen bak',
+  'the real conditions here': 'Hent det verkelege vêret her',
+  'Asking what the sky is doing': 'Spør kva vêret gjer',
+  'The conditions could not be fetched - try again': 'Fekk ikkje tak i vêret',
+  'How much of the sky is covered': 'Kor mykje av himmelen er dekt',
+  'How high the cloud sits': 'Kor høgt skyene ligg',
+  Wind: 'Vinden — kor fort skyene driv',
+  'Which way the wind comes from': 'Kva leid vinden kjem frå',
 
   // ------------------------------------------------------- the drawn page
   'How the hatching is ruled': 'Korleis jatteringa er rula',

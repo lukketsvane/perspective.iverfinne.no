@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { isSketch } from '../types';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { ContactShadows, Sky } from '@react-three/drei';
+import { ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore, DEFAULT_CAMERA_HEIGHT } from '../store';
 import { Lamps } from './Lamps';
@@ -14,6 +14,8 @@ import { updateFocus, focusPoint, setSelectionRange } from '../lib/focus';
 import { updateVanishing, clearVanishing, updateRoomPoints } from '../lib/vanishing';
 import { markSceneBuilt, sceneRevision } from '../lib/sceneRevision';
 import { Panorama } from './Panorama';
+import { Atmosphere } from './Sky';
+import { SUN_DISTANCE, sunPosition } from '../lib/sky';
 import { forgetView, registerView } from '../lib/pick';
 import { fieldOf } from '../lib/projection';
 import {
@@ -126,16 +128,6 @@ const SceneSettled = () => {
   return null;
 };
 
-const SUN_DISTANCE = 60;
-
-/** Where a bearing and a height above the horizon put the sun. */
-export const sunPosition = (azimuth: number, elevation: number): [number, number, number] => {
-  const a = THREE.MathUtils.degToRad(azimuth);
-  const e = THREE.MathUtils.degToRad(elevation);
-  const flat = Math.cos(e) * SUN_DISTANCE;
-  return [Math.sin(a) * flat, Math.sin(e) * SUN_DISTANCE, Math.cos(a) * flat];
-};
-
 /** Approximate a black-body temperature as an sRGB lamp colour. */
 const temperatureColor = (kelvin: number) => {
   const t = THREE.MathUtils.clamp(kelvin, 1000, 12000) / 100;
@@ -143,29 +135,6 @@ const temperatureColor = (kelvin: number) => {
   const green = t <= 66 ? 99.4708025861 * Math.log(t) - 161.1195681661 : 288.1221695283 * Math.pow(t - 60, -0.0755148492);
   const blue = t >= 66 ? 255 : t <= 19 ? 0 : 138.5177312231 * Math.log(t - 10) - 305.044792731;
   return new THREE.Color(red / 255, green / 255, blue / 255);
-};
-
-/**
- * A clear, physically-modelled atmosphere driven by the directional sun.
- * This is deliberately only air and sunlight: no clouds or image backdrop.
- */
-const SunEnvironment = () => {
-  const sun = useStore((state) => state.sun);
-  const position = useMemo(() => sunPosition(sun.azimuth, sun.elevation), [sun.azimuth, sun.elevation]);
-  // Warm light scatters through a denser-looking atmosphere; stronger light
-  // produces a cleaner blue sky and a tighter solar halo.
-  const warmth = THREE.MathUtils.clamp((6500 - sun.temperature) / 4700, 0, 1);
-  const energy = THREE.MathUtils.clamp(sun.intensity / 8, 0.05, 1);
-  return (
-    <Sky
-      distance={450}
-      sunPosition={position}
-      turbidity={2 + warmth * 7 + (1 - energy) * 2}
-      rayleigh={0.8 + energy * 2.2}
-      mieCoefficient={0.003 + warmth * 0.012}
-      mieDirectionalG={0.82 + energy * 0.12}
-    />
-  );
 };
 
 /** How far the shadow camera reaches either side of where you are looking. */
@@ -472,7 +441,7 @@ const SceneContent = () => {
   return (
     <>
       <color attach="background" args={[sunEnvironment ? '#000000' : bgColor]} />
-      {sunEnvironment && <SunEnvironment />}
+      {sunEnvironment && <Atmosphere />}
       {/* One sun, and nothing else.
 
           No ambient term and no environment map: a face turned away from the

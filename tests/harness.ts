@@ -57,10 +57,18 @@ export { expect };
  * knobs the deal happened to leave. Pinned here to the page the tool used to
  * open on fixed, so the suite sees exactly the setup it was written against.
  * A spec that is ABOUT the deal clears this key itself.
+ *
+ * AND THE DEALER, which is the same input arriving on a timer. The tool deals
+ * itself a new page in the gaps between working - see lib/autoDeal.ts - which
+ * for a spec means the page can change under it while it waits for anything at
+ * all. Stood down here for every spec, and stepped one deal at a time by the
+ * ones that are about the deck. That key is also the only way in: there is no
+ * button any more, and no store handle in a production build.
  */
 const PRELUDE = () => {
-  localStorage.setItem('kjg-perspective-tour', JSON.stringify({ seen: 5 }));
+  localStorage.setItem('kjg-perspective-tour', JSON.stringify({ seen: 6 }));
   localStorage.setItem('kjg-perspective-page', 'Brush page on black');
+  localStorage.setItem('kjg-perspective-deal', 'off');
   if (!sessionStorage.getItem('harness-cleared')) {
     localStorage.removeItem('kjg-perspective-settings');
     sessionStorage.setItem('harness-cleared', '1');

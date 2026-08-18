@@ -34,7 +34,7 @@ type Listener = () => void;
  * Bumped when the tour is rewritten, so a viewer who has seen the old one is
  * offered the new one - the same trick VIEW_GENERATION plays in store.ts.
  */
-const TOUR_GENERATION = 5;
+const TOUR_GENERATION = 6;
 
 /**
  * Its own key, not a field in the settings blob.
@@ -69,8 +69,6 @@ export type Gate =
   | 'lens'
   /** The tools panel is open. */
   | 'tools'
-  /** A different page was dealt. */
-  | 'page'
   /** The model shelf is open. */
   | 'shelf'
   /** The block-out pencil is in hand. */
@@ -188,14 +186,24 @@ export const STEPS: TourStep[] = [
      * The first card that can only be written because the one before it waited.
      * This control is inside the panel, so a tour that advanced on a timer would
      * be ringing a button behind a closed menu by now.
+     *
+     * IT USED TO BE THE DECK. "Trykk terningen" - deal a page, and watch the
+     * surface, the sheet, the mount, the light and the pen all change together.
+     * The deck deals itself now (lib/autoDeal.ts), so there is no terning to
+     * ring, and the lesson it taught arrives on its own while you work.
+     *
+     * What is in that slot instead is the one thing in the tool nobody would
+     * ever guess is there: that the sun can be told a place and an hour and
+     * will go and stand where the sun actually stands. It has no gate, because
+     * the sky is three taps deep and a card that waits for all three is a card
+     * somebody is stuck on. Neste carries it.
      */
-    anchor: 'Deal a different page',
+    anchor: 'Lights',
     fallbackAnchor: 'Tools',
-    gate: 'page',
     gesture: 'tap',
-    headline: 'Del ut ei side',
-    body: 'Trykk terningen. Flate, papir, lys og penn skifter under eitt — trykk igjen for ei ny.',
-    fallbackBody: 'Verktøya lukka seg. Trykk dei tre skyvarane igjen, så terningen inne i panelet.',
+    headline: 'Lyset, og himmelen',
+    body: 'Trykk pæra. Gjev himmelen ein stad og eit klokkeslett, så står sola der ho verkeleg står — med vêret som er der no.',
+    fallbackBody: 'Verktøya lukka seg. Trykk dei tre skyvarane igjen, så pæra inne i panelet.',
   },
   {
     anchor: 'Add model',
