@@ -35,6 +35,22 @@
  */
 export const MAX_FIELD = 1080;
 
+/**
+ * HOW MUCH A PAIR OF EYES ACTUALLY TAKES IN: about two hundred and ten degrees.
+ *
+ * Two hundred across, give or take a few either side of the nose, and rather
+ * less than that up and down - so this is the field the tool opens on, and it
+ * is the line between a view somebody could really be standing in and a sheet
+ * that is a drawing convention.
+ *
+ * It is a real boundary rather than a preference, which is why it is a named
+ * number in one place rather than a 210 typed into four files: the lens control
+ * marks it, the human rung of the lens reach clamps to it, and the migration
+ * that works out which rung a stored field belongs to reads it. Everything past
+ * it is honest curvilinear drawing and none of it is sight.
+ */
+export const HUMAN_SIGHT = 210;
+
 export const fieldOf = (degrees: number, width: number, height: number) => {
   const angularRadius = (Math.min(MAX_FIELD, Math.max(20, degrees)) * Math.PI / 180) / 2;
   const safeWidth = Math.max(width, 1);

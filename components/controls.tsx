@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Icon } from './icons';
 import { useStore } from '../store';
-import { bubble } from './ui';
+import { ACTIVE, bubble } from './ui';
 import type { RoomSize } from '../types';
 
 /**
@@ -28,6 +28,16 @@ const surface = (skin: Skin) =>
 interface DraggableNumber {
   skin: Skin;
   icon: React.ReactNode;
+  /**
+   * Whether the glyph carries the app's one accent.
+   *
+   * For a state the number itself cannot say. The lens is the case it was
+   * added for: 210 and 270 are two numbers a digit apart to look at, and the
+   * difference between them is that one of them is a view a person could be
+   * standing in and the other is a drawing convention. The colour says which,
+   * at rest, without a word on screen.
+   */
+  accent?: boolean;
   label: string;
   reading: string;
   value: number;
@@ -350,7 +360,7 @@ const useScrub = (
  */
 export const Scrub: React.FC<DraggableNumber> = (props) => {
   const handlers = useScrub(props, 'x');
-  const { skin, icon, label, reading } = props;
+  const { skin, icon, label, reading, accent } = props;
   const [active, setActive] = React.useState(false);
 
   const wrapHandlers = {
@@ -370,7 +380,11 @@ export const Scrub: React.FC<DraggableNumber> = (props) => {
         aria-label={label}
         {...wrapHandlers}
       >
-        <span className={`${skin.dark ? 'text-white' : 'text-gray-900'} active:scale-95 transition-transform`}>
+        <span
+          className={`${
+            accent ? ACTIVE : skin.dark ? 'text-white' : 'text-gray-900'
+          } active:scale-95 transition-transform`}
+        >
           <Icon path={icon} className="w-5 h-5" />
         </span>
       </button>

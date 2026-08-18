@@ -19,7 +19,7 @@ import { ACTIVE, bubble, chrome, iconButton, SIDEWAYS_SLOT } from './ui';
 import { pickGround, pickObject, pixelsPerMetreAt } from '../lib/pick';
 import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
-import { MAX_FIELD, wholeSheetField } from '../lib/projection';
+import { HUMAN_SIGHT, MAX_FIELD, wholeSheetField } from '../lib/projection';
 import { SNAP_STEPS, selectionSurface, surfaceHasSettings, surfaceSettingsLabel, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
 import { beginTour, endTour, useTourStep } from '../lib/tour';
 
@@ -1884,14 +1884,34 @@ export const WalkOverlay: React.FC<{
           <button onClick={swapTo(onScenes)} aria-label="Scenes" className={button}>
             <Icon path={I.scenes} className="w-5 h-5" />
           </button>
+          {/*
+            * THE ACCENT MARKS SIGHT, and it is the one thing this control could
+            * never say.
+            *
+            * The lens opens to a thousand degrees now. Somewhere in that
+            * travel is the field a pair of eyes actually takes in - about two
+            * hundred and ten - and past it the sheet is an honest curvilinear
+            * drawing of a world nobody could see all of at once. Those two are
+            * a digit apart to look at: 210 and 270 read the same in a bubble
+            * that is only up while a thumb is down.
+            *
+            * So the glyph carries the accent while the field is inside sight
+            * and goes plain past it. It is the same colour that means "this is
+            * doing something" everywhere else in the app, used for the same
+            * kind of statement - and on the one control where the difference
+            * it marks is the whole subject of the tool.
+            */}
           <Scrub
             skin={{ dark: isDark, touch: true }}
             icon={I.cone}
+            accent={fov <= HUMAN_SIGHT}
+            // Read by the tour, which rings this control by name. Renaming it
+            // leaves that step with a card and no ring.
             label="Field of view"
             reading={`${Math.round(fov)}°`}
             value={fov}
             min={25}
-            max={fieldRange === 'human' ? 210 : fieldRange === 'endless' ? MAX_FIELD : wholeSheet}
+            max={fieldRange === 'human' ? HUMAN_SIGHT : fieldRange === 'endless' ? MAX_FIELD : wholeSheet}
             step={1}
             // Twice the sweep, because the range is now twice what it was and
             // everything anyone does is still down at the narrow end.
@@ -1906,7 +1926,7 @@ export const WalkOverlay: React.FC<{
             // portrait phone made 720 unreachable by tapping.
             cycle={[...new Set(
               fieldRange === 'human'
-                ? [35, 60, 90, 120, 180, 210]
+                ? [35, 60, 90, 120, 180, HUMAN_SIGHT]
                 : fieldRange === 'endless'
                   ? [35, 60, 90, 120, 180, 270, 360, wholeSheet, 720, MAX_FIELD]
                   : [35, 60, 90, 120, 180, 270, 360, wholeSheet]

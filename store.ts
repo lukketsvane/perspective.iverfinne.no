@@ -4,7 +4,7 @@ import { releaseSource, cachedSourceUrls, loadModelFromUrl } from './lib/loadMod
 import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
-import { MAX_FIELD, wholeSheetField } from './lib/projection';
+import { HUMAN_SIGHT, MAX_FIELD, wholeSheetField } from './lib/projection';
 import {
   luminance,
   mountFor,
@@ -961,7 +961,7 @@ const take = (value: unknown, low: number, high: number, fallback: number) =>
 
 /** The narrowest rung a given field still fits inside. */
 const rangeFor = (range: FieldRange, fov: number): FieldRange => {
-  if (fov <= 210) return range;
+  if (fov <= HUMAN_SIGHT) return range;
   const sheet =
     typeof window === 'undefined' ? 540 : wholeSheetField(window.innerWidth, window.innerHeight);
   if (fov <= sheet) return range === 'human' ? 'sphere' : range;
@@ -1634,7 +1634,7 @@ export const useStore = create<SceneState>((set, get) => ({
   cycleFieldRange: () =>
     set((state) => {
       const range = FIELD_RANGES[(FIELD_RANGES.indexOf(state.fieldRange) + 1) % FIELD_RANGES.length];
-      return { fieldRange: range, fov: range === 'human' ? Math.min(state.fov, 210) : state.fov };
+      return { fieldRange: range, fov: range === 'human' ? Math.min(state.fov, HUMAN_SIGHT) : state.fov };
     }),
 
   // -------------------------------------------------------------------------
