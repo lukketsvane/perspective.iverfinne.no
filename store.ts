@@ -1,10 +1,10 @@
 import { create } from 'zustand';
-import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, SelectionGuide, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SkyState, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
+import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, SelectionGuide, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, CameraState, SceneView, SkyState, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
 import { releaseSource, cachedSourceUrls, loadModelFromUrl } from './lib/loadModel';
 import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
-import { HUMAN_SIGHT, MAX_FIELD, wholeSheetField } from './lib/projection';
+import { fieldOfLens, FLAT_SIGHT, HUMAN_SIGHT, lensOfField, MAX_FIELD, wholeSheetField } from './lib/projection';
 import {
   luminance,
   mountFor,
@@ -553,6 +553,27 @@ export const sunFromSky = (sky: SkyState): Pick<SunState, 'azimuth' | 'elevation
   };
 };
 
+/**
+ * The lens the tool hands you when you ask for one.
+ *
+ * A fifty on a full frame, at f/4, focused on whatever you are looking at, on
+ * a 3:2 gate. Every one of those is the boring answer and every one of them is
+ * deliberate: fifty is the length that neither compresses nor stretches, f/4
+ * has a depth of field you can SEE without dissolving the scene behind it,
+ * auto-focus is what a camera does, and 3:2 is the shape of the frame those
+ * focal lengths were named on.
+ *
+ * A lens somebody has to fix before it makes a picture is a lens nobody opens
+ * twice.
+ */
+export const DEFAULT_CAMERA: CameraState = {
+  on: false,
+  focal: 50,
+  aperture: 4,
+  focus: 0,
+  gate: 3 / 2,
+};
+
 const SETTINGS_KEY = 'kjg-perspective-settings';
 
 const SETTING_KEYS = [
@@ -581,6 +602,7 @@ const SETTING_KEYS = [
   'sun',
   'fill',
   'sky',
+  'camera',
 ] as const;
 
 type PersistedSettings = Pick<SceneState, (typeof SETTING_KEYS)[number]>;
@@ -629,6 +651,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   sun: object,
   fill: object,
   sky: object,
+  camera: object,
 };
 
 /**
@@ -766,7 +789,10 @@ const readRoom = (stored: Partial<RoomSize> | undefined): RoomSize => {
 
 /** The same for the projection: two of them are not on offer any more. */
 const readMode = (stored: unknown): PerspectiveMode =>
-  stored === 'cylindrical' || stored === 'equidistant' || stored === 'stereographic'
+  stored === 'rectilinear' ||
+  stored === 'cylindrical' ||
+  stored === 'equidistant' ||
+  stored === 'stereographic'
     ? stored
     : 'equidistant';
 
@@ -843,6 +869,30 @@ const readSky = (stored: Partial<SkyState> | undefined, keepTime = false): SkySt
     wind: take(stored?.wind, DEFAULT_SKY.wind, 0, 60),
     windBearing: take(stored?.windBearing, DEFAULT_SKY.windBearing, 0, 360),
     observed: 'off',
+  };
+};
+
+/**
+ * A lens read back from storage or off a saved scene.
+ *
+ * Checked field by field for the same reason the sky is: every number in here
+ * ends up inside a division. An aperture that came back as a string is a
+ * divide by NaN, and what a NaN gain produces is not an error message, it is a
+ * frame blurred to a uniform grey with no way to tell why.
+ */
+const readCamera = (stored: Partial<CameraState> | undefined): CameraState => {
+  const take = (value: unknown, fallback: number, low: number, high: number) =>
+    typeof value === 'number' && Number.isFinite(value)
+      ? Math.min(high, Math.max(low, value))
+      : fallback;
+  return {
+    on: typeof stored?.on === 'boolean' ? stored.on : DEFAULT_CAMERA.on,
+    focal: take(stored?.focal, DEFAULT_CAMERA.focal, 8, 400),
+    aperture: take(stored?.aperture, DEFAULT_CAMERA.aperture, 0.7, 32),
+    // Zero is not a distance, it is the word "auto" - so it is let through the
+    // floor the others get.
+    focus: stored?.focus === 0 ? 0 : take(stored?.focus, DEFAULT_CAMERA.focus, 0.3, 80),
+    gate: take(stored?.gate, DEFAULT_CAMERA.gate, 0.5, 3),
   };
 };
 
@@ -1047,6 +1097,7 @@ export const currentView = (state: SceneState): SceneView => ({
   sun: { ...state.sun },
   fill: { ...state.fill },
   sky: { ...state.sky },
+  lens: { ...state.camera },
   sunEnvironment: state.sunEnvironment,
   guides: state.guides,
   gridX: state.gridX,
@@ -1151,6 +1202,7 @@ const restoreView = (view: SceneView | undefined, range: FieldRange): Partial<Sc
     // the same migration storage uses - a scene file is written by whatever
     // version the viewer had, which is exactly the case that reader is for.
     sky: readSky(view.sky, true),
+    camera: readCamera(view.lens),
     sunEnvironment: view.sunEnvironment,
     guides: (Math.min(2, view.guides ?? ((view.showGuides ?? true) ? 3 : 0)) as GuideLevel),
     gridX: view.gridX ?? (view.guides ?? 3) >= 2,
@@ -1236,6 +1288,7 @@ export const useStore = create<SceneState>((set, get) => ({
   sun: readSun(remembered.sun),
   fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
   sky: readSky(remembered.sky),
+  camera: readCamera(remembered.camera),
   pbr: { roughness: 0.7, metalness: 0, ...(remembered.pbr ?? {}) },
 
   /*
@@ -1551,7 +1604,50 @@ export const useStore = create<SceneState>((set, get) => ({
   // straight-line camera can do neither - Scene clamps the actual lens just
   // short of 180, where a rectilinear projection stops meaning anything - but
   // the curvilinear pass can.
-  setLens: (fov) => set({ fov: Math.max(10, Math.min(MAX_FIELD, fov)) }),
+  /**
+   * The field, and - while the camera is on - the focal length that says it.
+   *
+   * One number stays authoritative. Everything downstream of the view reads
+   * `fov`: the picker, the vanishing points, the ink's line weight, the
+   * panorama's own choice of source. A focal length is a way of SETTING that
+   * number, not a second copy of it to be kept in step, so both doors write
+   * the same field and the other reading follows.
+   */
+  setLens: (fov) =>
+    set((state) => {
+      // A flat sheet has its own ceiling, and it is far below the others'.
+      const ceiling = state.perspectiveMode === 'rectilinear' ? FLAT_SIGHT : MAX_FIELD;
+      const field = Math.max(10, Math.min(ceiling, fov));
+      return state.camera.on
+        ? { fov: field, camera: { ...state.camera, focal: lensOfField(field) } }
+        : { fov: field };
+    }),
+
+  setCamera: (change) =>
+    set((state) => {
+      const camera = { ...state.camera, ...change };
+      /*
+       * A LENS IS A RECTILINEAR INSTRUMENT, so arming one sets the projection.
+       *
+       * Not a suggestion and not a coupling that could be undone later: a
+       * focal length on a curved sheet is a number with no meaning. Fifty
+       * millimetres says exactly one thing about a picture - how much of a
+       * 36 mm frame a straight-line projection takes in - and a sheet that
+       * bows straight lines is not that projection.
+       *
+       * What it does NOT do is put the old projection back when the camera is
+       * switched off. Which sheet you draw on is a decision you make about the
+       * drawing; a mode that quietly undoes it on the way out is a mode that
+       * eats your setting.
+       */
+      const armed = camera.on && !state.camera.on;
+      return {
+        camera,
+        fov: camera.on ? fieldOfLens(camera.focal) : state.fov,
+        ...(armed ? { perspectiveMode: 'rectilinear' as PerspectiveMode } : {}),
+      };
+    }),
+
 
   setPerspectiveMode: (mode) =>
     set((state) => ({
@@ -1566,8 +1662,22 @@ export const useStore = create<SceneState>((set, get) => ({
        * field as the angle across the frame, so the number means the same thing
        * in each. Comparing the same view through all three IS what the button
        * is for, and it was impossible anywhere in the ordinary working range.
+       *
+       * EXCEPT ON THE WAY ONTO THE FLAT BOARD, which cannot hold it. That
+       * paragraph is true of the three curved systems and is not true of this
+       * one: a rectilinear sheet at two hundred and ten degrees is not a wide
+       * picture, it is a thumbnail in the middle of a frame whose corners have
+       * been stretched off the page - and this tool opens at exactly the field
+       * where the tangent runs away. So stepping onto the board brings the lens
+       * back to sixty, which is a frame a flat sheet can hold and about what
+       * anybody means by the word perspective when they sit down to draw it.
+       * Downwards only: a field already inside what the board can show is a
+       * field you chose.
        */
-      fov: Math.min(state.fov, MAX_FIELD),
+      fov:
+        mode === 'rectilinear' && state.fov > FLAT_SIGHT
+          ? 60
+          : Math.min(state.fov, MAX_FIELD),
     })),
 
   setCameraHeight: (height) => set({ cameraHeight: Math.max(0.2, Math.min(12, height)) }),

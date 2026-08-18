@@ -20,28 +20,38 @@ import { pickGround, pickObject, pixelsPerMetreAt } from '../lib/pick';
 import { focusPoint } from '../lib/focus';
 import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
-import { HUMAN_SIGHT, MAX_FIELD, wholeSheetField } from '../lib/projection';
+import { FLAT_SIGHT, HUMAN_SIGHT, lensOfField, MAX_FIELD, wholeSheetField } from '../lib/projection';
 import { SNAP_STEPS, selectionSurface, surfaceHasSettings, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
 import { beginTour, endTour, useTourStep } from '../lib/tour';
 
 /**
- * The systems the button steps through: bowed horizontals, then the ruled
- * sphere, then the whole hemisphere of it.
+ * The systems the button steps through: the flat board, bowed horizontals, the
+ * ruled sphere, and the conformal one.
  *
- * Straight-line perspective is not among them any more. It is honest inside the
- * cone of vision and nowhere else, and this is a tool whose whole subject is the
- * wide field - so widening the lens in it did not open the view out, it smeared
- * the edges of the frame into something no drawing could be made from. The
- * curvilinear systems answer the same question at forty degrees as they do at
- * three hundred, and at forty they *are* the flat one to within the width of a
- * pencil line.
+ * STRAIGHT-LINE PERSPECTIVE IS BACK, and the argument that took it out is
+ * still true and was answering a different question. It said: this is a tool
+ * whose subject is the wide field, opening a rectilinear lens does not open
+ * the view out but smears the corners into something no drawing can be made
+ * from, and inside the cone of vision the curvilinear systems ARE the flat one
+ * to within a pencil line. All of that holds.
  *
- * The mode itself stays: a session standing in the real room is drawn through
- * the phone's own rectilinear lens, and bending that would be drawing a
- * perspective over a perspective.
+ * What it missed is that a system nobody would choose for a wide view is still
+ * the system every perspective lesson, every camera and every draughtsman's
+ * board uses - because it is the only one in which a straight edge stays
+ * straight, which is what makes a vanishing point a point you can rule to. One
+ * and two and three point perspective are not looser versions of five point;
+ * they are this projection, and they cannot be shown in any other. So it is
+ * the first rung, where a beginner meets it, and the four together are the
+ * ladder from the board to the sphere.
  */
-const PROJECTION_ORDER: PerspectiveMode[] = ['cylindrical', 'equidistant', 'stereographic'];
+const PROJECTION_ORDER: PerspectiveMode[] = [
+  'rectilinear',
+  'cylindrical',
+  'equidistant',
+  'stereographic',
+];
 const PROJECTION_ICON: Record<PerspectiveMode, React.ReactNode> = {
+  rectilinear: I.rectilinear,
   cylindrical: I.cylindrical,
   equidistant: I.curved,
   stereographic: I.stereographic,
@@ -274,6 +284,8 @@ export const WalkOverlay: React.FC<{
   const fov = useStore((s) => s.fov);
   const setLens = useStore((s) => s.setLens);
   const perspectiveMode = useStore((s) => s.perspectiveMode);
+  /* The one sheet whose field is a focal length and whose ceiling is low. */
+  const flatBoard = perspectiveMode === 'rectilinear';
   const sun = useStore((s) => s.sun);
   const setSun = useStore((s) => s.setSun);
   const backgroundGray = useStore((s) => s.backgroundGray);
@@ -1962,14 +1974,27 @@ export const WalkOverlay: React.FC<{
           <Scrub
             skin={{ dark: isDark, touch: true }}
             icon={I.cone}
-            accent={fov <= HUMAN_SIGHT}
+            accent={flatBoard ? fov <= 100 : fov <= HUMAN_SIGHT}
             // Read by the tour, which rings this control by name. Renaming it
             // leaves that step with a card and no ring.
             label="Field of view"
-            reading={`${Math.round(fov)}°`}
+            // On the flat board a field IS a focal length, and a focal
+            // length is the unit anybody composing with one already
+            // thinks in. Same number, said in the units of the sheet.
+            reading={flatBoard ? `${Math.round(lensOfField(fov))} mm` : `${Math.round(fov)}°`}
             value={fov}
             min={25}
-            max={fieldRange === 'human' ? HUMAN_SIGHT : fieldRange === 'endless' ? MAX_FIELD : wholeSheet}
+            // The flat board's own ceiling comes first, whatever the reach
+            // rung says: past it a rectilinear frame is corners, not picture.
+            max={
+              flatBoard
+                ? FLAT_SIGHT
+                : fieldRange === 'human'
+                  ? HUMAN_SIGHT
+                  : fieldRange === 'endless'
+                    ? MAX_FIELD
+                    : wholeSheet
+            }
             step={1}
             // Twice the sweep, because the range is now twice what it was and
             // everything anyone does is still down at the narrow end.
@@ -1983,11 +2008,17 @@ export const WalkOverlay: React.FC<{
             // first preset past the current value in ARRAY order - unsorted, a
             // portrait phone made 720 unreachable by tapping.
             cycle={[...new Set(
-              fieldRange === 'human'
-                ? [35, 60, 90, 120, 180, HUMAN_SIGHT]
-                : fieldRange === 'endless'
-                  ? [35, 60, 90, 120, 180, 270, 360, wholeSheet, 720, MAX_FIELD]
-                  : [35, 60, 90, 120, 180, 270, 360, wholeSheet]
+              flatBoard
+                ? // The lengths a photographer names, said as fields: 85, 50,
+                  // 35, 28, 20 and 14 millimetres on a 36 mm frame. On the flat
+                  // board the field IS a focal length, so the rungs worth
+                  // landing on are the ones that have names.
+                  [24, 40, 55, 75, 94, FLAT_SIGHT]
+                : fieldRange === 'human'
+                  ? [35, 60, 90, 120, 180, HUMAN_SIGHT]
+                  : fieldRange === 'endless'
+                    ? [35, 60, 90, 120, 180, 270, 360, wholeSheet, 720, MAX_FIELD]
+                    : [35, 60, 90, 120, 180, 270, 360, wholeSheet]
             )].sort((a, b) => a - b)}
             onChange={setLens}
           />
