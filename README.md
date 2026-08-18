@@ -249,41 +249,49 @@ The timer lives outside both of them, in `lib/rail.ts`, since they are different
 components in different parts of the tree and there is only one idea of "the
 chrome is wanted" between them.
 
-**The dock is the verbs, and only the verbs.** Six seats:
+**The dock is the verbs, and only the verbs.** Eight seats:
 
-- **Cube** — the mesh library: a lamp, a 1 m reference cube, the way in for your
-  own files, then the objects and figures
+- **Cube** — the mesh library: a lamp, a 1 m reference cube, the block-out
+  pencil, the way in for your own files, then the objects and figures
+- **Frames** — the scene library: your projects, and the plus that starts
+  another one
 - **Field of view** — drag for any value, tap to step through presets, the last
   of which stands back far enough to see the whole sheet
 - **Horizon** — eye level, from 0.2 m to 12 m
-- **Block out** — the pencil: drag a footprint on the ground, drag its height,
-  and the mode stays armed for the next one
-- **Measure** — the pencil at arm's length: drag across the scene for the visual
-  angle between two directions, in degrees
+- **Guides** — the room's own construction, stepped by tapping: nothing, the
+  horizon and the five points, then the whole ruled sphere
 - **Undo** and **redo** — properly disabled at the ends of the stack rather than
   dimmed and still live
 - **Sliders** — the panel of everything else, in four bands
 
 The test for a seat is how often a thing is reached for *mid-drawing* rather
-than between drawings. Blocking out and measuring are what you do while looking
-at something you are trying to get down, and both are modes you flip constantly;
-either one behind a menu costs a tap and a re-aim every time it goes on or off.
-Undo is the second half of every gesture that went wrong, and its whole value is
-that it costs nothing — two taps and a flyout in the way is enough to make a
-mis-drag something you live with instead, which is a tool teaching you to be
-careful rather than to try things.
+than between drawings. Undo is the second half of every gesture that went wrong,
+and its whole value is that it costs nothing — two taps and a flyout in the way
+is enough to make a mis-drag something you live with instead, which is a tool
+teaching you to be careful rather than to try things. The guides are the same
+shape of thing for a tool whose subject *is* perspective: rule the sheet, read
+the form against it, put it away, rule it again is a rhythm of taps, and it
+spent a while two taps deep in a menu of settings.
+
+Two modes left this row rather than joining it. The **block-out pencil** is on
+the mesh shelf, one tap behind the cube, beside the reference cube it is the
+by-eye version of; the **measure** is in the panel band about where the scene is
+seen from, which is what a visual angle is a reading of. Both were the only
+things down here that arm a mode rather than do something.
 
 What went the other way is everything that is a *setting*: the projection and
-the sheet tone down into the panel, the scene library with them. You pick a
-projection once and draw for an hour inside it.
+the sheet tone down into the panel. You pick a projection once and draw for an
+hour inside it. The scene library went with them for a while and came back —
+keeping and reopening a project is not a setting, it is how every session starts
+and ends.
 
 **The panel, in four bands**, hairline-separated and hung from one left edge:
-what is drawn on the ground (the guides, the floor's two rulings, snap, the
-construction ladder, the selection's own vanishing points); what the picture is
-made of (the surface, the sheet, the page, the lamps); where it is seen from
-(standing it in the real room, the projection, the lens reach, the room, view
-lock, looking by turning the phone); and the session (the scene library, save
-the view as a PNG). Sixteen identical circles wrapping into whatever rows the
+what is drawn on the ground (the floor's two rulings, the floor itself, snap,
+the construction ladder); what the picture is made of (the deal, the surface,
+its settings, the sheet, the page, the lamps); where it is seen from (standing
+it in the real room, the projection, the lens reach, the room, the measure,
+looking by turning the phone); and the session (save the view as a PNG, and the
+tour again). Sixteen identical circles wrapping into whatever rows the
 width happened to give was a wall rather than a menu — nothing sat near anything
 it was related to, and which row a control landed in changed with the phone. A
 band is scanned in one movement and keeps its company at every width.
@@ -1329,12 +1337,21 @@ wanted at different times — which is also why the room has a switch of its own
 
 ## Saving a scene
 
-The scene library (the frames icon) keeps whole compositions in the browser:
-the boxes, every placed mesh with its position, bearing and size, the eye
-level, the lens, the sun, and the spot you were standing on. Each one is a
-thumbnail of the view it was saved from, which is how you tell them apart —
-there is nothing to name and nothing to overwrite. Saving always adds one, so
-nothing is lost by saving; deleting takes two taps.
+The scene library (the frames icon on the dock) keeps whole compositions in the
+browser: the boxes, every placed mesh with its position, bearing and size, the
+eye level, the lens, the sun, and the spot you were standing on. Each one is a
+thumbnail of the view it was saved from and a name you can type over — `Scene 1`
+until you call it something.
+
+**Saving writes into the project that is open.** It used to add a new entry
+every time, on the argument that a roll of views loses nothing; what that
+actually produced was four near-identical thumbnails of one afternoon's work and
+no way to say which was the live one. A project is a thing you come back to, so
+the disk icon updates it — the button says which, `Update Scene 3` rather than
+`Save this scene` — and the card of the open one is marked. The **plus** at the
+head of the row is how you deliberately start another, and it is the only thing
+here that adds a card. Clearing the scene or importing a file lets go of the
+open project, so neither can overwrite it by accident. Deleting takes two taps.
 
 **Imported meshes are kept too.** A file dropped into the scene is written into
 the browser's own storage under a hash of its contents and referred to
