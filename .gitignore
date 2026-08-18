@@ -26,3 +26,13 @@ dist-ssr
 # Playwright
 test-results
 playwright-report
+
+# Throwaway drivers.
+#
+# The specs live in tests/ and are run by the runner. What this catches is the
+# other thing: a one-off script written at the repo root to drive the built app
+# through a browser and look at the result, because the app publishes its store
+# and its projector in dev and that is the fastest way to check a change by
+# eye. They are written, run, and deleted - and one of them was not, and rode
+# into a commit.
+*.tmp.mjs
