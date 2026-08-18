@@ -50,7 +50,7 @@ export { expect };
  * unguarded init script would quietly wipe them and make that spec a fraud.
  *
  * THE PAGE, WHICH IS THE ONE THAT WOULD OTHERWISE BE RANDOM. The tool deals a
- * page off the deck of twenty-three every time it opens - a different surface,
+ * page off the deck every time it opens - a different surface,
  * sheet, mount, light and pen on every load. Unpinned, that is a random input
  * to every spec in this suite: the fingerprint smoke test would be comparing a
  * different picture each run, and a material spec would start from whichever
@@ -499,13 +499,24 @@ export const readSceneBundle = async (page: Page): Promise<SceneManifest> => {
  * the ground for the footprint, let go, and a second drag upwards for the
  * height.
  *
- * WHERE IT DRAWS MATTERS. pickGround returns nothing on the sky or past the
- * edge of the sheet, and a stroke that starts on nothing starts no box at all,
- * silently. The app opens framed on an eight-metre aircraft in the middle of
- * the frame, so the default footprint is low and off to the right: below the
- * horizon, clear of the racer, clear of the dock along the bottom, and out of
- * the walk quadrant in the bottom left - which the pencil pre-empts anyway,
- * but a default that only works in one mode is a trap for the next helper.
+ * WHERE IT DRAWS MATTERS, AND THE SHELF IS NOW PART OF WHERE. pickGround
+ * returns nothing on the sky or past the edge of the sheet, and a stroke that
+ * starts on nothing starts no box at all, silently. The app opens framed on an
+ * eight-metre aircraft in the middle of the frame, so the default footprint is
+ * low and off to the right: below the horizon, clear of the racer, and out of
+ * the walk quadrant in the bottom left.
+ *
+ * AND ABOVE THE SHELF, WHICH IS MEASURED RATHER THAN GUESSED. Taking the pencil
+ * used to put the model shelf away, so the whole lower frame was free; it stays
+ * open now and occupies the bottom of it. Worse for a fixed number: the first
+ * stroke STANDS A BOX UP, the box lands selected, the selection bar appears,
+ * and the whole panel slot slides up by its height - so a second stroke aimed
+ * at a spot the first one cleared by fifty pixels lands inside the shelf.
+ *
+ * So each stroke asks where the panel actually is, right then, and is held
+ * above it. Nothing here has to know what a selection bar is worth in pixels,
+ * and the day a safe-area inset or a row height changes, this still draws on
+ * the floor.
  *
  * The pencil puts ITSELF down once a box is finished, so the instrument going
  * cold afterwards is the proof that both strokes landed. Failing here beats
@@ -514,29 +525,45 @@ export const readSceneBundle = async (page: Page): Promise<SceneManifest> => {
 export const blockOutABox = async (
   page: Page,
   {
-    from = { x: 0.55, y: 0.7 },
-    to = { x: 0.78, y: 0.8 },
+    from = { x: 0.55, y: 0.64 },
+    to = { x: 0.78, y: 0.74 },
     lift = 0.14,
     steps = 3,
   } = {}
 ) => {
   const frame = page.viewportSize();
   if (!frame) throw new Error('No viewport to place a box in.');
-  const point = (spot: { x: number; y: number }) => ({
+
+  /**
+   * The lowest line a stroke may touch: thirty pixels clear of whatever the
+   * panel slot is currently holding, or the dock if the slot is empty.
+   */
+  const ceiling = async () =>
+    (await page.evaluate(() => {
+      const anchor =
+        document.querySelector('[aria-label="Add cube"]') ??
+        document.querySelector('[aria-label="Tools"]');
+      const panel = anchor?.closest('div[class*="rounded-"]');
+      return panel ? panel.getBoundingClientRect().top - 30 : window.innerHeight;
+    })) as number;
+
+  const point = async (spot: { x: number; y: number }) => ({
     x: spot.x * frame.width,
-    y: spot.y * frame.height,
+    y: Math.min(spot.y * frame.height, await ceiling()),
   });
 
-  // The pencil is on the model shelf now, beside the cube it is the by-eye
-  // version of - and taking it puts the shelf away, so the assertion that it
-  // is armed has to be made against the button while it is still on screen.
+  // The pencil is on the model shelf, beside the cube it is the by-eye version
+  // of, and taking it leaves the shelf where it is - so unlike before, the
+  // button is still on screen for the whole gesture and can be asked about at
+  // either end of it.
   await openShelf(page);
   const pencil = page.locator('[aria-label="Draw boxes on the ground"]');
   await expect(pencil).toHaveAttribute('aria-pressed', 'false');
   await pencil.click();
+  await expect(pencil, 'The pencil did not arm.').toHaveAttribute('aria-pressed', 'true');
 
-  const start = point(from);
-  const end = point(to);
+  const start = await point(from);
+  const end = await point(to);
 
   // One: the footprint, on the floor.
   await page.mouse.move(start.x, start.y);
@@ -544,26 +571,27 @@ export const blockOutABox = async (
   await page.mouse.move(end.x, end.y, { steps });
   await page.mouse.up();
 
-  // Two: the height, pulled up from where the first stroke ended. This one can
-  // begin anywhere - only its vertical travel is read.
-  await page.mouse.move(end.x, end.y);
+  // Two: the height, pulled up from where the first stroke ended - re-measured,
+  // because the box the first stroke just stood up is now selected and the bar
+  // that says so has pushed the shelf up over where that stroke ended. Only the
+  // vertical travel is read, so beginning a little higher costs nothing.
+  const pull = await point(to);
+  await page.mouse.move(pull.x, pull.y);
   await page.mouse.down();
-  await page.mouse.move(end.x, end.y - lift * frame.height, { steps });
+  await page.mouse.move(pull.x, pull.y - lift * frame.height, { steps });
   await page.mouse.up();
 
   /*
-   * The proof that both strokes landed, read off the armed-instrument bubble
-   * rather than off the pencil.
+   * The proof that both strokes landed: the pencil put itself down, which it
+   * only does once a box stands.
    *
-   * The pencil itself is unmounted the moment it is taken - it lives on the
-   * model shelf, and arming it puts the shelf away - so there is no button
-   * left to ask. What IS on screen for exactly as long as the instrument is up
-   * is the line telling you what to do with it, and that is the same signal:
-   * gone means the pencil put itself down, which it only does once a box
-   * stands.
+   * Asked of the button now that the shelf stays open through the gesture. It
+   * used to be asked of the armed-instrument line at the top of the frame,
+   * because arming unmounted the button along with the shelf it sits on -
+   * which was a true signal about a state read off the wrong element.
    */
   await expect(
-    page.getByText('Dra på golvet for å teikne ein kasse'),
+    pencil,
     'The pencil is still armed, so a stroke missed the floor: the footprint or the pull landed on sky, on the racer, or past the edge of the sheet.'
-  ).toBeHidden();
+  ).toHaveAttribute('aria-pressed', 'false');
 };

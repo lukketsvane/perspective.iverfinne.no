@@ -414,12 +414,21 @@ behind every panel is a live WebGL canvas, and a blurred backdrop has the
 compositor resample it every frame, paid on the phone this is actually used on,
 to soften something four per cent of opacity removes for nothing.
 
-Tiles in the two libraries carry a hairline for the same reason. A tenth of
-white over a panel that is 96 % black is about four values of separation, so a
-shelf of them read as icons floating on glass rather than as a grid of targets
-— and the only one whose edges anybody could see was the import tile, which
-happens to have a dashed border. The edge is what makes a tile a tile; the fill
-stays low so the picture on it is the brightest thing in the square.
+Tiles in the two libraries carry a hairline for the same reason, **and nothing
+else**. A tenth of white over a panel that is 96 % black is about four values of
+separation, so the fill they started with never did the job it was there for: a
+shelf of them read as icons floating on glass rather than as a grid of targets,
+and the only one whose edges anybody could see was the import tile, which
+happens to have a dashed border. The hairline fixed that — an edge is what makes
+a tile a tile — which left the fill doing nothing but making every tile look like
+a key to be pressed. That is the one thing this interface is not: a global rule
+strips the background off every button in the app so that shape, border and
+glyph carry it, and a grid of filled rectangles was the last place still arguing
+with the rule. The fill survives only under a finger or a cursor, where it is
+feedback rather than decoration. The delete mark on a saved scene lost its
+filled disc for the same reason and keeps a drop shadow instead, which is what
+it actually needed: it sits on a photograph, and a photograph can be any value
+anywhere.
 
 ### Projections
 
@@ -727,11 +736,20 @@ Standing in a real place with the tool in hand, the job is speed: estimate
 the forms in the space around you and stand boxes in for them before the
 estimate fades.
 
-Pick the pencil up on the dock and a drag on the ground draws a footprint
-where the table is; release, and the next drag pulls its height; release, and
-the box stands — sized by eye, in two strokes, with its dimensions reading
-beside your finger as you draw and the snap applied throughout. Each box is one
-undo step and lands selected for the usual handles to refine.
+Pick the pencil up off the model shelf and a drag on the ground draws a
+footprint where the table is; release, and the next drag pulls its height;
+release, and the box stands — sized by eye, in two strokes, with its dimensions
+reading beside your finger as you draw and the snap applied throughout. Each box
+is one undo step and lands selected for the usual handles to refine.
+
+**Taking the pencil leaves the shelf where it is.** It used to put the shelf
+away, on the argument that an instrument is for using on the drawing and the
+shelf covers the bottom of the frame. Half of that is true, and the half that is
+not is the half you feel: the pencil puts *itself* down after every box, so a run
+of boxes was pencil, box, open the shelf, scroll to the pencil, box — three taps
+of overhead for every second box, to save a strip of floor the drawing is rarely
+in. The shelf stays, the pencil is one tap away for as long as you are blocking
+things in, and the way to be rid of it is the button that opened it.
 
 **One press, one box.** The pencil used to stay armed, on the theory that a
 room is blocked out in a run of strokes. In the hand that is wrong: the moment

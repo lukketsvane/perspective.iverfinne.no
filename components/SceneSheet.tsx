@@ -146,20 +146,33 @@ const SceneCard: React.FC<{
         </button>
       )}
 
-      {/* The pill's colour lives on the span: a global rule strips backgrounds
-          from every button, so the armed state would otherwise be invisible. */}
+      {/*
+        * THE MARK, WITHOUT A DISC BEHIND IT.
+        *
+        * It was a filled circle - black at forty per cent, red once armed -
+        * and a filled disc is the one shape this whole interface does not use:
+        * every control here is a glyph, and a global rule strips the
+        * background off every button precisely so that nothing looks like a
+        * key to be pressed. A pill on the corner of a picture was the
+        * exception, and it read as a badge stuck onto the thumbnail rather
+        * than a control belonging to it.
+        *
+        * What the disc was doing is still needed - the mark sits over a
+        * photograph, which can be any value anywhere - and a SHADOW does it
+        * instead: white ink with a dark halo is legible over both ends of a
+        * thumbnail and adds nothing that reads as a button. Armed, it simply
+        * goes red, which is the same statement the disc was making with a
+        * fill.
+        */}
       <button
         onClick={() => (armed ? onDelete() : setArmed(true))}
         aria-label={armed ? `Delete ${scene.name} for good` : `Delete ${scene.name}`}
-        className="absolute top-1.5 right-1.5"
+        className={`absolute top-1 right-1 w-8 h-8 flex items-center justify-center transition-colors ${
+          armed ? 'text-red-500' : 'text-white'
+        }`}
+        style={{ filter: 'drop-shadow(0 1px 2px rgb(0 0 0 / 0.85))' }}
       >
-        <span
-          className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
-            armed ? 'bg-red-500 text-white' : 'bg-black/40 text-white/90'
-          }`}
-        >
-          <Icon path={I.trash} className="w-4 h-4" />
-        </span>
+        <Icon path={I.trash} className="w-4 h-4" />
       </button>
     </div>
   );

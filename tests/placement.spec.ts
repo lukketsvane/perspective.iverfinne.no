@@ -110,13 +110,15 @@ test('the pencil is on the shelf beside the cube, and blocks a box in from there
 
   await blockOutABox(app);
 
-  // Taking it put the shelf away, which is the one thing on that shelf that
-  // does - see MeshSheet.tsx. Asked here, before anything else opens a panel:
-  // the floor the pencil needs to draw on is the floor the shelf was over.
+  // ...and the shelf is STILL THERE, which is the opposite of what it used to
+  // assert. Taking the pencil closed the shelf, and since the pencil puts
+  // itself down after every box, a run of boxes cost three taps of overhead
+  // for every second one. The shelf stays now, so the pencil is one tap away
+  // for as long as you are blocking things in - see MeshSheet.tsx.
   await expect(
     find(app, 'anywhere', 'Add cube'),
-    'The shelf is still up over the floor the pencil was handed for.'
-  ).toHaveCount(0);
+    'The shelf closed when the pencil was taken, so the next box costs a re-open.'
+  ).toHaveCount(1);
 
   const scene = await readSceneBundle(app);
   expect(scene.boxes, 'Two strokes on the floor and no box stood up.').toHaveLength(1);
