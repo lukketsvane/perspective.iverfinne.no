@@ -1,0 +1,115 @@
+/**
+ * WHAT A BUTTON IS, WHEN YOU HAVE FORGOTTEN.
+ *
+ * Nothing in this tool carries visible text. That is a decision the whole
+ * interface is built on - there is no room for eight captions on a phone, a
+ * label under a control is read once and never again, and the shape is what
+ * you learn - and it has one honest cost: three weeks later, the difference
+ * between the sphere and the endless band is a glyph you half remember.
+ *
+ * The tour answers that once, on the way in, for nine controls out of forty.
+ * This answers it for all of them, whenever you ask: HOLD a control and its
+ * name appears above it. Let go and it is gone, and the control does not fire
+ * - reading what something is must never be the same gesture as doing it.
+ *
+ * WHY IT IS KEYED ON THE ARIA-LABEL. Those labels already exist, they are
+ * already exact, and they are already the thing this app hangs its meaning on:
+ * the tour rings a control by its label, the harness clicks one by its label,
+ * and a screen reader reads it. Keying the hints on anything else would be a
+ * second register of names to keep in step with the first. The one thing that
+ * costs is that a label carrying a live value - `Snap to 0.25 m`, `Floor: 128
+ * of 255 - drag to change` - has to be matched by its stem, which `hintFor`
+ * does by taking the longest key the label starts with.
+ *
+ * THE TEXT IS NYNORSK, like the tour's cards and unlike the labels themselves:
+ * the labels are machine-facing names, and this is the one place in the app
+ * where a human is being told something in words. Two or three of them. A hint
+ * that is a sentence is a hint nobody finishes reading with their thumb still
+ * on the glass.
+ */
+
+/**
+ * Keyed by the aria-label, or by the stem of one that carries a value.
+ *
+ * Ordered by nothing - `hintFor` sorts by length so that the longest match
+ * wins, which is what makes `Height off the floor` and `Height` two different
+ * answers rather than a race.
+ */
+const HINTS: Record<string, string> = {
+  // ---------------------------------------------------------------- the dock
+  'Add model': 'Hylla: ting å setje ned',
+  Scenes: 'Prosjekta dine',
+  'Field of view': 'Synsfelt — blått er innanfor menneskesyn',
+  'Camera height': 'Augehøgd over golvet',
+  'Construction guides': 'Rommet sin konstruksjon: horisont og punkt',
+  Undo: 'Angre',
+  Redo: 'Gjer om',
+  Tools: 'Alt det andre',
+
+  // -------------------------------------------------------------- the panel
+  'Floor lines': 'Golvlinjene: bort, på tvers, begge',
+  'Floor:': 'Golvet — dra for tone',
+  'Snap to': 'Fest til rutenettet',
+  'Snap off': 'Fest til rutenettet',
+  'Construction around': 'Kassar rundt tinga',
+  'Deal a different page': 'Del ut ei ny side',
+  'Surface of everything': 'Kva alt er teikna med',
+  'Paper tone': 'Arket — dra for tone',
+  'Page behind the drawing': 'Bakgrunnen bak arket',
+  Lights: 'Lyset',
+  'Stand the scene in the room around you': 'Sjå det i rommet ditt (AR)',
+  'Save the scene as USDZ for an AR device': 'Lagre som USDZ for AR',
+  'Projection: cylindrical': 'Sylindrisk — fire punkt, rette loddrette',
+  'Projection: equidistant': 'Ekvidistant — fem punkt, den rula sfæren',
+  'Projection: stereographic': 'Stereografisk — vinkelrett overalt',
+  'Lens reach': 'Kor vidt linsa får opnast',
+  'Room,': 'Rommet rundt — dra for storleik',
+  'Measure distances in the scene': 'Målebandet',
+  'Look by turning the phone': 'Sjå ved å snu telefonen',
+  'Save the view as a picture': 'Lagre biletet',
+  'Take the tour again': 'Ta omvisinga på nytt',
+
+  // ------------------------------------------------------- the drawn page
+  'How the hatching is ruled': 'Korleis jatteringa er rula',
+  "The marker's own settings": 'Tusjen sine innstillingar',
+  'The pen this page is drawn with': 'Pennen sida er teikna med',
+  "Draw this with the page's own settings again": 'Fylg sida igjen',
+
+  // ------------------------------------------------------ the model shelf
+  'Add light': 'Set ned ei lyskjelde',
+  'Add cube': 'Målekube på ein meter',
+  'Draw boxes on the ground': 'Teikn kassar: dra grunnflate, dra høgd',
+  'Import a mesh into the library': 'Hent inn di eiga fil',
+
+  // ------------------------------------------------------ the scene shelf
+  'Save this scene': 'Lagre prosjektet',
+  Update: 'Skriv over det opne prosjektet',
+  'Save this as a new scene': 'Lagre som eit nytt prosjekt',
+  'Export scene file': 'Skriv prosjektet til fil',
+  'Import scene file': 'Hent inn ei prosjektfil',
+  'Clear the scene': 'Tøm scena',
+  Rename: 'Gje det eit namn',
+
+  // ----------------------------------------------------- the selection bar
+  Height: 'Høgd i meter — dra',
+  'Height, locked': 'Høgda er låst',
+  'Height off the floor': 'Høgd over golvet — dra',
+  'Lock the size': 'Lås storleiken',
+  'Size locked': 'Storleiken er låst',
+  'Surface of this one': 'Kva denne er teikna med',
+  'Construction on this one': 'Punkt, diagonalar, firedelt golv',
+  'Export this mesh at its current size': 'Skriv meshen til fil',
+  Delete: 'Slett',
+  'things in hand': 'Så mange du held — hald på ein til for å leggje han i handa',
+  'metres away': 'Så langt unna',
+};
+
+/** The keys, longest first, so a stem never wins over a fuller match. */
+const KEYS = Object.keys(HINTS).sort((a, b) => b.length - a.length);
+
+/** What to say about the control carrying this label, if anything. */
+export const hintFor = (label: string | null | undefined): string | null => {
+  if (!label) return null;
+  const key = KEYS.find((k) => label === k || label.startsWith(k) || label.endsWith(k));
+  return key ? HINTS[key] : null;
+};
