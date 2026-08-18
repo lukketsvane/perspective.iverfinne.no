@@ -40,6 +40,8 @@ export const MaterialPanel: React.FC<{ surface: Surface; from: 'scene' | 'select
   const dark = useStore((s) => s.theme) === 'dark';
   const scenePen = useStore((s) => s.pen);
   const sceneWash = useStore((s) => s.wash);
+  const pbr = useStore((s) => s.pbr);
+  const setPbr = useStore((s) => s.setPbr);
   const sceneMarker = useStore((s) => s.marker);
   const sceneHatch = useStore((s) => s.hatch);
   const own = useStore(selectionMaterial);
@@ -232,6 +234,35 @@ export const MaterialPanel: React.FC<{ surface: Surface; from: 'scene' | 'select
       )}
     </div>
   );
+
+  if (surface === 'original') {
+    return (
+      <div className="flex flex-wrap items-center justify-center gap-1">
+        <Scrub
+          skin={skin}
+          icon={I.wash}
+          label="PBR roughness"
+          reading={`${Math.round(pbr.roughness * 100)}%`}
+          value={pbr.roughness}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={(roughness) => setPbr({ roughness })}
+        />
+        <Scrub
+          skin={skin}
+          icon={I.surfaceSolid}
+          label="PBR metalness"
+          reading={`${Math.round(pbr.metalness * 100)}%`}
+          value={pbr.metalness}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={(metalness) => setPbr({ metalness })}
+        />
+      </div>
+    );
+  }
 
   if (surface === 'marker') {
     return page(

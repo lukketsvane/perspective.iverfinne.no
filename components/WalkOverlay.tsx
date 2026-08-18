@@ -1462,19 +1462,23 @@ export const WalkOverlay: React.FC<{
             * reason a first-time viewer had to open this menu at all.
             *
             * So they went where the work is. The block-out pencil is on the
-            * model shelf beside the cube it is the by-eye version of - see
-            * components/MeshSheet.tsx - and the measure is down in the band
+            * primary dock, always one tap away, and the measure is in the band
             * about where the scene is seen from, which is what a visual angle
             * is a reading of. Both still stand their own menu down as they arm:
             * an instrument is for using on the drawing, and the shelf or panel
             * it came off would be in the way.
             */}
           <div className={band}>
-          {/* The room's construction guides are not at the head of this band
-              any more: they are on the dock. This is a tool for teaching
-              perspective and those lines are the lesson itself - ruled onto
-              the sheet, read against, put away, ruled again - which is a
-              rhythm of taps, not a setting made once. See the dock. */}
+          {/* Construction belongs with the other drawing guides. It moved up
+              from the dock to make the block-out pencil a one-tap tool. */}
+          <button
+            onClick={cycleGuides}
+            aria-label={`Construction guides, level ${guides} of 2`}
+            aria-pressed={guides > 0}
+            className={`${button} ${guides ? ACTIVE : ''}`}
+          >
+            <Icon path={GUIDE_ICON[guides]} className="w-5 h-5" />
+          </button>
           {/* The floor's two rulings, on ONE seat, tapped through four states.
               They were a switch each - see cycleFloorRuling in store.ts for why
               that was right and why one seat says the same four things. This is
@@ -1958,25 +1962,22 @@ export const WalkOverlay: React.FC<{
             cycle={EYE_LEVEL_PRESETS.map((p) => p.height)}
             onChange={setCameraHeight}
           />
-          {/*
-            * The room's construction, on the dock. This whole tool exists to
-            * teach perspective, and these lines ARE the lesson - the horizon,
-            * the five points, the ruled sphere. A lesson reaches for them
-            * over and over: rule the sheet, read the form against it, put the
-            * sheet away, draw, rule it again. That rhythm was two taps deep
-            * behind Tools, beside settings that are made once a session. One
-            * tap here steps the ladder instead, and it stands beside the lens
-            * and the eye level because the three of them are one question -
-            * where you stand, how wide you look, and the construction that
-            * says so on the page.
-            */}
+          {/* Drawing boxes is a primary action: arm it directly without first
+              opening the model shelf. Any open flyout gets out of the way so
+              the full scene is available for the two-stroke gesture. */}
           <button
-            onClick={cycleGuides}
-            aria-label={`Construction guides, level ${guides} of 2`}
-            aria-pressed={guides > 0}
-            className={`${button} ${guides ? ACTIVE : ''}`}
+            onClick={() => {
+              setInstrument(blocking ? 'none' : 'block');
+              setShowTools(false);
+              setShowLights(false);
+              setMaterialFrom(null);
+              onShelfAway();
+            }}
+            aria-label="Draw boxes on the ground"
+            aria-pressed={blocking}
+            className={`${button} ${blocking ? ACTIVE : ''}`}
           >
-            <Icon path={GUIDE_ICON[guides]} className="w-5 h-5" />
+            <Icon path={I.block} className="w-5 h-5" />
           </button>
           </div>
 
