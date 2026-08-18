@@ -52,9 +52,6 @@ export type PerspectiveMode = 'cylindrical' | 'equidistant' | 'stereographic';
  *
  * - 'original': opaque, as the thing is. A box in plain white, a mesh in the
  *   materials its file was authored with. What is behind it is behind it.
- * - 'matte': opaque, plain white, no texture. Photographed skin and fabric is a
- *   lot of information to draw past; stripped out, a figure reads as form and
- *   value only, which is what it is doing in a scene full of white boxes.
  * - 'brush': the drawing itself, and the only question a perspective study
  *   actually asks - where would the pen go. Line where the form turns away
  *   from the eye, the terminator that says which way the light is, and the
@@ -79,7 +76,7 @@ export type PerspectiveMode = 'cylindrical' | 'equidistant' | 'stereographic';
  * car standing inside a wire box on a floor of inked ones - which is exactly the
  * arrangement a study wants and what a single scene-wide setting could never say.
  */
-export type Surface = 'original' | 'matte' | 'brush' | 'marker' | 'hatch';
+export type Surface = 'original' | 'brush' | 'marker' | 'hatch';
 
 /**
  * The whole ladder, in order. What the scene-wide control steps through.
@@ -88,7 +85,7 @@ export type Surface = 'original' | 'matte' | 'brush' | 'marker' | 'hatch';
  * texture gone, then the light gone too and only the line left, then the object
  * itself.
  */
-export const SURFACES: Surface[] = ['original', 'matte', 'brush', 'marker', 'hatch'];
+export const SURFACES: Surface[] = ['original', 'brush', 'marker', 'hatch'];
 
 /** What a box steps through: it has no authored material to strip. */
 export const BOX_SURFACES: Surface[] = ['original', 'brush', 'marker', 'hatch'];
@@ -97,7 +94,7 @@ export const BOX_SURFACES: Surface[] = ['original', 'brush', 'marker', 'hatch'];
  * What a mesh steps through: it has no cage to fall back on, so taking its
  * surface away entirely would leave nothing on screen to take hold of again.
  */
-export const MESH_SURFACES: Surface[] = ['original', 'matte', 'brush', 'marker', 'hatch'];
+export const MESH_SURFACES: Surface[] = ['original', 'brush', 'marker', 'hatch'];
 
 /**
  * The nearest rung a given kind of thing can actually draw.
@@ -108,7 +105,7 @@ export const MESH_SURFACES: Surface[] = ['original', 'matte', 'brush', 'marker',
  * disappearing - which is the honest neighbour, both being line and no surface.
  */
 export const nearestSurface = (surface: Surface, rungs: Surface[]): Surface =>
-  rungs.includes(surface) ? surface : surface === 'matte' ? 'original' : 'brush';
+  rungs.includes(surface) ? surface : 'brush';
 
 /**
  * The rung the thing in your hand is actually drawn on. Null when nothing is.
@@ -120,8 +117,7 @@ export const nearestSurface = (surface: Surface, rungs: Surface[]): Surface =>
  * button promising hatch over a panel of marker knobs is worse than no button.
  *
  * Its own override first, the scene's default behind it, and whichever of the
- * two comes back is answered on the ladder that kind of thing can actually
- * draw - a box asked for matte is already plain white.
+ * two comes back is answered on the ladder that kind of thing can draw.
  */
 export const selectionSurface = (state: {
   boxes: BoxData[];
@@ -169,12 +165,12 @@ export const selectionMaterial = (state: {
  * with the other two and which nobody could reach at all before; a page whose
  * outline you cannot set is a page missing its most important mark.
  *
- * The two solid rungs still have nothing: 'original' is whatever the file says
- * and 'matte' is that with the texture taken off, and neither is drawn.
+ * The original rung now exposes the conventional PBR response, while the
+ * three drawn rungs expose their pen and page settings.
  */
 export const surfaceHasSettings = (
   surface: Surface | null
-): surface is 'brush' | 'marker' | 'hatch' => surface !== null && isSketch(surface);
+): surface is 'original' | 'brush' | 'marker' | 'hatch' => surface !== null;
 
 /**
  * What the button that opens them should say it opens.
@@ -184,8 +180,10 @@ export const surfaceHasSettings = (
  * between them would be two names for one panel. Each names what that page has
  * on top of the pen, and brush has only the pen.
  */
-export const surfaceSettingsLabel = (surface: 'brush' | 'marker' | 'hatch') =>
-  surface === 'hatch'
+export const surfaceSettingsLabel = (surface: Surface) =>
+  surface === 'original'
+    ? 'Adjust the PBR material'
+    : surface === 'hatch'
     ? 'How the hatching is ruled'
     : surface === 'marker'
       ? "The marker's own settings"
@@ -885,6 +883,8 @@ export interface SceneState {
   pen: PenState;
   /** The flat tone laid under it. */
   wash: WashState;
+  /** Overrides applied to authored PBR materials in the original surface. */
+  pbr: { roughness: number; metalness: number };
   /**
    * A floor under the drawing, and what tone it is.
    *
@@ -1023,6 +1023,7 @@ export interface SceneState {
     hatch?: Partial<HatchState>;
     wash?: Partial<WashState>;
   }) => void;
+  setPbr: (pbr: Partial<{ roughness: number; metalness: number }>) => void;
   /** Give the selection back to the page's own settings. */
   followPageMaterial: () => void;
   cycleRoom: () => void;

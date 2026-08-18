@@ -192,7 +192,7 @@ export const PRESETS: Preset[] = [
      * itself: where it grazes, where it stops, and the shape it throws.
      */
     name: 'Long shadows',
-    surface: 'matte',
+    surface: 'original',
     backdrop: 208,
     paper: 208,
     sun: { azimuth: 286, elevation: 14, intensity: 4.8, temperature: 3400, shadows: 'hard' },
