@@ -276,10 +276,8 @@ export const WalkOverlay: React.FC<{
   const perspectiveMode = useStore((s) => s.perspectiveMode);
   const sun = useStore((s) => s.sun);
   const setSun = useStore((s) => s.setSun);
-  const sunEnvironment = useStore((s) => s.sunEnvironment);
   const backgroundGray = useStore((s) => s.backgroundGray);
-  const toggleSunEnvironment = useStore((s) => s.toggleSunEnvironment);
-  const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
+  const grayThemeControl = useGrayThemeControl();
   const backdrop = useStore((s) => s.backdrop);
   const backdropControl = useBackdropControl();
   const ground = useStore((s) => s.ground);
@@ -434,7 +432,6 @@ export const WalkOverlay: React.FC<{
   const lastMaterialFrom = useRef<'scene' | 'selection'>('scene');
   if (materialFrom) lastMaterialFrom.current = materialFrom;
   const cycleSurface = useStore((s) => s.cycleSurface);
-  const shufflePreset = useStore((s) => s.shufflePreset);
   const roomLevel = useStore((s) => s.roomLevel);
   const room = useStore((s) => s.room);
   const roomControl = useRoomControl();
@@ -1541,23 +1538,14 @@ export const WalkOverlay: React.FC<{
               one on the dock, one buried here - and they are one decision
               taken twice, so they stand together. */}
           <div className={`${band} ${divider}`}>
-          {/* Whole pages - surface, sheet, mount, light, the pen, the floor,
-              chosen together - and this deals a different one each press.
-              Deliberately not a count: the last one said ten while there were
-              sixteen, which is what a number typed into prose looks like a
-              year later.
-              Everything in this tool is a knob, and a tool that is all knobs is
-              a tool nobody sees the range of; most of what it can do lives in
-              combinations that take a minute to find and a second to lose.
-              Nothing in the scene and nothing about where you are standing is
-              touched: only how it is drawn. */}
-          <button
-            onClick={shufflePreset}
-            aria-label="Deal a different page"
-            className={button}
-          >
-            <Icon path={I.shuffle} className="w-5 h-5" />
-          </button>
+          {/* THE DEAL IS NOT A BUTTON ANY MORE.
+
+              Whole pages - surface, sheet, mount, light, the pen, the floor,
+              chosen together - dealt one after another, which is the fastest
+              way to learn what the knobs are for. It sat here, in the fourth
+              row of a menu two taps down, which is to say it was only ever
+              found by people who already knew the knobs. It deals itself now,
+              in the gaps between working: see lib/autoDeal.ts. */}
           <button
             onClick={cycleSurface}
             aria-label={`Surface of everything: ${sceneSurface}`}
@@ -1582,13 +1570,19 @@ export const WalkOverlay: React.FC<{
               <Icon path={SETTINGS_ICON[sceneSurface]} className="w-5 h-5" />
             </button>
           )}
+          {/* The sheet: tap it between the ends of the ramp, drag it anywhere
+              between. It used to carry the SKY as well, on a double tap - a
+              second, invisible gesture on a control about paper tone, arming
+              a whole atmosphere. Nobody found it, and everybody who did find
+              it found it by accident while trying to tap the tone twice.
+              The sky is in the light panel now, where the sun is, with the
+              hour and the weather it needs to mean anything. */}
           <button
             {...grayThemeControl}
             aria-label={`Paper tone, ${backgroundGray} of 255 - drag to change`}
-            aria-pressed={sunEnvironment}
-            className={`${button} touch-none ${sunEnvironment ? ACTIVE : ''}`}
+            className={`${button} touch-none`}
           >
-            <Icon path={sunEnvironment ? I.sky : isDark ? I.dark : I.light} className="w-5 h-5" />
+            <Icon path={isDark ? I.dark : I.light} className="w-5 h-5" />
           </button>
           {/* What the drawing is mounted on: the page behind the sheet its
               neighbour sets - tap for the sheet itself, black, white, and

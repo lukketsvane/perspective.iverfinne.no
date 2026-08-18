@@ -202,7 +202,28 @@ const dealtPage = async (page: Page) => {
 const floorReads = async (page: Page) =>
   (await readingIn(page, 'tools', FLOOR)).replace(' - drag to change', '');
 
-const deal = (page: Page) => press(page, 'tools', 'Deal a different page');
+/**
+ * Turn one page of the deck over.
+ *
+ * There is no button for this. The deck deals ITSELF now, once in a while,
+ * while nobody is working - which is the right shape for the feature and the
+ * wrong shape for a test, since a spec cannot wait four minutes and must not
+ * be handed a second deal it did not ask for.
+ *
+ * So it is stepped through the same seam the harness uses to stand the dealer
+ * down for every other spec: 'now' asks for exactly one deal on the dealer's
+ * next beat, and the dealer writes 'off' back when it has done it. Waiting for
+ * that write is what makes this call synchronous - the page has changed by the
+ * time it returns, which is what every caller below assumes.
+ */
+const deal = async (page: Page) => {
+  await page.evaluate(() => localStorage.setItem('kjg-perspective-deal', 'now'));
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('kjg-perspective-deal')), {
+      timeout: 5000,
+    })
+    .toBe('off');
+};
 
 /*
  * FOUR OF THE FIVE BELOW SAT ON test.fixme FOR THREE SESSIONS.

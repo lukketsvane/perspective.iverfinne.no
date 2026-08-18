@@ -15,6 +15,8 @@ import { walkInput } from './lib/walkInput';
 import { fieldOf } from './lib/projection';
 import { constructionInk, pageHex } from './lib/inkMaterial';
 import { keepAwake } from './lib/wakeLock';
+import { useSkyClock } from './lib/skyClock';
+import { useAutoDeal } from './lib/autoDeal';
 import { holdPreviews, resumePreviews } from './lib/meshPreview';
 import { downloadSceneFile, readSceneFile, toSceneFile } from './lib/sceneJson';
 import { beginActivity, reportFailure } from './lib/activity';
@@ -49,6 +51,17 @@ export default function App() {
     keepAwake();
   }, [loadSceneHistory, loadOwnMeshes]);
   useEffect(() => useStore.subscribe((state) => saveSettings(state)), []);
+
+  /*
+   * The two things that happen without being asked.
+   *
+   * The sky's clock moves the simulated hour along and keeps a live sky live;
+   * the dealer turns a page of the deck over in the gaps between working. Both
+   * are here rather than inside the overlay because neither is chrome - they go
+   * on whether or not a panel is open, and the overlay unmounts nothing.
+   */
+  useSkyClock();
+  useAutoDeal();
 
   /*
    * The status bar is part of the page, on a phone saved to the home screen.

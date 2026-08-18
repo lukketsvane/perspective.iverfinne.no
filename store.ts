@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, SelectionGuide, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
+import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, SelectionGuide, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SkyState, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
 import { releaseSource, cachedSourceUrls, loadModelFromUrl } from './lib/loadModel';
 import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
@@ -19,6 +19,16 @@ import {
   setShadowInk,
 } from './lib/inkMaterial';
 import { nextPreset, PRESETS, type Preset } from './lib/presets';
+import {
+  conditionsAt,
+  deviceLocation,
+  fetchConditions,
+  forgetConditions,
+  haveConditions,
+  solarPosition,
+  sunlight,
+} from './lib/sky';
+import { beginActivity, reportFailure } from './lib/activity';
 import { walkInput } from './lib/walkInput';
 
 // ---------------------------------------------------------------------------
@@ -395,14 +405,27 @@ const floorFor = (paper: number) => ({ on: true, tone: Math.round(paper * 0.42) 
  */
 const pageOf = (
   p: Preset,
-  from: { sun: SunState; fill: FillState; marker: MarkerState; hatch: HatchState; pen: PenState; wash: WashState; ground: { on: boolean; tone: number } }
+  from: { sun: SunState; sky: SkyState; fill: FillState; marker: MarkerState; hatch: HatchState; pen: PenState; wash: WashState; ground: { on: boolean; tone: number } }
 ) => ({
   presetName: p.name,
   surface: p.surface,
   backdrop: p.backdrop,
   backgroundGray: p.paper,
   ...pageTheme(p.backdrop, p.paper, p.surface),
-  sun: { ...from.sun, ...p.sun },
+  /*
+   * A PAGE MAY LIGHT THE SCENE, BUT IT MAY NOT MOVE THE SUN OUT OF THE SKY.
+   *
+   * Every page in the deck names a light, and that is most of what makes a
+   * page a page - the etched one wants a low raking sun, the long-shadows one
+   * IS its sun. But with the sky simulated the light is not a look any more,
+   * it is a reading: the sun is where it is over that place at that moment,
+   * and a page that moved it would be a page that changed the hour. So the
+   * page keeps the one part of the light that is a drawing decision - whether
+   * and how the shadows fall - and the rest stays the sky's.
+   */
+  sun: from.sky.simulate
+    ? { ...from.sun, ...sunFromSky(from.sky), shadows: p.sun.shadows }
+    : { ...from.sun, ...p.sun },
   fill: { ...from.fill, enabled: p.fill },
   marker: p.marker ? { ...from.marker, ...p.marker } : from.marker,
   hatch: p.hatch ? { ...from.hatch, ...p.hatch } : from.hatch,
@@ -471,6 +494,65 @@ const nextSceneName = (history: SavedScene[]): string => {
   return `Scene ${highest + 1}`;
 };
 
+/**
+ * Where the sky starts, and why it starts there rather than at your feet.
+ *
+ * Greenwich, at noon, with a quarter of the sky covered - a place, an hour and
+ * a weather that are all somebody's, and none of them yours. That is the
+ * point: the simulation is OFF until asked for, and a default that quietly
+ * guessed at your latitude would be a location fix taken without a prompt.
+ * One press moves all three to where you actually are.
+ *
+ * The prime meridian rather than a city because it is the one longitude where
+ * clock time and sun time agree, so the opening state is the one that is
+ * easiest to check by eye: at noon the sun is due south.
+ */
+export const DEFAULT_SKY: SkyState = {
+  simulate: false,
+  time: Date.now(),
+  running: false,
+  rate: 600,
+  latitude: 51.48,
+  longitude: 0,
+  located: false,
+  cover: 0.25,
+  base: 1200,
+  wind: 6,
+  windBearing: 250,
+  observed: 'off',
+};
+
+/**
+ * The light a place, a moment and a weather add up to.
+ *
+ * Everything the sun needs except its shadows, which are a drawing decision
+ * and stay yours: a simulated overcast noon with hard shadows is a perfectly
+ * reasonable thing to want to draw, and a simulation that switched them off
+ * would be overruling the one knob in the panel that is about the picture
+ * rather than about the sky.
+ */
+export const sunFromSky = (sky: SkyState): Pick<SunState, 'azimuth' | 'elevation' | 'intensity' | 'temperature'> => {
+  const { azimuth, elevation } = solarPosition(new Date(sky.time), sky.latitude, sky.longitude);
+  const { intensity, temperature } = sunlight(elevation, sky.cover);
+  return {
+    azimuth,
+    /*
+     * Held above the horizon, and this is the one place the simulation is
+     * allowed to lie.
+     *
+     * A directional light at or below zero rakes the scene from underneath -
+     * every floor goes black, every object is lit from below, and the shadow
+     * camera looks up through the ground. What the picture should show at
+     * night is a dark scene, which is what the STRENGTH above already does;
+     * the two degrees here only keep the geometry of the light sane while it
+     * is doing that.
+     */
+    elevation: Math.max(2, elevation),
+    intensity,
+    temperature,
+  };
+};
+
 const SETTINGS_KEY = 'kjg-perspective-settings';
 
 const SETTING_KEYS = [
@@ -498,6 +580,7 @@ const SETTING_KEYS = [
   'sunEnvironment',
   'sun',
   'fill',
+  'sky',
 ] as const;
 
 type PersistedSettings = Pick<SceneState, (typeof SETTING_KEYS)[number]>;
@@ -545,6 +628,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   sunEnvironment: boolean,
   sun: object,
   fill: object,
+  sky: object,
 };
 
 /**
@@ -714,6 +798,53 @@ const readSun = (stored: Partial<SunState> | undefined): SunState => ({
   // from a default written into the reader instead of into the sun.
   shadows: readShadows(stored?.shadows, DEFAULT_SUN.shadows),
 });
+
+/**
+ * A sky read back from storage.
+ *
+ * Field by field rather than a spread, and every one of them checked, because
+ * the whole of this object is arithmetic: a latitude that came back as a
+ * string, or an `undefined` that a spread copied over a default, puts a NaN
+ * into the solar equations - and a NaN there is not an error anybody sees, it
+ * is a sun at a position that is not a position and a frame that comes up
+ * black.
+ *
+ * The readings are deliberately not taken back: the forecast they came from is
+ * not in this session's memory any more, and a panel claiming a live sky it
+ * cannot show the source of is worse than one asking to fetch it again.
+ *
+ * Nor, from the SETTINGS, is a moment more than a day old - a stored clock is
+ * a setting, but a stored clock that has been in a drawer for a week is not a
+ * moment anybody meant. A moment read off a SAVED SCENE is the opposite: the
+ * hour is part of the composition, the whole reason to write it down was to
+ * come back to that light, and however long ago it was is not the point. Hence
+ * the flag rather than one rule for both.
+ */
+const DAY = 24 * 60 * 60 * 1000;
+
+const readSky = (stored: Partial<SkyState> | undefined, keepTime = false): SkyState => {
+  const take = (value: unknown, fallback: number, low: number, high: number) =>
+    typeof value === 'number' && Number.isFinite(value)
+      ? Math.min(high, Math.max(low, value))
+      : fallback;
+  const yes = (value: unknown, fallback: boolean) =>
+    typeof value === 'boolean' ? value : fallback;
+  const time = take(stored?.time, Date.now(), 0, Number.MAX_SAFE_INTEGER);
+  return {
+    simulate: yes(stored?.simulate, DEFAULT_SKY.simulate),
+    time: !keepTime && Math.abs(Date.now() - time) > DAY ? Date.now() : time,
+    running: yes(stored?.running, DEFAULT_SKY.running),
+    rate: take(stored?.rate, DEFAULT_SKY.rate, 1, 7200),
+    latitude: take(stored?.latitude, DEFAULT_SKY.latitude, -90, 90),
+    longitude: take(stored?.longitude, DEFAULT_SKY.longitude, -180, 180),
+    located: yes(stored?.located, DEFAULT_SKY.located),
+    cover: take(stored?.cover, DEFAULT_SKY.cover, 0, 1),
+    base: take(stored?.base, DEFAULT_SKY.base, 200, 12000),
+    wind: take(stored?.wind, DEFAULT_SKY.wind, 0, 60),
+    windBearing: take(stored?.windBearing, DEFAULT_SKY.windBearing, 0, 360),
+    observed: 'off',
+  };
+};
 
 const remembered = kept({
   ...loadedSettings,
@@ -915,6 +1046,7 @@ export const currentView = (state: SceneState): SceneView => ({
   theme: state.theme,
   sun: { ...state.sun },
   fill: { ...state.fill },
+  sky: { ...state.sky },
   sunEnvironment: state.sunEnvironment,
   guides: state.guides,
   gridX: state.gridX,
@@ -1015,6 +1147,10 @@ const restoreView = (view: SceneView | undefined, range: FieldRange): Partial<Sc
     ...pageTheme(backdrop, backgroundGray, surface),
     sun: readSun(view.sun),
     fill: { ...DEFAULT_FILL, ...(view.fill ?? {}) },
+    // The hour and the weather the composition was made under. Read through
+    // the same migration storage uses - a scene file is written by whatever
+    // version the viewer had, which is exactly the case that reader is for.
+    sky: readSky(view.sky, true),
     sunEnvironment: view.sunEnvironment,
     guides: (Math.min(2, view.guides ?? ((view.showGuides ?? true) ? 3 : 0)) as GuideLevel),
     gridX: view.gridX ?? (view.guides ?? 3) >= 2,
@@ -1098,6 +1234,7 @@ export const useStore = create<SceneState>((set, get) => ({
   // its fields, must not leave the scene with no light in it.
   sun: readSun(remembered.sun),
   fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
+  sky: readSky(remembered.sky),
   pbr: { roughness: 0.7, metalness: 0, ...(remembered.pbr ?? {}) },
 
   /*
@@ -1119,6 +1256,7 @@ export const useStore = create<SceneState>((set, get) => ({
    */
   ...pageOf(OPENING_PAGE, {
     sun: readSun(remembered.sun),
+    sky: readSky(remembered.sky),
     fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
     marker: { ...DEFAULT_MARKER, ...(remembered.marker ?? {}) },
     hatch: { ...DEFAULT_HATCH, ...(remembered.hatch ?? {}) },
@@ -2054,6 +2192,126 @@ export const useStore = create<SceneState>((set, get) => ({
     }),
 
   toggleSunEnvironment: () => set((state) => ({ sunEnvironment: !state.sunEnvironment })),
+
+  /**
+   * Change the sky, and let the sun follow.
+   *
+   * The sun is not stored twice - it is `sun`, the same one the two knobs
+   * write, and this writes it too. That is what keeps the simulation from
+   * being a second lighting system: the shadow map, the sky shader, the ink
+   * shader's terminator and the cloud deck all go on reading the one light
+   * they always read, and none of them has to know where it was aimed from.
+   *
+   * A hand on any of the four weather numbers drops the readings to 'off'.
+   * They were an observation; the moment one of them is overwritten they are
+   * a sky you composed, and a panel that goes on calling that live is lying
+   * about where its numbers came from.
+   */
+  setSky: (change) =>
+    set((state) => {
+      const overwritten =
+        change.cover !== undefined ||
+        change.base !== undefined ||
+        change.wind !== undefined ||
+        change.windBearing !== undefined;
+      const sky: SkyState = {
+        ...state.sky,
+        ...change,
+        observed:
+          change.observed ??
+          (overwritten && state.sky.observed === 'live' ? 'off' : state.sky.observed),
+      };
+      return { sky, ...(sky.simulate ? { sun: { ...state.sun, ...sunFromSky(sky) } } : {}) };
+    }),
+
+  /**
+   * Move the sky to where the device says it is.
+   *
+   * Turning it off does not forget the fix, it stops CLAIMING it: the place
+   * stays where it was put, because throwing it back to Greenwich would be a
+   * switch that loses work rather than one that stops asking.
+   */
+  locateSky: async () => {
+    const { sky, setSky, observeSky } = get();
+    if (sky.located) {
+      setSky({ located: false });
+      return;
+    }
+    const done = beginActivity();
+    try {
+      const place = await deviceLocation();
+      forgetConditions();
+      /*
+       * A fix is a place AND a time. Somebody pressing this is asking what it
+       * looks like HERE, and here is a question about now - a place moved
+       * under an hour left over from a previous session is half an answer, and
+       * the half that is wrong is the one that decides where the shadows go.
+       */
+      setSky({
+        ...place,
+        located: true,
+        simulate: true,
+        time: Date.now(),
+        observed: 'off',
+      });
+      await observeSky(true);
+    } catch (error) {
+      console.error(error);
+      reportFailure();
+    } finally {
+      done();
+    }
+  },
+
+  /**
+   * Ask what the sky over this place is actually doing at this moment.
+   *
+   * One fetch covers two days back and three forward, so scrubbing the clock
+   * across a day reads hour after hour out of what is already held rather than
+   * asking again - which is why this is cheap enough to call on every change
+   * of the hour, and does.
+   */
+  observeSky: async (force = false) => {
+    const { sky, setSky } = get();
+    if (sky.observed === 'asking') return;
+
+    const apply = () => {
+      const now = get().sky;
+      const hour = conditionsAt(now.time);
+      if (!hour) {
+        // The series is held but does not reach this moment - which is a real
+        // answer for a date three weeks out, not a failure to fetch.
+        setSky({ observed: 'off' });
+        return false;
+      }
+      setSky({
+        cover: hour.cover,
+        base: hour.base,
+        wind: hour.wind,
+        windBearing: hour.windBearing,
+        observed: 'live',
+      });
+      return true;
+    };
+
+    if (!force && haveConditions(sky.latitude, sky.longitude)) {
+      apply();
+      return;
+    }
+
+    setSky({ observed: 'asking' });
+    const done = beginActivity();
+    try {
+      const got = await fetchConditions(sky.latitude, sky.longitude);
+      if (!got || !apply()) setSky({ observed: got ? 'off' : 'failed' });
+    } catch (error) {
+      console.error(error);
+      reportFailure();
+      setSky({ observed: 'failed' });
+    } finally {
+      done();
+    }
+  },
 
   setSun: (sun) => set((state) => ({ sun: { ...state.sun, ...sun } })),
 

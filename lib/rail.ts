@@ -83,6 +83,16 @@ export const releaseRail = (who = 'panel') => {
   if (holds.size === 0) showRail();
 };
 
+/**
+ * Whether anything is deliberately keeping the chrome up.
+ *
+ * Read by the page dealer, which is the one thing in the tool that changes
+ * what you are looking at without being asked to. An open panel or a running
+ * tour is somebody mid-decision - see lib/autoDeal.ts for why that is a
+ * decision the deal has to wait out rather than one it can talk over.
+ */
+export const railHeld = () => holds.size > 0;
+
 const subscribe = (listener: Listener) => {
   listeners.add(listener);
   return () => listeners.delete(listener);
