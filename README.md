@@ -395,7 +395,7 @@ page and then drawing a room full of cubes onto it, freehand, in five point.
 Everything else here was built to make that reachable. What was missing is the
 thing the videos do not contain: **why it works**.
 
-**One idea, twelve cards.** Almost every perspective tutorial teaches one, two
+**One idea, sixteen cards.** Almost every perspective tutorial teaches one, two
 and three point as three separate recipes and then presents four and five point
 as exotica. That is not what they are, and teaching it that way is why so few
 people can draw the later ones:
@@ -415,17 +415,55 @@ consequence of that:
 | | |
 | --- | --- |
 | **Ei kule av retningar** | the sphere, ruled, with nothing standing on it |
+| **Snu deg heilt rundt** | *do it*: look for an edge on the sphere, and find there is none |
 | **Parallelle linjer møtest** | a rank of cubes, and *why* the point exists — as a limit, not a rule |
-| **Kvart knippe har to punkt** | turn all the way round and find the other one |
+| **Punktet flyttar seg ikkje** | *do it*: walk, and watch the point refuse to move |
+| **Kvart knippe har to punkt** | *do it*: turn right round and find the other one |
 | **Eitt punkt** | cube square on; two families parallel to the sheet |
-| **To punkt** | turn the cube — nothing in the world changed, you did |
-| **Tre punkt** | look up; the verticals gather too |
-| **Det flate arket tek slutt** | open the lens and watch the corners stretch |
+| **To punkt** | *do it*: turn your head — the cube is untouched and now has two |
+| **Tre punkt** | *do it*: look up; the verticals gather too |
+| **Ingenting av dette er kassa** | the card that collects the three before it |
+| **Det flate arket tek slutt** | *do it*: open the lens yourself and watch the corners go |
 | **Fire punkt** | bend one axis; the horizon becomes a circle |
 | **Fem punkt** | bend both; zenith and nadir arrive |
-| **Ei kasse har seks** | count them: four on the horizon, one up, one down |
+| **Ei kasse har seks** | *do it*: turn slowly and count the ringed points |
 | **Rul arket først** | the 15° meridians, and what you sight against them |
+| **Sikt langs kurvene** | *do it*: follow one upright edge round and watch it hold its meridian |
 | **Teikn ei sjølv** | the pencil, on the sheet you have just been given |
+
+**Nine of the sixteen are done by you, not shown to you.** The first draft ran
+the whole thing as a performance, and it was a film — correct, watchable, and
+*agreed with* rather than learned. You do not learn that the verticals gather by
+watching them gather. You learn it by looking up yourself, with your own thumb
+on the glass, and seeing it happen because you did it.
+
+So the director stages each card and then lets go. `hands: 'viewer'` stops the
+loop writing to the camera at all; a **gate** measures what you do instead —
+turned, pitched, walked, or the lens opened — and a hairline under the card
+fills as you go. When you have done it, a sentence appears that was not there
+before: the one that says what just happened. *That* sentence is the point of
+the card, and everything above it is setup.
+
+The measuring is cumulative rather than absolute — how far you have turned
+altogether, not how far you ended up from where you started — because "turn all
+the way round" is answered by going round, and somebody who overshoots and comes
+back has still been round. **Neste is never disabled**: a viewer who cannot make
+the gesture must always be able to go on; it simply stops being the accented
+thing until the picture has answered.
+
+The best of them is **Punktet flyttar seg ikkje**, and it is a fact almost nobody
+is taught. Walk, and every cube in the rank slides across the page while the
+point they aim at does not move at all. A vanishing point belongs to a
+*direction* — not to a set of lines and not to a place — which is the whole
+reason it is a usable tool, because it means the six points of a scene are fixed
+by which way you are facing and nothing else. Told, that sounds obvious and is
+not believed. Walked, it is startling.
+
+**And it is slow.** Every sweep that is still automatic runs about twice as long
+as it first did, and every move between cards takes nearly two seconds. A
+transformation you can follow is worth four you can only notice — and the nine
+interactive cards have no clock on them at all, so most of the lesson runs at
+whatever pace you set.
 
 **It is performed rather than illustrated.** No diagrams, because the app is
 already the diagram — it has the four projections, the ruled sphere, a family
