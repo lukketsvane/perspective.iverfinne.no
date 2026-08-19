@@ -528,9 +528,22 @@ cube on it and its own six points showing — so finishing hands it over with th
 block-out pencil in it rather than sweeping it away and giving back the blank
 page you arrived with.
 
-And the dock goes down while a card is up. A lesson is a performance, and a
-performance with a toolbar over it is a screenshot of a menu; a touch brings the
-tool straight back, because it is still there and still yours.
+And the dock goes down while a card is up, and **stays** down. A lesson is a
+performance, and a performance with a toolbar over it is a screenshot of a menu.
+Putting it away was not enough, because of what the cards ask for: the first one
+says drag on the picture and turn all the way round, a drag is a touch, and a
+touch used to bring the whole dock straight back up over the card telling you to
+drag. So the chrome can be held *down* as well as up (`muteRail` in
+`lib/rail.ts`), and it goes inert as well as invisible — a thumb dragging along
+the bottom of the picture cannot press a button it can no longer see. The two
+cards that are *about* a control let go for their turn, and the whole thing is
+handed back when the lesson ends.
+
+**Starting a lesson also stands the tour down.** They are not the same thing —
+the tour points at controls, the lesson points at the subject — but they are
+both a card at the top of the screen waiting for a gesture, and a first-time
+viewer who taps the lesson while the tour is still running got both at once,
+each asking for a different drag.
 
 ### Hold a control, and it says what it is
 

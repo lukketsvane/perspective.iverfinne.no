@@ -38,6 +38,23 @@ let timer: number | undefined;
  */
 const holds = new Set<string>();
 
+/**
+ * ...and WHO is holding it DOWN, which is not the same thing at all.
+ *
+ * There was a `hideRail` here that put the chrome away NOW rather than in six
+ * seconds, and it was not enough - it did not keep it away. Which is wrong for
+ * the lesson, because of what the lesson ASKS FOR: the first card says drag on
+ * the picture and turn all the way round. A drag is a touch, a touch is
+ * `showRail`, and the whole dock came straight back up over the card telling
+ * you to drag - which is the one moment the tool is meant to be showing you
+ * something other than itself.
+ *
+ * So a performance can take the screen and keep it. Nothing here is a lock:
+ * the two cards that are ABOUT a control let go for their turn, and the whole
+ * thing is released when the lesson ends.
+ */
+const mutes = new Set<string>();
+
 const publish = (next: boolean) => {
   if (visible === next) return;
   visible = next;
@@ -55,6 +72,7 @@ const publish = (next: boolean) => {
  * left.
  */
 export const showRail = () => {
+  if (mutes.size > 0) return;
   publish(true);
   if (holds.size > 0) return;
   if (timer !== undefined) clearTimeout(timer);
@@ -68,9 +86,12 @@ export const showRail = () => {
  */
 export const holdRail = (who = 'panel') => {
   holds.add(who);
-  publish(true);
   if (timer !== undefined) clearTimeout(timer);
   timer = undefined;
+  // The hold is recorded either way, so that letting go of a mute hands the
+  // chrome back to whoever was holding it up underneath.
+  if (mutes.size > 0) return;
+  publish(true);
 };
 
 /**
@@ -84,31 +105,41 @@ export const releaseRail = (who = 'panel') => {
 };
 
 /**
- * Whether anything is deliberately keeping the chrome up.
+ * Whether anything has a claim on the chrome, up OR down.
  *
  * Read by the page dealer, which is the one thing in the tool that changes
  * what you are looking at without being asked to. An open panel or a running
  * tour is somebody mid-decision - see lib/autoDeal.ts for why that is a
  * decision the deal has to wait out rather than one it can talk over.
+ *
+ * A mute counts, and it has to: a lesson is the clearest case in the app of
+ * somebody being shown something, and the dealer's only other guard is a few
+ * seconds of stillness - which is exactly what reading a card looks like. A
+ * page dealt in the middle of the third card changes the surface, the sheet
+ * and the pen under a performance that chose them.
  */
-export const railHeld = () => holds.size > 0;
+export const railHeld = () => holds.size > 0 || mutes.size > 0;
 
 /**
- * Put the chrome away NOW, rather than in six seconds.
+ * Down, and KEPT down until this holder lets go.
  *
- * One caller: the lesson, which takes the whole tool over and is a
- * performance. Six seconds of dock over the first card is six seconds of the
- * wrong thing being looked at, and there was no way to say "down" - only "up",
- * and "up until I let go".
- *
- * It does not hold it down. A touch brings it straight back, which is right:
- * the tool is still there and still yours, it is simply not what is being
- * shown.
+ * While anything holds a mute, a touch does not bring the chrome back and an opening
+ * panel does not either - the dock goes both invisible and inert, so a thumb
+ * dragging across the bottom of the picture cannot press a button it can no
+ * longer see.
  */
-export const hideRail = () => {
+export const muteRail = (who = 'lesson') => {
+  mutes.add(who);
   if (timer !== undefined) clearTimeout(timer);
   timer = undefined;
   publish(false);
+};
+
+/** That performance is over: back to whatever the holds and the clock say. */
+export const unmuteRail = (who = 'lesson') => {
+  if (!mutes.delete(who) || mutes.size > 0) return;
+  if (holds.size > 0) publish(true);
+  else showRail();
 };
 
 const subscribe = (listener: Listener) => {

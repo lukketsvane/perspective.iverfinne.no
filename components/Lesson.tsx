@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { walkInput } from '../lib/walkInput';
 import { ACTS, CARDS, CAST, OPENING, pingPong, sweepAt, type Act, type Card, type Cast, type Gate, type Stage } from '../lib/lesson';
-import { hideRail, holdRail, releaseRail } from '../lib/rail';
+import { holdRail, muteRail, releaseRail, unmuteRail } from '../lib/rail';
+import { endTour } from '../lib/tour';
 
 /**
  * The hand on the controls - and, on nine cards out of sixteen, the hand
@@ -183,7 +184,19 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
      * away.
      */
     useStore.setState({ instrument: 'none', selectedModelId: null, models: [], lamps: [] });
+    /*
+     * ...and it stands the TOUR down as well, which is the same argument.
+     *
+     * The two are not the same thing - the tour points at controls, the lesson
+     * points at the subject - but they are both a card at the top of the
+     * screen waiting for a gesture, and a first-time viewer who taps the
+     * lesson while the tour is still going gets both at once, each asking for
+     * a different drag. The tour is already marked seen the moment it starts,
+     * so this is exactly what its own "skip" button does.
+     */
+    endTour();
     return () => {
+      unmuteRail('lesson');
       releaseRail('lesson');
       const was = held.current;
       if (!was || !restore.current) return;
@@ -255,10 +268,15 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
      * gets the performance again when they ask for the next one.
      */
     const settle = window.setTimeout(() => {
-      if (card.chrome) holdRail('lesson');
-      else {
+      if (card.chrome) {
+        unmuteRail('lesson');
+        holdRail('lesson');
+      } else {
         releaseRail('lesson');
-        hideRail();
+        // Down and KEPT down. Putting it away was not enough: every card here
+        // asks for a gesture, a gesture is a touch, and a touch used to bring
+        // the whole dock back up over the card asking for it.
+        muteRail('lesson');
       }
     }, 0);
 
