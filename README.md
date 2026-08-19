@@ -395,17 +395,21 @@ page and then drawing a room full of cubes onto it, freehand, in five point.
 Everything else here was built to make that reachable. What was missing is the
 thing the videos do not contain: **why it works**.
 
-**One idea, sixteen cards.** Almost every perspective tutorial teaches one, two
+**One idea, eighteen cards.** Almost every perspective tutorial teaches one, two
 and three point as three separate recipes and then presents four and five point
 as exotica. That is not what they are, and teaching it that way is why so few
 people can draw the later ones:
 
 > Stand still. Everything you can see lies in a **direction**. The set of all
-> directions is a **sphere** around your eye, and a picture is a map of that
-> sphere onto paper. A family of parallel lines shares one direction, so it
-> vanishes at the **two** points where that direction pierces the sphere. A cube
-> has three families, so it has **six** points — always, whichever way you are
-> facing.
+> directions is a **sphere** around your eye. A family of parallel lines shares
+> one direction, so it vanishes at the **two** points where that direction
+> pierces the sphere. A cube has three families, so it has **six** points,
+> always, whichever way you are facing.
+>
+> A sphere of directions is not a picture yet, so the rays have to be **caught
+> on a surface**, and which surface you pick *is* which system you get: a flat
+> sheet gives one, two or three point; a cylinder gives four; the sphere itself
+> gives five.
 
 Then one, two, three, four and five point are not five systems. They are one
 system seen through five different amounts of paper, and the number in the name
@@ -416,6 +420,8 @@ consequence of that:
 | --- | --- |
 | **Ei kule av retningar** | the sphere, ruled, with nothing standing on it |
 | **Snu deg heilt rundt** | *do it*: look for an edge on the sphere, and find there is none |
+| **Kva fangar du det på?** | the same scene, same spot, stepping plane → cylinder → sphere |
+| **Hovudpunktet og horisonten** | *do it*: turn, and see which two marks refuse to move |
 | **Parallelle linjer møtest** | a rank of cubes, and *why* the point exists — as a limit, not a rule |
 | **Punktet flyttar seg ikkje** | *do it*: walk, and watch the point refuse to move |
 | **Kvart knippe har to punkt** | *do it*: turn right round and find the other one |
@@ -431,7 +437,7 @@ consequence of that:
 | **Sikt langs kurvene** | *do it*: follow one upright edge round and watch it hold its meridian |
 | **Teikn ei sjølv** | the pencil, on the sheet you have just been given |
 
-**Nine of the sixteen are done by you, not shown to you.** The first draft ran
+**Ten of the eighteen are done by you, not shown to you.** The first draft ran
 the whole thing as a performance, and it was a film — correct, watchable, and
 *agreed with* rather than learned. You do not learn that the verticals gather by
 watching them gather. You learn it by looking up yourself, with your own thumb
@@ -461,7 +467,7 @@ not believed. Walked, it is startling.
 
 **And it is slow.** Every sweep that is still automatic runs about twice as long
 as it first did, and every move between cards takes nearly two seconds. A
-transformation you can follow is worth four you can only notice — and the nine
+transformation you can follow is worth four you can only notice — and the ten
 interactive cards have no clock on them at all, so most of the lesson runs at
 whatever pace you set.
 
@@ -1434,7 +1440,22 @@ frame to be printed or dropped into a tablet layer and traced over. Which sheet
 you want is yours to choose — but a *white line on a black field* is not what
 the dark theme should hand you by default, so the two are separate decisions.
 
-### Five pages, dealt to you
+### Five pages, dealt in the gaps
+
+**The tool opens on the same page every time**, and it is the brush page on
+black. It used to deal one off the deck at start-up. The argument for that was
+good and it was the wrong argument for a start-up: it is about what a viewer
+needs *after* they know the tool, not in the first second of it. What a start-up
+needs is to be the same. Opening on a different surface, sheet, mount and light
+each time is a tool with no face, where you cannot tell a setting you changed
+from a page you were dealt, cannot compare today's study with yesterday's, and
+every screenshot anybody takes is of a different app. The opening *mesh* lost
+exactly this argument years ago for exactly this reason, and the page should
+have lost it at the same time.
+
+The deck is not gone. It deals itself in the gaps between working, once you are
+here and drawing, which is where the comparison it offers is worth something.
+What has gone is the die on the front door.
 
 Everything in this tool is a knob, and a tool that is all knobs is a tool nobody
 ever sees the range of. Most of what it can do lives in *combinations*: the

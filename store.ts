@@ -327,33 +327,34 @@ const pinnedPage = (): Preset | null => {
 };
 
 /**
- * WHAT THE TOOL OPENS ON: A PAGE OFF THE DECK, DEALT.
+ * WHAT THE TOOL OPENS ON, AND IT IS THE SAME PAGE EVERY TIME.
  *
- * It opened on one fixed page - the finished brush page: line, spotted black,
- * hard shadow, warm sheet mounted on flat black - and that page is still in the
- * deck and still the best single answer if only one were allowed. One is not.
- * There are five of them, each a whole page somebody would draw from and each
- * a different thing this material can be, and a viewer who opens the tool a
- * hundred times had seen exactly one of them unless they went looking for the
- * die.
+ * The brush page on black: line, spotted black, hard shadow, warm sheet
+ * mounted on flat black. It is the page this tool opened on before there was a
+ * deck, and it is the best single answer if only one is allowed.
  *
- * THIS IS NOT THE ARGUMENT THE OPENING MESH LOST. lib/meshLibrary.ts used to
- * pick its object at random and was made to stand the racer up every time,
- * because opening on something different every time is not a room you know -
- * and that is right, about the OBJECT. The object is what you are drawing; you
- * need it to hold still to have any idea whether you are getting better. The
- * page is how it is drawn, and a different one each time is a different lesson
- * in what the material can do, over a subject that has not moved. The two
- * decisions look alike and are opposite for the same reason.
+ * IT USED TO DEAL ONE. The argument was good and it was the wrong argument for
+ * a start-up. Five whole pages, each a different thing this material can be,
+ * and a viewer who opens the tool a hundred times sees one of them unless they
+ * go looking. All true, and all of it about what a viewer needs after they know
+ * the tool rather than in the first second of it.
  *
- * AND IT OVERRULES WHAT WAS REMEMBERED, which is the price and is worth
- * stating plainly: the page you tuned by hand lasts the session and not the
- * reload. Everything that is not the page - the guides, the lens, the eye
- * level, the room, the snap, the floor's tone - is remembered as it always
- * was, and so is the scene. What you lose on a reload is the deal, and there
- * is a button that deals another.
+ * What a start-up needs is to be the same. Opening on a different surface, a
+ * different sheet, a different mount and a different light each time is a tool
+ * with no face: you cannot tell a setting you changed from a page you were
+ * dealt, you cannot compare todays study with yesterdays, and every screenshot
+ * anybody takes is of a different app. The opening MESH lost exactly this
+ * argument years ago and for exactly this reason, and the page should have
+ * lost it at the same time.
+ *
+ * The deck is not gone. It deals itself in the gaps between working, once you
+ * are here and drawing, which is where the comparison it offers is worth
+ * something: see lib/autoDeal.ts. What has gone is the die on the front door.
+ *
+ * The pin below still overrides it, which is how the suite fixes the page it
+ * tests against.
  */
-const OPENING_PAGE = pinnedPage() ?? nextPreset(null);
+const OPENING_PAGE = pinnedPage() ?? PRESETS.find((p) => p.name === 'Brush page on black') ?? PRESETS[0];
 
 /**
  * THE FLOOR A PAGE STANDS ON WHEN IT DID NOT COMPOSE ONE.

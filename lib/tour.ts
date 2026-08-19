@@ -166,7 +166,7 @@ export const STEPS: TourStep[] = [
     gate: 'lens',
     gesture: 'dragX',
     headline: 'Linsa',
-    body: 'Dra kjegla sidelengs — runde knappar blir dregne, ikkje trykte. Smalare, og linjene rettar seg ut.',
+    body: 'Dra kjegla sidelengs. Runde knappar blir dregne, ikkje trykte. Smalare, og linjene rettar seg ut.',
     // Two facts, and the second is the whole tool: that the sheet is curved,
     // and that the flat perspective you were taught is the narrow end of it.
     // It used to say "forbi 180° buar linjene seg", which was the same fact
@@ -202,7 +202,7 @@ export const STEPS: TourStep[] = [
     fallbackAnchor: 'Tools',
     gesture: 'tap',
     headline: 'Lyset, og himmelen',
-    body: 'Trykk pæra. Gjev himmelen ein stad og eit klokkeslett, så står sola der ho verkeleg står — med vêret som er der no.',
+    body: 'Trykk pæra. Gjev himmelen ein stad og eit klokkeslett, så står sola der ho verkeleg står, med vêret som er der no.',
     fallbackBody: 'Verktøya lukka seg. Trykk dei tre skyvarane igjen, så pæra inne i panelet.',
   },
   {
@@ -210,7 +210,7 @@ export const STEPS: TourStep[] = [
     gate: 'shelf',
     gesture: 'tap',
     headline: 'Hylla',
-    body: 'Trykk kuben. Stolar, hestar, eit fly — alt er målt, så du teiknar mot verkelege storleikar.',
+    body: 'Trykk kuben. Stolar, hestar, eit fly: alt er målt, så du teiknar mot verkelege storleikar.',
   },
   {
     /*
