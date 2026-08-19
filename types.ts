@@ -1100,6 +1100,18 @@ export interface SceneState {
   selectLamp: (id: string | null) => void;
   /** Place the toolbar's canonical one-metre reference cube. */
   addCube: (position: [number, number, number]) => void;
+  /**
+   * Deal a field of unit cubes to draw, round wherever you are standing.
+   *
+   * One of ten arrangements, each of which is a different QUESTION about the
+   * construction - see lib/cubeFields.ts. It replaces what is standing there,
+   * because a practice field with somebody's chair in it is not the exercise,
+   * and it takes a history step like anything else that writes to the scene,
+   * so one undo puts the scene back.
+   */
+  dealCubeField: () => void;
+  /** The field on the floor now, so the deal never repeats itself. */
+  fieldName: string | null;
   /** Start the block-out gesture's drawn box. */
   beginBlock: (at: [number, number]) => void;
   updateBox: (id: string, updates: Partial<BoxData>) => void;

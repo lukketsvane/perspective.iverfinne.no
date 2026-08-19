@@ -150,6 +150,7 @@ export const MeshSheet: React.FC<{
    */
   const handleAddCube = () => addCube([focusPoint.x, 0, focusPoint.z]);
 
+  const dealCubeField = useStore((s) => s.dealCubeField);
   const addLamp = useStore((s) => s.addLamp);
   const handleAddLamp = () => addLamp([focusPoint.x, focusPoint.z]);
 
@@ -181,6 +182,25 @@ export const MeshSheet: React.FC<{
           className={`relative w-full aspect-square rounded-xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${tile(dark)}`}
         >
           <Icon path={I.cube} className="w-8 h-8 opacity-80" />
+        </button>
+        {/*
+          * A whole page of cubes to draw, next to the one cube.
+          *
+          * This is the exercise the tool grew out of: unit cubes hanging in
+          * space, all square to the same three axes, ruled to the same six
+          * points. One at a time is a measuring stick - which is what its
+          * neighbour is for - and thirty at once is a page, which is a
+          * different thing entirely and the thing anybody actually practises
+          * on. Ten arrangements, each a different question about the
+          * construction; see lib/cubeFields.ts.
+          */}
+        <button
+          onClick={dealCubeField}
+          disabled={busy}
+          aria-label="Deal a field of cubes to draw"
+          className={`relative w-full aspect-square rounded-xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${tile(dark)}`}
+        >
+          <Icon path={I.cubeField} className="w-8 h-8 opacity-80" />
         </button>
         {/* Your own files, right beside the cube: the way anything that is not
             one of the three gets into the tool at all. */}
