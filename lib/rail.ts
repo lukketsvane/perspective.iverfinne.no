@@ -93,6 +93,24 @@ export const releaseRail = (who = 'panel') => {
  */
 export const railHeld = () => holds.size > 0;
 
+/**
+ * Put the chrome away NOW, rather than in six seconds.
+ *
+ * One caller: the lesson, which takes the whole tool over and is a
+ * performance. Six seconds of dock over the first card is six seconds of the
+ * wrong thing being looked at, and there was no way to say "down" - only "up",
+ * and "up until I let go".
+ *
+ * It does not hold it down. A touch brings it straight back, which is right:
+ * the tool is still there and still yours, it is simply not what is being
+ * shown.
+ */
+export const hideRail = () => {
+  if (timer !== undefined) clearTimeout(timer);
+  timer = undefined;
+  publish(false);
+};
+
 const subscribe = (listener: Listener) => {
   listeners.add(listener);
   return () => listeners.delete(listener);

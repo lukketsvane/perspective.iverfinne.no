@@ -331,6 +331,78 @@ width happened to give was a wall rather than a menu — nothing sat near anythi
 it was related to, and which row a control landed in changed with the phone. A
 band is scanned in one movement and keeps its company at every width.
 
+### The lesson
+
+This tool exists because of videos of Kim Jung Gi ruling a sphere on a blank
+page and then drawing a room full of cubes onto it, freehand, in five point.
+Everything else here was built to make that reachable. What was missing is the
+thing the videos do not contain: **why it works**.
+
+**One idea, twelve cards.** Almost every perspective tutorial teaches one, two
+and three point as three separate recipes and then presents four and five point
+as exotica. That is not what they are, and teaching it that way is why so few
+people can draw the later ones:
+
+> Stand still. Everything you can see lies in a **direction**. The set of all
+> directions is a **sphere** around your eye, and a picture is a map of that
+> sphere onto paper. A family of parallel lines shares one direction, so it
+> vanishes at the **two** points where that direction pierces the sphere. A cube
+> has three families, so it has **six** points — always, whichever way you are
+> facing.
+
+Then one, two, three, four and five point are not five systems. They are one
+system seen through five different amounts of paper, and the number in the name
+is simply how many of the six a given sheet can show you. Every card is a
+consequence of that:
+
+| | |
+| --- | --- |
+| **Ei kule av retningar** | the sphere, ruled, with nothing standing on it |
+| **Parallelle linjer møtest** | a rank of cubes, and *why* the point exists — as a limit, not a rule |
+| **Kvart knippe har to punkt** | turn all the way round and find the other one |
+| **Eitt punkt** | cube square on; two families parallel to the sheet |
+| **To punkt** | turn the cube — nothing in the world changed, you did |
+| **Tre punkt** | look up; the verticals gather too |
+| **Det flate arket tek slutt** | open the lens and watch the corners stretch |
+| **Fire punkt** | bend one axis; the horizon becomes a circle |
+| **Fem punkt** | bend both; zenith and nadir arrive |
+| **Ei kasse har seks** | count them: four on the horizon, one up, one down |
+| **Rul arket først** | the 15° meridians, and what you sight against them |
+| **Teikn ei sjølv** | the pencil, on the sheet you have just been given |
+
+**It is performed rather than illustrated.** No diagrams, because the app is
+already the diagram — it has the four projections, the ruled sphere, a family
+of parallels you can watch converge, and a cube whose own points it will rule
+for you. So the lesson *takes the controls*: the field, the sheet, where you
+stand, which way you look, what is standing on the floor, and works them while
+the card says what is happening. Every diagram in a perspective book is a lie of
+omission — it shows the end of a transformation and asks you to believe the
+middle — and the three facts this lesson exists to teach are all about the
+middle. The second point **walking** onto the page as you turn. The corners of a
+flat sheet **stretching** as the lens opens. The verticals **gathering** as you
+look up. There is no picture of any of those; there is only the thing happening.
+
+Three of the cards therefore sit still while the world moves under them, back
+and forth on a raised cosine so the turn has no jerk at either end — that being
+what a head does.
+
+**What it promises to give back.** It takes one snapshot on the way in — the
+scene, the meshes, the lamps, the sheet, the field, the guides, where you were
+standing — and puts every bit of it back on the way out, *including* when you
+walk out in the middle. That is the case that matters: it is what somebody does
+when they are bored, and finding your work gone is how a tool loses somebody for
+good.
+
+Reaching the end means the opposite, and exits differently. The last card's
+whole subject is that you now *have* the sheet — ruled, at five point, with a
+cube on it and its own six points showing — so finishing hands it over with the
+block-out pencil in it rather than sweeping it away and giving back the blank
+page you arrived with.
+
+And the dock goes down while a card is up. A lesson is a performance, and a
+performance with a toolbar over it is a screenshot of a menu; a touch brings the
+tool straight back, because it is still there and still yours.
+
 ### Hold a control, and it says what it is
 
 Nothing in this tool carries visible text — there is no room for eight captions

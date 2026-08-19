@@ -23,6 +23,7 @@ import { beginActivity, reportFailure } from './lib/activity';
 import { Activity } from './components/Activity';
 import { CameraFeed } from './components/CameraFeed';
 import { Gate } from './components/Gate';
+import { Lesson } from './components/Lesson';
 import { Hints } from './components/Hints';
 import { Tour } from './components/Tour';
 import { beginTour, tourSeen } from './lib/tour';
@@ -44,6 +45,8 @@ export default function App() {
   // them in the tools row's slot over a live dock, so the covering rule below
   // never applies to them.
   const [sheet, setSheet] = useState<'meshes' | 'scenes' | null>(null);
+  /* The perspective lesson, which takes the whole tool over while it runs. */
+  const [teaching, setTeaching] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
@@ -769,6 +772,7 @@ export default function App() {
       {/* Hold any control to be told what it is. */}
       <Hints />
       <Tour />
+      {teaching && <Lesson onDone={() => setTeaching(false)} />}
       {/* The frame a lens composes into, over the picture and under the
           chrome - ruled in the same ink as the rest of the construction. */}
       <Gate ink={constructionInk(isSketch(surface), isDark)} />
@@ -789,6 +793,7 @@ export default function App() {
         onScenes={() => setSheet((at) => (at === 'scenes' ? null : 'scenes'))}
         shelfOpen={sheet !== null}
         onShelfAway={() => setSheet(null)}
+        onLesson={() => setTeaching(true)}
         shelf={
           sheet === 'meshes' ? (
             <MeshSheet
