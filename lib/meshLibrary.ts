@@ -1,6 +1,6 @@
 /**
  * The objects the tool ships with: an aeroplane, the four men working on it,
- * and a drum.
+ * a drum, and a small astronaut in a bunny-eared spacesuit, three times.
  *
  * They are true to life - measured, they come in at the sizes the real things
  * are, so anything drawn against one is drawn against a real man.
@@ -136,6 +136,45 @@ export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'crew-standing', name: 'Ground crew, standing', url: '/meshes/crew-standing.glb' },
   { id: 'crew-kneeling', name: 'Ground crew, kneeling', url: '/meshes/crew-kneeling.glb' },
   { id: 'pilot-crouched', name: 'Pilot, crouched', url: '/meshes/pilot-crouched.glb' },
+
+  /*
+   * THE THREE ASTRONAUTS: one small character in a bunny-eared spacesuit,
+   * three poses, and a different kind of figure from the men on purpose.
+   *
+   * The crew are anatomy - real proportions, real clothes, the sizes people
+   * are. These are CONSTRUCTION: a body built openly out of spheres, capsules
+   * and tubes, which is how every figure is blocked in before it is anybody.
+   * Drawing the crew is drawing what you see; drawing these is drawing the
+   * armature itself, and a beginner can actually finish one.
+   *
+   * The poses are three drawing problems the yard does not pose. Flat on the
+   * back with everything in the air is the feet-first foreshortening study -
+   * the pose every figure course sets and no standing figure can teach. The
+   * walk is a figure in MOTION, weight mid-transfer, nothing symmetrical. And
+   * the one with the jetpack is the same body standing, which is what the
+   * other two are measured against.
+   *
+   * They are generated meshes, not scans, and it shows in the numbers: they
+   * arrive at twenty-five thousand triangles - sixteen scanned crewmen - with
+   * one flat-colour map, no photograph anywhere on them. So unlike the crew
+   * the base colour is kept, at 1024 like everything else: on the solid page
+   * it is the suit's own cream and leather, and the ink pages never sample it.
+   * The normal and metallic-roughness maps went the way of the animals', with
+   * the factors owned in the file (metallic 0 - the glTF default of 1 would
+   * draw them black the day the app's own override stopped covering for it).
+   *
+   * NO REAL SIZE EXISTS FOR A CARTOON, so the heights are chosen, not
+   * measured: a metre-and-a-bit standing, which reads as a child beside the
+   * 1.72 m crewman and keeps the whole set obviously a character rather than
+   * a fifth man. The lying one is 0.9 to the top of the raised mitten.
+   *
+   * And they face +Z like everything here - one arrived facing away and one
+   * lying with its feet across the ruling, and both quarter-turns are baked
+   * into the files, same rule as the crew, no table of exceptions.
+   */
+  { id: 'astro-back', name: 'Astronaut, on their back', url: '/meshes/astro-back.glb', height: 0.9 },
+  { id: 'astro-jetpack', name: 'Astronaut, with a jetpack', url: '/meshes/astro-jetpack.glb', height: 1.15 },
+  { id: 'astro-walking', name: 'Astronaut, walking', url: '/meshes/astro-walking.glb', height: 1.0 },
 ];
 
 /**
