@@ -39,7 +39,7 @@ const HINTS: Record<string, string> = {
   // ---------------------------------------------------------------- the dock
   'Add model': 'Hylla: ting å setje ned',
   Scenes: 'Prosjekta dine',
-  'Field of view': 'Synsfelt — blått er innanfor menneskesyn',
+  'Field of view': 'Synsfelt. Blått er innanfor menneskesyn',
   'Camera height': 'Augehøgd over golvet',
   'Construction guides': 'Rommet sin konstruksjon: horisont og punkt',
   Undo: 'Angre',
@@ -48,28 +48,28 @@ const HINTS: Record<string, string> = {
 
   // -------------------------------------------------------------- the panel
   'Floor lines': 'Golvlinjene: bort, på tvers, begge',
-  'Floor:': 'Golvet — dra for tone',
+  'Floor:': 'Golvet. Dra for tone',
   'Snap to': 'Fest til rutenettet',
   'Snap off': 'Fest til rutenettet',
   'Construction around': 'Kassar rundt tinga',
-  'Paper tone': 'Arket — dra for tone',
+  'Paper tone': 'Arket. Dra for tone',
   'Page behind the drawing': 'Bakgrunnen bak arket',
   Lights: 'Lyset',
   'Stand the scene in the room around you': 'Sjå det i rommet ditt (AR)',
   'Save the scene as USDZ for an AR device': 'Lagre som USDZ for AR',
-  'Projection: rectilinear': 'Flat plate — eitt, to og tre punkt',
-  'Projection: cylindrical': 'Sylindrisk — fire punkt, rette loddrette',
-  'Projection: equidistant': 'Ekvidistant — fem punkt, den rula sfæren',
-  'Projection: stereographic': 'Stereografisk — vinkelrett overalt',
+  'Projection: rectilinear': 'Flat plate: eitt, to og tre punkt',
+  'Projection: cylindrical': 'Sylinder: fire punkt, rette loddrette',
+  'Projection: equidistant': 'Kule: fem punkt, det rula arket',
+  'Projection: stereographic': 'Stereografisk: vinkelrett overalt',
   'Lens reach': 'Kor vidt linsa får opnast',
   'Frame the view as a lens': 'Sjå det som eit kamera',
-  'Lens:': 'Objektivet — trykk for å leggje det bort',
-  Aperture: 'Blenderen — kor tynt fokuset er',
+  'Lens:': 'Objektivet. Trykk for å leggje det bort',
+  Aperture: 'Blenderen. Kor tynt fokuset er',
   Focus: 'Kva avstand som er skarp',
   'Gate:': 'Forma på biletet',
-  'Room,': 'Rommet rundt — dra for storleik',
+  'Room,': 'Rommet rundt. Dra for storleik',
   'Measure distances in the scene': 'Målebandet',
-  'Look by turning the phone': 'Snu telefonen for å sjå — dobbelttrykk for rommet under',
+  'Look by turning the phone': 'Snu telefonen for å sjå. Dobbelttrykk for rommet under',
   'Save the view as a picture': 'Lagre biletet',
   'Learn how perspective works': 'Leksjonen: kvifor perspektiv verkar',
   'Take the tour again': 'Ta omvisinga på nytt',
@@ -79,17 +79,17 @@ const HINTS: Record<string, string> = {
   // The one panel in the tool with no words anywhere near it and the most to
   // say: four knobs that are the same four knobs for every light there is, and
   // then a whole sky behind them.
-  'The key light': 'Hovudlyset — sola',
+  'The key light': 'Hovudlyset, altså sola',
   'The fill light': 'Utfyllingslys, utan skygge',
   'The sky, the hour and the weather': 'Himmelen: stad, tid og vêr',
   Bearing: 'Kva leid lyset kjem frå',
   'Height above the horizon': 'Kor høgt over horisonten',
   Strength: 'Kor sterkt lyset er',
-  'Colour temperature': 'Fargen på lyset — varm til kald',
+  'Colour temperature': 'Fargen på lyset, varm til kald',
   'Cast shadows': 'Skygge: av, hard, mjuk',
   'Lamp on': 'Slå lampa av og på',
-  'A spot, throwing a cone': 'Spot — kastar ein kjegle',
-  'A bulb, shining every way': 'Pære — lyser alle vegar',
+  'A spot, throwing a cone': 'Spot, som kastar ein kjegle',
+  'A bulb, shining every way': 'Pære, som lyser alle vegar',
 
   // --------------------------------------------------------- the real sky
   'Aim the sun from a place and a moment': 'Lat stad og tid styre sola',
@@ -106,7 +106,7 @@ const HINTS: Record<string, string> = {
   'The conditions could not be fetched - try again': 'Fekk ikkje tak i vêret',
   'How much of the sky is covered': 'Kor mykje av himmelen er dekt',
   'How high the cloud sits': 'Kor høgt skyene ligg',
-  Wind: 'Vinden — kor fort skyene driv',
+  Wind: 'Vinden. Kor fort skyene driv',
   'Which way the wind comes from': 'Kva leid vinden kjem frå',
 
   // ------------------------------------------------------- the drawn page
@@ -132,14 +132,14 @@ const HINTS: Record<string, string> = {
   Rename: 'Gje det eit namn',
 
   // ----------------------------------------------------- the selection bar
-  Height: 'Høgd i meter — dra',
+  Height: 'Høgd i meter. Dra',
   'Height, locked': 'Høgda er låst',
-  'Height off the floor': 'Høgd over golvet — dra',
+  'Height off the floor': 'Høgd over golvet. Dra',
   'Lock the size': 'Lås storleiken',
   'Size locked': 'Storleiken er låst',
   'Construction on this one': 'Punkt, diagonalar, firedelt golv',
   Delete: 'Slett',
-  'things in hand': 'Så mange du held — hald på ein til for å leggje han i handa',
+  'things in hand': 'Så mange du held. Hald på ein til for å leggje han i handa',
   'metres away': 'Så langt unna',
 };
 

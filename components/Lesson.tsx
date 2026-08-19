@@ -275,6 +275,26 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           cameraHeight: mix(start.cameraHeight, stage.cameraHeight, eased),
         });
 
+        /*
+         * The surfaces, STEPPED rather than tweened, and off the raw elapsed
+         * time rather than off the ping-pong above.
+         *
+         * A projection cannot be half-changed, so this is a slideshow of three
+         * and not a blend between them - and it must run round and round in one
+         * direction, because plane, cylinder, sphere is an argument with an
+         * order to it and a ping-pong would play the middle of it twice as
+         * often as the ends.
+         */
+        if (sweep?.surfaces && moving >= 1) {
+          const each = (sweep.seconds * 1000) / sweep.surfaces.length;
+          const showing = sweep.surfaces[
+            Math.floor(((now - began.current - travel) / each)) % sweep.surfaces.length
+          ];
+          if (useStore.getState().perspectiveMode !== showing) {
+            useStore.setState({ perspectiveMode: showing });
+          }
+        }
+
         walkInput.position.x = mix(start.stand.x, stage.stand.x, eased);
         walkInput.position.z = mix(start.stand.z, stage.stand.z, eased);
         walkInput.yaw = mixAngle(start.stand.yaw, yaw, eased);

@@ -129,7 +129,7 @@ export const FIELDS: CubeField[] = [
      * rather than the first: it asks every question at once.
      */
     name: 'Swarm',
-    note: 'Ein sverm — heile øvinga på éi side',
+    note: 'Ein sverm: heile øvinga på éi side',
     turn: 0.42,
     cubes: cloud(32, NEAR, FAR, 1),
   },
@@ -139,7 +139,7 @@ export const FIELDS: CubeField[] = [
      * along one family, and an error is a cube visibly out of the queue.
      */
     name: 'Rank',
-    note: 'Ei rekkje — eitt knippe å sikte langs',
+    note: 'Ei rekkje: eitt knippe å sikte langs',
     turn: 0.32,
     cubes: Array.from({ length: 12 }, (_, at) => [
       spread(at * 11, 0.3),
@@ -154,7 +154,7 @@ export const FIELDS: CubeField[] = [
      * at once.
      */
     name: 'Street',
-    note: 'Ei gate — to knippe, begge i bruk',
+    note: 'Ei gate: to knippe, begge i bruk',
     turn: 0.18,
     cubes: Array.from({ length: 20 }, (_, at) => {
       const side = at % 2 === 0 ? -2.1 : 2.1;
@@ -170,7 +170,7 @@ export const FIELDS: CubeField[] = [
      * point once the field is open.
      */
     name: 'Tower',
-    note: 'Eit tårn — den loddrette famnen',
+    note: 'Eit tårn: den loddrette famnen',
     turn: 0.55,
     cubes: [
       /*
@@ -194,7 +194,7 @@ export const FIELDS: CubeField[] = [
      * visibly in the wrong place and there is nothing to argue with.
      */
     name: 'Lattice',
-    note: 'Eit gitter — tre knippe, jamt delt',
+    note: 'Eit gitter: tre knippe, jamt delt',
     turn: 0.26,
     cubes: (() => {
       const built: Cube[] = [];
@@ -221,7 +221,7 @@ export const FIELDS: CubeField[] = [
      * seeing that is most of what "constructing" a perspective means.
      */
     name: 'Steps',
-    note: 'Ei trapp — diagonalen som ikkje er eit knippe',
+    note: 'Ei trapp: diagonalen som ikkje er eit knippe',
     turn: 0.38,
     cubes: [
       ...Array.from({ length: 9 }, (_, at) => [at * 1.05 - 3, 0.5 + at * 1.05, -2.6 - at * 1.05] as Cube),
@@ -238,7 +238,7 @@ export const FIELDS: CubeField[] = [
      * way to feel why both ends of a family's direction are points.
      */
     name: 'Ring',
-    note: 'Ein ring — halve feltet ligg bak deg',
+    note: 'Ein ring: halve feltet ligg bak deg',
     turn: 0.5,
     cubes: Array.from({ length: 16 }, (_, at) => {
       const bearing = (at / 16) * Math.PI * 2;
@@ -252,7 +252,7 @@ export const FIELDS: CubeField[] = [
      * is the condition the exercise is really about.
      */
     name: 'Shoal',
-    note: 'Ei stim — ingenting rører bakken',
+    note: 'Ei stim: ingenting rører bakken',
     turn: 0.62,
     cubes: cloud(22, NEAR + 0.8, FAR, 7).map(([x, , z], at) => [x, 1.8 + jitter(at * 13) * 4.6, z] as Cube),
   },
@@ -264,7 +264,7 @@ export const FIELDS: CubeField[] = [
      * large.
      */
     name: 'Ladder',
-    note: 'Ein stige — halv storleik for kvar dobling',
+    note: 'Ein stige: halv storleik for kvar dobling',
     turn: 0.28,
     cubes: Array.from({ length: 8 }, (_, at) => [
       0.5,
@@ -288,7 +288,7 @@ export const FIELDS: CubeField[] = [
      * what the shared points were doing for you.
      */
     name: 'Loose',
-    note: 'Laust — kvar kasse har sine eigne punkt',
+    note: 'Laust: kvar kasse har sine eigne punkt',
     turn: 0,
     cubes: cloud(22, NEAR + 0.4, FAR - 1, 3),
   },

@@ -8,7 +8,7 @@ import type { GuideLevel, PerspectiveMode, SelectionGuide } from '../types';
  * Everything else here was built to make that reachable. What was missing is
  * the thing the videos do not contain: WHY it works.
  *
- * ONE IDEA, SIXTEEN CARDS.
+ * ONE IDEA, EIGHTEEN CARDS.
  *
  * Almost every perspective tutorial teaches one, two and three point as three
  * separate recipes, then presents four and five point as exotica. That is not
@@ -35,7 +35,7 @@ import type { GuideLevel, PerspectiveMode, SelectionGuide } from '../types';
  * yourself, with your own thumb on the glass, and seeing it happen because you
  * did it.
  *
- * So the director stages each card and then, on nine of the sixteen, LETS GO:
+ * So the director stages each card and then, on ten of the eighteen, LETS GO:
  * turn round and find the second point, walk and watch the point refuse to
  * move, look up, open the lens until the corners go. The card waits, and when
  * you have done it a sentence appears that was not there before - the one that
@@ -112,6 +112,17 @@ export interface Sweep {
   field?: [number, number];
   yaw?: [number, number];
   pitch?: [number, number];
+  /**
+   * The surfaces, stepped rather than swept.
+   *
+   * A projection cannot be half-changed, so this is a slideshow of three and
+   * not a tween between them. It is also the one thing in the lesson that
+   * genuinely cannot be shown any other way: the SAME scene, from the SAME
+   * spot, caught on a plane, then a cylinder, then a sphere, with nothing else
+   * moving. Everything the viewer has been told about four systems is that one
+   * animation.
+   */
+  surfaces?: PerspectiveMode[];
 }
 
 export interface Card {
@@ -163,7 +174,7 @@ export const CARDS: Card[] = [
      * sphere of directions around one point.
      */
     headline: 'Ei kule av retningar',
-    body: 'Du står stille. Alt du kan sjå ligg i ei retning, og alle retningane til saman er ei kule rundt auget ditt. Eit bilete er eit kart over den kula — ikkje noko meir enn det.',
+    body: 'Du står stille. Alt du kan sjå ligg i ei retning, og alle retningane til saman er ei kule rundt auget ditt. Eit bilete er eit kart over den kula, og ikkje noko meir enn det.',
     stage: { cast: 'nothing', guides: 2, fov: 260, mode: 'equidistant' },
     sweep: { seconds: 44, yaw: [-0.5, 0.5] },
     travel: 2000,
@@ -176,11 +187,57 @@ export const CARDS: Card[] = [
      */
     headline: 'Snu deg heilt rundt',
     body: 'Dra på biletet og snu deg heile vegen rundt. Sjå etter ein kant på kula.',
-    found: 'Det er ingen. Kula har ingen kant fordi ho ikkje er noko du ser PÅ — ho er alle retningane frå der du står, og du er i midten av henne.',
+    found: 'Det er ingen. Kula har ingen kant fordi ho ikkje er noko du ser PÅ. Ho er alle retningane frå der du står, og du er i midten av henne.',
     stage: { cast: 'nothing', guides: 2, fov: 260, mode: 'equidistant' },
     hands: 'viewer',
     gate: { kind: 'turn', radians: 5.6 },
     travel: 1400,
+  },
+  {
+    /*
+     * THE CARD THE WHOLE MIDDLE OF THE LESSON HANGS OFF, and the one the first
+     * draft did not have at all.
+     *
+     * A sphere of directions is not a picture yet. A picture is a surface with
+     * marks on it, so somewhere between the eye and the paper the rays have to
+     * be CAUGHT on something - and the something is a choice. Catch them on a
+     * flat sheet and you have one, two or three point. Catch them on a
+     * cylinder and you have four. Catch them on the sphere itself and you have
+     * five.
+     *
+     * That is the entire relationship between the four systems in this tool,
+     * and without it they are four buttons that make the picture look
+     * different. It is shown rather than said: the same scene, from the same
+     * spot, stepping through the three surfaces with nothing else moving.
+     */
+    headline: 'Kva fangar du det på?',
+    body: 'Kula er ikkje eit bilete enno. Eit bilete er ei flate med merke på, så strålane må fangast på noko. Sjå: same scene, same stad, tre ulike flater under.',
+    stage: { cast: 'street', mode: 'rectilinear', fov: 100, guides: 1, selectionGuides: 0, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
+    sweep: { seconds: 21, surfaces: ['rectilinear', 'cylindrical', 'equidistant'] },
+    travel: 2200,
+  },
+  {
+    /*
+     * The two marks every one of those surfaces carries, and the reason they
+     * are the first two things anybody rules on a page.
+     *
+     * The principal point is the one place the tool has been drawing all along
+     * without naming it: the little ring dead centre. It is not in the world.
+     * Turn as far as you like and it does not move, because it is not a thing
+     * you are looking AT - it is where you are looking, marked on the surface.
+     *
+     * And the horizon is not the edge of the ground. It is the set of
+     * directions level with your eye, which on a flat sheet is a straight line
+     * and on the sphere is a great circle - and it sits at your eye height
+     * whether the ground is there or not.
+     */
+    headline: 'Hovudpunktet og horisonten',
+    body: 'Ringen midt i biletet er hovudpunktet: der du ser, avmerkt på flata. Snu deg og sjå etter kva som flyttar seg og kva som ikkje gjer det.',
+    found: 'Ringen står stille i midten fordi han ikkje er noko i verda. Og horisonten fylgjer auget ditt, ikkje bakken: han er alle retningane som ligg vassrett frå deg. Det er dei to fyrste merka nokon rular på ei side, og dei er dei einaste to som ikkje er noko du kan sjå på.',
+    stage: { cast: 'street', mode: 'equidistant', fov: 240, guides: 1, selectionGuides: 0, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
+    hands: 'viewer',
+    gate: { kind: 'turn', radians: 1.9 },
+    travel: 2200,
   },
   {
     /*
@@ -190,7 +247,7 @@ export const CARDS: Card[] = [
      * the lines are - which is the next card, and the best one in the lesson.
      */
     headline: 'Parallelle linjer møtest',
-    body: 'Ei rekkje kassar, alle med same retning. Jo lenger ut du fylgjer dei, jo nærare kjem retninga frå auget ditt den retninga linjene sjølve har — så alle saman peikar mot det same punktet.',
+    body: 'Ei rekkje kassar, alle med same retning. Jo lenger ut du fylgjer dei, jo nærare kjem retninga frå auget ditt den retninga linjene sjølve har, så alle saman peikar mot det same punktet.',
     stage: { cast: 'row', mode: 'rectilinear', fov: 70, selectionGuides: 1, stand: { x: 0, z: 5, yaw: 0, pitch: 0 } },
     travel: 2200,
   },
@@ -209,8 +266,8 @@ export const CARDS: Card[] = [
      * sounds obvious and is not believed; done, it is startling.
      */
     headline: 'Punktet flyttar seg ikkje',
-    body: 'Gå — dra i nedre venstre hjørne. Fylg med på punktet medan kassane glir forbi deg.',
-    found: 'Kassane flytta seg. Punktet stod stille. Det høyrer til RETNINGA, ikkje til linjene og ikkje til staden — difor kan du rule dei seks punkta éin gong og teikne heile sida mot dei.',
+    body: 'Gå: dra i nedre venstre hjørne. Fylg med på punktet medan kassane glir forbi deg.',
+    found: 'Kassane flytta seg. Punktet stod stille. Det høyrer til RETNINGA, ikkje til linjene og ikkje til staden. Difor kan du rule dei seks punkta éin gong og teikne heile sida mot dei.',
     stage: { cast: 'row', mode: 'rectilinear', fov: 80, selectionGuides: 1, stand: { x: 1.6, z: 6, yaw: -0.12, pitch: 0 } },
     hands: 'viewer',
     gate: { kind: 'walk', metres: 3.5 },
@@ -225,7 +282,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Kvart knippe har to punkt',
     body: 'Same rekkje, men på det bøygde arket. Snu deg heilt rundt og finn det andre punktet.',
-    found: 'Der er det. Eit knippe parallelle linjer forsvinn i dei TO punkta der retninga stikk gjennom kula — eitt framover, eitt bakover. Det flate arket kan berre vise deg det eine.',
+    found: 'Der er det. Eit knippe parallelle linjer forsvinn i dei TO punkta der retninga stikk gjennom kula: eitt framover, eitt bakover. Det flate arket kan berre vise deg det eine.',
     stage: { cast: 'row', mode: 'equidistant', fov: 300, guides: 1, selectionGuides: 1, stand: { x: 0, z: 5, yaw: 0, pitch: 0 } },
     hands: 'viewer',
     gate: { kind: 'turn', radians: 3.4 },
@@ -233,7 +290,7 @@ export const CARDS: Card[] = [
   },
   {
     headline: 'Eitt punkt',
-    body: 'Tilbake til det flate arket, med ei kasse rett på. To av dei tre knippa er parallelle med arket og blir liggjande parallelle på papiret òg; berre det tredje går innover. Eitt punkt — midt i biletet, fordi du ser rett langs retninga.',
+    body: 'Tilbake til det flate arket, med ei kasse rett på. To av dei tre knippa er parallelle med arket og blir liggjande parallelle på papiret òg; berre det tredje går innover. Eitt punkt, og det ligg midt i biletet fordi du ser rett langs retninga.',
     stage: { cast: 'one', mode: 'rectilinear', fov: 55, turn: 0, selectionGuides: 1, stand: { x: 0, z: 4.5, yaw: 0, pitch: 0 } },
     travel: 2400,
   },
@@ -249,7 +306,7 @@ export const CARDS: Card[] = [
      */
     headline: 'To punkt',
     body: 'Ikkje rør kassa. Snu deg litt til sides og sjå kva som skjer med kantane som gjekk rett på.',
-    found: 'To punkt no, eitt til kvar side. Ingenting i verda har endra seg — arket står vinkelrett på der du ser, så då du snudde deg slutta flatene å vere parallelle med det. «Eitt punkt» og «to punkt» er ikkje to slag kassar. Det er den same kassa, sett to stader frå.',
+    found: 'To punkt no, eitt til kvar side. Ingenting i verda har endra seg. Arket står vinkelrett på der du ser, så då du snudde deg slutta flatene å vere parallelle med det. «Eitt punkt» og «to punkt» er ikkje to slag kassar. Det er den same kassa, sett to stader frå.',
     stage: { cast: 'one', mode: 'rectilinear', fov: 65, turn: 0, selectionGuides: 1, stand: { x: 0, z: 4.5, yaw: 0, pitch: 0 } },
     hands: 'viewer',
     gate: { kind: 'turn', radians: 0.45 },
@@ -258,7 +315,7 @@ export const CARDS: Card[] = [
   {
     headline: 'Tre punkt',
     body: 'Same kasse igjen. Dra oppover og sjå opp på henne.',
-    found: 'No er ikkje loddlinjene parallelle med arket heller, så dei samlar seg òg — i eit punkt over deg. Tre knippe, tre punkt, same kasse, same stad. Alt du gjorde var å løfte blikket.',
+    found: 'No er ikkje loddlinjene parallelle med arket heller, så dei samlar seg òg, i eit punkt over deg. Tre knippe, tre punkt, same kasse, same stad. Alt du gjorde var å løfte blikket.',
     stage: { cast: 'one', mode: 'rectilinear', fov: 88, turn: Math.PI / 5, selectionGuides: 1, stand: { x: 0, z: 3.4, yaw: 0, pitch: 0 } },
     hands: 'viewer',
     gate: { kind: 'pitch', radians: 0.45 },
@@ -272,7 +329,7 @@ export const CARDS: Card[] = [
      * exercises never gives anybody.
      */
     headline: 'Ingenting av dette er kassa',
-    body: 'Eitt, to og tre punkt er ikkje tre slag kassar og ikkje tre system. Det er kor mange av dei tre knippa som ikkje ligg parallelt med arket ditt — og det er ei opplysning om kvar DU står og kvar du ser, ikkje om det du teiknar.',
+    body: 'Eitt, to og tre punkt er ikkje tre slag kassar og ikkje tre system. Det er kor mange av dei tre knippa som ikkje ligg parallelt med arket ditt, og det er ei opplysning om kvar DU står og kvar du ser, ikkje om det du teiknar.',
     stage: { cast: 'one', mode: 'rectilinear', fov: 88, turn: Math.PI / 5, selectionGuides: 1, stand: { x: 0, z: 3.4, yaw: 0.5, pitch: 0.4 } },
     travel: 2200,
   },
@@ -285,7 +342,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Det flate arket tek slutt',
     body: 'Verktøylinja er tilbake. Dra i kjegla nede og opne linsa så langt ho går.',
-    found: 'Sjå hjørna. Ei rett linje held seg rett — det er heile poenget med systemet — men prisen er at avstanden frå midten er TANGENTEN til vinkelen, og tangenten spring frå deg. Ved 180 grader er han uendeleg. Difor finst dei tre andre arka.',
+    found: 'Sjå hjørna. Ei rett linje held seg rett, og det er heile poenget med systemet. Prisen er at avstanden frå midten er TANGENTEN til vinkelen, og tangenten spring frå deg. Ved 180 grader er han uendeleg. Difor finst dei tre andre arka.',
     stage: { cast: 'street', mode: 'rectilinear', fov: 55, guides: 1, selectionGuides: 0, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     hands: 'viewer',
     chrome: true,
@@ -302,7 +359,7 @@ export const CARDS: Card[] = [
   },
   {
     headline: 'Fire punkt',
-    body: 'Så bøyer vi det. Sylinderen held loddlinjene rette og lèt vassrette linjer bue — og no er horisonten ein heil sirkel, med begge punkta til eit knippe på arket samstundes.',
+    body: 'Same scene, fanga på sylinderen. Han held loddlinjene rette og lèt vassrette linjer bue, og no er horisonten ein heil sirkel, med begge punkta til eit knippe på arket samstundes.',
     stage: { cast: 'street', mode: 'cylindrical', fov: 300, guides: 1, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     sweep: { seconds: 40, yaw: [0, Math.PI] },
     travel: 2600,
@@ -314,7 +371,7 @@ export const CARDS: Card[] = [
      * came from are drawn on.
      */
     headline: 'Fem punkt',
-    body: 'Bøy den andre vegen òg, og heile kula ligg på arket: fire punkt rundt horisonten, eitt rett opp, eitt rett ned. Avstand frå midten er vinkelen sjølv, jamt i alle retningar. Dette er arket Kim Jung Gi rular.',
+    body: 'Og fanga på kula sjølv. Alle retningar ligg på arket: fire punkt rundt horisonten, eitt rett opp, eitt rett ned. Avstand frå midten er vinkelen sjølv, jamt i alle retningar. Dette er arket Kim Jung Gi rular.',
     stage: { cast: 'street', mode: 'equidistant', fov: 360, guides: 2, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     travel: 2800,
   },
@@ -325,7 +382,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Ei kasse har seks',
     body: 'Éi kasse, heile kula. Snu deg sakte rundt og tel dei ringa punkta.',
-    found: 'Seks: fire rundt horisonten, eitt rett opp, eitt rett ned. Tre knippe, to punkt kvar. På det flate arket såg du eitt, to eller tre av dei — resten låg bak deg. Dei har vore der heile tida.',
+    found: 'Seks: fire rundt horisonten, eitt rett opp, eitt rett ned. Tre knippe, to punkt kvar. På det flate arket såg du eitt, to eller tre av dei, og resten låg bak deg. Dei har vore der heile tida.',
     stage: { cast: 'one', mode: 'equidistant', fov: 360, guides: 1, selectionGuides: 1, turn: Math.PI / 5, stand: { x: 0, z: 3.4, yaw: 0, pitch: 0 } },
     hands: 'viewer',
     gate: { kind: 'turn', radians: 2.2 },
