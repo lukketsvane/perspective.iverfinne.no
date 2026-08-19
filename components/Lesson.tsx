@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { walkInput } from '../lib/walkInput';
-import { chrome } from './ui';
-import { CARDS, CAST, OPENING, pingPong, sweepAt, type Card, type Cast, type Gate, type Stage } from '../lib/lesson';
+import { ACTS, CARDS, CAST, OPENING, pingPong, sweepAt, type Act, type Card, type Cast, type Gate, type Stage } from '../lib/lesson';
 import { hideRail, holdRail, releaseRail } from '../lib/rail';
 
 /**
@@ -127,11 +126,31 @@ const progressOf = (
 
 export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
   const dark = useStore((s) => s.theme) === 'dark';
+  /*
+   * The tone the words stand on: the page's own mount, not a colour of this
+   * component's choosing. The same argument the lens gate's matting makes - a
+   * wash has to read as the mount the drawing is on rather than as a scrim
+   * somebody laid over it, and this app has twenty-three possible mounts.
+   */
+  const backdrop = useStore((s) => s.backdrop);
+  const backgroundGray = useStore((s) => s.backgroundGray);
+  const tone = backdrop === 'paper' ? backgroundGray : backdrop;
+  const wash = `rgba(${tone}, ${tone}, ${tone}, 0.9)`;
   const [at, setAt] = useState(0);
   /** Whether the viewer has done what this card asked. */
   const [answered, setAnswered] = useState(false);
-  /** How far along they are, for the thread under the card. */
+  /** How far along they are, for the thread under the instruction. */
   const [progress, setProgress] = useState(0);
+  /**
+   * The act title standing over the picture, if one is.
+   *
+   * Held for two and a half seconds at the top of each of the four acts, with
+   * the words underneath faded out behind it. It is the only full-screen
+   * moment in the app and the only place a single word is the whole picture.
+   */
+  const [curtain, setCurtain] = useState<Act | null>(
+    () => ACTS.find((act) => act.at === 0) ?? null
+  );
   const held = useRef<Held | null>(null);
   /** The stage the current move started from, so it can be tweened out of. */
   const from = useRef<Stage>(OPENING);
@@ -243,6 +262,10 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       }
     }, 0);
 
+    const opens = ACTS.find((act) => act.at === at) ?? null;
+    setCurtain(opens);
+    const raise = opens ? window.setTimeout(() => setCurtain(null), 2500) : undefined;
+
     const travel = card.travel ?? 1800;
     const viewers = card.hands === 'viewer';
     let frame = 0;
@@ -349,6 +372,7 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     frame = requestAnimationFrame(step);
     return () => {
       window.clearTimeout(settle);
+      if (raise !== undefined) window.clearTimeout(raise);
       cancelAnimationFrame(frame);
       // Whatever the card ended on is where the next one starts from - which
       // for a viewer's card is wherever THEY left it, so the next move sets
@@ -366,93 +390,195 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     };
   }, [at, card]);
 
-  const chip = `h-11 px-3 rounded-full border text-[11px] tracking-wide pointer-events-auto transition-colors ${
-    dark ? 'border-white/20 text-white/75' : 'border-black/15 text-black/60'
-  }`;
-  /* The one accent this app has, on the one control that is the next thing to
-     do - which on an answered card is Neste and on an unanswered one is the
-     picture itself. */
-  const ready = `h-11 px-3 rounded-full border text-[11px] tracking-wide pointer-events-auto transition-colors border-sky-500 text-sky-500`;
-
+  /*
+   * THE PRESENTATION, AND IT IS NOT A PANEL.
+   *
+   * The first two drafts put the lesson in the same glass card the tour uses:
+   * a rounded slab with a border, two pill buttons and a row of dots. It read
+   * as a dialog over an app, which is exactly what it is not - and a dialog is
+   * a thing you dismiss. It made the most considered part of this tool feel
+   * like the most skippable.
+   *
+   * So there is no card. The words sit ON the picture, over a wash of the
+   * page's own tone that fades to nothing before it reaches the middle of the
+   * screen, and the picture goes all the way to every edge. One idea at a time,
+   * large, arriving rather than appearing. The controls are: tap the words to
+   * go on. That is the whole interface.
+   *
+   * WHAT WENT, AND WHY EACH ONE. The border and the fill, because they drew a
+   * box round the words and the words are not in a box, they are on a
+   * photograph. The two pills, because a row of buttons is a form. The dots,
+   * because eighteen dots is a progress bar pretending to be jewellery - it is
+   * a hairline across the top of the screen now, which is what it always was.
+   * And "Hopp over", because an escape hatch in the corner of the frame is an
+   * invitation to use it, and this is a thing to be inside rather than to get
+   * through.
+   *
+   * IT IS STILL LEAVABLE, and it has to be: a tool that traps you is a tool
+   * you do not open twice. The way out is a single unlabelled mark in the far
+   * corner at a third of an opacity - present, findable, and not shouting. The
+   * difference between that and a pill marked "skip" is the difference between
+   * a door and a sign pointing at a door.
+   */
   const last = at >= CARDS.length - 1;
   const asking = !!card.gate && !answered;
+  const ink = dark ? 'text-white' : 'text-black';
 
   return (
-    <div className="fixed inset-0 z-40 pointer-events-none">
-      <div
-        role="status"
-        aria-live="polite"
-        /* Capped and scrollable, because a card GROWS: the sentence that
-            appears when you have done the thing is a third of its height
-            again, and on a short screen held sideways the whole of it must
-            still fit somewhere. */
-        className={`absolute top-safe-panel x-safe-panel inset-x-0 mx-auto max-w-[26rem] max-h-[62vh] overflow-y-auto overscroll-contain rounded-[1.125rem] border p-3 pointer-events-none ${chrome(dark)}`}
+    <div className="fixed inset-0 z-40 pointer-events-none select-none">
+      {/*
+        * How far through, as a hairline across the very top.
+        *
+        * A single line rather than eighteen dots. Dots say "how many are left"
+        * as a countable, which invites counting; a line says "how far" as a
+        * proportion, which is the only thing anybody wants to know and the
+        * only one that does not read as a chore.
+        */}
+      <div className={`absolute top-0 inset-x-0 h-px ${dark ? 'bg-white/10' : 'bg-black/10'}`} aria-hidden>
+        <div
+          className="h-px bg-sky-500/70 transition-[width] duration-700 ease-out"
+          style={{ width: `${((at + 1) / CARDS.length) * 100}%` }}
+        />
+      </div>
+
+      {/* The way out. Unlabelled, dim, and in the one corner nothing else uses. */}
+      <button
+        onClick={onDone}
+        aria-label="Leave the lesson"
+        className={`absolute top-safe-panel left-3 w-9 h-9 rounded-full pointer-events-auto opacity-30 hover:opacity-70 transition-opacity ${ink}`}
       >
-        <div className="text-xs font-bold uppercase tracking-wide opacity-60">{card.headline}</div>
-        <div className="text-sm leading-snug mt-1">{card.body}</div>
-        {/* The sentence that was not there a moment ago. It is the content of
-            the card; everything above it was the setup. */}
-        {answered && card.found && (
-          <div className="text-sm leading-snug mt-2 pt-2 border-t border-current/15">
-            {card.found}
-          </div>
-        )}
-        {/* How far round, how far walked, how far open: a hairline that fills.
-            Not a number - a shape, because what it is measuring is a gesture
-            and nobody turning their head wants a percentage. */}
-        {asking && (
-          <div className={`h-px mt-2 ${dark ? 'bg-white/15' : 'bg-black/10'}`} aria-hidden>
-            <div
-              className="h-px bg-sky-500 transition-[width] duration-200"
-              style={{ width: `${Math.round(progress * 100)}%` }}
-            />
-          </div>
-        )}
-        <div className="flex items-center justify-between mt-2">
-          <button onClick={onDone} aria-label="Leave the lesson" className={chip}>
-            {last ? 'Ferdig' : 'Hopp over'}
-          </button>
-          {/* Sixteen marks rather than "4 / 16": at this length what a viewer
-              wants is a shape, not a sum. */}
-          <div className="flex items-center gap-1" aria-hidden>
-            {CARDS.map((_, mark) => (
-              <span
-                key={mark}
-                className={`rounded-full transition-all duration-300 ${
-                  mark === at
-                    ? 'w-1.5 h-1.5 bg-sky-500'
-                    : `w-1 h-1 ${mark < at ? 'opacity-40' : 'opacity-20'} ${dark ? 'bg-white' : 'bg-black'}`
-                }`}
-              />
-            ))}
-          </div>
-          <button
-            onClick={() => {
-              if (!last) {
-                setAt((was) => was + 1);
-                return;
-              }
-              // The sheet stays, and the pencil comes back into the hand it
-              // was taken out of. See `restore` above for why this exit is not
-              // the same exit as walking away.
-              restore.current = false;
-              useStore.setState({
-                instrument: 'block',
-                models: held.current?.models ?? [],
-                lamps: held.current?.lamps ?? [],
-              });
-              onDone();
-            }}
-            aria-label={last ? 'Finish the lesson' : 'Next card of the lesson'}
-            /* Never disabled while a card is asking for something: a viewer who
-               cannot do the gesture - a desktop with no stick, a hand that has
-               had enough - must always be able to go on. It simply stops being
-               the accented thing until the picture has answered. */
-            className={asking ? chip : ready}
+        <svg viewBox="0 0 24 24" className="w-4 h-4 mx-auto" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden>
+          <path d="M17 7 7 17M7 7l10 10" />
+        </svg>
+      </button>
+
+      {/*
+        * THE ACT TITLE, full screen, for two and a half seconds.
+        *
+        * The only moment in this app where a word is the whole picture. It is
+        * what turns eighteen cards from a list into a piece with movements, and
+        * it is worth the seconds because at card eleven of a list nobody knows
+        * whether they are near the end.
+        */}
+      {curtain && (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+          /* A dim over the whole picture for the length of the title, in the
+             page's own tone. Not to hide it: a title moment that does not
+             change the light is a caption, and the words have to be the
+             brightest thing on screen for the two seconds they own it. */
+          style={{
+            background: `rgba(${tone}, ${tone}, ${tone}, 0.55)`,
+            animation: 'lesson-fade-dim 2500ms ease-in-out both',
+          }}
+        >
+          <div
+            className={`text-[30px] font-light tracking-[0.16em] uppercase ${ink}`}
+            style={{ animation: 'lesson-curtain 2500ms ease-in-out both' }}
           >
-            {last ? 'Teikn' : 'Neste'}
-          </button>
+            {curtain.title}
+          </div>
+          <div
+            className={`mt-3 text-[13px] tracking-wide ${ink} opacity-55`}
+            style={{ animation: 'lesson-rise 900ms 320ms ease-out both' }}
+          >
+            {curtain.line}
+          </div>
         </div>
+      )}
+
+      {/*
+        * The words, and the wash they stand on.
+        *
+        * The wash is the PAGE's own tone rather than a colour of its own, for
+        * the same reason the lens gate's matting is: it has to read as the
+        * mount the drawing is on and not as a scrim somebody laid over it. It
+        * fades to nothing well before the middle of the screen, so the picture
+        * is never boxed in - which on the five point card is the difference
+        * between seeing the whole sphere and seeing the top of it.
+        *
+        * The whole block is the advance control. Tapping words to turn a page
+        * is the oldest interaction there is, it needs no affordance, and it
+        * leaves every pixel above it live for the drags that half these cards
+        * ask for.
+        */}
+      {/*
+        * THE WASH IS ON A DIV, NOT ON THE BUTTON, and that is not a detail.
+        *
+        * index.html carries `button { background-image: none !important }` -
+        * a rule from the day every control in this app was a glyph on glass
+        * and none of them was allowed to look like a raised key. It is right,
+        * and it silently deleted this gradient: the words came up straight on
+        * the picture with nothing behind them, which on the pages where the
+        * ground is light and the ink is white is a paragraph nobody can read.
+        *
+        * So the wash is a plate and the button sits in it.
+        */}
+      <div
+        className={`absolute inset-x-0 bottom-0 pt-24 pointer-events-none transition-opacity duration-500 ${
+          curtain ? 'opacity-0' : 'opacity-100'
+        }`}
+        style={{
+          background: `linear-gradient(to top, ${wash} 0%, ${wash} 42%, transparent 100%)`,
+        }}
+      >
+      <button
+        onClick={() => {
+          if (curtain) return;
+          if (!last) {
+            setAt((was) => was + 1);
+            return;
+          }
+          // The sheet stays, and the pencil comes back into the hand it was
+          // taken out of. See `restore` above for why this exit is not the
+          // same exit as walking away.
+          restore.current = false;
+          useStore.setState({
+            instrument: 'block',
+            models: held.current?.models ?? [],
+            lamps: held.current?.lamps ?? [],
+          });
+          onDone();
+        }}
+        aria-label={last ? 'Finish the lesson' : 'Next card of the lesson'}
+        className={`w-full pb-safe-lesson px-6 text-left pointer-events-auto ${ink}`}
+      >
+        <div key={`h-${at}`} className="text-[11px] uppercase tracking-[0.2em] opacity-45"
+          style={{ animation: 'lesson-rise 620ms ease-out both' }}>
+          {card.headline}
+        </div>
+        <div key={`b-${at}`} className="mt-2 text-[21px] leading-[1.3] font-light max-w-[30rem]"
+          style={{ animation: 'lesson-rise 700ms 90ms ease-out both' }}>
+          {card.body}
+        </div>
+
+        {/* How far round, how far walked, how far open. Under the instruction
+            it belongs to, growing, and gone the moment it is answered. */}
+        {asking && (
+          <div className={`mt-4 h-px max-w-[30rem] ${dark ? 'bg-white/15' : 'bg-black/12'}`} aria-hidden>
+            <div className="h-px bg-sky-500 transition-[width] duration-200"
+              style={{ width: `${Math.round(progress * 100)}%` }} />
+          </div>
+        )}
+
+        {/* The sentence that was not there a moment ago. It arrives from
+            further down and slower than the rest, because it is the answer and
+            the others were the question. */}
+        {answered && card.found && (
+          <div key={`f-${at}`} className="mt-4 max-w-[30rem]"
+            style={{ animation: 'lesson-arrive 820ms ease-out both' }}>
+            <div className="w-8 h-px bg-sky-500 mb-3" aria-hidden />
+            <div className="text-[19px] leading-[1.34] font-light">{card.found}</div>
+          </div>
+        )}
+
+        <div className={`mt-5 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] ${asking ? 'opacity-30' : 'opacity-70'} transition-opacity duration-500`}>
+          {last ? 'Teikn' : 'Vidare'}
+          <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+            <path d="M5 12h13M13 6l6 6-6 6" />
+          </svg>
+        </div>
+      </button>
       </div>
     </div>
   );
