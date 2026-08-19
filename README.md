@@ -331,6 +331,63 @@ width happened to give was a wall rather than a menu — nothing sat near anythi
 it was related to, and which row a control landed in changed with the phone. A
 band is scanned in one movement and keeps its company at every width.
 
+### A page of cubes to draw
+
+The exercise this whole tool grew out of is a page of unit cubes hanging in
+space, all square to the same three axes, ruled to the same six vanishing
+points. It is the scales of perspective drawing: everything harder is a cube
+with something wrapped round it, and anybody who can put a convincing cube
+anywhere on a curved sheet can put anything anywhere.
+
+What makes it an exercise rather than a doodle is that **every cube shares the
+same points**. One cube drawn well is a lucky guess; twenty drawn to the same
+six points is a construction you either understand or do not, and the page tells
+you which within about four cubes.
+
+One tile on the model shelf, beside the single reference cube, deals one of ten
+arrangements:
+
+| | |
+| --- | --- |
+| **Swarm** | the classic page — every question at once, and therefore the last one worth doing |
+| **Rank** | one direction, nothing else to think about; an error is a cube out of the queue |
+| **Street** | two ranks facing each other: the first field using both horizontal points at once |
+| **Tower** | straight up past the zenith — the family a flat sheet keeps parallel and every curved sheet bends |
+| **Lattice** | three families, evenly spaced, so a cube in the wrong place is *visibly* in the wrong place |
+| **Steps** | a staircase, whose diagonal is not a family at all but the sum of two |
+| **Ring** | at eye level around you, so a third of it is behind you — undrawable on a flat sheet, not badly, *at all* |
+| **Shoal** | nothing touching anything: only the six points to measure against |
+| **Ladder** | one line at doubling distances, halving on the page — a rate you can check with a thumbnail |
+| **Loose** | every cube turned individually. Six points become forty and none are marked. The hard one, labelled as hard. |
+
+**Ten arrangements, not ten random seeds.** A truly random scatter is a worse
+exercise than any of these, and worse in a specific way: it has no *property* to
+check your drawing against. Each of these asks a different question, and the
+scatter — which is the classic page, and is here — asks all of them at once,
+which makes it the last one worth doing rather than the first.
+
+The positions are worked out rather than written down, but worked out the same
+way every time: the jitter is a hash of each cube's own index, so a field looks
+scattered and *is* fixed. Deal the swarm twice and it is the same swarm, which
+is what makes it possible to draw it, put it away, and come back to see whether
+you have got better. It never deals the field you are already drawing.
+
+Two details that took tuning and are the difference between a page and a mess.
+The fields sit between about **2 and 12 metres** — the first draft ran from 3 to
+26 and produced specks along the horizon, which is correct arithmetic and a
+useless exercise, because the tool opens at 210° and a metre cube at ten metres
+is a thumbnail. And stacked cubes are given **a quarter-metre of air**: at
+exactly a metre they touch, and a column of touching cubes is not a column of
+cubes, it is a prism with lines drawn on it — a different and much easier thing
+to draw.
+
+It replaces what is standing there rather than adding to it, because a practice
+field with last session's chair in the middle of it is neither the exercise nor
+the composition — and it takes a history step, so one undo puts the scene back.
+Nothing about the view is touched: not the lens, not the sheet, not the
+projection, not where you are standing. The whole point is to draw the same
+field on several sheets.
+
 ### The lesson
 
 This tool exists because of videos of Kim Jung Gi ruling a sphere on a blank

@@ -276,6 +276,16 @@ export const I = {
   /** Make two of it. */
   duplicate: (<><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" /></>),
 
+  /**
+   * A field of cubes: several, at several depths, sharing their axes.
+   *
+   * Not a grid of squares and not one cube with copies behind it - what has to
+   * read at eight pixels is THREE OF THEM AT DIFFERENT SIZES, because the size
+   * difference is the whole subject. A small one high and far, a large one low
+   * and near, one between.
+   */
+  cubeField: (<><path d="M13.6 3.2 17 4.9v3.4l-3.4 1.7-3.4-1.7V4.9z" strokeOpacity="0.75" /><path d="M10.2 4.9l3.4 1.7 3.4-1.7M13.6 6.6v3.4" strokeOpacity="0.4" /><path d="M6.2 9.4 9 10.8v2.8l-2.8 1.4-2.8-1.4v-2.8z" strokeOpacity="0.6" /><path d="M3.4 10.8 6.2 12.2 9 10.8M6.2 12.2V15" strokeOpacity="0.35" /><path d="M15.4 12.6 20.4 15.1v5l-5 2.5-5-2.5v-5z" /><path d="M10.4 15.1l5 2.5 5-2.5M15.4 17.6v5" strokeOpacity="0.45" /></>),
+
   /** The setup panel, and the light/dark switch. */
   sliders: (<><line x1="2" y1="12" x2="22" y2="12" /><line x1="4" y1="17" x2="20" y2="20" /><line x1="4" y1="7" x2="20" y2="4" /><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" /></>),
   light: (<><circle cx="12" cy="12" r="5" /><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></>),

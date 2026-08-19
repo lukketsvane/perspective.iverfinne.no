@@ -118,6 +118,7 @@ const HINTS: Record<string, string> = {
   // ------------------------------------------------------ the model shelf
   'Add light': 'Set ned ei lyskjelde',
   'Add cube': 'Målekube på ein meter',
+  'Deal a field of cubes to draw': 'Ei side med kassar å teikne',
   'Draw boxes on the ground': 'Teikn kassar: dra grunnflate, dra høgd',
   'Import a mesh into the library': 'Hent inn di eiga fil',
 

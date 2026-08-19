@@ -19,6 +19,7 @@ import {
   setShadowInk,
 } from './lib/inkMaterial';
 import { nextPreset, PRESETS, type Preset } from './lib/presets';
+import { looseTurn, nextField } from './lib/cubeFields';
 import {
   conditionsAt,
   deviceLocation,
@@ -1274,6 +1275,7 @@ export const useStore = create<SceneState>((set, get) => ({
   // below, since the page it floats over is what decides it.
   backgroundGray: OPENING_PAGE.paper,
   presetName: null,
+  fieldName: null,
   currentSceneId: null,
   sceneHistory: [],
   ownMeshes: [],
@@ -1372,6 +1374,50 @@ export const useStore = create<SceneState>((set, get) => ({
    * floor, which is what the snap was for. And it steps around the meshes too:
    * the cell a chair is standing in is not an empty cell.
    */
+  /**
+   * A field of unit cubes to draw, dealt round where you are standing.
+   *
+   * ROUND YOU, not round the origin, because the exercise is what you can see
+   * from where you are - and somebody who has walked twenty metres to get a
+   * composition should not have to walk back to be given something to draw.
+   *
+   * It REPLACES rather than adds. A practice field is a page, not a scene: a
+   * swarm of cubes with the last session's chair standing in the middle of it
+   * is neither the exercise nor the composition, and the undo step this takes
+   * is what makes replacing safe to offer.
+   *
+   * Nothing about the view is touched - not the lens, not the sheet, not the
+   * projection, not where you are standing. Which field you get is the only
+   * thing that changes, and the whole point is to draw the same field on
+   * several sheets.
+   */
+  dealCubeField: () =>
+    set((state) => {
+      const field = nextField(state.fieldName);
+      const stand = { x: walkInput.position.x, z: walkInput.position.z };
+      return {
+        ...remember(state),
+        fieldName: field.name,
+        boxes: field.cubes.map(([x, y, z], at) => ({
+          id: newId(),
+          position: [stand.x + x, y, stand.z + z] as [number, number, number],
+          scale: [UNIT, UNIT, UNIT] as [number, number, number],
+          // Nine of the ten fields share one turn, which is what makes them one
+          // construction; the tenth gives every cube its own, and says so.
+          rotation: [0, field.turn === 0 ? looseTurn(at) : field.turn, 0] as [number, number, number],
+          surface: state.surface,
+        })),
+        // Nothing in hand: a field is something to look at, and a selection
+        // would put a bar over the bottom of it and a cage round one cube.
+        selectedId: null,
+        selectedModelId: null,
+        // The exercise is cubes. A scanned aircraft standing in the middle of
+        // a lattice is not a harder version of the exercise, it is a different
+        // drawing - and it is still on the shelf when it is wanted.
+        models: [],
+      };
+    }),
+
   addCube: (position) =>
     set((state) => {
       const id = newId();
