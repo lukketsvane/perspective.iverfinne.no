@@ -9,79 +9,72 @@ of metres, and it is meant to be legible without reading.
 
 ## The library
 
-Three Norwegian objects — the Ekstrem chair, the Balans Variabel and Il Tempo
-Gigante — true to life as authored. Measured, they come in at the sizes the real
-things are, so anything drawn against one is drawn against a real chair. A knee-
-high thing, a seat-high thing and a six-metre thing: between them they cover the
-range a study needs something known to be measured against.
+One subject and the yard around it. The shelf was three times this size — two
+chairs, a car, four horses, a platypus, three crowded studies of fifteen
+figures each — twenty megabytes of things that were on it because they were
+interesting rather than because this drawing needed them. A shelf is a claim
+about what the tool is for, and what this one is for is the page the tool
+opens on: an aeroplane being worked on, the men working on it, and the
+distances between them.
 
-Then **four horses and a platypus** — the half of the shelf that does not hold
-still. A chair is a box with legs and a car is a long box, and both are things
-you can check a construction against, but neither ever asks the question a body
-asks: how a form behaves when it is not square to anything. A horse is the
-classical answer to that and has been since Uccello — four legs at four
-different depths, a barrel that is a foreshortened cylinder from every angle
-worth drawing, a neck that turns the whole mass. It is what draughtsmen have
-drawn constantly for exactly that reason.
+The **Hughes H-1**, 1935, is the one form here that is a solid of revolution
+with things hung off it. Every vehicle that used to be on the shelf was a long
+box with wheels, which is a box lesson; a racer's fuselage is a lathe-turned
+body tapering in two directions at once, its wings are one aerofoil section
+swept and stretched, and it stands on three points at a nose-up angle, so its
+long axis is off the ground plane as well as off square. Measured, it is 9.7
+across the wings and 8.8 long, standing 3.2 on its own gear with the tail
+down — authored at its real size, placed exactly as it comes. It is also
+nineteen megabytes, four fifths of the shelf on its own; nothing loads until
+it is tapped, so a first visit pays nothing, but it is a real cost to whoever
+taps it and it is the single heaviest thing this tool will ever ask a phone to
+parse.
 
-Four of them, because one horse is a shape and four are a lesson — and each is
-named for the pose it is actually in rather than the pose that would round the
-set off. Trotting, the foal is the plain case and the one to measure the others
-against: four legs at four depths, the barrel square to the spine, nothing
-folded. Lying, it is folded down on itself and the whole barrel is read across
-the back. Leaping, it is off the ground with its forelegs up, so the near
-foreleg comes almost straight at the eye and the perspective does all the work.
-Rising, the adult horse has its hind end still down and its neck already
-vertical, turning the spine through nearly a right angle inside one form: the
-deepest foreshortening on the shelf, and the reason it is here. The
-platypus is not a joke — it is the one thing here with no straight lines and no
-symmetry to lean on, a soft closed form of the kind that has to be drawn by its
-contour and its cross-contour or not at all, which is precisely what the drawn
-surfaces are built to show.
+The **four men** are what turn one aeroplane into an airfield. An aircraft
+alone on an infinite grid is a beautiful object and a poor subject: nothing in
+the frame says how big it is except the ruling, nothing is at a different
+depth from it, and there is no second form to draw its forms against. Four men
+fix all three at once — they are the size every viewer knows best, they stand
+at four separate distances, and not one of them is a shape the aeroplane is.
+Four poses, no two the same drawing problem: two upright with the mass
+stacked, one folded down on one knee, one folded right up on its heels with
+every limb foreshortened at once. They are photogrammetry scans, and they ship
+with the maps and UVs gone entirely and the geometry welded — four of the five
+drawing surfaces are ink and never sample a texture, and the fifth is not
+improved by a photograph of somebody's face. Their sizes were read off a ruled
+post — 1.72 m to the top of a standing cap — because weighing them, which is
+how the animals that used to be here were checked, puts a man in a leather
+flying jacket at four times the volume of the man in a shirt.
 
-They stand at 1.44, 0.9, 1.55, 2.15 and 0.95 metres, which is the animal *in
-that pose*, not the standing height of the species. A couched foal is not as tall as
-a standing one, and telling the grid it was would put a wrong number under every
-measurement taken against it.
-
-Those four numbers were settled **by weight**. A height is easy to argue about
-and easy to be a foot wrong about; the volume a closed mesh encloses is not, and
-at the density of an animal it comes out in kilogrammes. All four meshes are
-watertight, so the divergence theorem gives an exact answer: they displace 92,
-90, 91, 456 and 39 kg. Three foals of the same weight, which is the whole claim
-of having three of them, and a horse in the middle of the 450–550 kg an adult
-riding horse weighs. They shipped once with the leaping foal at 1.35 m and the
-horse at 1.9, which is 60 kg and 314: a foal half the weight of the foal beside
-it, and a pony. The trotting foal's own authored size is 1.5 m, which would have
-made it 104 — a heavier animal than the two it is meant to be the same one as.
-
-Then three **studies**, reconstructed from Kim Jung Gi pages. Each is a single
-sculpted mesh — fifteen figures, the furniture they are on, the animals among
-them, welded into one — so there is nothing in them to take apart and nothing to
-select inside. That is the point: they are not a kit, they are a room to stand
-in and draw, at the density of incident he actually drew at.
-
-A study is a *scene* rather than an object, and the difference is not size, it
-is what you do with it. An object is something you stand a known distance from
-and draw; a scene is something you walk into and draw from inside. So a study
-lands on the origin rather than beside whatever is already there, and it carries
-no construction cage and no vanishing points of its own — one box round fifteen
-figures answers nothing, and its three axes are the world's, which the
-construction sheet already marks. They are placed exactly as authored, like
-everything else here, because measuring them says they already are life size:
-stood at scale 1 with the eye at 1.9 m, the tallest figure's head sits on the
-horizon, which is what a 1.9 m thing does at any distance.
-
-They arrive at about 960,000 triangles and 24 MB each, which is not a thing to
-put on a static site three times over. Shipped, they are decimated to 15 % and
-quantized — 144,000 triangles and 2.6 MB, in line with the three objects — and
-at the size a figure occupies on screen the two are indistinguishable. The
-quantization is `KHR_mesh_quantization`, which three.js reads natively, so
-there is no decoder to ship and no loader to wire up.
+The **three astronauts** are one small character in a bunny-eared spacesuit,
+three times, and a different kind of figure from the men on purpose. The crew
+are anatomy — real proportions, real clothes, the sizes people are. These are
+construction: a body built openly out of spheres, capsules and tubes, which is
+how every figure is blocked in before it is anybody. Drawing the crew is
+drawing what you see; drawing these is drawing the armature itself, and a
+beginner can actually finish one. The poses are three problems the yard does
+not set. Flat on the back with everything in the air is the feet-first
+foreshortening study, the pose every figure course sets and no standing figure
+can teach. The walk is a figure in motion, weight mid-transfer, nothing
+symmetrical. The one with the jetpack is the same body standing still, which
+is the datum the other two are measured against. They are generated meshes
+rather than scans and it shows in the numbers — twenty-five thousand triangles
+apiece, a sixteenth of a scanned crewman, with one flat-colour map and no
+photograph anywhere on them — so unlike the crew they keep their base colour,
+at 1024 like everything else, and drop the normal and metallic-roughness maps
+the way the animals did, with the factors owned in the file: glTF defaults
+metallic to 1, and a fully metallic surface with no environment map draws very
+nearly black. No real size exists for a cartoon, so their heights are chosen
+rather than measured — a metre and a bit standing, 0.9 to the raised mitten
+lying down, which reads as a child beside the 1.72 m crewman and keeps the set
+obviously a character rather than a fifth man. And they face +Z like
+everything here: one arrived facing away and one lying with its feet across
+the ruling, and the quarter turns are baked into the files, same rule as the
+crew, no table of exceptions.
 
 Everything else in the library is yours. The tile beside the reference cube
 takes a file, and what comes in is both placed and **kept** — listed with the
-three from then on, in this browser, so a mesh is imported once and placed as
+shelf from then on, in this browser, so a mesh is imported once and placed as
 often as the drawing wants. An import used to be a one-off: it stood in the
 scene, it was saved with it, and placing it a second time meant finding it on
 disk again.
