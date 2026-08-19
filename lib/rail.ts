@@ -31,8 +31,8 @@ let timer: number | undefined;
  * releaseRail();` on every change of those three - INCLUDING once on mount,
  * with all three false - so anything else that had taken a hold had it dropped
  * out from under it by a panel it has nothing to do with. Nothing noticed while
- * the panels were the only holder; the guided tour is the second, it takes its
- * hold as the app opens, and that mount-time release landed squarely on it.
+ * the panels were the only holder; the second was a guided tour that took its
+ * hold as the app opened, and that mount-time release landed squarely on it.
  *
  * A set, so the count only runs again when the last holder has let go.
  */
@@ -108,9 +108,9 @@ export const releaseRail = (who = 'panel') => {
  * Whether anything has a claim on the chrome, up OR down.
  *
  * Read by the page dealer, which is the one thing in the tool that changes
- * what you are looking at without being asked to. An open panel or a running
- * tour is somebody mid-decision - see lib/autoDeal.ts for why that is a
- * decision the deal has to wait out rather than one it can talk over.
+ * what you are looking at without being asked to. An open panel is somebody
+ * mid-decision - see lib/autoDeal.ts for why that is a decision the deal has
+ * to wait out rather than one it can talk over.
  *
  * A mute counts, and it has to: a lesson is the clearest case in the app of
  * somebody being shown something, and the dealer's only other guard is a few

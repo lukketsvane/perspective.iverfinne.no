@@ -131,11 +131,6 @@ export const I = {
   terminator: (<><path d="M12 3.6c4.6 0 7.4 3.6 7.4 8.4s-2.8 8.4-7.4 8.4S4.6 16.8 4.6 12 7.4 3.6 12 3.6z" strokeOpacity="0.4" /><path d="M13.6 4.1c2.3 4 2.3 11.8 0 15.8" strokeWidth="2.2" /><path d="M16.4 6.4c1.6 3.2 1.6 8 0 11.2" strokeOpacity="0.3" /></>),
 
   /**
-   * Take the tour again: the ring the tour draws round a control, with a
-   * step-marker inside it. Not a question mark - this is not help, it is the
-   * same five cards from the beginning.
-   */
-  /**
    * The lesson: a cube, and the rays from its edges running to a point.
    *
    * The one drawing this whole app is about, reduced to a glyph - a form, and
@@ -143,8 +138,6 @@ export const I = {
    * offered is not a course, it is the thing on the page.
    */
   lesson: (<><path d="M3.4 8.4h17.2" strokeOpacity="0.3" /><circle cx="20.2" cy="8.4" r="1.1" fill="currentColor" stroke="none" /><path d="M5 12.4 20.2 8.4M5 19.4 20.2 8.4M12.4 17.9 20.2 8.4" strokeOpacity="0.3" /><path d="M5 12.4v7l7.4-1.5v-7z" /><path d="M12.4 11.4 16.6 10l-.1 6-4.1 1.9" strokeOpacity="0.6" /></>),
-
-  tour: (<><circle cx="12" cy="12" r="8.4" strokeDasharray="3.6 2.8" /><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none" /></>),
 
   /** The floor itself: a plane running back to the horizon, filled in. */
   ground: (<><path d="M2 20.5 8.4 9h7.2L22 20.5z" fill="currentColor" fillOpacity="0.45" /><line x1="2" y1="6.5" x2="22" y2="6.5" strokeOpacity="0.35" /></>),

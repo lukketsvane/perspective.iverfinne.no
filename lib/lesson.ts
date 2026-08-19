@@ -46,7 +46,7 @@ import type { GuideLevel, PerspectiveMode, SelectionGuide } from '../types';
  * as it first did, and every move between cards takes nearly two seconds. A
  * transformation you can follow is worth four you can only notice.
  *
- * THE CARDS ARE IN NYNORSK, like the tour's and the hints', and for the same
+ * THE CARDS ARE IN NYNORSK, like the hints', and for the same
  * reason: this is the one place in the app where a human is being told
  * something in words rather than shown a mark.
  */
@@ -88,7 +88,7 @@ export interface Stage {
  * differently. Every one of them is also reachable with a thumb on the glass,
  * which rules out anything living two taps down a menu: the one control this
  * lesson asks for that is not the picture itself is the lens, which is on the
- * dock and which the tour already teaches.
+ * dock and says its own name if you hold it.
  */
 export type Gate =
   /** Yaw, accumulated, so turning right round counts however you got there. */

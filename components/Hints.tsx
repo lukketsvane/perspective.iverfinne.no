@@ -22,7 +22,7 @@ import { bubble } from './ui';
  * directly.
  *
  * NOT ONLY DURING THE TOUR. It was asked for as something the tutorial turns
- * on, and it is always on instead: the tour is nine cards you see once on your
+ * on, and it is always on instead: a guided tour is cards you see once on your
  * first visit, and the question this answers - "which of these two is the
  * sphere" - is one you have three weeks later. A gesture that only works
  * inside a mode you have already left is a gesture nobody finds.

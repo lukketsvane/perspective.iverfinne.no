@@ -7,16 +7,21 @@ import { test, expect, fingerprint, hasContrast, same } from './harness';
  * that the harness underneath it works end to end: that a real build got
  * built, that a server came up and is being torn down again, that chromium
  * found a WebGL context worth having, that the opening car stood up, that the
- * tour was suppressed before the app read its own storage, and that the canvas
- * can be read back at all. If this one goes red, nothing else in the suite is
- * worth reading.
+ * page was pinned before the app read its own storage, and that the canvas can
+ * be read back at all. If this one goes red, nothing else in the suite is worth
+ * reading.
  */
 
-test('the app opens, draws, and does not open the tour over it', async ({ app }) => {
-  // The tour is armed on a fresh visit and would be sitting over the top of
-  // the frame. Every other spec assumes it is not there; this is where that
-  // assumption is actually checked.
+test('the app opens and draws, with nothing sitting over it', async ({ app }) => {
+  /*
+   * NOTHING IS OFFERED ON THE WAY IN. There was a guided tour here, armed on
+   * every fresh visit and sitting over the top of the frame; every other spec
+   * assumed it had been suppressed and this is where that assumption was
+   * checked. It is gone, and this is now the guard on it STAYING gone - the
+   * lesson is a thing you ask for, not a thing that arrives.
+   */
   await expect(app.locator('[aria-label="Skip the tour"]')).toHaveCount(0);
+  await expect(app.locator('[aria-label="Leave the lesson"]')).toHaveCount(0);
 
   await expect(app.locator('canvas')).toBeVisible();
   await expect(app.locator('[aria-label="Tools"]')).toBeVisible();

@@ -304,7 +304,7 @@ const pageTheme = (backdrop: Backdrop, backgroundGray: number, surface: Surface)
  * from the production bundle, which is exactly where it cannot be used from:
  * the regression suite runs against a real build. This is a key in storage
  * instead, written before the app's first line of script the same way the
- * tour's flag is, and it survives minification because it is a string rather
+ * lesson's flag is, and it survives minification because it is a string rather
  * than a global.
  *
  * IT IS NOT A DEBUG HATCH ONLY. A deck of pages is a thing you iterate on, and
