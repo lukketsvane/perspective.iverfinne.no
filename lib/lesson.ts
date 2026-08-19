@@ -125,6 +125,36 @@ export interface Sweep {
   surfaces?: PerspectiveMode[];
 }
 
+/**
+ * The four acts, and why a lesson this long needs them.
+ *
+ * Eighteen cards in a row is a list, and a list has no shape: at card eleven
+ * nobody knows whether they are near the end or a third of the way in, and a
+ * viewer who cannot see the shape of a thing cannot tell whether it is going
+ * anywhere. Four titles, held for two and a half seconds over the picture,
+ * turn it into a piece with movements - and each of them names the one thing
+ * its cards are about, so the answer to "why am I being shown this" is on
+ * screen before the showing starts.
+ *
+ * They are also the only full-screen moment in the app, which is what makes
+ * them worth the seconds they cost.
+ */
+export interface Act {
+  /** The card this act opens on. */
+  at: number;
+  /** One or two words, held large over the picture. */
+  title: string;
+  /** The line under it. One sentence: this is a title card, not a card. */
+  line: string;
+}
+
+export const ACTS: Act[] = [
+  { at: 0, title: 'Kula', line: 'Alt du kan sjå, som eit einaste kart' },
+  { at: 4, title: 'Punkta', line: 'Kvar dei kjem frå, og kvifor dei står stille' },
+  { at: 10, title: 'Arka', line: 'Fire flater å fange det same på' },
+  { at: 15, title: 'Handa', line: 'Frå rutenettet til blyanten' },
+];
+
 export interface Card {
   /** Two or three words. The thing this card is about. */
   headline: string;
@@ -362,7 +392,9 @@ export const CARDS: Card[] = [
     body: 'Same scene, fanga på sylinderen. Han held loddlinjene rette og lèt vassrette linjer bue, og no er horisonten ein heil sirkel, med begge punkta til eit knippe på arket samstundes.',
     stage: { cast: 'street', mode: 'cylindrical', fov: 300, guides: 1, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     sweep: { seconds: 40, yaw: [0, Math.PI] },
-    travel: 2600,
+    // The two arrivals are the crescendo of the whole lesson, and a crescendo
+    // taken at the same pace as a scene change is not one.
+    travel: 3400,
   },
   {
     /*
@@ -373,7 +405,7 @@ export const CARDS: Card[] = [
     headline: 'Fem punkt',
     body: 'Og fanga på kula sjølv. Alle retningar ligg på arket: fire punkt rundt horisonten, eitt rett opp, eitt rett ned. Avstand frå midten er vinkelen sjølv, jamt i alle retningar. Dette er arket Kim Jung Gi rular.',
     stage: { cast: 'street', mode: 'equidistant', fov: 360, guides: 2, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
-    travel: 2800,
+    travel: 4200,
   },
   {
     /*

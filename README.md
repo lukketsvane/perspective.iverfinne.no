@@ -471,6 +471,34 @@ transformation you can follow is worth four you can only notice — and the ten
 interactive cards have no clock on them at all, so most of the lesson runs at
 whatever pace you set.
 
+**There is no card, and that is the point.** The first two drafts put the lesson
+in the same glass panel the tour uses: a rounded slab with a border, two pill
+buttons and a row of eighteen dots. It read as a *dialog over an app*, which is
+exactly what it is not, and a dialog is a thing you dismiss. It made the most
+considered part of this tool feel like the most skippable.
+
+So the words sit **on the picture**, over a wash of the page's own tone that
+fades to nothing before the middle of the screen, and the picture runs to every
+edge. One idea at a time, large, arriving rather than appearing. Tap the words to
+go on: that is the whole interface.
+
+Each thing that went, went for a reason. The border and the fill, because they
+drew a box round words that are on a photograph. The two pills, because a row of
+buttons is a form. The eighteen dots, because that is a progress bar pretending
+to be jewellery — it is a hairline across the top of the screen now, which is
+what it always was. And **"Hopp over"**, because an escape hatch in the corner of
+the frame is an invitation to use it. It is still leavable, and has to be: the
+way out is one unlabelled mark in the far corner at a third of an opacity. The
+difference between that and a pill marked *skip* is the difference between a door
+and a sign pointing at a door.
+
+**Four acts, with titles.** Eighteen cards in a row is a list, and a list has no
+shape: at card eleven nobody knows whether they are near the end. **Kula**,
+**Punkta**, **Arka**, **Handa** — each held large over a dimmed picture for two
+and a half seconds, naming the one thing its cards are about. It is the only
+full-screen moment in the app and the only place a single word is the whole
+picture, which is what makes it worth the seconds it costs.
+
 **It is performed rather than illustrated.** No diagrams, because the app is
 already the diagram — it has the four projections, the ruled sphere, a family
 of parallels you can watch converge, and a cube whose own points it will rule
