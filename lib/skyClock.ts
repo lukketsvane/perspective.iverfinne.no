@@ -66,6 +66,20 @@ export const useSkyClock = () => {
      */
     let last = performance.now();
     let frame = 0;
+    /*
+     * COUNTED ON THE FRAME, COMMITTED TEN TIMES A SECOND.
+     *
+     * A store write is not free the way a uniform write is: every component
+     * subscribed to the sky or the sun renders again, and setSky also works
+     * the sun's position out of the ephemeris. Sixty of those a second put a
+     * visible drag on the whole tool - the panel most of all, since watching
+     * the clock run is exactly when it is open. Ten a second moves the sun
+     * 0.004 degrees a step at the default rate, an order below the quarter
+     * degree the dome itself quantises to, so nothing on screen knows the
+     * difference; the frames between commits are accumulated, not dropped.
+     */
+    let carried = 0;
+    let committed = performance.now();
     const run = () => {
       frame = requestAnimationFrame(run);
       const state = useStore.getState();
@@ -73,7 +87,10 @@ export const useSkyClock = () => {
       const now = performance.now();
       const elapsed = now - last;
       last = now;
-      if (!sky.simulate || !sky.running) return;
+      if (!sky.simulate || !sky.running) {
+        carried = 0;
+        return;
+      }
       /*
        * Clamped to a quarter second's worth. A tab in the background gets no
        * frames at all, so a tool put away at four and picked up at nine would
@@ -81,7 +98,11 @@ export const useSkyClock = () => {
        * the point, the moving sun is. Coming back to five o'clock is a truer
        * answer than being shown a smeared sunset.
        */
-      state.setSky({ time: sky.time + Math.min(elapsed, 250) * sky.rate });
+      carried += Math.min(elapsed, 250) * sky.rate;
+      if (now - committed < 100) return;
+      committed = now;
+      state.setSky({ time: sky.time + carried });
+      carried = 0;
     };
     frame = requestAnimationFrame(run);
 

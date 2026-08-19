@@ -872,7 +872,11 @@ const readSky = (stored: Partial<SkyState> | undefined, keepTime = false): SkySt
     simulate: yes(stored?.simulate, DEFAULT_SKY.simulate),
     time: !keepTime && Math.abs(Date.now() - time) > DAY ? Date.now() : time,
     running: yes(stored?.running, DEFAULT_SKY.running),
-    rate: take(stored?.rate, DEFAULT_SKY.rate, 1, 7200),
+    // Not read back: the rate knob is gone from the panel, so a stored rate is
+    // a value nothing can change any more. Ten minutes a second is the one
+    // that makes a shadow move at about the speed a shadow looks like it
+    // should, and it is now the rate, not the default.
+    rate: DEFAULT_SKY.rate,
     latitude: take(stored?.latitude, DEFAULT_SKY.latitude, -90, 90),
     longitude: take(stored?.longitude, DEFAULT_SKY.longitude, -180, 180),
     located: yes(stored?.located, DEFAULT_SKY.located),

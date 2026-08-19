@@ -57,7 +57,11 @@ not set. Flat on the back with everything in the air is the feet-first
 foreshortening study, the pose every figure course sets and no standing figure
 can teach. The walk is a figure in motion, weight mid-transfer, nothing
 symmetrical. The one with the jetpack is the same body standing still, which
-is the datum the other two are measured against. They are generated meshes
+is the datum the other two are measured against. Two of them also stand in
+the lesson now: the walker is the metre mark on the measuring-stick card, a
+height you read off a character you have met rather than off a labelled box,
+and the one on his back is lying beside the last card's cube, cheering,
+because you have just been handed the sheet. They are generated meshes
 rather than scans and it shows in the numbers — twenty-five thousand triangles
 apiece, a sixteenth of a scanned crewman, with one flat-colour map and no
 photograph anywhere on them — so unlike the crew they keep their base colour,
@@ -433,7 +437,7 @@ the horizon rather than guessed.
 | **Kva fangar du det på?** | the same scene, same spot, stepping plane → cylinder → sphere |
 | **Hovudpunktet og horisonten** | *do it*: turn, and see which two marks refuse to move |
 | **Alt i di eiga høgd** | *do it*: four posts of exactly your own height, three metres out and forty — the line cuts every one of them at the top |
-| **Linja er ein målestokk** | a desk, a child, a car, a door: read their heights off where the line crosses them |
+| **Linja er ein målestokk** | a desk, the astronaut at his one metre, a car, a door: read their heights off where the line crosses them |
 | **Auget flyttar seg med deg** | the eye slides from a crouch to a stretch while nothing on the floor moves |
 | **Parallelle linjer møtest** | a rank of cubes, and *why* the point exists — as a limit, not a rule |
 | **Punktet flyttar seg ikkje** | *do it*: walk, and watch the point refuse to move |
@@ -448,7 +452,7 @@ the horizon rather than guessed.
 | **Ei kasse har seks** | *do it*: turn slowly and count the ringed points |
 | **Rul arket først** | the 15° meridians, and what you sight against them |
 | **Sikt langs kurvene** | *do it*: follow one upright edge round and watch it hold its meridian |
-| **Teikn ei sjølv** | the pencil, on the sheet you have just been given |
+| **Teikn ei sjølv** | the pencil, on the sheet you have just been given — and the astronaut flat on his back, cheering |
 
 **Eleven of the twenty-two are done by you, not shown to you.** The first draft ran
 the whole thing as a performance, and it was a film — correct, watchable, and
@@ -1103,21 +1107,44 @@ a moment and the sun goes and stands where the sun actually stands:
   position is the NOAA solar equations — a hundredth of a degree over any date
   this tool will see — and it is checkable by eye: at Greenwich at noon the sun
   is due south.
-- **A clock that runs.** Real time is in the rate list and is nearly useless to
-  watch, the sun crossing a quarter of a degree a minute — but it is the only
-  rate at which the picture is *true*, and a simulation that cannot be set to
-  true is a toy. The ones worth watching are between: a minute a second walks
-  the light across an afternoon while you draw, an hour a second runs a whole
-  day in half a minute.
+- **A clock that runs**, at ten minutes a second — the rate at which a shadow
+  crosses a courtyard at about the speed a shadow looks like it should. It had
+  a speed knob of its own once, six rates deep; a knob for how fast a
+  rehearsal plays is a setting about a setting, and it went in the cull below.
+  The moment still advances every animation frame so the motion is continuous,
+  but it is *committed* to the store ten times a second, because a store write
+  re-renders everything subscribed to the sky and sixty of those a second was
+  a drag you could feel with the panel open — and ten a second moves the sun
+  an order of magnitude less than the quarter degree the dome itself
+  quantises to.
 - **The real weather.** Cloud cover, how high the deck sits and what the wind is
   doing to it, fetched from a public hourly forecast for that place and that
   hour. One fetch covers two days back and three forward, so scrubbing across an
   afternoon reads hour after hour out of what is already in hand rather than
   asking again — and a sky left up on a desk asks again every half hour, so it
-  goes on being the sky outside. Put a hand on any of those four numbers and it
-  stops calling itself live: a reading you have overwritten is a sky you
-  composed, and a panel that goes on claiming otherwise is lying about where its
-  numbers came from.
+  goes on being the sky outside. What the finger reaches is one axis, clear to
+  overcast: cover follows it, and the deck's height and the wind ride along,
+  because that is how the three arrive together in the world — fair-weather
+  puffs sit high in light air, stratus sits low in a blow. The forecast still
+  writes all four raw numbers underneath, so a live sky is as exact as it ever
+  was. Put a hand on the axis and it stops calling itself live: a reading you
+  have overwritten is a sky you composed, and a panel that goes on claiming
+  otherwise is lying about where its numbers came from.
+
+**The pane was fifteen controls and is eight.** Beside the rate knob and the
+weather's three extra scrubs, the cull took the fetch seat (the location pin
+already snaps the hour to now and fetches the conditions — the second seat was
+the same press wearing its own button), the star knob and the constellation
+toggle (the stars are always up there, and they show exactly when the air or
+the daylight stops drowning them, which no knob says better than the sky
+itself), and the four dead scrubs the key light showed while the sky was
+aiming it. Nothing the picture could do went with them. The same pass gave the
+deck a fast exit, twice over: the low deck's field — ten noise reads a pixel —
+sits behind a uniform branch now and is skipped entirely under a clear sky,
+where every one of those reads used to end in a zero, into all six faces of
+the panorama's cube; and when every layer of the dome comes to nothing at once
+(a vacuum, or a clear day before dusk with no veil) the mesh is not drawn at
+all.
 
 **Cover is not a dimmer.** It moves the deck overhead, which throws its own
 shadows across the scene; and it changes the sun underneath, which gets weaker

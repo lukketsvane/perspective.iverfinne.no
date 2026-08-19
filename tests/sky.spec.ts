@@ -97,7 +97,7 @@ const lookUp = async (page: Parameters<typeof openTools>[0]) => {
 };
 
 /**
- * How much of the top of the frame is lit at all.
+ * What the top of the frame holds: how many pixels are lit, and where.
  *
  * Deliberately NOT the harness's fingerprint, which averages the canvas into
  * thirty-six cells: eight thousand stars are eight thousand marks a pixel and a
@@ -106,47 +106,59 @@ const lookUp = async (page: Parameters<typeof openTools>[0]) => {
  * fifty-five. An assertion that fine is one that passes by luck, and it did,
  * twice, before it failed for no reason at all.
  *
- * Counting lit pixels is the honest measurement for this one claim, and it is
- * only available because of what the claim IS: with the air turned off there is
- * no sky, so above the horizon the frame is pure black and every lit pixel up
- * there is a star.
+ * Counting lit pixels is the honest measurement, and it is only available
+ * because of what the claim IS: with the air turned off there is no sky, so
+ * above the horizon the frame is pure black and every lit pixel up there is a
+ * star. The positions are folded into a hash as well, because the second claim
+ * is about where they stand.
  */
-const litSky = (page: Parameters<typeof openTools>[0]) =>
+const starPrint = (page: Parameters<typeof openTools>[0]) =>
   page.evaluate(() => {
     const canvas = document.querySelector('canvas') as HTMLCanvasElement;
     const copy = document.createElement('canvas');
     copy.width = canvas.width;
     copy.height = canvas.height;
     const paper = copy.getContext('2d');
-    if (!paper) return 0;
+    if (!paper) return { lit: 0, hash: 0 };
     paper.drawImage(canvas, 0, 0);
     const band = paper.getImageData(0, 0, copy.width, Math.floor(copy.height * 0.4)).data;
     let lit = 0;
+    let hash = 0;
     for (let at = 0; at < band.length; at += 4) {
-      if (Math.max(band[at], band[at + 1], band[at + 2]) > 8) lit++;
+      if (Math.max(band[at], band[at + 1], band[at + 2]) > 8) {
+        lit++;
+        hash = (hash * 31 + at) >>> 0;
+      }
     }
-    return lit;
+    return { lit, hash };
   });
 
-test('with no air the stars are out at midday', async ({ app }) => {
+test('with no air the stars are out at midday, and they turn with the clock', async ({ app }) => {
   await putALongLensOn(app);
   await openTheSky(app);
   expect(await nudge(app, 'Air:', -400)).toContain('vacuum');
   await lookUp(app);
   await settled(app);
 
-  const out = await litSky(app);
-  expect(out, 'Nothing at all was drawn above the horizon.').toBeGreaterThan(20);
-
-  // Nothing about the light changes here - only whether the catalogue is drawn.
-  expect(await nudge(app, 'Stars:', -400)).toContain('off');
-  await settled(app);
+  const before = await starPrint(app);
+  expect(before.lit, 'Nothing at all was drawn above the horizon.').toBeGreaterThan(20);
 
   /*
-   * And with them off it is not merely dimmer, it is EMPTY. There is no sky in
-   * a vacuum, so what is left above the horizon is the black the frame was
-   * cleared to - which is the whole of the claim, and the reason this is a
-   * count and not a comparison.
+   * And they are the CATALOGUE, which is proved by turning the clock: the sky
+   * is aimed by the hour, so hours move every star at once, along circles
+   * round the pole. There used to be a knob that turned the stars off and the
+   * proof was that the sky went empty; the knob went in the great cull of
+   * settings, and this is the stronger claim anyway - an artefact that
+   * happens to put light in the top of the frame does not also rotate it
+   * about the celestial pole on demand.
    */
-  expect(await litSky(app), 'The sky was not empty with the catalogue off.').toBe(0);
+  await find(app, 'anywhere', 'Aim the sun from a place and a moment').click();
+  await drag(app, 'Time of day', 220, { steps: 2 });
+  await settled(app);
+
+  const after = await starPrint(app);
+  expect(after.lit, 'The sky emptied when the clock moved.').toBeGreaterThan(20);
+  expect(after.hash, 'Hours passed and no star moved: the catalogue is not turning.').not.toBe(
+    before.hash
+  );
 });

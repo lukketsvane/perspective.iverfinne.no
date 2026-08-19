@@ -44,11 +44,11 @@ const Knobs: React.FC<{
    * Whether these four numbers are being worked out rather than set.
    *
    * A simulated sun's bearing, height, strength and colour are all readings -
-   * they say where the sun IS over that place at that moment. The knobs still
-   * show them, because they are the clearest statement of what the light is
-   * doing that this panel can make, and they go dead, because a knob that
-   * silently loses its value the moment you let go is worse than one that
-   * plainly is not yours to turn.
+   * they say where the sun IS over that place at that moment. They used to
+   * stay up, dimmed, as the clearest statement of what the light was doing;
+   * four dead scrubs turned out to be four controls in the way on a phone, so
+   * now they leave, and the sky pane - the place those numbers are actually
+   * being decided - is their statement.
    */
   reading?: boolean;
 }> = ({ light, dark, onChange, shadows = false, aimed = true, reading = false }) => {
@@ -57,7 +57,12 @@ const Knobs: React.FC<{
     // Wrapping: five knobs at their smallest are a whisker over a 320 px
     // screen, and a knob pushed off the edge is not a knob.
     <div className="flex flex-wrap items-center justify-center gap-1">
-      <div className={`flex flex-wrap items-center justify-center gap-1 ${reading ? 'opacity-40 pointer-events-none' : ''}`}>
+      {/* While the sky is aiming this light the four numbers are its readings,
+          not yours, and four dead scrubs were four controls to read past on a
+          phone. The pane above is where those numbers are being decided; what
+          is left here is the one thing still yours to set. */}
+      {!reading && (
+      <div className="flex flex-wrap items-center justify-center gap-1">
         <Scrub
           skin={skin}
           icon={I.bearing}
@@ -106,6 +111,7 @@ const Knobs: React.FC<{
           onChange={(temperature) => onChange({ temperature })}
         />
       </div>
+      )}
       {/* Outside the dead block on purpose: whether and how the shadows fall
           is a drawing decision, and it stays yours under a simulated sun. */}
       {shadows && (
@@ -174,34 +180,34 @@ const dateReading = (time: number) => {
 };
 
 /**
- * How fast the sky runs.
+ * What one number of weather means, in the three the picture actually has.
  *
- * Real time is in the list and is nearly useless to look at - the sun crosses
- * a quarter of a degree a minute - but it is the only rate at which the
- * picture is TRUE, and a simulation that cannot be set to true is a toy. The
- * rest are the ones worth watching: a minute a second walks the light across
- * an afternoon while you draw, an hour a second runs a whole day in half a
- * minute, and the two between are the ones that make a shadow move at about
- * the speed a shadow looks like it should.
+ * There were four knobs here - cover, cloud base, wind speed, wind bearing -
+ * and they were four ways of asking one question, which is how rough a day it
+ * is. So it is one axis now, clear to overcast, and the other numbers ride
+ * it: a heavier sky is a lower deck (scattered fair-weather puffs sit high,
+ * stratus sits low) and a windier one, because that is how the three arrive
+ * together in the world. The bearing keeps whatever the forecast or the
+ * default last said - a direction is scenery, not weather. And the real
+ * forecast still writes all four raw numbers underneath, so a live sky is as
+ * exact as it ever was; this axis is only what the FINGER reaches.
  */
-const RATES = [1, 60, 300, 600, 1800, 3600];
+const weatherFor = (cover: number) => ({
+  cover,
+  base: Math.round(8200 - 6400 * cover),
+  wind: Math.round((2 + 12 * cover) * 10) / 10,
+});
 
-const rateReading = (rate: number) => {
-  if (rate <= 1) return 'real time';
-  if (rate < 3600) return `${Math.round(rate / 60)} min/s`;
-  return `${(rate / 3600).toFixed(rate % 3600 === 0 ? 0 : 1)} h/s`;
-};
-
-/** Which way a bearing is, said in the eight points anybody can picture. */
-const POINTS = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'];
-const pointOf = (bearing: number) => POINTS[Math.round((((bearing % 360) + 360) % 360) / 45) % 8];
-
-const OBSERVED_LABEL: Record<SkyState['observed'], string> = {
-  off: 'Fetch the real conditions here',
-  asking: 'Asking what the sky is doing',
-  live: 'These are the real conditions here',
-  failed: 'The conditions could not be fetched - try again',
-};
+const weatherReading = (cover: number) =>
+  cover < 0.05
+    ? 'Klårt'
+    : cover < 0.35
+      ? `Lettskya ${Math.round(cover * 100)} %`
+      : cover < 0.7
+        ? `Halvskya ${Math.round(cover * 100)} %`
+        : cover < 0.92
+          ? `Skya ${Math.round(cover * 100)} %`
+          : 'Overskya';
 
 /**
  * The sky: a place, a moment, and what the sky over that place is doing.
@@ -231,7 +237,6 @@ const SkyKnobs: React.FC<{ sky: SkyState; dark: boolean }> = ({ sky, dark }) => 
   const skin = { dark, touch: true };
   const setSky = useStore((s) => s.setSky);
   const locateSky = useStore((s) => s.locateSky);
-  const observeSky = useStore((s) => s.observeSky);
   const drawn = useStore((s) => s.sunEnvironment);
   const drawSky = useStore((s) => s.toggleSunEnvironment);
 
@@ -274,6 +279,9 @@ const SkyKnobs: React.FC<{ sky: SkyState; dark: boolean }> = ({ sky, dark }) => 
             wrap
             onChange={(day) => setSky({ time: withDay(sky.time, day) })}
           />
+          {/* Runs at ten minutes a second - the rate a moving shadow reads
+              at. It had a knob of its own; a knob for how fast a rehearsal
+              plays is a setting about a setting, and it went in the cull. */}
           <button
             onClick={() => setSky({ running: !sky.running })}
             aria-label={sky.running ? 'Stop the clock' : 'Let the hour run'}
@@ -282,27 +290,17 @@ const SkyKnobs: React.FC<{ sky: SkyState; dark: boolean }> = ({ sky, dark }) => 
           >
             <Icon path={sky.running ? I.pause : I.play} className="w-5 h-5" />
           </button>
-          <Scrub
-            skin={skin}
-            icon={I.rate}
-            label="How fast the hour runs"
-            reading={rateReading(sky.rate)}
-            value={sky.rate}
-            min={1}
-            max={3600}
-            step={1}
-            cycle={RATES}
-            onChange={(rate) => setSky({ rate })}
-          />
           {/* The pin is what turns somebody else's sky into yours: a real fix,
-              the hour set to now, and the forecast for it fetched in one
-              press. It is the only control here that asks the browser for a
-              permission, which is why it is a press and never a default. */}
+              the hour set to now, and the real conditions over it fetched, all
+              in one press. Fetching used to be a second seat beside this one,
+              and it was this press's second half wearing its own button. It is
+              the only control here that asks the browser for a permission,
+              which is why it is a press and never a default. */}
           <button
             onClick={() => void locateSky()}
             aria-label={sky.located ? 'Using where this device is' : 'Use where this device is'}
             aria-pressed={sky.located}
-            className={seat(sky.located)}
+            className={`${seat(sky.located)} ${sky.observed === 'failed' ? '!text-red-500' : ''}`}
           >
             <Icon path={I.place} className="w-5 h-5" />
           </button>
@@ -321,27 +319,13 @@ const SkyKnobs: React.FC<{ sky: SkyState; dark: boolean }> = ({ sky, dark }) => 
         >
           <Icon path={I.air} className="w-5 h-5" />
         </button>
-        <button
-          onClick={() => void observeSky(true)}
-          aria-label={OBSERVED_LABEL[sky.observed]}
-          aria-pressed={sky.observed === 'live'}
-          className={`${iconButton(dark)} ${
-            sky.observed === 'live'
-              ? ACTIVE
-              : sky.observed === 'failed'
-                ? '!text-red-500'
-                : sky.observed === 'asking'
-                  ? 'opacity-70'
-                  : 'opacity-40'
-          }`}
-        >
-          <Icon path={I.observe} className="w-5 h-5" />
-        </button>
         {/*
           * HOW MUCH AIR, which is the other perspective and not a weather
           * reading - the forecast has nothing to say about it. At the bottom
           * of it there is none at all: black sky, stars at noon, a hard white
-          * sun and nothing filling the shadows, which is the moon.
+          * sun and nothing filling the shadows, which is the moon. The stars
+          * need no knob for the same reason: they are always up there, and
+          * they show exactly when the air or the daylight stops drowning them.
           */}
         <Scrub
           skin={skin}
@@ -363,69 +347,18 @@ const SkyKnobs: React.FC<{ sky: SkyState; dark: boolean }> = ({ sky, dark }) => 
           accent={sky.air <= 0.001}
           onChange={(air) => setSky({ air })}
         />
-        <Scrub
-          skin={skin}
-          icon={I.stars}
-          label={`Stars: ${sky.stars <= 0.001 ? 'off' : `${Math.round(sky.stars * 100)}%`}`}
-          reading={sky.stars <= 0.001 ? 'Av' : `${Math.round(sky.stars * 100)}%`}
-          value={sky.stars}
-          min={0}
-          max={1}
-          step={0.02}
-          onChange={(stars) => setSky({ stars })}
-        />
-        <button
-          onClick={() => setSky({ figures: !sky.figures })}
-          aria-label="Constellation figures"
-          aria-pressed={sky.figures}
-          className={`${iconButton(dark)} ${sky.figures ? ACTIVE : 'opacity-40'}`}
-        >
-          <Icon path={I.figures} className="w-5 h-5" />
-        </button>
+        {/* One axis of weather, clear to overcast. See weatherFor above for
+            where the other three numbers went. */}
         <Scrub
           skin={skin}
           icon={I.cover}
-          label="How much of the sky is covered"
-          reading={`${Math.round(sky.cover * 100)}%`}
+          label={`Weather: ${weatherReading(sky.cover)}`}
+          reading={weatherReading(sky.cover)}
           value={sky.cover}
           min={0}
           max={1}
           step={0.01}
-          onChange={(cover) => setSky({ cover })}
-        />
-        <Scrub
-          skin={skin}
-          icon={I.cloudBase}
-          label="How high the cloud sits"
-          reading={`${Math.round(sky.base / 100) * 100} m`}
-          value={sky.base}
-          min={200}
-          max={12000}
-          step={50}
-          onChange={(base) => setSky({ base })}
-        />
-        <Scrub
-          skin={skin}
-          icon={I.wind}
-          label="Wind"
-          reading={`${sky.wind.toFixed(1)} m/s`}
-          value={sky.wind}
-          min={0}
-          max={40}
-          step={0.1}
-          onChange={(wind) => setSky({ wind })}
-        />
-        <Scrub
-          skin={skin}
-          icon={I.bearing}
-          label="Which way the wind comes from"
-          reading={`${pointOf(sky.windBearing)} ${Math.round(sky.windBearing)}°`}
-          value={sky.windBearing}
-          min={0}
-          max={360}
-          step={1}
-          wrap
-          onChange={(windBearing) => setSky({ windBearing })}
+          onChange={(cover) => setSky(weatherFor(cover))}
         />
       </div>
     </div>

@@ -280,8 +280,13 @@ const CLOUD_FRAGMENT = /* glsl */ `
     }
 
     /*
-     * THE DECK.
+     * THE DECK. Behind a uniform branch, because the field below is ten noise
+     * reads per pixel and a clear sky - where uOpacity is zero and every one
+     * of those reads ends in a zero - still paid for all of them, into all
+     * six faces of the panorama's cube. The veil above keeps the clear sky
+     * from being empty; the deck has no such duty.
      */
+    if (uOpacity > 0.002) {
     float reach = uBase / ray.y;
     vec2 hit = (cameraPosition.xz + ray.xz * reach) / uScale + uDrift;
 
@@ -377,6 +382,7 @@ const CLOUD_FRAGMENT = /* glsl */ `
       float rim = hg(dot(ray, uSun), 0.82) * 0.22 * (1.0 - density * 0.5);
 
       over(colour, alpha, mix(uShade, uLit, lit) + uLit * rim, density);
+    }
     }
 
     if (alpha <= 0.002) discard;
@@ -548,6 +554,17 @@ const CloudDeck: React.FC = () => {
     // The twilight palettes are scattered light as well, so they go with it.
     uniforms.uHaze.value = airy;
 
+    /*
+     * A deck with nothing in it is not drawn at all.
+     *
+     * The fragment is five octaves of value noise per pixel and the panorama
+     * renders it into six cube faces - so a clear midday sky, where every one
+     * of its layers comes to zero and every fragment ends in the discard, was
+     * the single most expensive way this scene had of drawing nothing.
+     */
+    dome.visible =
+      uniforms.uOpacity.value + uniforms.uCirrus.value + uniforms.uDusk.value + uniforms.uNight.value >
+      0.004;
   });
 
   return (
