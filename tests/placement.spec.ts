@@ -63,9 +63,15 @@ const pairs = <T,>(items: T[]): [T, T][] =>
  *
  * The tiles disable themselves while anything is loading, so "clicked" is not
  * "placed" and the next tap would be swallowed. A placed mesh selects itself,
- * and the export control on the selection bar is mounted only when a model is
- * selected - not merely faded, mounted - so its presence is a real gate rather
- * than the sleep it replaces.
+ * and the size lock on the selection bar is mounted only when a MODEL is
+ * selected - a box gets an axis stepper in that slot instead - not merely
+ * faded, mounted, so its presence is a real gate rather than the sleep it
+ * replaces.
+ *
+ * It used to be the scaled-mesh export that stood here, for the same reason.
+ * That control has gone: it was the one seat on that bar that was not about
+ * the drawing at all, and the scene file already carries every mesh at its
+ * placed size.
  *
  * The cylinder rather than one of the meshes on the shelf because it is built
  * in code (primitive:cylinder) instead of fetched: a metre round, a metre tall,
@@ -74,7 +80,7 @@ const pairs = <T,>(items: T[]): [T, T][] =>
  */
 const placeCylinder = async (page: Page) => {
   await clickIn(page, 'anywhere', 'Cylinder');
-  await expect(page.locator('[aria-label="Export this mesh at its current size"]')).toBeAttached();
+  await expect(page.locator('[aria-label="Lock the size"]')).toBeAttached();
   await expect(find(page, 'anywhere', 'Add cube')).toBeEnabled();
 };
 
