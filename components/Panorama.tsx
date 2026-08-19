@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { fieldOf, lensOfFrame, rectilinearTangents, stereographicAngle } from '../lib/projection';
+import { exposureOf, fieldOf, lensOfFrame, rectilinearTangents, stereographicAngle } from '../lib/projection';
 import { useStore } from '../store';
 import { registerFrameRenderer } from '../lib/capture';
 import { sceneRevision } from '../lib/sceneRevision';
@@ -481,6 +481,30 @@ export const Panorama: React.FC<{
         dofFocus: { value: 0 },
         dofGain: { value: 0 },
         dofMaxLod: { value: 5 },
+        /*
+         * THE STOP, AND WHY IT IS HERE AND NOT ON THE RENDERER.
+         *
+         * three applies its tone mapping in each material's own shader, and it
+         * applies it ONLY when the material is being drawn straight to the
+         * canvas: rendering into a target sets NoToneMapping, on the reasoning
+         * that a target is an intermediate and should stay linear. Every pixel
+         * this app draws goes into a target first. So the renderer's
+         * toneMappingExposure - set, dutifully, from the shutter, the aperture
+         * and the ISO - was being read by nothing at all, and the camera's
+         * exposure triangle was three knobs that moved a number in a readout
+         * and changed the picture not at all.
+         *
+         * This pass is the one that reaches the canvas. The stop belongs here.
+         *
+         * Zero means "no lens", and no lens means the picture is left exactly
+         * as it was drawn: a drawing tool's paper is paper white, and running
+         * a filmic curve over a diagram nobody asked to photograph would take
+         * every sheet in the app down to eighty per cent grey. Arm a lens and
+         * it becomes a photograph, with a photograph's stop and a photograph's
+         * shoulder - which is a change you can see, at the moment you ask for
+         * a camera, which is the moment to show it.
+         */
+        exposure: { value: 0 },
       },
       vertexShader: `
         varying vec2 vUv;
@@ -509,6 +533,7 @@ export const Panorama: React.FC<{
         uniform float dofFocus;
         uniform float dofGain;
         uniform float dofMaxLod;
+        uniform float exposure;
         varying vec2 vUv;
 
         const float PI = 3.14159265359;
@@ -678,6 +703,35 @@ export const Panorama: React.FC<{
           }
 
           gl_FragColor = offSheet ? vec4(surround, 1.0) : sampled;
+
+          /*
+           * THE FILM.
+           *
+           * A SHOULDER, NOT A WHOLE FILM CURVE, and the difference is the
+           * promise the base setting makes.
+           *
+           * The obvious thing here is ACES, which is what three would apply if
+           * it applied anything - and it was tried, and it was wrong. ACES is
+           * built for scene-referred radiance and it moves EVERYTHING: middle
+           * grey lifts, paper white lands at three quarters, and a tool whose
+           * subject is a white sheet with lines on it came out washed. Arming
+           * a lens at the setting it arms on is supposed to change nothing.
+           *
+           * So: below the knee, identity, exactly the picture the tool drew.
+           * Above it, an exponential roll toward one, tangent to the identity
+           * at the knee so there is no visible corner. Highlights bend over
+           * instead of clipping, which is the one thing a photograph does that
+           * a diagram does not - three stops over reads as a blown sky with
+           * its gradient still in it, rather than as one flat white shape with
+           * the cloud dissolved into it.
+           */
+          if (exposure > 0.0) {
+            const float knee = 0.72;
+            vec3 c = gl_FragColor.rgb * exposure;
+            vec3 over = knee + (1.0 - knee) * (1.0 - exp(-(c - knee) / (1.0 - knee)));
+            gl_FragColor.rgb = mix(c, over, step(vec3(knee), c));
+          }
+
           #include <colorspace_fragment>
 
           // The construction sheet, drawn where it belongs - on the sphere,
@@ -974,6 +1028,19 @@ export const Panorama: React.FC<{
     } else {
       uniforms.dofGain.value = 0;
     }
+
+    /*
+     * ...and the stop, which is nothing but the three dials.
+     *
+     * Clamped at both ends, because the dials reach further than a picture
+     * does: thirty seconds at ISO 25600 wide open is nine stops over, which is
+     * a white rectangle and not a lesson. Six stops either way is the range in
+     * which the picture is still a picture, and past it the readout goes on
+     * telling the truth about what was asked for.
+     */
+    uniforms.exposure.value = lens.on
+      ? Math.min(64, Math.max(1 / 64, exposureOf(lens)))
+      : 0;
 
     const was = drawnAt.current;
     const moved =

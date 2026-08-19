@@ -157,6 +157,33 @@ export const sunlight = (elevation: number, cover: number) => {
   };
 };
 
+/**
+ * WHERE THE STARS ARE, which is a rotation and nothing else.
+ *
+ * A star field that is a texture pasted on a dome is a wallpaper: it does not
+ * turn, it does not know what latitude it is at, and the pole is wherever the
+ * artist put it. This tool already knows the place and the moment, so it can
+ * do the real thing for the cost of one matrix.
+ *
+ * The whole of it: the celestial sphere turns once a sidereal day about an
+ * axis that points north and stands at an altitude equal to your latitude. So
+ * build the rotation that takes the scene's own frame to a frame whose +Y is
+ * that axis, spin it by the local sidereal time, and hash the stars in THAT
+ * frame. Everything else follows for free and correctly - Polaris sits at your
+ * latitude, stars rise in the east and set in the west, the pole is overhead at
+ * the pole and on the horizon at the equator, and at Bergen in January the
+ * winter sky is the winter sky.
+ *
+ * Greenwich mean sidereal time is the same polynomial the solar position uses,
+ * which is why it is here and not somewhere with its own copy of the epoch.
+ */
+export const siderealAngle = (at: Date, longitude: number) => {
+  const days = at.getTime() / 86400000 + UNIX_JULIAN - J2000;
+  const hours = 18.697374558 + 24.06570982441908 * days;
+  const local = (((hours % 24) + 24) % 24) + longitude / 15;
+  return (local / 24) * Math.PI * 2;
+};
+
 /* ------------------------------------------------------------- the weather */
 
 /** What the sky over a place was doing at one hour. */

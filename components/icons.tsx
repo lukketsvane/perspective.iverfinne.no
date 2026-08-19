@@ -39,6 +39,16 @@ export const I = {
   /** The aperture: the blades of an iris, part closed. */
   aperture: (<><circle cx="12" cy="12" r="8.6" /><path d="M12 3.4 7.2 18.2M20.2 9.2 4.8 12.6M17.6 18.9 6.7 7.4" strokeOpacity="0.55" /><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" fillOpacity="0.35" /></>),
 
+  /** The shutter: two curtains, one part drawn across the frame. */
+  shutter: (<><rect x="2.6" y="5" width="18.8" height="14" rx="1.4" /><path d="M2.6 9.6h18.8" strokeOpacity="0.8" /><path d="M2.6 14.4h18.8" strokeOpacity="0.35" /><path d="M6 5v4.6M12 5v4.6M18 5v4.6" strokeOpacity="0.4" /></>),
+
+  /** Sensitivity: grain, getting coarser up the scale. */
+  iso: (<><rect x="2.6" y="5" width="18.8" height="14" rx="1.4" strokeOpacity="0.6" /><circle cx="7" cy="9" r="0.5" fill="currentColor" stroke="none" /><circle cx="10.5" cy="12" r="0.6" fill="currentColor" stroke="none" /><circle cx="8" cy="15" r="0.9" fill="currentColor" stroke="none" /><circle cx="14" cy="8.6" r="1" fill="currentColor" stroke="none" /><circle cx="16.5" cy="13" r="1.4" fill="currentColor" stroke="none" /><circle cx="12.5" cy="16" r="1.7" fill="currentColor" stroke="none" /></>),
+
+  /** The meter: a needle on a scale, centred or free. */
+  meter: (<><path d="M3.4 17.4a9.4 9.4 0 0 1 17.2 0" /><path d="M12 17.4 16.4 9.8" /><circle cx="12" cy="17.4" r="1.3" fill="currentColor" stroke="none" /><path d="M6.6 12.4l.9.9M12 9.8V8.6M17.4 12.4l-.9.9" strokeOpacity="0.45" /></>),
+  meterAuto: (<><path d="M3.4 17.4a9.4 9.4 0 0 1 17.2 0" /><path d="M12 17.4V9.8" /><circle cx="12" cy="17.4" r="1.3" fill="currentColor" stroke="none" /><path d="M6.6 12.4l.9.9M17.4 12.4l-.9.9" strokeOpacity="0.45" /><circle cx="12" cy="8.4" r="1.5" strokeOpacity="0.8" /></>),
+
   /** The focus: a distance scale, with the mark against one of them. */
   focus: (<><circle cx="12" cy="12" r="8.6" strokeOpacity="0.45" /><path d="M12 3.4v2.2M18.1 5.9l-1.6 1.6M20.6 12h-2.2M5.9 5.9l1.6 1.6M3.4 12h2.2" strokeOpacity="0.45" /><circle cx="12" cy="12" r="3.4" /><path d="M12 1.4v2.6" strokeWidth="2.2" /></>),
 

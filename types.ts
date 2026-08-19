@@ -103,6 +103,30 @@ export interface CameraState {
   /** The f-number. Small is a wide hole, a bright lens and a thin focus. */
   aperture: number;
   /**
+   * THE OTHER TWO CORNERS OF THE TRIANGLE, without which this is not a camera.
+   *
+   * A lens that changes the depth of field and not the BRIGHTNESS is a lens
+   * with half its physics missing, and it is the half a photographer notices
+   * in the first three seconds: f/1.4 and f/16 cannot produce the same
+   * picture. Aperture, shutter and sensitivity are one quantity between them -
+   * how much light reaches the sensor - and any two of them fix the third.
+   *
+   * `shutter` is in seconds, so 1/125 is 0.008. `iso` is the sensitivity, on
+   * the scale everybody already reads.
+   */
+  shutter: number;
+  iso: number;
+  /**
+   * Aperture priority: hold the exposure when the aperture moves.
+   *
+   * On, this is the mode nine photographers in ten actually shoot: you set the
+   * depth of field and the camera keeps the picture the same brightness by
+   * moving the shutter under you. Off, it is full manual and opening up two
+   * stops makes the picture two stops brighter, which is the thing you have to
+   * see once to understand what a stop IS.
+   */
+  auto: boolean;
+  /**
    * What the lens is focused on, in metres - or 0 for whatever is under the
    * middle of the frame, which is what a camera with one focus point does and
    * what anybody pointing one actually means.

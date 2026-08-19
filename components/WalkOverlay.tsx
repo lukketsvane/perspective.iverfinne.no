@@ -20,7 +20,7 @@ import { pickGround, pickObject, pixelsPerMetreAt } from '../lib/pick';
 import { focusPoint } from '../lib/focus';
 import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
-import { fieldOfFrame, FLAT_SIGHT, HUMAN_SIGHT, lensOfFrame, MAX_FIELD, wholeSheetField } from '../lib/projection';
+import { exposureOf, fieldOfFrame, FLAT_SIGHT, HUMAN_SIGHT, lensOfFrame, MAX_FIELD, wholeSheetField } from '../lib/projection';
 import { SNAP_STEPS, selectionSurface, surfaceHasSettings, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
 import { beginTour, endTour, useTourStep } from '../lib/tour';
 
@@ -69,6 +69,36 @@ const PROJECTION_ICON: Record<PerspectiveMode, React.ReactNode> = {
  * and what anybody who has held one is expecting.
  */
 const STOPS = [1.4, 2, 2.8, 4, 5.6, 8, 11, 16, 22];
+
+/**
+ * The shutter speeds and the sensitivities, in stops, on the same argument.
+ *
+ * Every one of these is a factor of two from its neighbour, which is what a
+ * stop is - so the tap walks the scale a photographer already has in their
+ * hand and the drag reaches everything between. Written as seconds because
+ * that is what the arithmetic wants; read back as 1/125, which is what
+ * everybody says.
+ */
+const SPEEDS = [1, 1 / 2, 1 / 4, 1 / 8, 1 / 15, 1 / 30, 1 / 60, 1 / 125, 1 / 250, 1 / 500, 1 / 1000, 1 / 2000, 1 / 4000]
+  .slice()
+  .sort((a, b) => a - b);
+
+const SENSITIVITIES = [50, 100, 200, 400, 800, 1600, 3200, 6400, 12800];
+
+const shutterReading = (seconds: number) =>
+  seconds >= 1 ? `${seconds.toFixed(seconds >= 10 ? 0 : 1)}s` : `1/${Math.round(1 / seconds)}`;
+
+/**
+ * How far off a correct exposure the three dials are, in stops.
+ *
+ * The one number a photographer looks for before any of the others, and the
+ * one this tool can state exactly because it knows what "correct" means here:
+ * the exposure the lens arms on, which is the picture the app draws with no
+ * camera at all. Zero means the lens is not changing the brightness. Plus two
+ * means two stops over.
+ */
+const stopsOff = (aperture: number, shutter: number, iso: number) =>
+  Math.log2(exposureOf({ aperture, shutter, iso }));
 
 /** f/1.4 and f/8: a stop is written to one decimal only when it has one. */
 const apertureReading = (value: number) =>
@@ -1478,6 +1508,48 @@ export const WalkOverlay: React.FC<{
       )}
 
       {/*
+        * THE FINDER READOUT.
+        *
+        * A camera tells you where it is set without being asked, and it tells
+        * you in one line, in the order everybody reads it: length, aperture,
+        * speed, sensitivity, meter. That line is the whole reason a
+        * photographer can pick up a body they have never held and know what
+        * it is about to do.
+        *
+        * Without it this mode was six unlabelled icons whose numbers appeared
+        * only while a finger was down on them - which is fine for a knob you
+        * are turning and useless for the question the numbers are actually
+        * for, which is "what am I shooting at, right now, before I touch
+        * anything". Three of them are one quantity between them, and you
+        * cannot see a triangle one corner at a time.
+        *
+        * A capital A where the compensation would be, because that is what an
+        * aperture-priority body puts there; with the meter off it reads the
+        * stops you are away from the metered exposure instead, signed, which
+        * is the same place the same number lives on a real one.
+        *
+        * Top centre, sharing the band with the armed-tool banner and standing
+        * down while that is up: two lines of chrome in the same strip is one
+        * line too many, and a drag in progress has its own reading anyway.
+        */}
+      {lens.on && !blocking && !measuring && !tourRunning && (
+        <div
+          aria-live="off"
+          className={`fixed z-40 left-1/2 -translate-x-1/2 top-safe-panel pointer-events-none tabular-nums ${bubble(isDark)}`}
+        >
+          {Math.round(millimetres(fov))} mm &middot; f/{apertureReading(lens.aperture)} &middot;{' '}
+          {shutterReading(lens.shutter)} &middot; ISO {Math.round(lens.iso)} &middot;{' '}
+          {lens.auto
+            ? 'A'
+            : `${stopsOff(lens.aperture, lens.shutter, lens.iso) >= 0 ? '+' : ''}${stopsOff(
+                lens.aperture,
+                lens.shutter,
+                lens.iso
+              ).toFixed(1)} EV`}
+        </div>
+      )}
+
+      {/*
         * There is no scrim over the scene, and the panel does not dismiss
         * itself.
         *
@@ -1778,7 +1850,11 @@ export const WalkOverlay: React.FC<{
               // knows how big the gate came out.
               if (arming) setLens(fieldOfFrame(50, lens.gate, frame.width, frame.height));
             }}
-            aria-label={lens.on ? `Lens: ${Math.round(millimetres(fov))} mm at f/${apertureReading(lens.aperture)}` : 'Frame the view as a lens'}
+            aria-label={
+              lens.on
+                ? `Lens: ${Math.round(millimetres(fov))} mm, f/${apertureReading(lens.aperture)}, ${shutterReading(lens.shutter)}, ISO ${Math.round(lens.iso)}`
+                : 'Frame the view as a lens'
+            }
             aria-pressed={lens.on}
             className={`${button} ${lens.on ? ACTIVE : ''}`}
           >
@@ -1802,6 +1878,58 @@ export const WalkOverlay: React.FC<{
                 cycle={STOPS}
                 onChange={(aperture) => setCamera({ aperture })}
               />
+              {/* The other two corners of the triangle. Together with the
+                  aperture they are one quantity - how much light lands - and
+                  any two of them fix the third, which is the fact the reading
+                  under each of them is there to make visible. */}
+              <Scrub
+                skin={{ dark: isDark, touch: true }}
+                icon={I.shutter}
+                label="Shutter"
+                reading={shutterReading(lens.shutter)}
+                value={lens.shutter}
+                min={1 / 4000}
+                max={1}
+                step={1 / 8000}
+                sweep={340}
+                cycle={SPEEDS}
+                onChange={(shutter) => setCamera({ shutter })}
+              />
+              <Scrub
+                skin={{ dark: isDark, touch: true }}
+                icon={I.iso}
+                label="Sensitivity"
+                reading={`ISO ${Math.round(lens.iso)}`}
+                value={lens.iso}
+                min={50}
+                max={12800}
+                step={5}
+                sweep={340}
+                cycle={SENSITIVITIES}
+                onChange={(iso) => setCamera({ iso })}
+              />
+              {/*
+                * Aperture priority, and the accent is on the mode most cameras
+                * are actually left in. With it on, opening up does the one
+                * thing you reached for - the depth of field - and the shutter
+                * moves under you to hold the brightness. With it off, two stops
+                * open is two stops brighter, which is how anybody learns what a
+                * stop is.
+                */}
+              <button
+                onClick={() => setCamera({ auto: !lens.auto })}
+                aria-label={
+                  lens.auto
+                    ? 'Aperture priority: the shutter holds the exposure'
+                    : `Manual exposure: ${
+                        stopsOff(lens.aperture, lens.shutter, lens.iso) >= 0 ? '+' : ''
+                      }${stopsOff(lens.aperture, lens.shutter, lens.iso).toFixed(1)} stops`
+                }
+                aria-pressed={lens.auto}
+                className={`${button} ${lens.auto ? ACTIVE : ''}`}
+              >
+                <Icon path={lens.auto ? I.meterAuto : I.meter} className="w-5 h-5" />
+              </button>
               <Scrub
                 skin={{ dark: isDark, touch: true }}
                 icon={I.focus}
