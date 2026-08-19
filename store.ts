@@ -36,7 +36,7 @@ import { walkInput } from './lib/walkInput';
 // PRACTICE DEFAULTS
 // ---------------------------------------------------------------------------
 // The tool is a reference guide for perspective practice, built around the way
-// Kim Jung Gi teaches it: everything is measured in metres, everything starts
+// The way it is taught: everything is measured in metres, everything starts
 // as a 1 m cube, and the camera sits at a believable human eye level so the
 // horizon never drifts. Anything fancier (curvilinear projection, imported
 // meshes) is opt-in.

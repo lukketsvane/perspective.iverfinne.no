@@ -97,7 +97,7 @@ export const MESH_LIBRARY: LibraryMesh[] = [
    * a shape the aeroplane is.
    *
    * They are also the ordinary reason a 1935 racer is sitting still: it is
-   * being checked over, worked on and waited beside. Kim Jung Gi's pages are
+   * being checked over, worked on and waited beside. The pages this is after are
    * full of exactly this - the vehicle is never the drawing, the yard is.
    *
    * FOUR POSES, chosen so that no two are the same drawing problem. Two upright

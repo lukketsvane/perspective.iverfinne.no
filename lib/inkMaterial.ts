@@ -271,7 +271,7 @@ const FRAGMENT = `
    * THE VALUE IS BUILT BY CROSSING, NOT BY SWELLING.
    *
    * This material spent a while as a single family of strokes, on the
-   * argument that neither Zorn nor Kim Jung Gi crosshatches - which is true
+   * argument that neither Zorn nor a brush-pen draughtsman crosshatches - true
    * and was the wrong precedent. Their single family works because the
    * DIRECTION carries the form, and a brush page already has that instrument:
    * the pen's form lines, ruled on the facing ratio, one band per turn of the

@@ -22,6 +22,7 @@ import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
 import { exposureOf, fieldOfFrame, FLAT_SIGHT, HUMAN_SIGHT, lensOfFrame, MAX_FIELD, wholeSheetField } from '../lib/projection';
 import { SNAP_STEPS, selectionSurface, surfaceHasSettings, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
+import { lessonOffered, markLessonOffered } from '../lib/lesson';
 
 /**
  * The systems the button steps through: the flat board, bowed horizontals, the
@@ -370,6 +371,35 @@ export const WalkOverlay: React.FC<{
   const arLookRef = useRef(false);
   const lastLookTap = useRef(0);
   const [showTools, setShowTools] = useState(false);
+  /*
+   * The one thing a first visit is offered, and it is offered once.
+   *
+   * Read at mount rather than subscribed to: this is a fact about the browser
+   * that only this component ever changes, and it changes it at most once in
+   * the life of the tab.
+   */
+  const [inviting, setInviting] = useState(() => !lessonOffered());
+  const spendTheOffer = () => {
+    markLessonOffered();
+    setInviting(false);
+  };
+  /*
+   * ...and it holds the chrome up until it is spent.
+   *
+   * The dock fades six seconds after the last touch, which is right for a
+   * toolbar and fatal for an offer: a first-time viewer looking at the picture
+   * for ten seconds - which is the correct thing to do with it - watched the
+   * one line telling them the lesson exists fade out before they had read it.
+   * Measured, that is exactly what happened.
+   *
+   * It is not a trap. One tap on either half ends it for good, and the release
+   * hands the chrome straight back to the idle clock.
+   */
+  useEffect(() => {
+    if (!inviting) return;
+    holdRail('invite');
+    return () => releaseRail('invite');
+  }, [inviting]);
   /*
    * The lights stand in the tools row's own slot, over a live dock.
    *
@@ -1569,6 +1599,44 @@ export const WalkOverlay: React.FC<{
         className={`fixed bottom-safe-panel left-0 right-0 z-40 flex flex-col items-center gap-3 x-safe-panel pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${dockVisible ? 'opacity-100' : 'opacity-0'}`}
       >
 
+        {/*
+          * THE ONE THING A FIRST VISIT IS OFFERED.
+          *
+          * Above the dock rather than over the picture, one line rather than a
+          * card, and gone for good the moment it is touched either way. What
+          * was here before was a nine-card tour that arrived on its own and
+          * rang buttons at you, and it went; but the lesson is the reason this
+          * app exists and it was sitting two taps down a menu of settings,
+          * which for somebody who has just arrived is the same as not being
+          * there at all.
+          *
+          * It rides the same column as the dock, so it fades with the chrome
+          * and disappears entirely while the lesson itself is running.
+          */}
+        {inviting && (
+          <div className={`pointer-events-auto flex items-center gap-1 p-1 rounded-full border shadow-2xl ${surface}`}>
+            <button
+              onClick={() => { spendTheOffer(); setShowTools(false); onLesson(); }}
+              aria-label="Learn how perspective works"
+              className={`flex items-center gap-2 h-9 pl-3 pr-4 rounded-full text-[13px] font-medium transition-transform active:scale-95 ${
+                isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'
+              }`}
+            >
+              <Icon path={I.lesson} className="w-5 h-5 shrink-0" />
+              Kva er perspektiv?
+            </button>
+            <button
+              onClick={spendTheOffer}
+              aria-label="Not now"
+              className={`flex items-center justify-center w-9 h-9 rounded-full transition-transform active:scale-95 ${
+                isDark ? 'text-white/45 hover:bg-white/10' : 'text-black/45 hover:bg-black/5'
+              }`}
+            >
+              <Icon path={I.close} className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* One slot above the dock, two occupants: the tools row and the light
             panel overlap in it, and at most one is ever open. Zero-height, so
             whichever is up hangs from the same line the dock column already
@@ -2113,7 +2181,7 @@ export const WalkOverlay: React.FC<{
             * it points at is out here.
             */}
           <button
-            onClick={() => { setShowTools(false); onLesson(); }}
+            onClick={() => { spendTheOffer(); setShowTools(false); onLesson(); }}
             aria-label="Learn how perspective works"
             className={button}
           >

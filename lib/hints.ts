@@ -77,6 +77,7 @@ const HINTS: Record<string, string> = {
   'Look by turning the phone': 'Snu telefonen for å sjå. Dobbelttrykk for rommet under',
   'Save the view as a picture': 'Lagre biletet',
   'Learn how perspective works': 'Leksjonen: kvifor perspektiv verkar',
+  'Not now': 'Legg bort tilbodet',
 
   // ------------------------------------------------------------- the lights
   //

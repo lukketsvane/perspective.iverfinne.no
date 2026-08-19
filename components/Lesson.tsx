@@ -57,13 +57,19 @@ const mixAngle = (from: number, to: number, t: number) => from + wrap(to - from)
 
 /** A cast, as boxes the store can hold. */
 const boxesFor = (cast: Cast, turn: number, surface: ReturnType<typeof useStore.getState>['surface']) =>
-  CAST[cast].map(([x, z], at) => ({
-    id: `lesson-${cast}-${at}`,
-    position: [x, 0.5, z] as [number, number, number],
-    scale: [1, 1, 1] as [number, number, number],
-    rotation: [0, turn, 0] as [number, number, number],
-    surface,
-  }));
+  CAST[cast].map(([x, z, height], at) => {
+    // A metre unless the cast says otherwise, and standing ON the floor rather
+    // than centred on it - which is the whole of what the eye-level cards are
+    // about, so it cannot be approximated.
+    const tall = height ?? 1;
+    return {
+      id: `lesson-${cast}-${at}`,
+      position: [x, tall / 2, z] as [number, number, number],
+      scale: [1, tall, 1] as [number, number, number],
+      rotation: [0, turn, 0] as [number, number, number],
+      surface,
+    };
+  });
 
 /** Everything the lesson is allowed to touch, so it can all be put back. */
 const snapshot = () => {
@@ -298,10 +304,11 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
         const field = sweep?.field ? sweepAt(sweep.field, phase) : stage.fov;
         const yaw = sweep?.yaw ? sweepAt(sweep.yaw, phase) : stage.stand.yaw;
         const pitch = sweep?.pitch ? sweepAt(sweep.pitch, phase) : stage.stand.pitch;
+        const eye = sweep?.height ? sweepAt(sweep.height, phase) : stage.cameraHeight;
 
         useStore.setState({
           fov: mix(start.fov, field, eased),
-          cameraHeight: mix(start.cameraHeight, stage.cameraHeight, eased),
+          cameraHeight: mix(start.cameraHeight, eye, eased),
         });
 
         /*
