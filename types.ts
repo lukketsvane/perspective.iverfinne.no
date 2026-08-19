@@ -33,7 +33,7 @@ export type Instrument = 'none' | 'block' | 'measure';
  *   bow. The panoramic system, and the one to rule a long wall with.
  * - 'equidistant': five-point, and the default. Angle from the centre of the
  *   frame is distance from the centre, evenly, in every direction - which is
- *   what makes a ruled sphere of it and what Kim Jung Gi draws on.
+ *   what makes a ruled sphere of it, and the sheet five point is drawn on.
  * - 'stereographic': the conformal one. See `lib/projection.ts`.
  *
  * - 'rectilinear': one, two and three point. A straight line in the world is

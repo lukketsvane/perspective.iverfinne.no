@@ -24,7 +24,7 @@ import type { PerspectiveMode } from '../types';
  * The projection is equidistant: distance from the centre of the frame is the
  * angle away from where you are looking, the same in every direction. Left,
  * right, up, down and straight ahead all reachable at once - which is the
- * construction Kim Jung Gi rules a page with before he draws a room.
+ * construction a draughtsman rules a page with before drawing a room.
  */
 /** What each projection is, to the shader. Equidistant is zero. */
 const PROJECTION_MODES: Record<PerspectiveMode, number> = {
@@ -538,7 +538,7 @@ export const Panorama: React.FC<{
 
         const float PI = 3.14159265359;
         const float HALF_PI = 1.57079632679;
-        /** Fifteen degrees, the spacing Kim Jung Gi rules his sphere at. */
+        /** Fifteen degrees, the spacing a ruled sphere is normally divided at. */
         const float SPACING = PI / 12.0;
 
         /**

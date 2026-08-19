@@ -3,10 +3,10 @@ import type { GuideLevel, PerspectiveMode, SelectionGuide } from '../types';
 /**
  * THE LESSON.
  *
- * This tool exists because of videos of Kim Jung Gi ruling a sphere on a blank
+ * This tool exists because of a thing draughtsmen do: ruling a sphere on a blank
  * page and then drawing a room full of cubes onto it, freehand, in five point.
  * Everything else here was built to make that reachable. What was missing is
- * the thing the videos do not contain: WHY it works.
+ * the thing a demonstration does not contain: WHY it works.
  *
  * ONE IDEA, EIGHTEEN CARDS.
  *
@@ -51,6 +51,41 @@ import type { GuideLevel, PerspectiveMode, SelectionGuide } from '../types';
  * something in words rather than shown a mark.
  */
 
+/**
+ * Whether this viewer has been offered the lesson yet.
+ *
+ * ONE INVITATION, ONCE, AND IT IS NOT A TOUR. There was a guided tour here and
+ * it went, because a thing that arrives on your first visit and rings buttons
+ * at you is a thing you dismiss before you know what it was. But the lesson is
+ * the reason this app exists, and it was two taps down a menu of settings -
+ * which for a first-time viewer is the same as not being there.
+ *
+ * So a first visit gets one line above the dock offering it, and that is all:
+ * tap it and the lesson starts, tap the cross and it never appears again, and
+ * either way the offer is spent. It covers nothing, it waits for nothing, and
+ * it does not come back.
+ */
+const OFFERED = 'kjg-perspective-lesson';
+
+export const lessonOffered = (): boolean => {
+  try {
+    return localStorage.getItem(OFFERED) !== null;
+  } catch {
+    // No storage is not a reason to nag: a browser that cannot remember this
+    // would otherwise offer the lesson on every single load.
+    return true;
+  }
+};
+
+/** The offer is spent - taken or waved away, it makes no difference. */
+export const markLessonOffered = () => {
+  try {
+    localStorage.setItem(OFFERED, 'yes');
+  } catch {
+    /* a full or blocked store is not worth interrupting a drawing for */
+  }
+};
+
 /** What is standing on the floor while a card is up. */
 export type Cast =
   /** Bare ground. */
@@ -60,7 +95,25 @@ export type Cast =
   /** A rank of them running away from you: one family of parallels, drawn. */
   | 'row'
   /** A street: two rows facing each other, which is the classical exercise. */
-  | 'street';
+  | 'street'
+  /**
+   * Four posts, all exactly eye height, scattered from three metres to forty.
+   *
+   * The whole of the eye-level lesson in one arrangement: the horizon cuts
+   * every one of them at the top, and it does it at three metres and at forty
+   * alike. Nothing else in this tool makes that as plain, and it is a thing
+   * nobody believes until they have seen it happen to something near AND
+   * something far in the same frame.
+   */
+  | 'level'
+  /**
+   * The everyday heights, standing in the open: a desk, a small child, a car,
+   * a door.
+   *
+   * Real numbers rather than nice ones, because the point of the card is that
+   * you already know these and can therefore read them straight off the line.
+   */
+  | 'heights';
 
 /** Where the app is put while a card is up. */
 export interface Stage {
@@ -113,6 +166,15 @@ export interface Sweep {
   yaw?: [number, number];
   pitch?: [number, number];
   /**
+   * The eye itself, up and down.
+   *
+   * The one card that needs it is the one about posture, and it needs it swept
+   * rather than stepped: what is being shown is that the horizon is not a
+   * place in the world but a height, and a line that JUMPS between two heights
+   * is two lines. Sliding, it is plainly the same line following you down.
+   */
+  height?: [number, number];
+  /**
    * The surfaces, stepped rather than swept.
    *
    * A projection cannot be half-changed, so this is a slideshow of three and
@@ -150,9 +212,10 @@ export interface Act {
 
 export const ACTS: Act[] = [
   { at: 0, title: 'Kula', line: 'Alt du kan sjå, som eit einaste kart' },
-  { at: 4, title: 'Punkta', line: 'Kvar dei kjem frå, og kvifor dei står stille' },
-  { at: 10, title: 'Arka', line: 'Fire flater å fange det same på' },
-  { at: 15, title: 'Handa', line: 'Frå rutenettet til blyanten' },
+  { at: 4, title: 'Auget', line: 'Horisonten er ikkje ein stad. Han er høgda di' },
+  { at: 7, title: 'Punkta', line: 'Kvar dei kjem frå, og kvifor dei står stille' },
+  { at: 13, title: 'Arka', line: 'Fire flater å fange det same på' },
+  { at: 18, title: 'Handa', line: 'Frå rutenettet til blyanten' },
 ];
 
 export interface Card {
@@ -180,13 +243,22 @@ export interface Card {
   travel?: number;
 }
 
+/**
+ * How high the lesson's eye is, in metres.
+ *
+ * Named because two casts are built out of it: the whole eye-level card is
+ * that four posts of exactly this height are cut by the horizon at their tops,
+ * and a number typed twice is a number that will one day disagree with itself.
+ */
+export const EYE_HEIGHT = 1.7;
+
 /** Where every card starts from, so a card only has to say what it changes. */
 export const OPENING: Stage = {
   fov: 210,
   mode: 'equidistant',
   guides: 1,
   selectionGuides: 0,
-  cameraHeight: 1.6,
+  cameraHeight: EYE_HEIGHT,
   stand: { x: 0, z: 0, yaw: 0, pitch: 0 },
   cast: 'nothing',
   gridX: true,
@@ -268,6 +340,96 @@ export const CARDS: Card[] = [
     hands: 'viewer',
     gate: { kind: 'turn', radians: 1.9 },
     travel: 2200,
+  },
+  {
+    /*
+     * THE MOST USEFUL SENTENCE IN PERSPECTIVE, and one that takes ten seconds
+     * to prove and is almost never proved.
+     *
+     * The horizon sits at your own eye height. So anything in the world that
+     * is ALSO that height is cut by it - and cut at exactly the same place,
+     * three metres away or forty, because both the thing and the line shrink
+     * towards each other at the same rate. It is not a trick and it is not
+     * approximate: it is what "the horizon is the set of level directions"
+     * means, said in metres.
+     *
+     * Four posts rather than a row, and scattered left and right at wildly
+     * different distances, because a rank invites the answer "well, they are
+     * all the same, of course they line up". These are plainly not all the
+     * same distance and the line still lands on every top.
+     */
+    headline: 'Alt i di eiga høgd',
+    body: 'Fire stolpar, alle nøyaktig like høge som auget ditt. Den næraste står tre meter unna, den fjernaste førti. Snu deg og sjå etter kvar horisonten kryssar dei.',
+    found: 'Han kryssar alle fire i toppen. Same kor langt unna dei står. Horisonten ligg i di eiga høgd, så alt som er like høgt som auget ditt blir kutta akkurat der - og det er den eine linja du kan måle med utan å måle.',
+    stage: {
+      cast: 'level',
+      mode: 'rectilinear',
+      fov: 85,
+      guides: 1,
+      selectionGuides: 0,
+      cameraHeight: EYE_HEIGHT,
+      stand: { x: 0, z: 2, yaw: 0, pitch: 0 },
+    },
+    hands: 'viewer',
+    gate: { kind: 'turn', radians: 0.9 },
+    travel: 2200,
+  },
+  {
+    /*
+     * ...and the same fact turned into a ruler.
+     *
+     * Once the line is a known height, everything else can be read against it:
+     * a desk comes to your thigh, a small child to your waist, a car to your
+     * chest, a door goes over your head. Those are heights an illustrator
+     * already knows in their body, and the line is where that knowledge gets
+     * onto the paper. This is the card that makes the tool's metres worth
+     * something - a scene is right when the sizes are right, and the sizes are
+     * right when they are read off the horizon rather than guessed.
+     */
+    headline: 'Linja er ein målestokk',
+    body: 'Ein pult på 75, eit lite barn på 110, ein bil på 150, ei dør på 210. Ingen av dei står i di høgd. Sjå kvar linja går på kvar av dei.',
+    found: 'Ho går over dei tre fyrste og gjennom den fjerde, fordi ho ligg i 170 og døra er det eine som er høgare enn auget ditt. Og du kjenner alt desse høgdene frå kroppen din: pulten når deg til låret, barnet til livet, bilen til brystet. Set linja der auget er, og storleikane er ei avlesing i staden for ei gjetting.',
+    stage: {
+      cast: 'heights',
+      mode: 'rectilinear',
+      fov: 85,
+      guides: 1,
+      selectionGuides: 0,
+      cameraHeight: EYE_HEIGHT,
+      stand: { x: 0, z: 3, yaw: 0, pitch: 0 },
+    },
+    travel: 2000,
+  },
+  {
+    /*
+     * The last of the three, and the one that stops the line being a fixture.
+     *
+     * A viewer who has met the horizon as "the line in the middle of the page"
+     * will put it in the middle of every page they ever draw. It is not a place
+     * in the world: sit down and it comes down with you, stand on a chair and
+     * it goes up. The cast does not move at all while it happens, which is what
+     * makes it unarguable.
+     *
+     * And it carries the third of the three rules on its back, because you
+     * cannot watch this without watching it happen: a top face closes up as it
+     * rises towards the line and a bottom face closes up as it falls to it,
+     * until at the line itself there is no face left and the thing is an edge.
+     */
+    headline: 'Auget flyttar seg med deg',
+    body: 'Ingenting på golvet rører seg no. Berre du - ned på huk, og opp igjen.',
+    found: 'Linja fylgde deg. Ho er ikkje ein stad i verda, ho er høgda di - difor teiknar ein ho fyrst og bestemmer med det kvar den som ser står. Sjå òg kva som skjer med topp- og botnflatene på vegen: dei lukkar seg jo nærare linja dei kjem, og RETT på henne er dei borte. Ei flate du ser oppå er ei flate under auget ditt.',
+    stage: {
+      cast: 'heights',
+      mode: 'rectilinear',
+      fov: 85,
+      guides: 1,
+      selectionGuides: 0,
+      cameraHeight: EYE_HEIGHT,
+      stand: { x: 0, z: 3, yaw: 0, pitch: 0 },
+    },
+    hands: 'director',
+    sweep: { seconds: 9, height: [0.55, 2.6] },
+    travel: 1800,
   },
   {
     /*
@@ -403,7 +565,7 @@ export const CARDS: Card[] = [
      * came from are drawn on.
      */
     headline: 'Fem punkt',
-    body: 'Og fanga på kula sjølv. Alle retningar ligg på arket: fire punkt rundt horisonten, eitt rett opp, eitt rett ned. Avstand frå midten er vinkelen sjølv, jamt i alle retningar. Dette er arket Kim Jung Gi rular.',
+    body: 'Og fanga på kula sjølv. Alle retningar ligg på arket: fire punkt rundt horisonten, eitt rett opp, eitt rett ned. Avstand frå midten er vinkelen sjølv, jamt i alle retningar. Dette er arket ein rular når heile rommet skal med.',
     stage: { cast: 'street', mode: 'equidistant', fov: 360, guides: 2, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     travel: 4200,
   },
@@ -469,7 +631,15 @@ export const CARDS: Card[] = [
  * metre apart - which is what makes the rank in card three read as one form
  * repeated rather than as a scatter.
  */
-export const CAST: Record<Cast, Array<[number, number]>> = {
+/**
+ * Where each cast stands, and how tall it is.
+ *
+ * Two numbers or three: x and z on the floor, and a height in metres that
+ * defaults to the one-metre cube the rest of the lesson is built on. The third
+ * is only there for the two eye-level casts, where the whole content of the
+ * card is that the things are DIFFERENT heights - or all exactly one height.
+ */
+export const CAST: Record<Cast, Array<[number, number] | [number, number, number]>> = {
   nothing: [],
   one: [[0, 0]],
   row: [
@@ -489,6 +659,26 @@ export const CAST: Record<Cast, Array<[number, number]>> = {
     [2, -3],
     [2, -6],
     [2, -10],
+  ],
+  /*
+   * All four exactly EYE_HEIGHT, and deliberately scattered rather than ranked:
+   * a row would let somebody read the effect as something about the row. Three
+   * metres out and forty metres out, left and right, and the line still lands
+   * on the top of each one.
+   */
+  level: [
+    [-2.4, -3, EYE_HEIGHT],
+    [2.8, -8, EYE_HEIGHT],
+    [-4.5, -18, EYE_HEIGHT],
+    [3.5, -40, EYE_HEIGHT],
+  ],
+  /* A desk, a small child, a car, a door. Spread so the line crosses each at a
+     visibly different place, and near enough that the difference is legible. */
+  heights: [
+    [-3.2, -4, 0.75],
+    [-1.1, -6, 1.1],
+    [1.4, -8, 1.5],
+    [3.9, -11, 2.1],
   ],
 };
 

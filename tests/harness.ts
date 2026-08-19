@@ -48,6 +48,14 @@ export { expect };
  * open on fixed, so the suite sees exactly the setup it was written against.
  * A spec that is ABOUT the deal clears this key itself.
  *
+ * THE LESSON'S OFFER, which is one line above the dock on a first visit. It is
+ * spent by touching either half of it and never comes back, so it is only ever
+ * seen by a context that has never seen it - which is every context this suite
+ * makes. Left alone it holds the chrome up and adds a row to the dock's column,
+ * which lifts the panel by about fifty pixels and therefore lifts every stroke
+ * `blockOutABox` aims under it, off the floor and onto the aircraft. The one
+ * spec that is ABOUT the first visit clears this key itself.
+ *
  * AND THE DEALER, which is the same input arriving on a timer. The tool deals
  * itself a new page in the gaps between working - see lib/autoDeal.ts - which
  * for a spec means the page can change under it while it waits for anything at
@@ -57,6 +65,7 @@ export { expect };
  */
 const PRELUDE = () => {
   localStorage.setItem('kjg-perspective-page', 'Brush page on black');
+  localStorage.setItem('kjg-perspective-lesson', 'yes');
   localStorage.setItem('kjg-perspective-deal', 'off');
   if (!sessionStorage.getItem('harness-cleared')) {
     localStorage.removeItem('kjg-perspective-settings');

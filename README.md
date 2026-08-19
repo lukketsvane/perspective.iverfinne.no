@@ -21,8 +21,8 @@ you can check a construction against, but neither ever asks the question a body
 asks: how a form behaves when it is not square to anything. A horse is the
 classical answer to that and has been since Uccello — four legs at four
 different depths, a barrel that is a foreshortened cylinder from every angle
-worth drawing, a neck that turns the whole mass. Kim Jung Gi drew them
-constantly for exactly that reason.
+worth drawing, a neck that turns the whole mass. It is what draughtsmen have
+drawn constantly for exactly that reason.
 
 Four of them, because one horse is a shape and four are a lesson — and each is
 named for the pose it is actually in rather than the pose that would round the
@@ -390,12 +390,12 @@ field on several sheets.
 
 ### The lesson
 
-This tool exists because of videos of Kim Jung Gi ruling a sphere on a blank
-page and then drawing a room full of cubes onto it, freehand, in five point.
-Everything else here was built to make that reachable. What was missing is the
-thing the videos do not contain: **why it works**.
+This tool exists because of a thing draughtsmen do and almost nobody explains:
+rule a sphere on a blank page, then draw a room full of cubes onto it, freehand,
+in five point. Everything else here was built to make that reachable. What was
+missing is the thing the demonstrations do not contain: **why it works**.
 
-**One idea, eighteen cards.** Almost every perspective tutorial teaches one, two
+**One idea, twenty-two cards.** Almost every perspective tutorial teaches one, two
 and three point as three separate recipes and then presents four and five point
 as exotica. That is not what they are, and teaching it that way is why so few
 people can draw the later ones:
@@ -414,7 +414,24 @@ people can draw the later ones:
 Then one, two, three, four and five point are not five systems. They are one
 system seen through five different amounts of paper, and the number in the name
 is simply how many of the six a given sheet can show you. Every card is a
-consequence of that:
+consequence of that.
+
+**And one act is not.** Between the sphere and the points there are three cards
+about the horizon, because the most useful sentence in perspective is one almost
+nobody is shown a proof of: *the horizon sits at your own eye height, so
+anything in the world that is also that height is cut by it — and cut at the
+same place three metres away and forty*. Four posts of exactly eye height,
+scattered near and far, and the line lands on every top. Then a desk, a child, a
+car and a door, whose heights you already know in your body, read straight off
+where the line crosses them. Then the eye slides from a crouch to a stretch with
+nothing on the floor moving, which is the only way to stop somebody putting the
+horizon in the middle of every page they ever draw — and on the way it shows
+that a top face closes up as it rises to the line and is gone *at* it.
+
+That is the whole of what a beginner actually needs before the vanishing points
+mean anything, and it is what makes the tool's metres worth having: a scene is
+right when the sizes are right, and the sizes are right when they are read off
+the horizon rather than guessed.
 
 | | |
 | --- | --- |
@@ -422,6 +439,9 @@ consequence of that:
 | **Snu deg heilt rundt** | *do it*: look for an edge on the sphere, and find there is none |
 | **Kva fangar du det på?** | the same scene, same spot, stepping plane → cylinder → sphere |
 | **Hovudpunktet og horisonten** | *do it*: turn, and see which two marks refuse to move |
+| **Alt i di eiga høgd** | *do it*: four posts of exactly your own height, three metres out and forty — the line cuts every one of them at the top |
+| **Linja er ein målestokk** | a desk, a child, a car, a door: read their heights off where the line crosses them |
+| **Auget flyttar seg med deg** | the eye slides from a crouch to a stretch while nothing on the floor moves |
 | **Parallelle linjer møtest** | a rank of cubes, and *why* the point exists — as a limit, not a rule |
 | **Punktet flyttar seg ikkje** | *do it*: walk, and watch the point refuse to move |
 | **Kvart knippe har to punkt** | *do it*: turn right round and find the other one |
@@ -437,7 +457,7 @@ consequence of that:
 | **Sikt langs kurvene** | *do it*: follow one upright edge round and watch it hold its meridian |
 | **Teikn ei sjølv** | the pencil, on the sheet you have just been given |
 
-**Ten of the eighteen are done by you, not shown to you.** The first draft ran
+**Eleven of the twenty-two are done by you, not shown to you.** The first draft ran
 the whole thing as a performance, and it was a film — correct, watchable, and
 *agreed with* rather than learned. You do not learn that the verticals gather by
 watching them gather. You learn it by looking up yourself, with your own thumb
@@ -538,6 +558,15 @@ drag. So the chrome can be held *down* as well as up (`muteRail` in
 the bottom of the picture cannot press a button it can no longer see. The two
 cards that are *about* a control let go for their turn, and the whole thing is
 handed back when the lesson ends.
+
+**A first visit is offered it, once.** One line above the dock — *Kva er
+perspektiv?* — with a cross beside it. Tap the line and the lesson starts; tap
+the cross and it never appears again; either way the offer is spent and the app
+never mentions it unasked again. It holds the chrome up while it stands, which
+is not fussiness: the dock fades six seconds after the last touch, and a
+first-time viewer looking at the picture for ten seconds — the correct thing to
+do with it — watched the one line telling them the lesson exists fade out before
+they had read it. Measured, that is exactly what happened.
 
 **There used to be a guided tour beside it**, and it is gone. It was nine cards
 that rang a button and waited for it to be pressed, so a first-time viewer knew
@@ -695,8 +724,8 @@ Four systems, all of them ones you can draw in, cycled with one button:
   horizontals bow. The system for ruling a long wall.
 - **Equidistant** — five-point, and the default. Angle from the centre of the
   frame is distance from the centre, evenly, in every direction. That even
-  mapping is what makes it a ruled sphere, and it is the sheet Kim Jung Gi
-  draws on.
+  mapping is what makes it a ruled sphere, and it is the sheet a five-point
+  page is ruled on.
 - **Stereographic** — the conformal one (below).
 
 The flat board went away once and came back, and both decisions were right
