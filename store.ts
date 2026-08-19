@@ -4,7 +4,7 @@ import { releaseSource, cachedSourceUrls, loadModelFromUrl } from './lib/loadMod
 import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
-import { fieldOfLens, FLAT_SIGHT, HUMAN_SIGHT, lensOfField, MAX_FIELD, wholeSheetField } from './lib/projection';
+import { FLAT_SIGHT, HUMAN_SIGHT, MAX_FIELD, wholeSheetField } from './lib/projection';
 import {
   luminance,
   mountFor,
@@ -568,7 +568,6 @@ export const sunFromSky = (sky: SkyState): Pick<SunState, 'azimuth' | 'elevation
  */
 export const DEFAULT_CAMERA: CameraState = {
   on: false,
-  focal: 50,
   aperture: 4,
   focus: 0,
   gate: 3 / 2,
@@ -887,7 +886,6 @@ const readCamera = (stored: Partial<CameraState> | undefined): CameraState => {
       : fallback;
   return {
     on: typeof stored?.on === 'boolean' ? stored.on : DEFAULT_CAMERA.on,
-    focal: take(stored?.focal, DEFAULT_CAMERA.focal, 8, 400),
     aperture: take(stored?.aperture, DEFAULT_CAMERA.aperture, 0.7, 32),
     // Zero is not a distance, it is the word "auto" - so it is let through the
     // floor the others get.
@@ -1617,10 +1615,7 @@ export const useStore = create<SceneState>((set, get) => ({
     set((state) => {
       // A flat sheet has its own ceiling, and it is far below the others'.
       const ceiling = state.perspectiveMode === 'rectilinear' ? FLAT_SIGHT : MAX_FIELD;
-      const field = Math.max(10, Math.min(ceiling, fov));
-      return state.camera.on
-        ? { fov: field, camera: { ...state.camera, focal: lensOfField(field) } }
-        : { fov: field };
+      return { fov: Math.max(10, Math.min(ceiling, fov)) };
     }),
 
   setCamera: (change) =>
@@ -1643,8 +1638,15 @@ export const useStore = create<SceneState>((set, get) => ({
       const armed = camera.on && !state.camera.on;
       return {
         camera,
-        fov: camera.on ? fieldOfLens(camera.focal) : state.fov,
-        ...(armed ? { perspectiveMode: 'rectilinear' as PerspectiveMode } : {}),
+        /*
+         * Arming one brings the field inside what a flat sheet can hold; the
+         * overlay puts a fifty over the top of that, because the millimetres
+         * are counted across the GATE and only the window knows how big the
+         * gate came out. See `fieldOfFrame` in lib/projection.ts.
+         */
+        ...(armed
+          ? { perspectiveMode: 'rectilinear' as PerspectiveMode, fov: Math.min(state.fov, FLAT_SIGHT) }
+          : {}),
       };
     }),
 

@@ -97,17 +97,62 @@ export const rectilinearTangents = (halfYaw: number, halfPitch: number) => {
  * A lens, in the units a lens is sold in.
  *
  * The frame is full-frame 35 mm - 36 mm across - because it is the one sensor
- * size whose focal lengths everybody already has a feel for. The field this
- * tool speaks is the angular diameter across the longest edge of the frame, and
- * the gate's longest side is the sensor's 36 mm, so the two convert directly.
+ * size whose focal lengths everybody already has a feel for: fifty is normal,
+ * twenty-four is wide, eighty-five is a portrait. A number that needs a crop
+ * factor applied before it means anything is a number nobody can compose with.
  */
 export const FRAME_MM = 36;
 
-export const fieldOfLens = (focal: number) =>
-  (2 * Math.atan(FRAME_MM / 2 / Math.max(focal, 1)) * 180) / Math.PI;
+/**
+ * The gate, fitted inside the screen.
+ *
+ * A lens frames into a rectangle of its own shape, and the screen is a
+ * different rectangle. The gate is the largest one of the asked-for shape that
+ * fits - letterboxed on a phone held upright, pillarboxed on a wide desktop -
+ * and everything outside it is not part of the picture.
+ *
+ * Which matters for more than the mask. The tool's field of view is stated
+ * across the LONGEST EDGE OF THE SCREEN, and a focal length is stated across
+ * the longest edge of the GATE. Those are different edges by however much the
+ * gate had to shrink to fit, and a conversion that ignores the difference puts
+ * a fifty on the barrel and a thirty-five in the picture.
+ */
+export const gateFit = (aspect: number, width: number, height: number) => {
+  const safeWidth = Math.max(width, 1);
+  const safeHeight = Math.max(height, 1);
+  const shape = Math.max(aspect, 0.05);
+  const gateWidth = Math.min(safeWidth, safeHeight * shape);
+  const gateHeight = gateWidth / shape;
+  return {
+    width: gateWidth,
+    height: gateHeight,
+    long: Math.max(gateWidth, gateHeight),
+    screenLong: Math.max(safeWidth, safeHeight),
+  };
+};
 
-export const lensOfField = (degrees: number) =>
-  FRAME_MM / 2 / Math.tan((Math.min(degrees, 170) * Math.PI) / 360);
+/**
+ * What focal length a field amounts to, through a gate of that shape.
+ *
+ * Tangents rather than angles, because this is the rectilinear frame and on a
+ * flat sheet it is the tangent that is proportional to the paper. The field is
+ * across the screen's longest edge; the gate takes a fraction of that edge; a
+ * lens is the half-tangent that fraction subtends against the sensor's own
+ * half-width.
+ */
+export const lensOfFrame = (degrees: number, aspect: number, width: number, height: number) => {
+  const { long, screenLong } = gateFit(aspect, width, height);
+  const tangent = Math.tan((Math.min(degrees, 170) * Math.PI) / 360) * (long / screenLong);
+  return FRAME_MM / 2 / Math.max(tangent, 1e-4);
+};
+
+/** ...and back: the field a given lens needs, on this screen, through this gate. */
+export const fieldOfFrame = (focal: number, aspect: number, width: number, height: number) => {
+  const { long, screenLong } = gateFit(aspect, width, height);
+  const tangent = (FRAME_MM / 2 / Math.max(focal, 4)) * (screenLong / long);
+  return (2 * Math.atan(tangent) * 180) / Math.PI;
+};
+
 
 export const fieldOf = (degrees: number, width: number, height: number) => {
   const angularRadius = (Math.min(MAX_FIELD, Math.max(20, degrees)) * Math.PI / 180) / 2;

@@ -20,7 +20,7 @@ import { pickGround, pickObject, pixelsPerMetreAt } from '../lib/pick';
 import { focusPoint } from '../lib/focus';
 import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
-import { FLAT_SIGHT, HUMAN_SIGHT, lensOfField, MAX_FIELD, wholeSheetField } from '../lib/projection';
+import { fieldOfFrame, FLAT_SIGHT, HUMAN_SIGHT, lensOfFrame, MAX_FIELD, wholeSheetField } from '../lib/projection';
 import { SNAP_STEPS, selectionSurface, surfaceHasSettings, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
 import { beginTour, endTour, useTourStep } from '../lib/tour';
 
@@ -56,6 +56,44 @@ const PROJECTION_ICON: Record<PerspectiveMode, React.ReactNode> = {
   equidistant: I.curved,
   stereographic: I.stereographic,
 };
+
+/**
+ * The stops, and why a scrub gets them as a tap-cycle rather than as its range.
+ *
+ * An f-number is a ratio, and the numbers that matter are a geometric series -
+ * every step halves the light and every step is a root of two apart. Scrubbed
+ * linearly, four fifths of the sweep is spent between f/8 and f/22, where
+ * nothing visible happens, and the whole of the interesting end is in the last
+ * centimetre of travel. So the drag is there for anything in between and the
+ * TAP walks the stops themselves, which is what the ring on a real lens does
+ * and what anybody who has held one is expecting.
+ */
+const STOPS = [1.4, 2, 2.8, 4, 5.6, 8, 11, 16, 22];
+
+/** f/1.4 and f/8: a stop is written to one decimal only when it has one. */
+const apertureReading = (value: number) =>
+  value < 3 || (value * 10) % 10 !== 0 ? value.toFixed(1) : String(Math.round(value));
+
+/**
+ * The gates, in the order anybody would step them.
+ *
+ * Three-two is the shape a 35 mm frame is and the shape the focal lengths were
+ * named on, so it is where this starts. Four-three is what the classical
+ * plate, most cinema before 1953 and every phone sensor is. Sixteen-nine is
+ * the modern moving frame. And the square, which is the one that is not a
+ * compromise between the other two: it has no long edge to compose along, so
+ * it throws the whole decision onto the middle of the frame.
+ */
+const GATES = [3 / 2, 4 / 3, 16 / 9, 1];
+
+const gateReading = (gate: number) =>
+  Math.abs(gate - 3 / 2) < 0.01
+    ? '3:2'
+    : Math.abs(gate - 4 / 3) < 0.01
+      ? '4:3'
+      : Math.abs(gate - 16 / 9) < 0.01
+        ? '16:9'
+        : '1:1';
 
 const GUIDE_ICON: Record<GuideLevel, React.ReactNode> = {
   0: I.guides0,
@@ -466,6 +504,8 @@ export const WalkOverlay: React.FC<{
   const canRedo = useStore((s) => s.redoStack.length > 0);
 
   const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
+  const lens = useStore((s) => s.camera);
+  const setCamera = useStore((s) => s.setCamera);
   const guides = useStore((s) => s.guides);
   const cycleGuides = useStore((s) => s.cycleGuides);
   const gridX = useStore((s) => s.gridX);
@@ -492,6 +532,34 @@ export const WalkOverlay: React.FC<{
     typeof window === 'undefined' ? 540 : wholeSheetField(window.innerWidth, window.innerHeight)
   );
 
+  /**
+   * The window, measured, because a focal length cannot be worked out without
+   * it.
+   *
+   * The field this tool speaks is stated across the longest edge of the SCREEN
+   * and a lens is stated across the longest edge of the GATE, and the gate has
+   * to shrink to fit - so the same field is a fifty on a laptop and something
+   * else on a phone held upright. That conversion belongs where the window is
+   * known, which is out here rather than in the store.
+   */
+  const [frame, setFrame] = useState(() =>
+    typeof window === 'undefined'
+      ? { width: 390, height: 844 }
+      : { width: window.innerWidth, height: window.innerHeight }
+  );
+
+  /**
+   * The shape the picture is composed into.
+   *
+   * With a lens on, the gate's own - and everything outside it is not part of
+   * the picture, which is what the mask over the frame says. Without one, the
+   * screen itself, so the millimetre reading on the flat board means the same
+   * thing whether or not a lens is armed: a fifty is a fifty.
+   */
+  const gate = lens.on ? lens.gate : frame.width / frame.height;
+  const millimetres = (field: number) => lensOfFrame(field, gate, frame.width, frame.height);
+  const fieldFor = (focal: number) => fieldOfFrame(focal, gate, frame.width, frame.height);
+
   // --------------------------------------------------------------- gestures
   const lookRate = useRef(0.002);
   useEffect(() => {
@@ -500,6 +568,7 @@ export const WalkOverlay: React.FC<{
       const height = window.innerHeight;
       lookRate.current = lookRadiansPerPixel(fov, width, height);
       setWholeSheet(wholeSheetField(width, height));
+      setFrame((was) => (was.width === width && was.height === height ? was : { width, height }));
     };
     measure();
     window.addEventListener('resize', measure);
@@ -1680,6 +1749,83 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={PROJECTION_ICON[perspectiveMode]} className="w-5 h-5" />
           </button>
+          {/*
+            * A LENS RATHER THAN A PAIR OF EYES.
+            *
+            * Everything else in this band frames the world the way sight does:
+            * a field in degrees, opened as wide as two hundred and ten because
+            * that is what a person takes in, on a curved sheet because sight
+            * has no straight edges in it. This is the other thing people
+            * compose with, and it is not a wider or narrower version of that -
+            * it is four numbers, none of which is "how much can you see".
+            *
+            * Next to the projection because it OVERRULES the projection: a
+            * focal length on a curved sheet is a number with no meaning, so
+            * arming this puts the view on the flat board. It does not put the
+            * old sheet back on the way out - which sheet you draw on is a
+            * decision about the drawing, and a mode that quietly undoes it is
+            * a mode that eats your setting.
+            */}
+          <button
+            onClick={() => {
+              const arming = !lens.on;
+              setCamera({ on: arming });
+              // A fifty: the length that neither compresses nor stretches, and
+              // the one anybody would put on first. Set from out here because
+              // the millimetres are counted across the gate and only the window
+              // knows how big the gate came out.
+              if (arming) setLens(fieldOfFrame(50, lens.gate, frame.width, frame.height));
+            }}
+            aria-label={lens.on ? `Lens: ${Math.round(millimetres(fov))} mm at f/${apertureReading(lens.aperture)}` : 'Frame the view as a lens'}
+            aria-pressed={lens.on}
+            className={`${button} ${lens.on ? ACTIVE : ''}`}
+          >
+            <Icon path={I.lens} className="w-5 h-5" />
+          </button>
+          {/* The three that only mean anything through a lens, and are absent
+              rather than dead without one. The focal length is not among them:
+              it IS the field, and the field already has a control - it simply
+              reads in millimetres while this is on. */}
+          {lens.on && (
+            <>
+              <Scrub
+                skin={{ dark: isDark, touch: true }}
+                icon={I.aperture}
+                label="Aperture"
+                reading={`f/${apertureReading(lens.aperture)}`}
+                value={lens.aperture}
+                min={1}
+                max={22}
+                step={0.1}
+                cycle={STOPS}
+                onChange={(aperture) => setCamera({ aperture })}
+              />
+              <Scrub
+                skin={{ dark: isDark, touch: true }}
+                icon={I.focus}
+                accent={lens.focus === 0}
+                label="Focus"
+                reading={lens.focus === 0 ? 'on what you look at' : `${lens.focus.toFixed(1)} m`}
+                value={lens.focus}
+                min={0}
+                max={60}
+                step={0.1}
+                sweep={340}
+                // Zero is not a distance, it is the word "auto" - so it is the
+                // bottom of the sweep AND the first rung of the tap, which is
+                // where a control that is normally left alone belongs.
+                cycle={[0, 1, 2, 5, 15, 60]}
+                onChange={(focus) => setCamera({ focus: focus < 0.3 ? 0 : focus })}
+              />
+              <button
+                onClick={() => setCamera({ gate: GATES[(GATES.indexOf(lens.gate) + 1) % GATES.length] ?? GATES[0] })}
+                aria-label={`Gate: ${gateReading(lens.gate)}`}
+                className={button}
+              >
+                <Icon path={I.gate} className="w-5 h-5" />
+              </button>
+            </>
+          )}
           {/* How far the lens may open: sight's own cone, the whole sphere
               on the page, or the endless band - where the cylindrical sheet
               repeats past a full turn instead of running out, the same room
@@ -1981,7 +2127,7 @@ export const WalkOverlay: React.FC<{
             // On the flat board a field IS a focal length, and a focal
             // length is the unit anybody composing with one already
             // thinks in. Same number, said in the units of the sheet.
-            reading={flatBoard ? `${Math.round(lensOfField(fov))} mm` : `${Math.round(fov)}°`}
+            reading={flatBoard ? `${Math.round(millimetres(fov))} mm` : `${Math.round(fov)}°`}
             value={fov}
             min={25}
             // The flat board's own ceiling comes first, whatever the reach
@@ -2009,11 +2155,18 @@ export const WalkOverlay: React.FC<{
             // portrait phone made 720 unreachable by tapping.
             cycle={[...new Set(
               flatBoard
-                ? // The lengths a photographer names, said as fields: 85, 50,
-                  // 35, 28, 20 and 14 millimetres on a 36 mm frame. On the flat
-                  // board the field IS a focal length, so the rungs worth
-                  // landing on are the ones that have names.
-                  [24, 40, 55, 75, 94, FLAT_SIGHT]
+                ? /*
+                   * The lengths a photographer names, turned into fields.
+                   *
+                   * Worked out rather than written down, because the answer
+                   * depends on the window and on the gate: a fifty through a
+                   * 3:2 gate on a phone held upright is a different field from
+                   * a fifty across the whole of a laptop, and a table of
+                   * degrees typed in here would be right on one machine.
+                   * Fourteen up to eighty-five, which is ultra-wide to short
+                   * portrait - the span anybody actually frames in.
+                   */
+                  [85, 50, 35, 28, 20, 14].map((mm) => Math.round(fieldFor(mm)))
                 : fieldRange === 'human'
                   ? [35, 60, 90, 120, 180, HUMAN_SIGHT]
                   : fieldRange === 'endless'

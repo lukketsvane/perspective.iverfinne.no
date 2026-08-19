@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { fieldOf, rectilinearTangents, stereographicAngle } from '../lib/projection';
+import { fieldOf, lensOfFrame, rectilinearTangents, stereographicAngle } from '../lib/projection';
 import { useStore } from '../store';
 import { registerFrameRenderer } from '../lib/capture';
 import { sceneRevision } from '../lib/sceneRevision';
@@ -959,7 +959,16 @@ export const Panorama: React.FC<{
         ? wideSheet.faceSize * (Math.PI / 2 / Math.max(fieldOf(spread, size.width, size.height).halfYaw * 2, 1e-3))
         : Math.max(flatSheet!.width, flatSheet!.height);
       uniforms.dofFocus.value = distance / DEPTH_NEAR;
-      uniforms.dofGain.value = dofGainFor(lens.focal, lens.aperture, distance, sourceLong);
+      uniforms.dofGain.value = dofGainFor(
+        // Worked out from the field rather than stored beside it, and worked
+        // out through the GATE: the same field is a different focal length
+        // through a square frame than through a wide one, and a blur that used
+        // the wrong one would be the blur of a lens nobody is holding.
+        lensOfFrame(spread, lens.gate, size.width, size.height),
+        lens.aperture,
+        distance,
+        sourceLong
+      );
       uniforms.dofCube.value = cubeDepth?.target.texture ?? null;
       uniforms.dofFlat.value = flatDepth?.texture ?? null;
     } else {
@@ -1093,7 +1102,7 @@ export const Panorama: React.FC<{
             measureDepth(gl, scene, () => gauge.update(gl, scene));
             material.uniforms.dofCube.value = depthTarget.texture;
             material.uniforms.dofGain.value = dofGainFor(
-              lensNow.focal,
+              lensOfFrame(spread, lensNow.gate, size.width, size.height),
               lensNow.aperture,
               lensNow.focus > 0 ? lensNow.focus : autoFocus(camera),
               plan.faceSize * (Math.PI / 2 / Math.max(halfYaw * 2, 1e-3))
@@ -1142,7 +1151,7 @@ export const Panorama: React.FC<{
             material.uniforms.dofFlat.value = depthTarget.texture;
             material.uniforms.dofFocus.value = distance / DEPTH_NEAR;
             material.uniforms.dofGain.value = dofGainFor(
-              lensNow.focal,
+              lensOfFrame(spread, lensNow.gate, size.width, size.height),
               lensNow.aperture,
               distance,
               Math.max(plan.width, plan.height)

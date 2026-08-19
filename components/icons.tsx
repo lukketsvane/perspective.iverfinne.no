@@ -24,6 +24,27 @@ export const I = {
 
   /** A road running to a vanishing point on the horizon, its edges bowed. */
   curved: (<><path d="M2 12c4-1.6 16-1.6 20 0" strokeOpacity="0.45" /><path d="M2 21C5 15 8 12 12 10.7M22 21c-3-6-6-9-10-10.3" /><circle cx="12" cy="10.5" r="1.3" fill="currentColor" stroke="none" /></>),
+  /* ------------------------------------------------------------- the lens
+   *
+   * Four marks for the mode that frames the view as a camera rather than as a
+   * pair of eyes. Drawn as the PARTS OF A LENS, not as a picture of a camera:
+   * the barrel, the iris, the distance scale round the focus ring and the
+   * shape of the gate are what somebody setting one actually touches, and a
+   * little camera body on a button says only "photograph".
+   */
+
+  /** The lens itself: a barrel seen end on, with the glass in it. */
+  lens: (<><rect x="2.6" y="6.2" width="18.8" height="11.6" rx="2" /><circle cx="12" cy="12" r="3.9" /><circle cx="12" cy="12" r="1.5" strokeOpacity="0.5" /><path d="M5.4 6.2V4.6h4.2v1.6" strokeOpacity="0.6" /></>),
+
+  /** The aperture: the blades of an iris, part closed. */
+  aperture: (<><circle cx="12" cy="12" r="8.6" /><path d="M12 3.4 7.2 18.2M20.2 9.2 4.8 12.6M17.6 18.9 6.7 7.4" strokeOpacity="0.55" /><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" fillOpacity="0.35" /></>),
+
+  /** The focus: a distance scale, with the mark against one of them. */
+  focus: (<><circle cx="12" cy="12" r="8.6" strokeOpacity="0.45" /><path d="M12 3.4v2.2M18.1 5.9l-1.6 1.6M20.6 12h-2.2M5.9 5.9l1.6 1.6M3.4 12h2.2" strokeOpacity="0.45" /><circle cx="12" cy="12" r="3.4" /><path d="M12 1.4v2.6" strokeWidth="2.2" /></>),
+
+  /** The gate: two frames of different shape, one inside the other. */
+  gate: (<><rect x="2.6" y="7" width="18.8" height="10" rx="1" /><rect x="6.4" y="4.6" width="11.2" height="14.8" rx="1" strokeOpacity="0.45" /><path d="M12 10.6v2.8M10.6 12h2.8" strokeOpacity="0.35" /></>),
+
   /** One, two, three point: a flat board, ruled to a point on the horizon. */
   rectilinear: (<><path d="M2.5 10.5h19" strokeOpacity="0.45" /><circle cx="19" cy="10.5" r="1.2" fill="currentColor" stroke="none" /><path d="M4 17.4 19 10.5M4 21 19 10.5M12.5 19.6 19 10.5" strokeOpacity="0.35" /><path d="M4 6.5v14.2M12.5 9.6v10" /><path d="M4 6.5 12.5 9.6M4 20.7l8.5-1.1" /></>),
 
