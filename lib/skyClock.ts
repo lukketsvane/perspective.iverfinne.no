@@ -24,8 +24,13 @@ import { SERIES_LIFE } from './sky';
  * cheaper than the frame loop.
  */
 
-/** How often the moment is moved on. */
-const TICK = 500;
+/**
+ * How often the BOOKKEEPING runs: the hour turning, the forecast going stale.
+ *
+ * Not the clock itself. The moment is moved on every animation frame, for the
+ * reason under `useSkyClock` below.
+ */
+const TICK = 1000;
 
 export const useSkyClock = () => {
   useEffect(() => {
@@ -42,30 +47,49 @@ export const useSkyClock = () => {
 
     let hour = Math.floor(useStore.getState().sky.time / 3600000);
     let refreshed = Date.now();
-    let last = Date.now();
 
-    const beat = window.setInterval(() => {
-      const now = Date.now();
-      const elapsed = now - last;
-      last = now;
-
+    /*
+     * THE CLOCK RUNS ON THE FRAME, NOT ON A TIMER.
+     *
+     * It used to step twice a second, and twice a second is not a clock, it is
+     * a metronome: at ten minutes of sky per second the sun jumped a degree
+     * and a quarter every step, and the whole point of watching the light move
+     * is that it MOVES. A slide you can see the steps in is worse than no
+     * slide at all, because it draws attention to the mechanism.
+     *
+     * What made that seem necessary was cost, and the cost was never here. It
+     * was the shadow map, which the sun invalidated on every change of bearing
+     * - so a finer clock meant a four-megapixel pass per frame. That is fixed
+     * where it lives, in components/Scene.tsx: the lamp now moves every frame
+     * and the map is redrawn eight times a second. With that separated, the
+     * clock is free to be a clock.
+     */
+    let last = performance.now();
+    let frame = 0;
+    const run = () => {
+      frame = requestAnimationFrame(run);
       const state = useStore.getState();
       const { sky } = state;
-      if (!sky.simulate) return;
+      const now = performance.now();
+      const elapsed = now - last;
+      last = now;
+      if (!sky.simulate || !sky.running) return;
+      /*
+       * Clamped to a quarter second's worth. A tab in the background gets no
+       * frames at all, so a tool put away at four and picked up at nine would
+       * otherwise catch up five hours in one step - and the catch-up is not
+       * the point, the moving sun is. Coming back to five o'clock is a truer
+       * answer than being shown a smeared sunset.
+       */
+      state.setSky({ time: sky.time + Math.min(elapsed, 250) * sky.rate });
+    };
+    frame = requestAnimationFrame(run);
 
-      if (sky.running) {
-        /*
-         * Clamped to a few beats' worth. A tab in the background gets no
-         * timers at all on a phone, so a tool put away at four and picked up
-         * at nine would otherwise catch up five hours in one step - and the
-         * catch-up is not the point, the moving sun is. Coming back to five
-         * o'clock is a truer answer than being shown a smeared sunset.
-         */
-        const step = Math.min(elapsed, TICK * 4) * sky.rate;
-        state.setSky({ time: sky.time + step });
-      }
-
-      const moment = useStore.getState().sky;
+    const beat = window.setInterval(() => {
+      const state = useStore.getState();
+      const moment = state.sky;
+      if (!moment.simulate) return;
+      const now = Date.now();
 
       // A new hour: read it off the series in hand, which costs nothing.
       const nowHour = Math.floor(moment.time / 3600000);
@@ -81,6 +105,9 @@ export const useSkyClock = () => {
       }
     }, TICK);
 
-    return () => window.clearInterval(beat);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearInterval(beat);
+    };
   }, []);
 };

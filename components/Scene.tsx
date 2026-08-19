@@ -150,6 +150,17 @@ const SHADOW_REACH = 10;
 const SHADOW_STEP = 8;
 
 /**
+ * The shortest gap between two shadow passes while the sun is sliding.
+ *
+ * Eight a second. The map is four megapixels and the pass is the single most
+ * expensive thing this renderer does, so the number is chosen against the
+ * frame budget rather than against the eye - and the eye cannot tell anyway:
+ * at the fastest rate the sky clock offers, the sun moves about a third of a
+ * degree in this long.
+ */
+const SHADOW_REST = 125;
+
+/**
  * The scene's only light.
  *
  * Three things decide how good the shadows look, and the map size is only one.
@@ -206,29 +217,57 @@ const Sun: React.FC = () => {
     shadow.needsUpdate = true;
   }, []);
 
-  const drawn = useRef({ revision: -1, x: NaN, z: NaN });
+  const drawn = useRef({ revision: -1, x: NaN, z: NaN, aim: NaN, at: 0 });
 
-  // A direction change must move the lamp and invalidate its cached shadow
-  // even when neither the geometry nor the viewer has moved.
-  useEffect(() => {
-    drawn.current.revision = -1;
-  }, [sun.azimuth, sun.elevation, sun.shadows]);
-
+  /**
+   * THE LIGHT MOVES EVERY FRAME. THE SHADOW MAP DOES NOT.
+   *
+   * Separating those two is the whole of what makes a running sun smooth, and
+   * running them together is what made it hack.
+   *
+   * A moving sun invalidates its own shadow, so the old code marked the cache
+   * stale on every change of bearing and did the lot in one branch: move the
+   * lamp, redraw the map. Under a clock that was stepping the hour twice a
+   * second that was tolerable and steppy. Under one that steps it every frame -
+   * which is what "smooth" actually requires - it is a four-megapixel shadow
+   * pass sixty times a second, and the frame rate collapses into exactly the
+   * judder it was supposed to cure.
+   *
+   * So the lamp's position is written every frame, unconditionally, because it
+   * is three floats and it is the thing you SEE: the terminator crawling across
+   * a face, the sky turning, the ink shader's own light vector. The map is
+   * redrawn eight times a second while the aim is moving, and immediately for
+   * anything else - a change of scene, a step of the viewer, a hand on the
+   * bearing knob - because those are not a continuous slide and waiting a
+   * twelfth of a second to see them would be a lag.
+   *
+   * Shadows a twelfth of a second behind a sun that takes ten minutes to cross
+   * a degree are shadows nobody can catch out. A sun that jumps is one
+   * everybody can.
+   */
   useFrame(() => {
     const lamp = light.current;
     if (!lamp) return;
 
     const cellX = Math.round(focusPoint.x / SHADOW_STEP) * SHADOW_STEP;
     const cellZ = Math.round(focusPoint.z / SHADOW_STEP) * SHADOW_STEP;
-    const was = drawn.current;
-    if (was.revision === sceneRevision.value && was.x === cellX && was.z === cellZ) return;
 
     // The lamp keeps its bearing on the sun and slides over the scene with you.
     anchor.position.set(cellX, 0, cellZ);
     anchor.updateMatrixWorld();
     lamp.position.set(cellX + offset[0], offset[1], cellZ + offset[2]);
 
-    drawn.current = { revision: sceneRevision.value, x: cellX, z: cellZ };
+    const aim = offset[0] * 7 + offset[1] * 13 + offset[2] * 29;
+    const was = drawn.current;
+    const stepped = was.x !== cellX || was.z !== cellZ;
+    const rebuilt = was.revision !== sceneRevision.value;
+    const aimed = was.aim !== aim;
+    if (!stepped && !rebuilt && !aimed) return;
+
+    const now = performance.now();
+    if (aimed && !stepped && !rebuilt && now - was.at < SHADOW_REST) return;
+
+    drawn.current = { revision: sceneRevision.value, x: cellX, z: cellZ, aim, at: now };
     lamp.shadow.needsUpdate = true;
   });
 
@@ -451,6 +490,7 @@ const SceneContent = () => {
           washes it out - until it is asked for, which is what the fill is. */}
       <Sun />
       <Fill />
+      {/* The three dials in front of all of it, when there is a lens on. */}
 
       {/* Four walls and a ceiling round the origin. */}
       {roomLevel > 0 && <Room level={roomLevel} dark={isDark} inked={inkMode} />}

@@ -221,3 +221,23 @@ export const stereographicRadius = (angle: number, field: number) => {
   const half = Math.min(field, STEREO_LIMIT) / 2;
   return (Math.tan(angle / 2) / Math.tan(half)) * Math.max(field, 1e-6);
 };
+
+/**
+ * WHAT A SETTING OF THE THREE DIALS DOES TO THE PICTURE.
+ *
+ * The exposure triangle, as one number: time on the sensor, times how sensitive
+ * it is, over the area of the hole letting the light in. Aperture is squared
+ * because f-numbers are a ratio of diameter and light goes by area, which is
+ * the one piece of the arithmetic that surprises people and the reason the
+ * stops run in steps of the square root of two.
+ *
+ * Normalised so that f/4 at a hundred and twenty-fifth on ISO 200 comes out at
+ * exactly one - the setting a lens arms on, and the picture this tool has
+ * always drawn. That makes the camera an OVERLAY on the scene's own lighting
+ * rather than a second lighting system: arm it and nothing changes, move a dial
+ * and you have moved a dial.
+ */
+export const BASE_EXPOSURE = ((1 / 125) * (200 / 100)) / (4 * 4);
+
+export const exposureOf = (lens: { aperture: number; shutter: number; iso: number }) =>
+  (lens.shutter * (lens.iso / 100)) / (lens.aperture * lens.aperture) / BASE_EXPOSURE;

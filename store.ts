@@ -571,6 +571,9 @@ export const sunFromSky = (sky: SkyState): Pick<SunState, 'azimuth' | 'elevation
 export const DEFAULT_CAMERA: CameraState = {
   on: false,
   aperture: 4,
+  shutter: 1 / 125,
+  iso: 200,
+  auto: true,
   focus: 0,
   gate: 3 / 2,
 };
@@ -889,6 +892,9 @@ const readCamera = (stored: Partial<CameraState> | undefined): CameraState => {
   return {
     on: typeof stored?.on === 'boolean' ? stored.on : DEFAULT_CAMERA.on,
     aperture: take(stored?.aperture, DEFAULT_CAMERA.aperture, 0.7, 32),
+    shutter: take(stored?.shutter, DEFAULT_CAMERA.shutter, 1 / 8000, 30),
+    iso: take(stored?.iso, DEFAULT_CAMERA.iso, 25, 25600),
+    auto: typeof stored?.auto === 'boolean' ? stored.auto : DEFAULT_CAMERA.auto,
     // Zero is not a distance, it is the word "auto" - so it is let through the
     // floor the others get.
     focus: stored?.focus === 0 ? 0 : take(stored?.focus, DEFAULT_CAMERA.focus, 0.3, 80),
@@ -1669,6 +1675,24 @@ export const useStore = create<SceneState>((set, get) => ({
     set((state) => {
       const camera = { ...state.camera, ...change };
       /*
+       * APERTURE PRIORITY, which is the mode most cameras are actually left in.
+       *
+       * Opening the aperture two stops lets in four times the light, so with
+       * `auto` on the shutter goes four times faster and the picture stays the
+       * brightness it was - and the only thing that changed is the one thing
+       * you were reaching for, which is the depth of field. Off, the same drag
+       * makes the picture two stops brighter, which is how anybody learns what
+       * a stop is.
+       *
+       * Only the aperture drives it. A hand on the shutter or the sensitivity
+       * is somebody deliberately changing the exposure, and a camera that
+       * undid that would be a camera with no manual mode at all.
+       */
+      if (camera.auto && change.aperture !== undefined && change.shutter === undefined) {
+        const ratio = (camera.aperture / state.camera.aperture) ** 2;
+        camera.shutter = Math.min(30, Math.max(1 / 8000, state.camera.shutter * ratio));
+      }
+      /*
        * A LENS IS A RECTILINEAR INSTRUMENT, so arming one sets the projection.
        *
        * Not a suggestion and not a coupling that could be undone later: a
@@ -2383,7 +2407,27 @@ export const useStore = create<SceneState>((set, get) => ({
           change.observed ??
           (overwritten && state.sky.observed === 'live' ? 'off' : state.sky.observed),
       };
-      return { sky, ...(sky.simulate ? { sun: { ...state.sun, ...sunFromSky(sky) } } : {}) };
+      if (!sky.simulate) return { sky };
+      const sun = { ...state.sun, ...sunFromSky(sky) };
+      /*
+       * The same sun object, when the sun has not really moved.
+       *
+       * The clock steps the moment on every animation frame, and every step
+       * comes through here. A fresh `sun` object each time is a fresh object
+       * identity, and everything that reads the light off the store - the
+       * atmosphere, the deck, the lamp, the ink shader - re-renders on it,
+       * sixty times a second, to be handed numbers that differ in the fifth
+       * decimal. Below the tolerances here nothing on screen can change: a
+       * twentieth of a degree of sun moves a shadow edge by less than the
+       * pixel it lands on. So below them the old object is returned, React
+       * sees no change, and the frame is spent drawing instead.
+       */
+      const still =
+        Math.abs(sun.azimuth - state.sun.azimuth) < 0.05 &&
+        Math.abs(sun.elevation - state.sun.elevation) < 0.05 &&
+        Math.abs(sun.intensity - state.sun.intensity) < 0.002 &&
+        Math.abs(sun.temperature - state.sun.temperature) < 5;
+      return { sky, sun: still ? state.sun : sun };
     }),
 
   /**

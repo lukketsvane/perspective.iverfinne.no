@@ -920,11 +920,12 @@ curved sheet because sight has no straight edges in it. That is the honest
 model of standing somewhere and looking, and it is the wrong model of the other
 thing people compose with.
 
-A camera is four numbers and none of them is "how much can you see". It is a
-**focal length** on a frame of a known size, an **aperture**, a **distance it
-is focused at**, and the shape of the **gate** — and what those produce is not
-a wider or narrower version of sight but a different picture. So there is a
-button that frames the view as a lens, and it changes four things:
+A camera is a handful of numbers and none of them is "how much can you see". It
+is a **focal length** on a frame of a known size, an **aperture**, a **shutter
+speed**, a **sensitivity**, a **distance it is focused at**, and the shape of
+the **gate** — and what those produce is not a wider or narrower version of
+sight but a different picture. So there is a button that frames the view as a
+lens, and it changes five things:
 
 - **The projection goes rectilinear**, and this is not a suggestion. A focal
   length on a curved sheet is a number with no meaning: 50 mm says exactly one
@@ -944,7 +945,40 @@ button that frames the view as a lens, and it changes four things:
   is what tells you what you are about to lose by moving in — which is the
   decision the gate exists to make. The edge is one pixel of the same ink the
   horizon is ruled in: a crop mark, not a border.
+- **A shutter and a sensitivity beside the aperture**, because those three are
+  one quantity — how much light lands — and you cannot see a triangle one
+  corner at a time. `t · (ISO/100) / N²`, normalised so that f/4 at 1/125 on
+  ISO 200 is exactly the picture the tool has always drawn: the setting the
+  lens arms on. **Aperture priority** is on by default, which is the mode most
+  bodies are actually left in — open up and the shutter moves under you to hold
+  the brightness, so the dial you reached for does the one thing you reached
+  for it to do, which is the depth of field. Switch the meter off and two stops
+  open is two stops brighter, which is how anybody learns what a stop is. The
+  readout then shows how far off the metered exposure you are, signed, in the
+  same place a real body puts it.
 - **And depth of field**, which is the part that cannot be faked with a knob.
+
+And it says all of it in one line at the top of the frame — `50 mm · f/2.8 ·
+1/125 · ISO 400 · A` — because a camera tells you where it is set without being
+asked, and in the order everybody reads it. That line is most of why a
+photographer can pick up a body they have never held.
+
+**Where the stop is applied, and why it is not on the renderer.** three runs its
+tone mapping inside each material's own shader and only when that material is
+drawn straight to the canvas: rendering into a target sets `NoToneMapping`, on
+the reasoning that a target is an intermediate and should stay linear. Every
+pixel this app draws goes into a target first — the cube pass, the flat pass —
+so `toneMappingExposure` was being read by nothing at all. The stop lives in the
+one pass that reaches the canvas, `components/Panorama.tsx`, alongside the blur.
+
+**And the curve is a shoulder, not a film curve.** ACES was tried and was wrong
+here: it is built for scene-referred radiance and it moves everything, so middle
+grey lifts and paper white lands at three quarters — in a tool whose subject is
+a white sheet with lines on it. Below a knee at 0.72 the picture is left exactly
+as drawn, which is the promise the base setting makes; above it an exponential
+rolls toward one, tangent to the identity at the knee so there is no corner.
+Three stops over then reads as a blown sky with its gradient still in it rather
+than as one flat white shape with the cloud dissolved into it.
 
 ### Depth of field, at one tap per pixel
 
@@ -1058,13 +1092,102 @@ the cloud base is at, and see what is there. That is what makes it read as a
 because they are further away, which is the perspective this whole tool is
 about, and no arrangement of sprites on a dome will do it. Its shape comes out
 of a coverage threshold fitted to the noise field's own distribution, so sixty
-per cent cover is sixty per cent of the sky. It is lit by a second reading of
-the same field taken a short way toward the sun — what the light met before it
-got here — which is a very cheap self-shadowing and the whole reason the deck
-has form rather than being a stencil. It drifts at the real wind speed on the
-real bearing, and a cloud shadow crossing a courtyard at four metres a second is
-the one thing in the scene that says the picture is a moment rather than a
-diagram.
+per cent cover is sixty per cent of the sky. It drifts at the real wind speed on
+the real bearing, and a cloud shadow crossing a courtyard at four metres a
+second is the one thing in the scene that says the picture is a moment rather
+than a diagram.
+
+**What makes it weather rather than blobs**, because a threshold on noise is a
+field of round shapes and a real cloud field is never round:
+
+- **The field is read at a point a slower field has already moved.** Two extra
+  samples of noise, and they are the whole difference: the puffs lean and hook
+  and run into each other in lines, which is what the shear they are sitting in
+  actually does to them.
+- **A finer field is added before the threshold, not after.** It eats into the
+  outline without touching the cores, because the cores are far above the line
+  and the outline is sitting on it. That is the ragged fringe.
+- **The light through it is Beer and powder off a sunward path.** Two more
+  readings along the deck toward the sun — the puff's own face, and the shadow
+  another puff throws across it — with a powder term for the thing everybody
+  paints backwards: a cloud is darker at its *fringe* than a hand's width
+  inside it, because light entering a thin edge scatters straight back out
+  before it has been turned around enough times to come at you.
+- **The silver rim is a phase function**, Henyey–Greenstein rather than a
+  `pow(dot)`. Light that goes into a droplet mostly goes on forward: the puff
+  between you and the sun has a rim of fire on it and the identical puff behind
+  your shoulder is flat grey, and the falloff is narrow at the top and wide at
+  the bottom in a way no power curve tunes into.
+- **And a second deck of cirrus above it**, eight kilometres up, drawn out into
+  fibres along the wind because that shear is the whole look of the stuff and a
+  round version reads as smoke. A sky with no high cloud in it reads as a
+  render. It is ice, so it scatters forward harder than water does, and it
+  stops being drawn as the low deck closes over — you cannot see cirrus through
+  overcast.
+- **The heavier the deck, the less of the sun reaches the underside** you are
+  standing under. That is not a shading choice: an overcast sky is grey because
+  the light is two thousand feet of water away, and a deck that renders white
+  at nine tenths cover is drawing a bright day with a lid on it.
+
+**And after the sun goes down there is a sky rather than a hole.** The night is
+drawn on the same dome, under the cloud, because that is the order the world is
+in — the stars are behind the weather:
+
+- **The stars are fixed and they turn.** The direction is put into the
+  celestial frame by one matrix built from the latitude and the local sidereal
+  time, and the sphere is then cut into cells, one star to a cell, with which
+  cells get one and how bright and what colour all hashes of the cell. So the
+  same stars are in the same places every night, they turn about the pole as
+  the hours run, and they stand at the altitude your latitude puts them at.
+- **Two things there are not the obvious version.** The star is placed in its
+  cell and then *pushed out onto the sphere*, so what is compared is an angle
+  between two directions — comparing distance through the grid instead, which
+  is what falls out of the obvious code, means a cell only shows its star when
+  the unit sphere happens to cut it near the middle, and a sphere is a
+  two-dimensional sheet through a three-dimensional lattice: it misses almost
+  every one. And a star is drawn at least a pixel wide, because below a pixel a
+  point light does not get fainter, it gets *unreliable* — lit or not depending
+  on where the sample fell — and the whole sky boils as you turn your head.
+- **The Milky Way is a great circle** tilted sixty-three degrees to the
+  celestial equator, which it gets for free by being defined in the star frame:
+  it rises and sets with the stars because it is made of them. Its star clouds
+  and dust lanes are written as sines of the angle *along* the band rather than
+  as noise, because noise on an angle has a seam where the angle wraps, and a
+  seam down the middle of the galaxy would be the most visible artefact in the
+  file.
+- **Twilight is its own colour, not a dimmer daylight.** The scattering model
+  underneath is Preetham's and Preetham has a cliff: a little over two degrees
+  below the horizon its sun term reaches zero and the whole dome snaps, in one
+  frame, to a flat grey wash. So the air is aimed at the sun's *true* height —
+  not the two-degree floor the lamp is held at, which is what kept the sky at a
+  permanent navy twilight at three in the morning — held a degree above that
+  cliff, and this layer takes over from it at the horizon: a deep blue overhead,
+  a warm band low down *on the side the sun went down*, and the stars coming up
+  through it as the night runs on to civil twilight's end.
+- **The dome carries its own stop.** Preetham's output is a radiance, not a
+  picture, and at a forty degree sun it is several times its output at a fifteen
+  degree one — true of the real sky and exactly why nobody photographs one at
+  noon without stopping down. Run at a fixed exposure it came out as a sheet of
+  white-cyan with the cloud lost in it, and a cloud you cannot see is not a
+  cloud that has been drawn realistically. Half a stop at the horizon, near two
+  at midsummer noon, which is roughly what an eye does.
+
+**And the clock runs on the frame.** It used to step twice a second, and twice
+a second is not a clock, it is a metronome: at ten minutes of sky per second the
+sun jumped a degree and a quarter every step, and the whole point of watching
+light move is that it *moves*. What made a timer seem necessary was cost, and
+the cost was never in the clock — it was that a moving sun invalidates its own
+shadow, so every step redrew a four-megapixel shadow map. Those are separate
+now. The lamp's position is written every frame, unconditionally, because it is
+three floats and it is the thing you see; the map is redrawn eight times a
+second while the aim is sliding, and immediately for anything that is not a
+continuous slide. Shadows a twelfth of a second behind a sun that takes ten
+minutes to cross a degree are shadows nobody can catch out. A sun that jumps is
+one everybody can. The `sun` in the store is left as the *same object* while it
+has not really moved, too — below a twentieth of a degree nothing on screen can
+change, and a new object identity every frame re-rendered every component that
+reads the light, sixty times a second, to hand them numbers differing in the
+fifth decimal.
 
 While the sky is in charge, the sun's four knobs go dead and go on showing what
 the sun is doing — they are readings now, and a knob that silently loses its
