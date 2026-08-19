@@ -125,6 +125,15 @@ export const I = {
    * step-marker inside it. Not a question mark - this is not help, it is the
    * same five cards from the beginning.
    */
+  /**
+   * The lesson: a cube, and the rays from its edges running to a point.
+   *
+   * The one drawing this whole app is about, reduced to a glyph - a form, and
+   * the construction that finds it. Not a mortarboard or a book: what is being
+   * offered is not a course, it is the thing on the page.
+   */
+  lesson: (<><path d="M3.4 8.4h17.2" strokeOpacity="0.3" /><circle cx="20.2" cy="8.4" r="1.1" fill="currentColor" stroke="none" /><path d="M5 12.4 20.2 8.4M5 19.4 20.2 8.4M12.4 17.9 20.2 8.4" strokeOpacity="0.3" /><path d="M5 12.4v7l7.4-1.5v-7z" /><path d="M12.4 11.4 16.6 10l-.1 6-4.1 1.9" strokeOpacity="0.6" /></>),
+
   tour: (<><circle cx="12" cy="12" r="8.4" strokeDasharray="3.6 2.8" /><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none" /></>),
 
   /** The floor itself: a plane running back to the horizon, filled in. */

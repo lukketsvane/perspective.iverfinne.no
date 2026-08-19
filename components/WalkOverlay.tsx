@@ -313,7 +313,9 @@ export const WalkOverlay: React.FC<{
   shelfOpen?: boolean;
   /** Put the shelf away. Opening any of the three panels does. */
   onShelfAway?: () => void;
-}> = ({ onModels, onScenes, shelf = null, shelfOpen = false, onShelfAway = () => {} }) => {
+  /** Hand the whole tool over to the perspective lesson. */
+  onLesson?: () => void;
+}> = ({ onModels, onScenes, shelf = null, shelfOpen = false, onShelfAway = () => {}, onLesson = () => {} }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -1976,6 +1978,27 @@ export const WalkOverlay: React.FC<{
 
               "Take the tour again" is read by lib/tour.ts. Never accented: it
               is a verb, not a state. */}
+          {/*
+            * The lesson, next to the tour, and they are not the same thing.
+            *
+            * The tour points at controls: nine cards that ring a button and
+            * wait for it to be pressed, so that a first-time viewer knows what
+            * is on screen. The lesson points at the SUBJECT: twelve cards that
+            * take the tool over and work it - the field, the sheet, where you
+            * stand, what is standing on the floor - to show why one, two,
+            * three, four and five point are one system and not five.
+            *
+            * It is the reason this app exists, so it sits where a viewer will
+            * find it after they have played with the knobs and started
+            * wondering what the ruled sphere is actually for.
+            */}
+          <button
+            onClick={() => { setShowTools(false); onLesson(); }}
+            aria-label="Learn how perspective works"
+            className={button}
+          >
+            <Icon path={I.lesson} className="w-5 h-5" />
+          </button>
           <button
             onClick={() => { setShowTools(false); beginTour(); }}
             aria-label="Take the tour again"
