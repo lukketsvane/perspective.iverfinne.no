@@ -22,6 +22,7 @@ import { downloadSceneFile, readSceneFile, toSceneFile } from './lib/sceneJson';
 import { beginActivity, reportFailure } from './lib/activity';
 import { Activity } from './components/Activity';
 import { CameraFeed } from './components/CameraFeed';
+import { Gate } from './components/Gate';
 import { Hints } from './components/Hints';
 import { Tour } from './components/Tour';
 import { beginTour, tourSeen } from './lib/tour';
@@ -768,6 +769,9 @@ export default function App() {
       {/* Hold any control to be told what it is. */}
       <Hints />
       <Tour />
+      {/* The frame a lens composes into, over the picture and under the
+          chrome - ruled in the same ink as the rest of the construction. */}
+      <Gate ink={constructionInk(isSketch(surface), isDark)} />
       <VanishingPoints color={constructionInk(isSketch(surface), isDark)} />
       <Measures />
       {/*

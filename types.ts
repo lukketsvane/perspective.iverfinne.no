@@ -83,15 +83,23 @@ export type PerspectiveMode = 'rectilinear' | 'cylindrical' | 'equidistant' | 's
 export interface CameraState {
   /** Whether the view is a lens rather than a pair of eyes. */
   on: boolean;
-  /**
-   * Focal length in millimetres, on a 36 mm frame.
+  /*
+   * THE FOCAL LENGTH IS NOT HERE, and its absence is the design.
    *
-   * The frame is full-frame 35 mm because it is the one sensor size whose
-   * focal lengths everybody already has a feel for: fifty is normal, twenty-
-   * four is wide, eighty-five is a portrait. A number that needs a crop factor
-   * applied before it means anything is a number nobody can compose with.
+   * It is a READING of the field of view, not a second number beside it. The
+   * field is what everything downstream of the view already runs on - the
+   * picker, the vanishing points, the ink's line weight, the panorama's choice
+   * of source - so a focal length kept alongside it is a copy that has to be
+   * held in step, and the two doors that set it are two chances to drift.
+   *
+   * It also cannot be stored honestly, because it is not a property of the
+   * lens alone: the same field is a different focal length through a 3:2 gate
+   * than through a square one, and different again on a phone held upright,
+   * because the gate has to shrink to fit the screen and the millimetres are
+   * counted across the gate. See `lensOfFrame` in lib/projection.ts. A number
+   * that depends on the window is a number that belongs where the window is
+   * known, which is not here.
    */
-  focal: number;
   /** The f-number. Small is a wide hole, a bright lens and a thin focus. */
   aperture: number;
   /**

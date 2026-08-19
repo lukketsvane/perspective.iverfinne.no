@@ -461,8 +461,17 @@ anywhere.
 
 ### Projections
 
-Three systems, all of them ones you can draw in, cycled with one button:
+Four systems, all of them ones you can draw in, cycled with one button:
 
+- **Rectilinear** — one, two and three point. A straight line in the world is a
+  straight line on the page, everywhere. That single property is what makes a
+  vanishing point a point you can rule *to*, and it is why every camera, every
+  draughtsman's board and every perspective lesson since Alberti uses this and
+  nothing else. It is also the one system here that sight is not: it cannot
+  reach 180° at any size of paper, and it stretches the corners of a wide frame
+  without bound. Held at 130°, where the corner of a phone frame is already
+  about four times the scale of its middle — a 12 mm ultra-wide, the widest
+  rectilinear lens anybody sells, is 122°.
 - **Cylindrical** — four-point. Verticals stay straight and vertical while
   horizontals bow. The system for ruling a long wall.
 - **Equidistant** — five-point, and the default. Angle from the centre of the
@@ -470,6 +479,17 @@ Three systems, all of them ones you can draw in, cycled with one button:
   mapping is what makes it a ruled sphere, and it is the sheet Kim Jung Gi
   draws on.
 - **Stereographic** — the conformal one (below).
+
+The flat board went away once and came back, and both decisions were right
+about different questions. It went because this is a tool whose subject is the
+wide field: opening a rectilinear lens does not open the view out, it smears
+the corners into something no drawing can be made from, and inside the cone of
+vision the curvilinear systems *are* the flat one to within a pencil line. What
+that missed is that a system nobody would choose for a wide view is still the
+system a beginner meets first, and one, two and three point perspective are not
+looser versions of five point — they *are* this projection, and they cannot be
+shown in any other. The four together are the ladder from the board to the
+sphere.
 
 Every projection here is one function: the angle away from the view axis, mapped
 to a distance from the middle of the frame. Equidistant is the identity — the
@@ -690,6 +710,83 @@ What it marked is still there to see without being drawn. On a curved sheet the
 straight edge is honest; outside it squares stretch and spheres go oval, and the
 bend is not a stylisation but the only truthful answer. Sweep the field control
 and you watch that boundary move.
+
+### A lens, rather than a pair of eyes
+
+Everything above frames the world the way sight does: a field measured in
+degrees, opened as wide as 210° because that is what a person takes in, on a
+curved sheet because sight has no straight edges in it. That is the honest
+model of standing somewhere and looking, and it is the wrong model of the other
+thing people compose with.
+
+A camera is four numbers and none of them is "how much can you see". It is a
+**focal length** on a frame of a known size, an **aperture**, a **distance it
+is focused at**, and the shape of the **gate** — and what those produce is not
+a wider or narrower version of sight but a different picture. So there is a
+button that frames the view as a lens, and it changes four things:
+
+- **The projection goes rectilinear**, and this is not a suggestion. A focal
+  length on a curved sheet is a number with no meaning: 50 mm says exactly one
+  thing about a picture — how much of a 36 mm frame a straight-line projection
+  takes in — and a sheet that bows straight lines is not that projection. It
+  does not put the old sheet back on the way out; which sheet you draw on is a
+  decision about the drawing, not something a mode should quietly undo.
+- **The field reads in millimetres.** The same control, the same number: on the
+  flat board a field *is* a focal length, and the tap-cycle steps 14, 20, 28,
+  35, 50 and 85 rather than round degrees. Those are worked out rather than
+  written down, because the answer depends on the window and on the gate — a 50
+  through a 3:2 gate on a phone held upright is a different field from a 50
+  across the whole of a laptop. The focal length is **not stored**: it is a
+  reading of the field, and a copy kept alongside is a copy that drifts.
+- **A gate**, fitted inside the screen and matted rather than blacked out.
+  What is outside the frame is still the scene, and being able to see it dimly
+  is what tells you what you are about to lose by moving in — which is the
+  decision the gate exists to make. The edge is one pixel of the same ink the
+  horizon is ruled in: a crop mark, not a border.
+- **And depth of field**, which is the part that cannot be faked with a knob.
+
+### Depth of field, at one tap per pixel
+
+It is a physical consequence of the other three numbers rather than a setting
+of its own. A lens of focal length *f* at f-number *N* focused at *S* throws a
+point at distance *D* onto a disc of diameter `f²/(N(S−f)) · |1 − S/D|`. The
+first factor does not depend on *D* at all, so it is worked out once on the CPU,
+turned from millimetres of sensor into pixels of source, and handed to the
+shader as one number.
+
+Two things make that affordable on a phone:
+
+- **The depth pass rides the existing cache.** The panorama already keeps its
+  source between frames — a cube map is indexed by direction, so turning your
+  head does not invalidate it, only moving does. The depth pass is the same
+  scene rendered again at half the size with one `overrideMaterial` over
+  everything, on exactly the same staleness check. No per-object shader, no
+  multiple render targets, and nothing at all redrawn while you stand still and
+  look around.
+- **The blur is the source's own mipmap chain.** A level *L* of it averages
+  about 2^L texels, so the level that averages a disc of *N* texels is log2(*N*)
+  — one trilinear fetch instead of the twenty-odd taps a poisson disc costs. It
+  is not a bokeh: a mip is a box, not an aperture, so a bright point does not
+  open into a disc with the shape of the blades. What it *is* is a correctly
+  sized, correctly placed, physically derived softness at one tap per pixel and
+  no second pass.
+
+The stored value is `near/D` rather than *D* — a reciprocal, because that is
+the quantity the circle of confusion is linear in (the whole blur is one
+subtraction in these units) and because it spends its precision on the near
+half of the scene, where the eye spends its. Half float rather than packed
+bytes: eight bits over a reciprocal bands exactly where the picture goes from
+sharp to soft, which is the one place anybody is looking.
+
+Focus is automatic unless you set it, and automatic means *where the eye line
+meets the floor* — one ray against one plane rather than a raycast against the
+geometry, which gives the same answer for a hundredth of the cost and does not
+flicker between an object and the gap beside it as the frame drifts.
+
+The picture that leaves has the same lens on it as the picture on the glass. A
+sharp export would have been easier to write and a quiet lie: the depth of
+field is most of what says where the eye is meant to go, and a file that
+silently undoes it is a file of a different drawing.
 
 ### Lights
 
