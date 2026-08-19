@@ -709,6 +709,75 @@ A **second light** lives under it, off until asked for: shadowless, cooler and
 weaker by default, the way a studio or an overcast sky answers the problem of
 one light leaving half of everything black.
 
+### The sky, when you switch it on
+
+Double-tap the paper-tone control and the page becomes a world: a
+physically-modelled atmosphere, weather, and the real night sky over a real
+place on a real date. A button appears beside it — absent otherwise, like the
+drawn page's own settings — and opens the eleven things that world is made of.
+
+This is the other perspective. Linear perspective is the one everybody
+teaches: things converge, things get smaller. The other one is what the mile of
+air between you and the hill does to the hill, and Leonardo wrote it down
+before anybody had a word for it. A tool that draws the convergence perfectly
+and has no air in it is teaching half the subject.
+
+**Air** is that mile, on one knob. It is a single-scattering integral — Rayleigh
+for the molecules, Mie for the dust, marched along the view ray — so nothing
+about it is a look-up table of pretty skies. The blue is blue because short
+wavelengths scatter about sixteen times as hard as long ones; the sunset is red
+because by then the beam has crossed forty times as much air and the blue has
+been taken out of it on the way. The *same multiplication* reddens the sunlight
+falling on your boxes, so a low sun paints the side of a white cube orange
+without any rule anywhere saying so.
+
+At the bottom of that knob there is no air at all. The sky goes black, the
+stars come out at noon, the sun becomes a white disc with no halo, and the
+shadows have nothing filling them. That is the moon — and it is also, exactly,
+the lighting model the rest of this tool uses when the sky is off, made visible
+for once instead of assumed.
+
+**Weather** is a plane, and that is the whole lesson. A deck of cloud at a
+fixed height is a ceiling over a flat world, drawn the way a floor is drawn and
+converging to the same horizon from the other side. Set it low and it races
+away over your head; set it high and it lies almost flat and reaches the
+horizon slowly. It is the one perspective plane everybody has looked at every
+day of their life and nobody has ever put a vanishing point on. It is met per
+pixel where the ray meets it, so it slides properly as you walk under it. As
+the cover comes up the beam goes down and the sky light goes up, which between
+them make the shadows fade out the way they really do — an overcast day is not
+a dimmer sun, it is a sun turned into a sky.
+
+**The stars** are the opposite of a perspective plane: things so far off that
+there is no perspective in them at all. They never converge, never grow, and
+walking a mile does not move one of them by a hair — the whole sphere turns
+rigidly and no figure in it ever changes shape. Having both on one screen, a
+cube with a vanishing point and a sky with none, is the clearest statement of
+what perspective *is* that this tool can make.
+
+So they are the real ones: the Yale Bright Star Catalogue cut at the naked-eye
+limit, 8404 stars, with their true right ascension, declination, magnitude and
+spectral colour. Orion is Orion — the belt three in a row, Betelgeuse orange at
+the shoulder, Rigel blue at the knee — because a shape you recognise is a shape
+you can watch stay the same, and a random dot field is a claim nobody can test.
+The Milky Way lies across them where it really lies, and the constellation
+figures are their own faint switch, because the stars are out there and the
+joining-up is something people drew on them.
+
+**Where and when.** A latitude, a day of the year and an hour, and a switch
+that hands the sun over to them — after which the light panel's bearing and
+height knobs are a read-out of where the sun really is. The hour is the sun's
+own rather than a railway's, so twelve is local noon. The moon is there too, in
+its real place, with its real phase, throwing its own light once the sun is
+down; the horns point away from the sun, which is the thing everybody draws
+wrong.
+
+The read-out at the end of the row is the point of the whole row. At sixty
+north on midsummer's night the sun is six degrees under the horizon and it
+never gets dark. Ten degrees further up it does not set at all. Neither is a
+thing you can talk somebody into believing, and both are one drag of the date
+away.
+
 ### Placed lamps
 
 The sun and the fill say where the big light comes from. **Lamps** say where
@@ -1583,7 +1652,16 @@ dependency is pinned to the version they belong to.
 ```
 tests/harness.ts     the fixture and the helpers
 tests/smoke.spec.ts  proof that the harness works end to end
+tests/sky.spec.ts    the arithmetic behind the sky, which a picture cannot check
 ```
+
+The sky spec is worth a note, because it is the one place in here that asserts
+something the app could get wrong while still looking right. A sign flipped in
+a rotation, a sidereal rate that is really the solar one, a latitude that is
+really a co-latitude — every one of those draws a handsome sky, and the wrong
+one. So the suite asks it the midnight sun: at ninety north on the twenty-first
+of June the sun does not set, at any hour, and there is no way to arrive at
+that by accident.
 
 **What is covered:** whatever the specs in `tests/` assert, and nothing else.
 This suite began as a net under work that had none — the tour, the per-object

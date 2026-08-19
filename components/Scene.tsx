@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { isSketch } from '../types';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { ContactShadows, Sky } from '@react-three/drei';
+import { ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore, DEFAULT_CAMERA_HEIGHT } from '../store';
 import { Lamps } from './Lamps';
@@ -14,6 +14,8 @@ import { updateFocus, focusPoint, setSelectionRange } from '../lib/focus';
 import { updateVanishing, clearVanishing, updateRoomPoints } from '../lib/vanishing';
 import { markSceneBuilt, sceneRevision } from '../lib/sceneRevision';
 import { Panorama } from './Panorama';
+import { ClockSun, SkyDome } from './SkyDome';
+import { aimVector, sunThrough, temperatureColor } from '../lib/atmosphere';
 import { forgetView, registerView } from '../lib/pick';
 import { fieldOf } from '../lib/projection';
 import {
@@ -136,38 +138,6 @@ export const sunPosition = (azimuth: number, elevation: number): [number, number
   return [Math.sin(a) * flat, Math.sin(e) * SUN_DISTANCE, Math.cos(a) * flat];
 };
 
-/** Approximate a black-body temperature as an sRGB lamp colour. */
-const temperatureColor = (kelvin: number) => {
-  const t = THREE.MathUtils.clamp(kelvin, 1000, 12000) / 100;
-  const red = t <= 66 ? 255 : 329.698727446 * Math.pow(t - 60, -0.1332047592);
-  const green = t <= 66 ? 99.4708025861 * Math.log(t) - 161.1195681661 : 288.1221695283 * Math.pow(t - 60, -0.0755148492);
-  const blue = t >= 66 ? 255 : t <= 19 ? 0 : 138.5177312231 * Math.log(t - 10) - 305.044792731;
-  return new THREE.Color(red / 255, green / 255, blue / 255);
-};
-
-/**
- * A clear, physically-modelled atmosphere driven by the directional sun.
- * This is deliberately only air and sunlight: no clouds or image backdrop.
- */
-const SunEnvironment = () => {
-  const sun = useStore((state) => state.sun);
-  const position = useMemo(() => sunPosition(sun.azimuth, sun.elevation), [sun.azimuth, sun.elevation]);
-  // Warm light scatters through a denser-looking atmosphere; stronger light
-  // produces a cleaner blue sky and a tighter solar halo.
-  const warmth = THREE.MathUtils.clamp((6500 - sun.temperature) / 4700, 0, 1);
-  const energy = THREE.MathUtils.clamp(sun.intensity / 8, 0.05, 1);
-  return (
-    <Sky
-      distance={450}
-      sunPosition={position}
-      turbidity={2 + warmth * 7 + (1 - energy) * 2}
-      rayleigh={0.8 + energy * 2.2}
-      mieCoefficient={0.003 + warmth * 0.012}
-      mieDirectionalG={0.82 + energy * 0.12}
-    />
-  );
-};
-
 /** How far the shadow camera reaches either side of where you are looking. */
 const SHADOW_REACH = 10;
 
@@ -214,9 +184,43 @@ const Fill: React.FC = () => {
 
 const Sun: React.FC = () => {
   const sun = useStore((state) => state.sun);
+  const sunEnvironment = useStore((state) => state.sunEnvironment);
+  const air = useStore((state) => state.sky.air);
+  const cloud = useStore((state) => state.sky.cloud);
   const light = useRef<THREE.DirectionalLight>(null);
   const anchor = useMemo(() => new THREE.Object3D(), []);
-  const color = useMemo(() => temperatureColor(sun.temperature), [sun.temperature]);
+  /*
+   * The sun's colour, and what the air does to it.
+   *
+   * Off the sky, the lamp is whatever colour temperature you set and nothing
+   * happens to it. Under a sky it is multiplied by what actually survives the
+   * trip - which is where sunset lighting comes from, and it comes from
+   * nowhere else: a sun ten degrees up has crossed about five atmospheres, the
+   * blue is scattered out of the beam long before it arrives, and the side of
+   * a white box goes orange. There is no orange-at-sunset rule anywhere in
+   * this file; there is one multiplication, and the rule falls out of it.
+   *
+   * It also puts the sun out when the sun goes down, which the clock needs and
+   * a bearing knob never did: the beam is zero below the horizon, so a light
+   * that has set stops lighting instead of shining up through the floor.
+   */
+  const color = useMemo(() => {
+    const lamp = temperatureColor(sun.temperature);
+    if (!sunEnvironment) return lamp;
+    const through = sunThrough(aimVector(sun.azimuth, sun.elevation), air);
+    return lamp.clone().multiply(new THREE.Color(through[0], through[1], through[2]));
+  }, [sun.temperature, sun.azimuth, sun.elevation, sunEnvironment, air]);
+
+  /*
+   * ...and what the weather does to its strength.
+   *
+   * An overcast sky is not a dimmer sun, it is a sun turned into a sky: the
+   * beam all but stops and the fill goes up to meet it, which is why an
+   * overcast day has no shadows and no black. Both halves of that are here and
+   * in the skylight next door, and between them the shadow simply fades out as
+   * the cloud comes over rather than being switched off by a rule.
+   */
+  const strength = sunEnvironment ? sun.intensity * (1 - 0.82 * cloud) : sun.intensity;
 
   const offset = useMemo(
     () => sunPosition(sun.azimuth, sun.elevation),
@@ -271,7 +275,7 @@ const Sun: React.FC = () => {
         target={anchor}
         position={offset}
         color={color}
-        intensity={sun.intensity}
+        intensity={strength}
         castShadow={sun.shadows !== 'off'}
         shadow-mapSize-width={mapSize}
         shadow-mapSize-height={mapSize}
@@ -472,7 +476,13 @@ const SceneContent = () => {
   return (
     <>
       <color attach="background" args={[sunEnvironment ? '#000000' : bgColor]} />
-      {sunEnvironment && <SunEnvironment />}
+      {/* The air, the weather, the stars and the two discs. Everything in
+          there is off unless the sky is switched on, and the whole subtree
+          unmounts with it - so a page drawn on paper pays nothing for it. */}
+      {sunEnvironment && <SkyDome />}
+      {/* And the clock's answer to where the sun is, written into the store so
+          the shadows, the ink and the sky can only ever agree. */}
+      {sunEnvironment && <ClockSun />}
       {/* One sun, and nothing else.
 
           No ambient term and no environment map: a face turned away from the

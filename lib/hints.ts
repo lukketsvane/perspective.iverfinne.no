@@ -69,6 +69,20 @@ const HINTS: Record<string, string> = {
   'Save the view as a picture': 'Lagre biletet',
   'Take the tour again': 'Ta omvisinga på nytt',
 
+  // ------------------------------------------------------------- the sky
+  'Air, weather and the night sky': 'Lufta, veret og natthimmelen',
+  Air: 'Kor mykje luft — botnen er vakuum',
+  Weather: 'Skydekket over deg',
+  'Cloud height': 'Kor høgt skydekket ligg',
+  'Sky light': 'Lyset himmelen sjølv gjev skuggesida',
+  Stars: 'Alle stjerner eit auge kan sjå',
+  'Constellation figures': 'Stjernebileta, teikna opp',
+  Latitude: 'Kor langt nord du står',
+  Date: 'Kva dag i året',
+  Hour: 'Klokka, slik sola går',
+  'The clock aims the sun': 'Lat klokka styre sola',
+  'The sun stands': 'Der sola faktisk står',
+
   // ------------------------------------------------------- the drawn page
   'How the hatching is ruled': 'Korleis jatteringa er rula',
   "The marker's own settings": 'Tusjen sine innstillingar',

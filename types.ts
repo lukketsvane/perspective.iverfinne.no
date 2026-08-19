@@ -523,6 +523,101 @@ export interface FillState extends SunState {
 }
 
 /**
+ * The world outside: how much air, what weather, and which night.
+ *
+ * Sun mode used to be one switch and a gradient. It drew a clear blue sky
+ * derived from the key light's own colour temperature, which is a pretty
+ * backdrop and almost nothing else - and a backdrop is the least interesting
+ * thing a sky can be to somebody learning to draw.
+ *
+ * WHAT A SKY IS FOR IN A PERSPECTIVE TOOL. Three things, and this is one field
+ * per thing:
+ *
+ *   AIR is aerial perspective, which is one of the two perspectives there are.
+ *   Linear perspective is the one everybody teaches - things converge, they get
+ *   smaller. The other one is what the mile of air between you and the hill
+ *   does to the hill: it goes pale, it goes blue, it loses its darks, and by
+ *   the time it is far enough away it is a flat shape the colour of the sky.
+ *   Leonardo wrote it down before anybody had the word. A tool that draws the
+ *   convergence perfectly and has no air in it is teaching half the subject.
+ *
+ *   CLOUD is a plane. That is the whole lesson. A deck of cloud at a fixed
+ *   height is a ceiling over a flat world, and it is drawn exactly the way a
+ *   floor is drawn, converging to exactly the same horizon from the other side.
+ *   Set it low and it races away over your head; set it high and it lies almost
+ *   flat and reaches the horizon slowly. It is the one perspective plane
+ *   everybody has seen every day and nobody has ever measured.
+ *
+ *   STARS are the opposite of a perspective plane: things so far off they have
+ *   no perspective in them at all. They never converge, they never grow, and
+ *   walking a mile does not move one of them by a hair. The sphere turns
+ *   rigidly and no figure in it ever changes shape. Having both on the same
+ *   screen - a cube with a vanishing point, a sky with none - is the clearest
+ *   statement of what perspective actually IS that this tool can make.
+ *
+ * And a fourth, which is the one that made the rest worth doing: the sky can be
+ * SOMEWHERE, on a DATE, at an HOUR. That is how an illustrator asks about light
+ * - not "which way shall I point the lamp" but "it is four in the afternoon in
+ * October at sixty north, so where is the sun and how long are the shadows".
+ */
+/**
+ * How far the sky's knobs reach.
+ *
+ * Air stops at three because three atmospheres of it is already a wall of
+ * white a hundred metres out, and past that there is no picture left to draw.
+ * The cloud deck stops at three hundred metres because a lower ceiling than
+ * that is fog rather than weather, and at twelve kilometres because that is
+ * the top of the troposphere and where cirrus lives - which is also, usefully,
+ * the deck that lies so nearly flat overhead that its convergence is the whole
+ * of what you can see of it.
+ */
+export const SKY_LIMITS = { air: 3, lowCloud: 300, highCloud: 12000 } as const;
+
+export interface SkyState {
+  /**
+   * How much atmosphere there is, against a clear day at sea level.
+   *
+   * At zero there is none: the sky is black, the stars are out at noon, the
+   * shadows have nothing filling them, and the sun is a white disc with no
+   * halo. That is the moon, and it is a real place to draw - it is also
+   * exactly the lighting model the rest of this tool uses when the sky is off,
+   * made visible for once instead of assumed.
+   *
+   * Past one is thicker air: haze, a paler horizon, and distance eating the
+   * darks sooner. Which is the whole of aerial perspective, on one knob.
+   */
+  air: number;
+  /** Cloud cover overhead, none to overcast. */
+  cloud: number;
+  /** How high the deck stands, in metres. */
+  cloudBase: number;
+  /** How brightly the catalogue is drawn. Zero leaves the sky empty. */
+  stars: number;
+  /** The joining-up: the constellation figures over the stars themselves. */
+  figures: boolean;
+  /** How much the sky itself lights the side of things the sun cannot reach. */
+  skylight: number;
+  /** Degrees north. It is also how high the pole star stands. */
+  latitude: number;
+  /** Day of the year, 1 to 365. */
+  day: number;
+  /**
+   * The hour, kept by the sun rather than by a railway: twelve is local noon.
+   * See lib/sky.ts.
+   */
+  hour: number;
+  /**
+   * The clock aims the sun.
+   *
+   * On, the bearing and the height above the horizon are worked out from the
+   * date, the hour and the latitude, and the two knobs in the light panel
+   * become a read-out of where the sun really is. Off, the sun is yours to
+   * point and the date and hour only turn the stars.
+   */
+  clock: boolean;
+}
+
+/**
  * How the marker page is inked, and how the etched one is ruled.
  *
  * Two of the five surface rungs have settings of their own. They are here
@@ -731,6 +826,8 @@ export interface SceneView {
   sun: SunState;
   fill?: FillState;
   sunEnvironment: boolean;
+  /** Absent in scenes composed before the sky had any settings. */
+  sky?: SkyState;
   guides: GuideLevel;
   /** Written by a version that had one guides switch instead of levels. */
   showGuides?: boolean;
@@ -877,6 +974,8 @@ export interface SceneState {
   sun: SunState;
   /** A second, shadowless light, for when one is too few. */
   fill: FillState;
+  /** The air, the weather and the night, for when the sky is switched on. */
+  sky: SkyState;
   /** The marker page's own colour and reach. */
   marker: MarkerState;
   /** How the etched page is ruled. */
@@ -1057,6 +1156,7 @@ export interface SceneState {
   setSun: (sun: Partial<SunState>) => void;
   /** The same, for the fill. */
   setFill: (fill: Partial<FillState>) => void;
+  setSky: (sky: Partial<SkyState>) => void;
   /** Pick an instrument up, or put the one in your hand down with 'none'. */
   setInstrument: (instrument: Instrument) => void;
   /**

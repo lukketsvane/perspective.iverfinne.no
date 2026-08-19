@@ -254,6 +254,32 @@ export const I = {
   dark: (<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />),
   sky: (<><path d="M3 17.5h18" /><path d="M5 17.5a7 7 0 0 1 14 0" /><circle cx="12" cy="8" r="2.5" /><path d="M12 2.5v2M5.8 5.2l1.4 1.4M18.2 5.2l-1.4 1.4" /></>),
 
+  /* ------------------------------------------------------------ the sky */
+
+  /**
+   * Air: a hill going pale behind another hill, which is the whole of aerial
+   * perspective in one mark. Turn it down and there is one hill.
+   */
+  air: (<><path d="M1.5 19h21" /><path d="M2.5 19 9 9.5 15.5 19z" /><path d="M11 19 16.5 11 22 19z" strokeOpacity="0.45" /><path d="M4 6.5h6M13 6.5h7M6.5 3.5h11" strokeOpacity="0.3" /></>),
+  /** Weather: a deck of it, seen from underneath. */
+  cloud: (<><path d="M6.5 17.5h11a3.6 3.6 0 0 0 .3-7.2 5.2 5.2 0 0 0-9.9-1.5A3.9 3.9 0 0 0 6.5 17.5z" /></>),
+  /** How high the deck stands: the same deck, with the ground under it. */
+  cloudBase: (<><path d="M6 8.5h10a2.9 2.9 0 0 0 .2-5.8A4.2 4.2 0 0 0 8.3 1.5 3.1 3.1 0 0 0 6 8.5z" /><line x1="2" y1="21" x2="22" y2="21" /><path d="M12 11v6.5M9.6 15.2 12 17.8l2.4-2.6" strokeOpacity="0.55" /></>),
+  /** The catalogue: a few of them, at the sizes they really differ by. */
+  stars: (<><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none" /><circle cx="16.5" cy="5.5" r="0.9" fill="currentColor" stroke="none" /><circle cx="12.5" cy="12" r="0.6" fill="currentColor" stroke="none" /><circle cx="18.5" cy="14.5" r="1.2" fill="currentColor" stroke="none" /><circle cx="5.5" cy="16.5" r="0.7" fill="currentColor" stroke="none" /><circle cx="10" cy="19" r="0.5" fill="currentColor" stroke="none" /></>),
+  /** The joining-up, on the same stars. */
+  figures: (<><path d="M6 7 12.5 11.5 18.5 5.5M12.5 11.5 11 19M18.5 5.5 20 13" strokeOpacity="0.55" /><circle cx="6" cy="7" r="1.3" fill="currentColor" stroke="none" /><circle cx="12.5" cy="11.5" r="1" fill="currentColor" stroke="none" /><circle cx="18.5" cy="5.5" r="1.1" fill="currentColor" stroke="none" /><circle cx="11" cy="19" r="0.9" fill="currentColor" stroke="none" /><circle cx="20" cy="13" r="0.8" fill="currentColor" stroke="none" /></>),
+  /** Skylight: the whole dome coming down on a thing, not one beam. */
+  skylight: (<><path d="M3.5 12a8.5 8.5 0 0 1 17 0" /><path d="M12 15.5v5M7.6 14.6l-1.4 3.2M16.4 14.6l1.4 3.2" strokeOpacity="0.5" /><line x1="2" y1="21.5" x2="22" y2="21.5" strokeOpacity="0.4" /></>),
+  /** Where on the earth you are standing: the pole star's own height. */
+  latitude: (<><circle cx="12" cy="12" r="9" /><path d="M3 12h18" strokeOpacity="0.5" /><path d="M4.4 7.2h15.2M4.4 16.8h15.2" strokeOpacity="0.3" /><path d="M12 3a13 13 0 0 1 0 18 13 13 0 0 1 0-18z" strokeOpacity="0.3" /></>),
+  /** The day of the year. */
+  calendar: (<><rect x="3" y="5" width="18" height="16" rx="2.5" /><path d="M3 10h18" /><path d="M8 2.5v4M16 2.5v4" /><circle cx="12" cy="15.5" r="1.6" fill="currentColor" stroke="none" /></>),
+  /** The hour, kept by the sun. */
+  clock: (<><circle cx="12" cy="12" r="9" /><path d="M12 6.8V12l3.6 2.4" /></>),
+  /** ...and the switch that lets the clock aim the light. */
+  clockSun: (<><circle cx="9.5" cy="12" r="6.6" /><path d="M9.5 8.2V12l2.6 1.8" /><circle cx="19" cy="5.5" r="2" /><path d="M19 1.6v1.2M19 8.2v1.2M15.8 5.5h-1.2M23.4 5.5h-1.2" strokeOpacity="0.6" /></>),
+
   /** Committing a scene to the browser: a floppy, still the clearest mark for it. */
   save: (<><path d="M4 5.6A1.6 1.6 0 0 1 5.6 4h9.6L20 8.8v9.6a1.6 1.6 0 0 1-1.6 1.6H5.6A1.6 1.6 0 0 1 4 18.4z" /><path d="M8 4v5h7" /><rect x="8" y="13" width="8" height="7" rx="1" /></>),
   /** The scene library: framed views, stacked. */

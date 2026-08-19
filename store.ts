@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, SelectionGuide, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
+import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, SelectionGuide, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SKY_LIMITS, SkyState, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
 import { releaseSource, cachedSourceUrls, loadModelFromUrl } from './lib/loadModel';
 import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
@@ -196,6 +196,37 @@ export const DEFAULT_FILL: FillState = {
   intensity: 1.1,
   temperature: 8200,
   shadows: 'off',
+};
+
+/**
+ * The sky, as it stands the first time it is switched on.
+ *
+ * A clear afternoon in late June at sixty north - which is Norway in the one
+ * week a year the light is worth arguing about, and a sun high enough that the
+ * shadows are short and everything reads. One unit of air is the real
+ * atmosphere at sea level rather than a taste: the blue is the blue.
+ *
+ * No cloud, because the first thing anybody does with a weather knob is turn
+ * it up, and a deck already overhead hides the fact that turning it up put one
+ * there. No stars either - the sun is up, so there are none to see, and the
+ * knob is a brightness rather than a switch: it does nothing until the sun
+ * goes down, which is the honest behaviour and also the discoverable one.
+ *
+ * The clock does NOT aim the sun to begin with. Somebody who opens sun mode is
+ * usually there to move a light about, and having the two knobs they reach for
+ * turn into read-outs is a thing to opt into rather than a thing to survive.
+ */
+export const DEFAULT_SKY: SkyState = {
+  air: 1,
+  cloud: 0,
+  cloudBase: 1500,
+  stars: 0.85,
+  figures: false,
+  skylight: 0.5,
+  latitude: 60,
+  day: 172,
+  hour: 15,
+  clock: false,
 };
 
 /** Eye-level presets, in metres. */
@@ -497,6 +528,7 @@ const SETTING_KEYS = [
   'sunEnvironment',
   'sun',
   'fill',
+  'sky',
 ] as const;
 
 type PersistedSettings = Pick<SceneState, (typeof SETTING_KEYS)[number]>;
@@ -543,6 +575,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   sunEnvironment: boolean,
   sun: object,
   fill: object,
+  sky: object,
 };
 
 /**
@@ -712,6 +745,34 @@ const readSun = (stored: Partial<SunState> | undefined): SunState => ({
   // from a default written into the reader instead of into the sun.
   shadows: readShadows(stored?.shadows, DEFAULT_SUN.shadows),
 });
+
+/**
+ * A sky read back from something written earlier, or from nothing.
+ *
+ * Same job as `readSun` and the same reason: the settings check asks only that
+ * it is an object, so every field inside is whatever the last version wrote -
+ * and a scene saved a week ago has none of them. Through the defaults, and
+ * with the two that can be nonsense held inside their own ranges, because a
+ * latitude of nine hundred is a rotation matrix that quietly stops being one.
+ */
+const readSky = (stored: Partial<SkyState> | undefined): SkyState => {
+  const sky = { ...DEFAULT_SKY, ...(stored ?? {}) };
+  const hold = (value: number, low: number, high: number, fallback: number) =>
+    typeof value === 'number' && Number.isFinite(value) ? Math.min(high, Math.max(low, value)) : fallback;
+  return {
+    ...sky,
+    air: hold(sky.air, 0, SKY_LIMITS.air, DEFAULT_SKY.air),
+    cloud: hold(sky.cloud, 0, 1, DEFAULT_SKY.cloud),
+    cloudBase: hold(sky.cloudBase, SKY_LIMITS.lowCloud, SKY_LIMITS.highCloud, DEFAULT_SKY.cloudBase),
+    stars: hold(sky.stars, 0, 1, DEFAULT_SKY.stars),
+    skylight: hold(sky.skylight, 0, 1, DEFAULT_SKY.skylight),
+    latitude: hold(sky.latitude, -90, 90, DEFAULT_SKY.latitude),
+    day: Math.round(hold(sky.day, 1, 365, DEFAULT_SKY.day)),
+    hour: hold(sky.hour, 0, 24, DEFAULT_SKY.hour),
+    figures: sky.figures === true,
+    clock: sky.clock === true,
+  };
+};
 
 const remembered = kept({
   ...loadedSettings,
@@ -914,6 +975,7 @@ export const currentView = (state: SceneState): SceneView => ({
   sun: { ...state.sun },
   fill: { ...state.fill },
   sunEnvironment: state.sunEnvironment,
+  sky: { ...state.sky },
   guides: state.guides,
   gridX: state.gridX,
   gridZ: state.gridZ,
@@ -1014,6 +1076,9 @@ const restoreView = (view: SceneView | undefined, range: FieldRange): Partial<Sc
     sun: readSun(view.sun),
     fill: { ...DEFAULT_FILL, ...(view.fill ?? {}) },
     sunEnvironment: view.sunEnvironment,
+    // Through the defaults: a scene composed before the sky had settings must
+    // come back under a real atmosphere rather than under an undefined one.
+    sky: readSky(view.sky),
     guides: (Math.min(2, view.guides ?? ((view.showGuides ?? true) ? 3 : 0)) as GuideLevel),
     gridX: view.gridX ?? (view.guides ?? 3) >= 2,
     gridZ: view.gridZ ?? (view.guides ?? 3) >= 2,
@@ -1096,6 +1161,7 @@ export const useStore = create<SceneState>((set, get) => ({
   // its fields, must not leave the scene with no light in it.
   sun: readSun(remembered.sun),
   fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
+  sky: readSky(remembered.sky),
 
   /*
    * ...AND THE DEAL OVER THE TOP OF ALL OF IT, last, because it has to be.
@@ -2007,6 +2073,8 @@ export const useStore = create<SceneState>((set, get) => ({
   setSun: (sun) => set((state) => ({ sun: { ...state.sun, ...sun } })),
 
   setFill: (fill) => set((state) => ({ fill: { ...state.fill, ...fill } })),
+
+  setSky: (sky) => set((state) => ({ sky: { ...state.sky, ...sky } })),
 
   setInstrument: (instrument) => set({ instrument }),
 
