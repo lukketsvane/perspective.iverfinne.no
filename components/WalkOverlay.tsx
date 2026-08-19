@@ -5,10 +5,9 @@ import { beginMeasure, clearMeasures, endMeasure, updateMeasure } from '../lib/m
 import { holdRail, releaseRail, showRail, useRail } from '../lib/rail';
 import { SelectionBar } from './SelectionBar';
 import { LightPanel } from './LightPanel';
-import { SkyPanel } from './SkyPanel';
 import { MaterialPanel } from './MaterialPanel';
-import { Icon, I, SETTINGS_ICON, SURFACE_ICON } from './icons';
-import { Scrub, useBackdropControl, useGrayThemeControl, useGroundControl, useRoomControl } from './controls';
+import { Icon, I, SURFACE_ICON } from './icons';
+import { Scrub, useBackdropControl, useGrayThemeControl, useGroundControl, useHoldable, useRoomControl } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
 // One import rather than a static one for the capability check and a dynamic
 // one for the work: the heavy part of this - the USDZ exporter itself - is
@@ -18,34 +17,113 @@ import { quickLookAvailable, sceneToUSDZ, openInQuickLook, downloadUSDZ } from '
 import { whileWorking } from '../lib/activity';
 import { ACTIVE, bubble, chrome, iconButton, SIDEWAYS_SLOT } from './ui';
 import { pickGround, pickObject, pixelsPerMetreAt } from '../lib/pick';
+import { focusPoint } from '../lib/focus';
 import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
-import { HUMAN_SIGHT, MAX_FIELD, wholeSheetField } from '../lib/projection';
-import { SNAP_STEPS, selectionSurface, surfaceHasSettings, surfaceSettingsLabel, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
+import { exposureOf, fieldOfFrame, FLAT_SIGHT, HUMAN_SIGHT, lensOfFrame, MAX_FIELD, wholeSheetField } from '../lib/projection';
+import { SNAP_STEPS, selectionSurface, surfaceHasSettings, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
 import { beginTour, endTour, useTourStep } from '../lib/tour';
 
 /**
- * The systems the button steps through: bowed horizontals, then the ruled
- * sphere, then the whole hemisphere of it.
+ * The systems the button steps through: the flat board, bowed horizontals, the
+ * ruled sphere, and the conformal one.
  *
- * Straight-line perspective is not among them any more. It is honest inside the
- * cone of vision and nowhere else, and this is a tool whose whole subject is the
- * wide field - so widening the lens in it did not open the view out, it smeared
- * the edges of the frame into something no drawing could be made from. The
- * curvilinear systems answer the same question at forty degrees as they do at
- * three hundred, and at forty they *are* the flat one to within the width of a
- * pencil line.
+ * STRAIGHT-LINE PERSPECTIVE IS BACK, and the argument that took it out is
+ * still true and was answering a different question. It said: this is a tool
+ * whose subject is the wide field, opening a rectilinear lens does not open
+ * the view out but smears the corners into something no drawing can be made
+ * from, and inside the cone of vision the curvilinear systems ARE the flat one
+ * to within a pencil line. All of that holds.
  *
- * The mode itself stays: a session standing in the real room is drawn through
- * the phone's own rectilinear lens, and bending that would be drawing a
- * perspective over a perspective.
+ * What it missed is that a system nobody would choose for a wide view is still
+ * the system every perspective lesson, every camera and every draughtsman's
+ * board uses - because it is the only one in which a straight edge stays
+ * straight, which is what makes a vanishing point a point you can rule to. One
+ * and two and three point perspective are not looser versions of five point;
+ * they are this projection, and they cannot be shown in any other. So it is
+ * the first rung, where a beginner meets it, and the four together are the
+ * ladder from the board to the sphere.
  */
-const PROJECTION_ORDER: PerspectiveMode[] = ['cylindrical', 'equidistant', 'stereographic'];
+const PROJECTION_ORDER: PerspectiveMode[] = [
+  'rectilinear',
+  'cylindrical',
+  'equidistant',
+  'stereographic',
+];
 const PROJECTION_ICON: Record<PerspectiveMode, React.ReactNode> = {
+  rectilinear: I.rectilinear,
   cylindrical: I.cylindrical,
   equidistant: I.curved,
   stereographic: I.stereographic,
 };
+
+/**
+ * The stops, and why a scrub gets them as a tap-cycle rather than as its range.
+ *
+ * An f-number is a ratio, and the numbers that matter are a geometric series -
+ * every step halves the light and every step is a root of two apart. Scrubbed
+ * linearly, four fifths of the sweep is spent between f/8 and f/22, where
+ * nothing visible happens, and the whole of the interesting end is in the last
+ * centimetre of travel. So the drag is there for anything in between and the
+ * TAP walks the stops themselves, which is what the ring on a real lens does
+ * and what anybody who has held one is expecting.
+ */
+const STOPS = [1.4, 2, 2.8, 4, 5.6, 8, 11, 16, 22];
+
+/**
+ * The shutter speeds and the sensitivities, in stops, on the same argument.
+ *
+ * Every one of these is a factor of two from its neighbour, which is what a
+ * stop is - so the tap walks the scale a photographer already has in their
+ * hand and the drag reaches everything between. Written as seconds because
+ * that is what the arithmetic wants; read back as 1/125, which is what
+ * everybody says.
+ */
+const SPEEDS = [1, 1 / 2, 1 / 4, 1 / 8, 1 / 15, 1 / 30, 1 / 60, 1 / 125, 1 / 250, 1 / 500, 1 / 1000, 1 / 2000, 1 / 4000]
+  .slice()
+  .sort((a, b) => a - b);
+
+const SENSITIVITIES = [50, 100, 200, 400, 800, 1600, 3200, 6400, 12800];
+
+const shutterReading = (seconds: number) =>
+  seconds >= 1 ? `${seconds.toFixed(seconds >= 10 ? 0 : 1)}s` : `1/${Math.round(1 / seconds)}`;
+
+/**
+ * How far off a correct exposure the three dials are, in stops.
+ *
+ * The one number a photographer looks for before any of the others, and the
+ * one this tool can state exactly because it knows what "correct" means here:
+ * the exposure the lens arms on, which is the picture the app draws with no
+ * camera at all. Zero means the lens is not changing the brightness. Plus two
+ * means two stops over.
+ */
+const stopsOff = (aperture: number, shutter: number, iso: number) =>
+  Math.log2(exposureOf({ aperture, shutter, iso }));
+
+/** f/1.4 and f/8: a stop is written to one decimal only when it has one. */
+const apertureReading = (value: number) =>
+  value < 3 || (value * 10) % 10 !== 0 ? value.toFixed(1) : String(Math.round(value));
+
+/**
+ * The gates, in the order anybody would step them.
+ *
+ * Three-two is the shape a 35 mm frame is and the shape the focal lengths were
+ * named on, so it is where this starts. Four-three is what the classical
+ * plate, most cinema before 1953 and every phone sensor is. Sixteen-nine is
+ * the modern moving frame. And the square, which is the one that is not a
+ * compromise between the other two: it has no long edge to compose along, so
+ * it throws the whole decision onto the middle of the frame.
+ */
+const GATES = [3 / 2, 4 / 3, 16 / 9, 1];
+
+const gateReading = (gate: number) =>
+  Math.abs(gate - 3 / 2) < 0.01
+    ? '3:2'
+    : Math.abs(gate - 4 / 3) < 0.01
+      ? '4:3'
+      : Math.abs(gate - 16 / 9) < 0.01
+        ? '16:9'
+        : '1:1';
 
 const GUIDE_ICON: Record<GuideLevel, React.ReactNode> = {
   0: I.guides0,
@@ -265,7 +343,9 @@ export const WalkOverlay: React.FC<{
   shelfOpen?: boolean;
   /** Put the shelf away. Opening any of the three panels does. */
   onShelfAway?: () => void;
-}> = ({ onModels, onScenes, shelf = null, shelfOpen = false, onShelfAway = () => {} }) => {
+  /** Hand the whole tool over to the perspective lesson. */
+  onLesson?: () => void;
+}> = ({ onModels, onScenes, shelf = null, shelfOpen = false, onShelfAway = () => {}, onLesson = () => {} }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -274,16 +354,22 @@ export const WalkOverlay: React.FC<{
   const fov = useStore((s) => s.fov);
   const setLens = useStore((s) => s.setLens);
   const perspectiveMode = useStore((s) => s.perspectiveMode);
+  /* The one sheet whose field is a focal length and whose ceiling is low. */
+  const flatBoard = perspectiveMode === 'rectilinear';
   const sun = useStore((s) => s.sun);
   const setSun = useStore((s) => s.setSun);
-  const sunEnvironment = useStore((s) => s.sunEnvironment);
   const backgroundGray = useStore((s) => s.backgroundGray);
-  const toggleSunEnvironment = useStore((s) => s.toggleSunEnvironment);
-  const grayThemeControl = useGrayThemeControl(toggleSunEnvironment);
+  const grayThemeControl = useGrayThemeControl();
   const backdrop = useStore((s) => s.backdrop);
   const backdropControl = useBackdropControl();
   const ground = useStore((s) => s.ground);
   const groundControl = useGroundControl();
+  const cameraFeed = useStore((s) => s.cameraFeed);
+  const setCameraFeed = useStore((s) => s.setCameraFeed);
+  /* Read inside the tap handler, where a re-render has not happened yet: the
+     second tap of a double tap arrives before React has seen the first. */
+  const arLookRef = useRef(false);
+  const lastLookTap = useRef(0);
   const [showTools, setShowTools] = useState(false);
   /*
    * The lights stand in the tools row's own slot, over a live dock.
@@ -295,8 +381,6 @@ export const WalkOverlay: React.FC<{
    * panel, Tools swaps it back.
    */
   const [showLights, setShowLights] = useState(false);
-  /** The air, the weather and the night. Only reachable while the sky is on. */
-  const [showSky, setShowSky] = useState(false);
   /*
    * ...and the drawn page's own settings, in the same slot again.
    *
@@ -331,7 +415,6 @@ export const WalkOverlay: React.FC<{
   const swapTo = (open: () => void) => () => {
     setShowTools(false);
     setShowLights(false);
-    setShowSky(false);
     setMaterialFrom(null);
     open();
   };
@@ -437,7 +520,13 @@ export const WalkOverlay: React.FC<{
   const lastMaterialFrom = useRef<'scene' | 'selection'>('scene');
   if (materialFrom) lastMaterialFrom.current = materialFrom;
   const cycleSurface = useStore((s) => s.cycleSurface);
-  const shufflePreset = useStore((s) => s.shufflePreset);
+  /* The page's rung and its drawer, on one seat: tap steps, hold opens. */
+  const pageSurfaceControl = useHoldable({
+    onTap: cycleSurface,
+    onHold: surfaceHasSettings(sceneSurface)
+      ? () => { setShowTools(false); setShowLights(false); setMaterialFrom('scene'); onShelfAway(); }
+      : undefined,
+  });
   const roomLevel = useStore((s) => s.roomLevel);
   const room = useStore((s) => s.room);
   const roomControl = useRoomControl();
@@ -447,6 +536,8 @@ export const WalkOverlay: React.FC<{
   const canRedo = useStore((s) => s.redoStack.length > 0);
 
   const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
+  const lens = useStore((s) => s.camera);
+  const setCamera = useStore((s) => s.setCamera);
   const guides = useStore((s) => s.guides);
   const cycleGuides = useStore((s) => s.cycleGuides);
   const gridX = useStore((s) => s.gridX);
@@ -473,6 +564,34 @@ export const WalkOverlay: React.FC<{
     typeof window === 'undefined' ? 540 : wholeSheetField(window.innerWidth, window.innerHeight)
   );
 
+  /**
+   * The window, measured, because a focal length cannot be worked out without
+   * it.
+   *
+   * The field this tool speaks is stated across the longest edge of the SCREEN
+   * and a lens is stated across the longest edge of the GATE, and the gate has
+   * to shrink to fit - so the same field is a fifty on a laptop and something
+   * else on a phone held upright. That conversion belongs where the window is
+   * known, which is out here rather than in the store.
+   */
+  const [frame, setFrame] = useState(() =>
+    typeof window === 'undefined'
+      ? { width: 390, height: 844 }
+      : { width: window.innerWidth, height: window.innerHeight }
+  );
+
+  /**
+   * The shape the picture is composed into.
+   *
+   * With a lens on, the gate's own - and everything outside it is not part of
+   * the picture, which is what the mask over the frame says. Without one, the
+   * screen itself, so the millimetre reading on the flat board means the same
+   * thing whether or not a lens is armed: a fifty is a fifty.
+   */
+  const gate = lens.on ? lens.gate : frame.width / frame.height;
+  const millimetres = (field: number) => lensOfFrame(field, gate, frame.width, frame.height);
+  const fieldFor = (focal: number) => fieldOfFrame(focal, gate, frame.width, frame.height);
+
   // --------------------------------------------------------------- gestures
   const lookRate = useRef(0.002);
   useEffect(() => {
@@ -481,6 +600,7 @@ export const WalkOverlay: React.FC<{
       const height = window.innerHeight;
       lookRate.current = lookRadiansPerPixel(fov, width, height);
       setWholeSheet(wholeSheetField(width, height));
+      setFrame((was) => (was.width === width && was.height === height ? was : { width, height }));
     };
     measure();
     window.addEventListener('resize', measure);
@@ -964,7 +1084,6 @@ export const WalkOverlay: React.FC<{
       if (!woke.current) {
         if (shelfOpen) onShelfAway();
         else if (showMaterial) setMaterialFrom(null);
-        else if (showSky) setShowSky(false);
         else if (showLights) setShowLights(false);
         else if (showTools) setShowTools(false);
         else selectBox(null);
@@ -1167,7 +1286,6 @@ export const WalkOverlay: React.FC<{
           setInstrument('none');
         } else if (shelfOpen) onShelfAway();
         else if (showMaterial) setMaterialFrom(null);
-        else if (showSky) setShowSky(false);
         else if (showLights) setShowLights(false);
         else if (showTools) setShowTools(false);
         else useStore.getState().selectBox(null);
@@ -1243,7 +1361,7 @@ export const WalkOverlay: React.FC<{
       walkInput.forward = 0;
       walkInput.strafe = 0;
     };
-  }, [showTools, showLights, showSky, showMaterial, shelfOpen, onShelfAway, measuring, blocking, undo, redo]);
+  }, [showTools, showLights, showMaterial, shelfOpen, onShelfAway, measuring, blocking, undo, redo]);
 
   // Opening the second row is a statement that the chrome is wanted. It used to
   // fade out from under an open panel six seconds later, leaving twelve
@@ -1256,9 +1374,9 @@ export const WalkOverlay: React.FC<{
   // away, inert, mid-decision. Browsing is not idleness; a library is open
   // because it is being read.
   useEffect(() => {
-    if (showTools || showLights || showSky || showMaterial || shelfOpen) holdRail();
+    if (showTools || showLights || showMaterial || shelfOpen) holdRail();
     else releaseRail();
-  }, [showTools, showLights, showSky, showMaterial, shelfOpen]);
+  }, [showTools, showLights, showMaterial, shelfOpen]);
 
   /*
    * The knobs go when the rung they belong to does.
@@ -1272,12 +1390,6 @@ export const WalkOverlay: React.FC<{
   useEffect(() => {
     if (materialFrom && !surfaceHasSettings(materialSurface)) setMaterialFrom(null);
   }, [materialFrom, materialSurface]);
-
-  // The sky's knobs go with the sky. Switching it off from underneath an open
-  // panel would otherwise leave a panel of settings for something not there.
-  useEffect(() => {
-    if (showSky && !sunEnvironment) setShowSky(false);
-  }, [showSky, sunEnvironment]);
 
 
   const button = iconButton(isDark);
@@ -1396,6 +1508,48 @@ export const WalkOverlay: React.FC<{
       )}
 
       {/*
+        * THE FINDER READOUT.
+        *
+        * A camera tells you where it is set without being asked, and it tells
+        * you in one line, in the order everybody reads it: length, aperture,
+        * speed, sensitivity, meter. That line is the whole reason a
+        * photographer can pick up a body they have never held and know what
+        * it is about to do.
+        *
+        * Without it this mode was six unlabelled icons whose numbers appeared
+        * only while a finger was down on them - which is fine for a knob you
+        * are turning and useless for the question the numbers are actually
+        * for, which is "what am I shooting at, right now, before I touch
+        * anything". Three of them are one quantity between them, and you
+        * cannot see a triangle one corner at a time.
+        *
+        * A capital A where the compensation would be, because that is what an
+        * aperture-priority body puts there; with the meter off it reads the
+        * stops you are away from the metered exposure instead, signed, which
+        * is the same place the same number lives on a real one.
+        *
+        * Top centre, sharing the band with the armed-tool banner and standing
+        * down while that is up: two lines of chrome in the same strip is one
+        * line too many, and a drag in progress has its own reading anyway.
+        */}
+      {lens.on && !blocking && !measuring && !tourRunning && (
+        <div
+          aria-live="off"
+          className={`fixed z-40 left-1/2 -translate-x-1/2 top-safe-panel pointer-events-none tabular-nums ${bubble(isDark)}`}
+        >
+          {Math.round(millimetres(fov))} mm &middot; f/{apertureReading(lens.aperture)} &middot;{' '}
+          {shutterReading(lens.shutter)} &middot; ISO {Math.round(lens.iso)} &middot;{' '}
+          {lens.auto
+            ? 'A'
+            : `${stopsOff(lens.aperture, lens.shutter, lens.iso) >= 0 ? '+' : ''}${stopsOff(
+                lens.aperture,
+                lens.shutter,
+                lens.iso
+              ).toFixed(1)} EV`}
+        </div>
+      )}
+
+      {/*
         * There is no scrim over the scene, and the panel does not dismiss
         * itself.
         *
@@ -1473,19 +1627,23 @@ export const WalkOverlay: React.FC<{
             * reason a first-time viewer had to open this menu at all.
             *
             * So they went where the work is. The block-out pencil is on the
-            * model shelf beside the cube it is the by-eye version of - see
-            * components/MeshSheet.tsx - and the measure is down in the band
+            * primary dock, always one tap away, and the measure is in the band
             * about where the scene is seen from, which is what a visual angle
             * is a reading of. Both still stand their own menu down as they arm:
             * an instrument is for using on the drawing, and the shelf or panel
             * it came off would be in the way.
             */}
           <div className={band}>
-          {/* The room's construction guides are not at the head of this band
-              any more: they are on the dock. This is a tool for teaching
-              perspective and those lines are the lesson itself - ruled onto
-              the sheet, read against, put away, ruled again - which is a
-              rhythm of taps, not a setting made once. See the dock. */}
+          {/* Construction belongs with the other drawing guides. It moved up
+              from the dock to make the block-out pencil a one-tap tool. */}
+          <button
+            onClick={cycleGuides}
+            aria-label={`Construction guides, level ${guides} of 2`}
+            aria-pressed={guides > 0}
+            className={`${button} ${guides ? ACTIVE : ''}`}
+          >
+            <Icon path={GUIDE_ICON[guides]} className="w-5 h-5" />
+          </button>
           {/* The floor's two rulings, on ONE seat, tapped through four states.
               They were a switch each - see cycleFloorRuling in store.ts for why
               that was right and why one seat says the same four things. This is
@@ -1548,69 +1706,45 @@ export const WalkOverlay: React.FC<{
               one on the dock, one buried here - and they are one decision
               taken twice, so they stand together. */}
           <div className={`${band} ${divider}`}>
-          {/* Whole pages - surface, sheet, mount, light, the pen, the floor,
-              chosen together - and this deals a different one each press.
-              Deliberately not a count: the last one said ten while there were
-              sixteen, which is what a number typed into prose looks like a
-              year later.
-              Everything in this tool is a knob, and a tool that is all knobs is
-              a tool nobody sees the range of; most of what it can do lives in
-              combinations that take a minute to find and a second to lose.
-              Nothing in the scene and nothing about where you are standing is
-              touched: only how it is drawn. */}
+          {/* THE DEAL IS NOT A BUTTON ANY MORE.
+
+              Whole pages - surface, sheet, mount, light, the pen, the floor,
+              chosen together - dealt one after another, which is the fastest
+              way to learn what the knobs are for. It sat here, in the fourth
+              row of a menu two taps down, which is to say it was only ever
+              found by people who already knew the knobs. It deals itself now,
+              in the gaps between working: see lib/autoDeal.ts. */}
+          {/* ONE SEAT, AND IT USED TO BE TWO.
+
+              The rung and the rung's own settings sat side by side, and they
+              read as two decisions when they are one: the settings are a
+              drawer in the rung, they only exist on the rungs that have
+              anything to set, and a band that grew and shrank by a seat as you
+              stepped the ladder was a band whose controls moved under your
+              thumb. Tap steps the ladder; hold opens the drawer. See
+              useHoldable for what that costs. */}
           <button
-            onClick={shufflePreset}
-            aria-label="Deal a different page"
-            className={button}
-          >
-            <Icon path={I.shuffle} className="w-5 h-5" />
-          </button>
-          <button
-            onClick={cycleSurface}
+            {...pageSurfaceControl}
             aria-label={`Surface of everything: ${sceneSurface}`}
-            className={`${button} ${sceneSurface !== 'original' ? ACTIVE : ''}`}
+            aria-expanded={surfaceHasSettings(sceneSurface) ? materialFrom === 'scene' : undefined}
+            className={`${button} touch-none ${sceneSurface !== 'original' ? ACTIVE : ''}`}
           >
             <Icon path={SURFACE_ICON[sceneSurface]} className="w-5 h-5" />
           </button>
-          {/* Only on the two rungs that have anything to set. A button that
-              does nothing on three rungs out of five is a button you learn to
-              distrust, so it is absent rather than disabled.
-
-              The scene's rung here, this being the scene's band: the copy on
-              the selection bar asks the same question of whatever is in your
-              hand, and either can be the one that has knobs. */}
-          {surfaceHasSettings(sceneSurface) && (
-            <button
-              onClick={() => { setShowTools(false); setShowLights(false); setShowSky(false); setMaterialFrom('scene'); onShelfAway(); }}
-              aria-label={surfaceSettingsLabel(sceneSurface)}
-              aria-expanded={materialFrom === 'scene'}
-              className={button}
-            >
-              <Icon path={SETTINGS_ICON[sceneSurface]} className="w-5 h-5" />
-            </button>
-          )}
+          {/* The sheet: tap it between the ends of the ramp, drag it anywhere
+              between. It used to carry the SKY as well, on a double tap - a
+              second, invisible gesture on a control about paper tone, arming
+              a whole atmosphere. Nobody found it, and everybody who did find
+              it found it by accident while trying to tap the tone twice.
+              The sky is in the light panel now, where the sun is, with the
+              hour and the weather it needs to mean anything. */}
           <button
             {...grayThemeControl}
             aria-label={`Paper tone, ${backgroundGray} of 255 - drag to change`}
-            aria-pressed={sunEnvironment}
-            className={`${button} touch-none ${sunEnvironment ? ACTIVE : ''}`}
+            className={`${button} touch-none`}
           >
-            <Icon path={sunEnvironment ? I.sky : isDark ? I.dark : I.light} className="w-5 h-5" />
+            <Icon path={isDark ? I.dark : I.light} className="w-5 h-5" />
           </button>
-          {/* And what the sky is made of, when there is one. Absent otherwise,
-              for the reason its neighbour above is absent on the rungs with
-              nothing to set: a button that does nothing is one you learn to
-              distrust. */}
-          {sunEnvironment && (
-            <button
-              onClick={() => { setShowTools(false); setShowLights(false); setMaterialFrom(null); setShowSky(true); onShelfAway(); }}
-              aria-label="Air, weather and the night sky"
-              aria-expanded={showSky}
-              className={button}
-            >
-              <Icon path={I.air} className="w-5 h-5" />
-            </button>
-          )}
           {/* What the drawing is mounted on: the page behind the sheet its
               neighbour sets - tap for the sheet itself, black, white, and
               drag for any tone between. */}
@@ -1625,7 +1759,7 @@ export const WalkOverlay: React.FC<{
             <Icon path={I.backdrop} className="w-5 h-5" />
           </button>
           <button
-            onClick={() => { setShowTools(false); setMaterialFrom(null); setShowSky(false); setShowLights(true); onShelfAway(); }}
+            onClick={() => { setShowTools(false); setMaterialFrom(null); setShowLights(true); onShelfAway(); }}
             aria-label="Lights"
             aria-expanded={showLights}
             className={button}
@@ -1652,7 +1786,19 @@ export const WalkOverlay: React.FC<{
           <button
             onClick={() => whileWorking(async () => {
               const { boxes, models } = useStore.getState();
-              const file = await sceneToUSDZ(boxes, models);
+              /*
+               * Preserve what the press means: the point under the middle of
+               * the canvas becomes Quick Look's placement origin. Prefer the
+               * visible form itself; if the ray misses one, use the floor it
+               * meets. Looking level has no floor intersection, so the live
+               * gaze point remains the final, bounded fallback.
+               */
+              const centreX = window.innerWidth / 2;
+              const centreY = window.innerHeight / 2;
+              const ahead = pickObject(centreX, centreY)?.point
+                ?? pickGround(centreX, centreY)
+                ?? focusPoint;
+              const file = await sceneToUSDZ(boxes, models, { x: ahead.x, z: ahead.z });
               const name = `perspective-scene-${new Date().toISOString().slice(0, 10)}.usdz`;
               if (inRoom) openInQuickLook(file, name);
               else downloadUSDZ(file, name);
@@ -1677,6 +1823,139 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={PROJECTION_ICON[perspectiveMode]} className="w-5 h-5" />
           </button>
+          {/*
+            * A LENS RATHER THAN A PAIR OF EYES.
+            *
+            * Everything else in this band frames the world the way sight does:
+            * a field in degrees, opened as wide as two hundred and ten because
+            * that is what a person takes in, on a curved sheet because sight
+            * has no straight edges in it. This is the other thing people
+            * compose with, and it is not a wider or narrower version of that -
+            * it is four numbers, none of which is "how much can you see".
+            *
+            * Next to the projection because it OVERRULES the projection: a
+            * focal length on a curved sheet is a number with no meaning, so
+            * arming this puts the view on the flat board. It does not put the
+            * old sheet back on the way out - which sheet you draw on is a
+            * decision about the drawing, and a mode that quietly undoes it is
+            * a mode that eats your setting.
+            */}
+          <button
+            onClick={() => {
+              const arming = !lens.on;
+              setCamera({ on: arming });
+              // A fifty: the length that neither compresses nor stretches, and
+              // the one anybody would put on first. Set from out here because
+              // the millimetres are counted across the gate and only the window
+              // knows how big the gate came out.
+              if (arming) setLens(fieldOfFrame(50, lens.gate, frame.width, frame.height));
+            }}
+            aria-label={
+              lens.on
+                ? `Lens: ${Math.round(millimetres(fov))} mm, f/${apertureReading(lens.aperture)}, ${shutterReading(lens.shutter)}, ISO ${Math.round(lens.iso)}`
+                : 'Frame the view as a lens'
+            }
+            aria-pressed={lens.on}
+            className={`${button} ${lens.on ? ACTIVE : ''}`}
+          >
+            <Icon path={I.lens} className="w-5 h-5" />
+          </button>
+          {/* The three that only mean anything through a lens, and are absent
+              rather than dead without one. The focal length is not among them:
+              it IS the field, and the field already has a control - it simply
+              reads in millimetres while this is on. */}
+          {lens.on && (
+            <>
+              <Scrub
+                skin={{ dark: isDark, touch: true }}
+                icon={I.aperture}
+                label="Aperture"
+                reading={`f/${apertureReading(lens.aperture)}`}
+                value={lens.aperture}
+                min={1}
+                max={22}
+                step={0.1}
+                cycle={STOPS}
+                onChange={(aperture) => setCamera({ aperture })}
+              />
+              {/* The other two corners of the triangle. Together with the
+                  aperture they are one quantity - how much light lands - and
+                  any two of them fix the third, which is the fact the reading
+                  under each of them is there to make visible. */}
+              <Scrub
+                skin={{ dark: isDark, touch: true }}
+                icon={I.shutter}
+                label="Shutter"
+                reading={shutterReading(lens.shutter)}
+                value={lens.shutter}
+                min={1 / 4000}
+                max={1}
+                step={1 / 8000}
+                sweep={340}
+                cycle={SPEEDS}
+                onChange={(shutter) => setCamera({ shutter })}
+              />
+              <Scrub
+                skin={{ dark: isDark, touch: true }}
+                icon={I.iso}
+                label="Sensitivity"
+                reading={`ISO ${Math.round(lens.iso)}`}
+                value={lens.iso}
+                min={50}
+                max={12800}
+                step={5}
+                sweep={340}
+                cycle={SENSITIVITIES}
+                onChange={(iso) => setCamera({ iso })}
+              />
+              {/*
+                * Aperture priority, and the accent is on the mode most cameras
+                * are actually left in. With it on, opening up does the one
+                * thing you reached for - the depth of field - and the shutter
+                * moves under you to hold the brightness. With it off, two stops
+                * open is two stops brighter, which is how anybody learns what a
+                * stop is.
+                */}
+              <button
+                onClick={() => setCamera({ auto: !lens.auto })}
+                aria-label={
+                  lens.auto
+                    ? 'Aperture priority: the shutter holds the exposure'
+                    : `Manual exposure: ${
+                        stopsOff(lens.aperture, lens.shutter, lens.iso) >= 0 ? '+' : ''
+                      }${stopsOff(lens.aperture, lens.shutter, lens.iso).toFixed(1)} stops`
+                }
+                aria-pressed={lens.auto}
+                className={`${button} ${lens.auto ? ACTIVE : ''}`}
+              >
+                <Icon path={lens.auto ? I.meterAuto : I.meter} className="w-5 h-5" />
+              </button>
+              <Scrub
+                skin={{ dark: isDark, touch: true }}
+                icon={I.focus}
+                accent={lens.focus === 0}
+                label="Focus"
+                reading={lens.focus === 0 ? 'on what you look at' : `${lens.focus.toFixed(1)} m`}
+                value={lens.focus}
+                min={0}
+                max={60}
+                step={0.1}
+                sweep={340}
+                // Zero is not a distance, it is the word "auto" - so it is the
+                // bottom of the sweep AND the first rung of the tap, which is
+                // where a control that is normally left alone belongs.
+                cycle={[0, 1, 2, 5, 15, 60]}
+                onChange={(focus) => setCamera({ focus: focus < 0.3 ? 0 : focus })}
+              />
+              <button
+                onClick={() => setCamera({ gate: GATES[(GATES.indexOf(lens.gate) + 1) % GATES.length] ?? GATES[0] })}
+                aria-label={`Gate: ${gateReading(lens.gate)}`}
+                className={button}
+              >
+                <Icon path={I.gate} className="w-5 h-5" />
+              </button>
+            </>
+          )}
           {/* How far the lens may open: sight's own cone, the whole sphere
               on the page, or the endless band - where the cylindrical sheet
               repeats past a full turn instead of running out, the same room
@@ -1732,16 +2011,55 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.measure} className="w-5 h-5" />
           </button>
+          {/*
+            * Turn the phone to look - and tap it twice to put the room you are
+            * actually in under the drawing.
+            *
+            * The two belong on one seat because they are one gesture: the
+            * phone comes up in front of your face either way, and the feed is
+            * only worth anything while the scene is turning with it. Hold it
+            * up in a real corridor and the ruled sphere, the horizon and the
+            * five points land over the real corridor's own edges, which is the
+            * fastest way there is to see where a room's points actually are.
+            *
+            * THE SECOND TAP DOES NOT WAIT FOR THE FIRST TO EXPIRE, and it
+            * cannot. Every other double tap in this app used to hold the
+            * single one back 300 ms to see whether a second was coming - which
+            * is why there are no others left. Here it would not merely be slow,
+            * it would be broken: iOS grants the orientation sensor only from
+            * inside the tap that asked for it, and a permission requested from
+            * a timer three tenths of a second later is a permission refused.
+            * So the first tap acts at once and the second ADDS to it, which is
+            * also what "also overlay" means.
+            */}
           <button
             onClick={async () => {
-              if (arLook) {
+              const now = performance.now();
+              const quick = now - lastLookTap.current < 350;
+              lastLookTap.current = now;
+
+              // A second quick tap while the phone is already tracking: the
+              // camera, on top of what the first tap just armed.
+              if (quick && arLookRef.current) {
+                lastLookTap.current = 0;
+                setCameraFeed(!useStore.getState().cameraFeed);
+                return;
+              }
+
+              if (arLookRef.current) {
                 disableDeviceOrientation();
+                arLookRef.current = false;
                 setArLook(false);
+                // The feed goes with it: it is only ever a backing sheet for a
+                // view that turns, and a camera left running under a still
+                // frame is a camera nobody remembers switching on.
+                setCameraFeed(false);
                 return;
               }
               // iOS grants the sensor only from inside a tap, which is why
               // the permission ask lives here and nowhere else.
               const granted = await enableDeviceOrientation();
+              arLookRef.current = granted;
               setArLook(granted);
               if (granted) {
                 setTimeout(() => {
@@ -1750,16 +2068,18 @@ export const WalkOverlay: React.FC<{
                   // by switching back off rather than pretending.
                   if (!walkInput.useDeviceOrientation) {
                     disableDeviceOrientation();
+                    arLookRef.current = false;
                     setArLook(false);
+                    setCameraFeed(false);
                   }
                 }, 1500);
               }
             }}
-            aria-label="Look by turning the phone"
+            aria-label={`Look by turning the phone${cameraFeed ? ', with the room under it' : ''}`}
             aria-pressed={arLook}
             className={`${button} ${arLook ? ACTIVE : ''}`}
           >
-            <Icon path={I.arLook} className="w-5 h-5" />
+            <Icon path={cameraFeed ? I.roomFeed : I.arLook} className="w-5 h-5" />
           </button>
           </div>
 
@@ -1786,6 +2106,27 @@ export const WalkOverlay: React.FC<{
 
               "Take the tour again" is read by lib/tour.ts. Never accented: it
               is a verb, not a state. */}
+          {/*
+            * The lesson, next to the tour, and they are not the same thing.
+            *
+            * The tour points at controls: nine cards that ring a button and
+            * wait for it to be pressed, so that a first-time viewer knows what
+            * is on screen. The lesson points at the SUBJECT: twelve cards that
+            * take the tool over and work it - the field, the sheet, where you
+            * stand, what is standing on the floor - to show why one, two,
+            * three, four and five point are one system and not five.
+            *
+            * It is the reason this app exists, so it sits where a viewer will
+            * find it after they have played with the knobs and started
+            * wondering what the ruled sphere is actually for.
+            */}
+          <button
+            onClick={() => { setShowTools(false); onLesson(); }}
+            aria-label="Learn how perspective works"
+            className={button}
+          >
+            <Icon path={I.lesson} className="w-5 h-5" />
+          </button>
           <button
             onClick={() => { setShowTools(false); beginTour(); }}
             aria-label="Take the tour again"
@@ -1804,16 +2145,6 @@ export const WalkOverlay: React.FC<{
             className={`max-w-full ${SIDEWAYS_BLOCK} p-1.5 rounded-[1.125rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showLights && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
           >
             <LightPanel />
-          </div>
-        </div>
-
-        {/* The sky's own knobs, in the same slot again. */}
-        <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
-          <div
-            {...(showSky && dockVisible ? {} : { inert: '' })}
-            className={`max-w-full ${SIDEWAYS_BLOCK} p-1.5 rounded-[1.125rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showSky && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
-          >
-            <SkyPanel />
           </div>
         </div>
 
@@ -1863,7 +2194,6 @@ export const WalkOverlay: React.FC<{
             }
             setShowTools(false);
             setShowLights(false);
-            setShowSky(false);
             setMaterialFrom('selection');
             onShelfAway();
           }}
@@ -1941,14 +2271,27 @@ export const WalkOverlay: React.FC<{
           <Scrub
             skin={{ dark: isDark, touch: true }}
             icon={I.cone}
-            accent={fov <= HUMAN_SIGHT}
+            accent={flatBoard ? fov <= 100 : fov <= HUMAN_SIGHT}
             // Read by the tour, which rings this control by name. Renaming it
             // leaves that step with a card and no ring.
             label="Field of view"
-            reading={`${Math.round(fov)}°`}
+            // On the flat board a field IS a focal length, and a focal
+            // length is the unit anybody composing with one already
+            // thinks in. Same number, said in the units of the sheet.
+            reading={flatBoard ? `${Math.round(millimetres(fov))} mm` : `${Math.round(fov)}°`}
             value={fov}
             min={25}
-            max={fieldRange === 'human' ? HUMAN_SIGHT : fieldRange === 'endless' ? MAX_FIELD : wholeSheet}
+            // The flat board's own ceiling comes first, whatever the reach
+            // rung says: past it a rectilinear frame is corners, not picture.
+            max={
+              flatBoard
+                ? FLAT_SIGHT
+                : fieldRange === 'human'
+                  ? HUMAN_SIGHT
+                  : fieldRange === 'endless'
+                    ? MAX_FIELD
+                    : wholeSheet
+            }
             step={1}
             // Twice the sweep, because the range is now twice what it was and
             // everything anyone does is still down at the narrow end.
@@ -1962,11 +2305,24 @@ export const WalkOverlay: React.FC<{
             // first preset past the current value in ARRAY order - unsorted, a
             // portrait phone made 720 unreachable by tapping.
             cycle={[...new Set(
-              fieldRange === 'human'
-                ? [35, 60, 90, 120, 180, HUMAN_SIGHT]
-                : fieldRange === 'endless'
-                  ? [35, 60, 90, 120, 180, 270, 360, wholeSheet, 720, MAX_FIELD]
-                  : [35, 60, 90, 120, 180, 270, 360, wholeSheet]
+              flatBoard
+                ? /*
+                   * The lengths a photographer names, turned into fields.
+                   *
+                   * Worked out rather than written down, because the answer
+                   * depends on the window and on the gate: a fifty through a
+                   * 3:2 gate on a phone held upright is a different field from
+                   * a fifty across the whole of a laptop, and a table of
+                   * degrees typed in here would be right on one machine.
+                   * Fourteen up to eighty-five, which is ultra-wide to short
+                   * portrait - the span anybody actually frames in.
+                   */
+                  [85, 50, 35, 28, 20, 14].map((mm) => Math.round(fieldFor(mm)))
+                : fieldRange === 'human'
+                  ? [35, 60, 90, 120, 180, HUMAN_SIGHT]
+                  : fieldRange === 'endless'
+                    ? [35, 60, 90, 120, 180, 270, 360, wholeSheet, 720, MAX_FIELD]
+                    : [35, 60, 90, 120, 180, 270, 360, wholeSheet]
             )].sort((a, b) => a - b)}
             onChange={setLens}
           />
@@ -1982,25 +2338,22 @@ export const WalkOverlay: React.FC<{
             cycle={EYE_LEVEL_PRESETS.map((p) => p.height)}
             onChange={setCameraHeight}
           />
-          {/*
-            * The room's construction, on the dock. This whole tool exists to
-            * teach perspective, and these lines ARE the lesson - the horizon,
-            * the five points, the ruled sphere. A lesson reaches for them
-            * over and over: rule the sheet, read the form against it, put the
-            * sheet away, draw, rule it again. That rhythm was two taps deep
-            * behind Tools, beside settings that are made once a session. One
-            * tap here steps the ladder instead, and it stands beside the lens
-            * and the eye level because the three of them are one question -
-            * where you stand, how wide you look, and the construction that
-            * says so on the page.
-            */}
+          {/* Drawing boxes is a primary action: arm it directly without first
+              opening the model shelf. Any open flyout gets out of the way so
+              the full scene is available for the two-stroke gesture. */}
           <button
-            onClick={cycleGuides}
-            aria-label={`Construction guides, level ${guides} of 2`}
-            aria-pressed={guides > 0}
-            className={`${button} ${guides ? ACTIVE : ''}`}
+            onClick={() => {
+              setInstrument(blocking ? 'none' : 'block');
+              setShowTools(false);
+              setShowLights(false);
+              setMaterialFrom(null);
+              onShelfAway();
+            }}
+            aria-label="Draw boxes on the ground"
+            aria-pressed={blocking}
+            className={`${button} ${blocking ? ACTIVE : ''}`}
           >
-            <Icon path={GUIDE_ICON[guides]} className="w-5 h-5" />
+            <Icon path={I.block} className="w-5 h-5" />
           </button>
           </div>
 
@@ -2037,7 +2390,7 @@ export const WalkOverlay: React.FC<{
           <button
             // With the lights up, Tools means "back to the tools": the two
             // share the slot, so this swaps rather than stacks.
-            onClick={() => { setShowTools(showLights || showSky || showMaterial || shelfOpen ? true : !showTools); setShowLights(false); setShowSky(false); setMaterialFrom(null); onShelfAway(); }}
+            onClick={() => { setShowTools(showLights || showMaterial || shelfOpen ? true : !showTools); setShowLights(false); setMaterialFrom(null); onShelfAway(); }}
             aria-label="Tools"
             aria-expanded={showTools}
             className={`${button} ${showTools ? 'bg-black/10 dark:bg-white/10' : ''}`}

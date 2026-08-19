@@ -57,10 +57,18 @@ export { expect };
  * knobs the deal happened to leave. Pinned here to the page the tool used to
  * open on fixed, so the suite sees exactly the setup it was written against.
  * A spec that is ABOUT the deal clears this key itself.
+ *
+ * AND THE DEALER, which is the same input arriving on a timer. The tool deals
+ * itself a new page in the gaps between working - see lib/autoDeal.ts - which
+ * for a spec means the page can change under it while it waits for anything at
+ * all. Stood down here for every spec, and stepped one deal at a time by the
+ * ones that are about the deck. That key is also the only way in: there is no
+ * button any more, and no store handle in a production build.
  */
 const PRELUDE = () => {
-  localStorage.setItem('kjg-perspective-tour', JSON.stringify({ seen: 5 }));
+  localStorage.setItem('kjg-perspective-tour', JSON.stringify({ seen: 6 }));
   localStorage.setItem('kjg-perspective-page', 'Brush page on black');
+  localStorage.setItem('kjg-perspective-deal', 'off');
   if (!sessionStorage.getItem('harness-cleared')) {
     localStorage.removeItem('kjg-perspective-settings');
     sessionStorage.setItem('harness-cleared', '1');
@@ -550,14 +558,35 @@ export const blockOutABox = async (
   /**
    * The lowest line a stroke may touch: thirty pixels clear of whatever the
    * panel slot is currently holding, or the dock if the slot is empty.
+   *
+   * IT WALKS UP AND SKIPS ANYTHING WITH NO BOX, and that is the whole of what
+   * was wrong with it. `closest('div[class*="rounded-"]')` is a SUBSTRING match
+   * on the class attribute, and the dock's clusters carry
+   * `[@media(max-height:560px)]:rounded-[1.125rem]` - a rule that is inert on
+   * any screen taller than 560 px, on an element that is `display: contents`
+   * and therefore reports a zero-sized rect at the origin.
+   *
+   * So `closest` found it, the ceiling came back as -30, every stroke was
+   * lifted six hundred pixels to clear a panel at the top of the screen that
+   * does not exist, and both ends landed off the glass. Five specs failed with
+   * "a stroke missed the floor", which was true and unhelpful, and they failed
+   * on any device this suite actually runs on.
+   *
+   * A zero-height ancestor is not a panel. Nothing else about the intent
+   * changes.
    */
   const ceiling = async () =>
     (await page.evaluate(() => {
       const anchor =
         document.querySelector('[aria-label="Add cube"]') ??
         document.querySelector('[aria-label="Tools"]');
-      const panel = anchor?.closest('div[class*="rounded-"]');
-      return panel ? panel.getBoundingClientRect().top - 30 : window.innerHeight;
+      for (let node = anchor?.parentElement ?? null; node; node = node.parentElement) {
+        if (node.tagName !== 'DIV') continue;
+        if (!/rounded-/.test(node.getAttribute('class') ?? '')) continue;
+        const box = node.getBoundingClientRect();
+        if (box.height > 0) return box.top - 30;
+      }
+      return window.innerHeight;
     })) as number;
 
   /**
@@ -579,14 +608,23 @@ export const blockOutABox = async (
     })) as [{ x: number; y: number }, { x: number; y: number }];
   };
 
-  // The pencil is on the model shelf, beside the cube it is the by-eye version
-  // of, and taking it leaves the shelf where it is - so unlike before, the
-  // button is still on screen for the whole gesture and can be asked about at
-  // either end of it.
-  await openShelf(page);
+  /*
+   * The pencil is on the DOCK, not on the model shelf.
+   *
+   * It moved there to be a one-tap tool, and this helper went on opening the
+   * shelf first for a while afterwards - which was merely untrue rather than
+   * broken, because arming the pencil closes any open shelf as part of arming.
+   * It is untrue in a way that costs something, though: the spec that owns this
+   * gesture asserts the shelf did NOT open, and it was passing only because the
+   * thing it was checking undid what this helper had just done.
+   *
+   * Waking first, because the dock fades six seconds after the last touch and
+   * a faded dock takes no pointer events. It stays on screen for the whole
+   * gesture either way, so the button can be asked about at both ends of it.
+   */
   const pencil = page.locator('[aria-label="Draw boxes on the ground"]');
   await expect(pencil).toHaveAttribute('aria-pressed', 'false');
-  await pencil.click();
+  await clickIn(page, 'anywhere', 'Draw boxes on the ground');
   await expect(pencil, 'The pencil did not arm.').toHaveAttribute('aria-pressed', 'true');
 
   // One: the footprint, on the floor.

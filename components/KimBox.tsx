@@ -157,6 +157,7 @@ const FaceHandles: React.FC<{ data: BoxData; color: string }> = ({ data, color }
 export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
   const held = useHeld(data.id);
   const theme = useStore((state) => state.theme);
+  const pbr = useStore((state) => state.pbr);
   const sceneSurface = useStore((state) => state.surface);
 
   const construction = useStore((state) => state.construction);
@@ -337,8 +338,8 @@ export const KimBox: React.FC<{ data: BoxData }> = ({ data }) => {
             transparent={!solid}
             opacity={1}
             depthWrite={solid}
-            roughness={0.8}
-            metalness={0.1}
+            roughness={pbr.roughness}
+            metalness={pbr.metalness}
             polygonOffset
             polygonOffsetFactor={1}
           />

@@ -322,7 +322,7 @@ and ends.
 
 **The panel, in four bands**, hairline-separated and hung from one left edge:
 what is drawn on the ground (the floor's two rulings, the floor itself, snap,
-the construction ladder); what the picture is made of (the deal, the surface,
+the construction ladder); what the picture is made of (the surface,
 its settings, the sheet, the page, the lamps); where it is seen from (standing
 it in the real room, the projection, the lens reach, the room, the measure,
 looking by turning the phone); and the session (save the view as a PNG, and the
@@ -330,6 +330,207 @@ tour again). Sixteen identical circles wrapping into whatever rows the
 width happened to give was a wall rather than a menu — nothing sat near anything
 it was related to, and which row a control landed in changed with the phone. A
 band is scanned in one movement and keeps its company at every width.
+
+### A page of cubes to draw
+
+The exercise this whole tool grew out of is a page of unit cubes hanging in
+space, all square to the same three axes, ruled to the same six vanishing
+points. It is the scales of perspective drawing: everything harder is a cube
+with something wrapped round it, and anybody who can put a convincing cube
+anywhere on a curved sheet can put anything anywhere.
+
+What makes it an exercise rather than a doodle is that **every cube shares the
+same points**. One cube drawn well is a lucky guess; twenty drawn to the same
+six points is a construction you either understand or do not, and the page tells
+you which within about four cubes.
+
+One tile on the model shelf, beside the single reference cube, deals one of ten
+arrangements:
+
+| | |
+| --- | --- |
+| **Swarm** | the classic page — every question at once, and therefore the last one worth doing |
+| **Rank** | one direction, nothing else to think about; an error is a cube out of the queue |
+| **Street** | two ranks facing each other: the first field using both horizontal points at once |
+| **Tower** | straight up past the zenith — the family a flat sheet keeps parallel and every curved sheet bends |
+| **Lattice** | three families, evenly spaced, so a cube in the wrong place is *visibly* in the wrong place |
+| **Steps** | a staircase, whose diagonal is not a family at all but the sum of two |
+| **Ring** | at eye level around you, so a third of it is behind you — undrawable on a flat sheet, not badly, *at all* |
+| **Shoal** | nothing touching anything: only the six points to measure against |
+| **Ladder** | one line at doubling distances, halving on the page — a rate you can check with a thumbnail |
+| **Loose** | every cube turned individually. Six points become forty and none are marked. The hard one, labelled as hard. |
+
+**Ten arrangements, not ten random seeds.** A truly random scatter is a worse
+exercise than any of these, and worse in a specific way: it has no *property* to
+check your drawing against. Each of these asks a different question, and the
+scatter — which is the classic page, and is here — asks all of them at once,
+which makes it the last one worth doing rather than the first.
+
+The positions are worked out rather than written down, but worked out the same
+way every time: the jitter is a hash of each cube's own index, so a field looks
+scattered and *is* fixed. Deal the swarm twice and it is the same swarm, which
+is what makes it possible to draw it, put it away, and come back to see whether
+you have got better. It never deals the field you are already drawing.
+
+Two details that took tuning and are the difference between a page and a mess.
+The fields sit between about **2 and 12 metres** — the first draft ran from 3 to
+26 and produced specks along the horizon, which is correct arithmetic and a
+useless exercise, because the tool opens at 210° and a metre cube at ten metres
+is a thumbnail. And stacked cubes are given **a quarter-metre of air**: at
+exactly a metre they touch, and a column of touching cubes is not a column of
+cubes, it is a prism with lines drawn on it — a different and much easier thing
+to draw.
+
+It replaces what is standing there rather than adding to it, because a practice
+field with last session's chair in the middle of it is neither the exercise nor
+the composition — and it takes a history step, so one undo puts the scene back.
+Nothing about the view is touched: not the lens, not the sheet, not the
+projection, not where you are standing. The whole point is to draw the same
+field on several sheets.
+
+### The lesson
+
+This tool exists because of videos of Kim Jung Gi ruling a sphere on a blank
+page and then drawing a room full of cubes onto it, freehand, in five point.
+Everything else here was built to make that reachable. What was missing is the
+thing the videos do not contain: **why it works**.
+
+**One idea, eighteen cards.** Almost every perspective tutorial teaches one, two
+and three point as three separate recipes and then presents four and five point
+as exotica. That is not what they are, and teaching it that way is why so few
+people can draw the later ones:
+
+> Stand still. Everything you can see lies in a **direction**. The set of all
+> directions is a **sphere** around your eye. A family of parallel lines shares
+> one direction, so it vanishes at the **two** points where that direction
+> pierces the sphere. A cube has three families, so it has **six** points,
+> always, whichever way you are facing.
+>
+> A sphere of directions is not a picture yet, so the rays have to be **caught
+> on a surface**, and which surface you pick *is* which system you get: a flat
+> sheet gives one, two or three point; a cylinder gives four; the sphere itself
+> gives five.
+
+Then one, two, three, four and five point are not five systems. They are one
+system seen through five different amounts of paper, and the number in the name
+is simply how many of the six a given sheet can show you. Every card is a
+consequence of that:
+
+| | |
+| --- | --- |
+| **Ei kule av retningar** | the sphere, ruled, with nothing standing on it |
+| **Snu deg heilt rundt** | *do it*: look for an edge on the sphere, and find there is none |
+| **Kva fangar du det på?** | the same scene, same spot, stepping plane → cylinder → sphere |
+| **Hovudpunktet og horisonten** | *do it*: turn, and see which two marks refuse to move |
+| **Parallelle linjer møtest** | a rank of cubes, and *why* the point exists — as a limit, not a rule |
+| **Punktet flyttar seg ikkje** | *do it*: walk, and watch the point refuse to move |
+| **Kvart knippe har to punkt** | *do it*: turn right round and find the other one |
+| **Eitt punkt** | cube square on; two families parallel to the sheet |
+| **To punkt** | *do it*: turn your head — the cube is untouched and now has two |
+| **Tre punkt** | *do it*: look up; the verticals gather too |
+| **Ingenting av dette er kassa** | the card that collects the three before it |
+| **Det flate arket tek slutt** | *do it*: open the lens yourself and watch the corners go |
+| **Fire punkt** | bend one axis; the horizon becomes a circle |
+| **Fem punkt** | bend both; zenith and nadir arrive |
+| **Ei kasse har seks** | *do it*: turn slowly and count the ringed points |
+| **Rul arket først** | the 15° meridians, and what you sight against them |
+| **Sikt langs kurvene** | *do it*: follow one upright edge round and watch it hold its meridian |
+| **Teikn ei sjølv** | the pencil, on the sheet you have just been given |
+
+**Ten of the eighteen are done by you, not shown to you.** The first draft ran
+the whole thing as a performance, and it was a film — correct, watchable, and
+*agreed with* rather than learned. You do not learn that the verticals gather by
+watching them gather. You learn it by looking up yourself, with your own thumb
+on the glass, and seeing it happen because you did it.
+
+So the director stages each card and then lets go. `hands: 'viewer'` stops the
+loop writing to the camera at all; a **gate** measures what you do instead —
+turned, pitched, walked, or the lens opened — and a hairline under the card
+fills as you go. When you have done it, a sentence appears that was not there
+before: the one that says what just happened. *That* sentence is the point of
+the card, and everything above it is setup.
+
+The measuring is cumulative rather than absolute — how far you have turned
+altogether, not how far you ended up from where you started — because "turn all
+the way round" is answered by going round, and somebody who overshoots and comes
+back has still been round. **Neste is never disabled**: a viewer who cannot make
+the gesture must always be able to go on; it simply stops being the accented
+thing until the picture has answered.
+
+The best of them is **Punktet flyttar seg ikkje**, and it is a fact almost nobody
+is taught. Walk, and every cube in the rank slides across the page while the
+point they aim at does not move at all. A vanishing point belongs to a
+*direction* — not to a set of lines and not to a place — which is the whole
+reason it is a usable tool, because it means the six points of a scene are fixed
+by which way you are facing and nothing else. Told, that sounds obvious and is
+not believed. Walked, it is startling.
+
+**And it is slow.** Every sweep that is still automatic runs about twice as long
+as it first did, and every move between cards takes nearly two seconds. A
+transformation you can follow is worth four you can only notice — and the ten
+interactive cards have no clock on them at all, so most of the lesson runs at
+whatever pace you set.
+
+**There is no card, and that is the point.** The first two drafts put the lesson
+in the same glass panel the tour uses: a rounded slab with a border, two pill
+buttons and a row of eighteen dots. It read as a *dialog over an app*, which is
+exactly what it is not, and a dialog is a thing you dismiss. It made the most
+considered part of this tool feel like the most skippable.
+
+So the words sit **on the picture**, over a wash of the page's own tone that
+fades to nothing before the middle of the screen, and the picture runs to every
+edge. One idea at a time, large, arriving rather than appearing. Tap the words to
+go on: that is the whole interface.
+
+Each thing that went, went for a reason. The border and the fill, because they
+drew a box round words that are on a photograph. The two pills, because a row of
+buttons is a form. The eighteen dots, because that is a progress bar pretending
+to be jewellery — it is a hairline across the top of the screen now, which is
+what it always was. And **"Hopp over"**, because an escape hatch in the corner of
+the frame is an invitation to use it. It is still leavable, and has to be: the
+way out is one unlabelled mark in the far corner at a third of an opacity. The
+difference between that and a pill marked *skip* is the difference between a door
+and a sign pointing at a door.
+
+**Four acts, with titles.** Eighteen cards in a row is a list, and a list has no
+shape: at card eleven nobody knows whether they are near the end. **Kula**,
+**Punkta**, **Arka**, **Handa** — each held large over a dimmed picture for two
+and a half seconds, naming the one thing its cards are about. It is the only
+full-screen moment in the app and the only place a single word is the whole
+picture, which is what makes it worth the seconds it costs.
+
+**It is performed rather than illustrated.** No diagrams, because the app is
+already the diagram — it has the four projections, the ruled sphere, a family
+of parallels you can watch converge, and a cube whose own points it will rule
+for you. So the lesson *takes the controls*: the field, the sheet, where you
+stand, which way you look, what is standing on the floor, and works them while
+the card says what is happening. Every diagram in a perspective book is a lie of
+omission — it shows the end of a transformation and asks you to believe the
+middle — and the three facts this lesson exists to teach are all about the
+middle. The second point **walking** onto the page as you turn. The corners of a
+flat sheet **stretching** as the lens opens. The verticals **gathering** as you
+look up. There is no picture of any of those; there is only the thing happening.
+
+Three of the cards therefore sit still while the world moves under them, back
+and forth on a raised cosine so the turn has no jerk at either end — that being
+what a head does.
+
+**What it promises to give back.** It takes one snapshot on the way in — the
+scene, the meshes, the lamps, the sheet, the field, the guides, where you were
+standing — and puts every bit of it back on the way out, *including* when you
+walk out in the middle. That is the case that matters: it is what somebody does
+when they are bored, and finding your work gone is how a tool loses somebody for
+good.
+
+Reaching the end means the opposite, and exits differently. The last card's
+whole subject is that you now *have* the sheet — ruled, at five point, with a
+cube on it and its own six points showing — so finishing hands it over with the
+block-out pencil in it rather than sweeping it away and giving back the blank
+page you arrived with.
+
+And the dock goes down while a card is up. A lesson is a performance, and a
+performance with a toolbar over it is a screenshot of a menu; a touch brings the
+tool straight back, because it is still there and still yours.
 
 ### Hold a control, and it says what it is
 
@@ -341,10 +542,10 @@ between the sphere and the endless band is a glyph you half remember.
 **So hold any control and its name appears above it**, two or three words, in the
 same language the tour is written in. Let go and it is gone — and the control
 does not fire, because reading what something is must never be the same gesture
-as doing it. Holding *deal a page* to remember what it does and getting a new
-page is the exact opposite of an answer, so the click is swallowed in the capture
-phase and the handful of controls that act on pointer-up rather than click ask
-whether a hint is up before they act. A press that moves is a drag and cancels
+as doing it. Holding *clear the scene* to remember what it does and losing the
+scene is the exact opposite of an answer, so the click is swallowed in the
+capture phase and the handful of controls that act on pointer-up rather than
+click ask whether a hint is up before they act. A press that moves is a drag and cancels
 the hint on the way, since half the controls here are dragged and a slow drag
 starts with a finger sitting still.
 
@@ -461,8 +662,17 @@ anywhere.
 
 ### Projections
 
-Three systems, all of them ones you can draw in, cycled with one button:
+Four systems, all of them ones you can draw in, cycled with one button:
 
+- **Rectilinear** — one, two and three point. A straight line in the world is a
+  straight line on the page, everywhere. That single property is what makes a
+  vanishing point a point you can rule *to*, and it is why every camera, every
+  draughtsman's board and every perspective lesson since Alberti uses this and
+  nothing else. It is also the one system here that sight is not: it cannot
+  reach 180° at any size of paper, and it stretches the corners of a wide frame
+  without bound. Held at 130°, where the corner of a phone frame is already
+  about four times the scale of its middle — a 12 mm ultra-wide, the widest
+  rectilinear lens anybody sells, is 122°.
 - **Cylindrical** — four-point. Verticals stay straight and vertical while
   horizontals bow. The system for ruling a long wall.
 - **Equidistant** — five-point, and the default. Angle from the centre of the
@@ -470,6 +680,17 @@ Three systems, all of them ones you can draw in, cycled with one button:
   mapping is what makes it a ruled sphere, and it is the sheet Kim Jung Gi
   draws on.
 - **Stereographic** — the conformal one (below).
+
+The flat board went away once and came back, and both decisions were right
+about different questions. It went because this is a tool whose subject is the
+wide field: opening a rectilinear lens does not open the view out, it smears
+the corners into something no drawing can be made from, and inside the cone of
+vision the curvilinear systems *are* the flat one to within a pencil line. What
+that missed is that a system nobody would choose for a wide view is still the
+system a beginner meets first, and one, two and three point perspective are not
+looser versions of five point — they *are* this projection, and they cannot be
+shown in any other. The four together are the ladder from the board to the
+sphere.
 
 Every projection here is one function: the angle away from the view axis, mapped
 to a distance from the middle of the frame. Equidistant is the identity — the
@@ -691,6 +912,117 @@ straight edge is honest; outside it squares stretch and spheres go oval, and the
 bend is not a stylisation but the only truthful answer. Sweep the field control
 and you watch that boundary move.
 
+### A lens, rather than a pair of eyes
+
+Everything above frames the world the way sight does: a field measured in
+degrees, opened as wide as 210° because that is what a person takes in, on a
+curved sheet because sight has no straight edges in it. That is the honest
+model of standing somewhere and looking, and it is the wrong model of the other
+thing people compose with.
+
+A camera is a handful of numbers and none of them is "how much can you see". It
+is a **focal length** on a frame of a known size, an **aperture**, a **shutter
+speed**, a **sensitivity**, a **distance it is focused at**, and the shape of
+the **gate** — and what those produce is not a wider or narrower version of
+sight but a different picture. So there is a button that frames the view as a
+lens, and it changes five things:
+
+- **The projection goes rectilinear**, and this is not a suggestion. A focal
+  length on a curved sheet is a number with no meaning: 50 mm says exactly one
+  thing about a picture — how much of a 36 mm frame a straight-line projection
+  takes in — and a sheet that bows straight lines is not that projection. It
+  does not put the old sheet back on the way out; which sheet you draw on is a
+  decision about the drawing, not something a mode should quietly undo.
+- **The field reads in millimetres.** The same control, the same number: on the
+  flat board a field *is* a focal length, and the tap-cycle steps 14, 20, 28,
+  35, 50 and 85 rather than round degrees. Those are worked out rather than
+  written down, because the answer depends on the window and on the gate — a 50
+  through a 3:2 gate on a phone held upright is a different field from a 50
+  across the whole of a laptop. The focal length is **not stored**: it is a
+  reading of the field, and a copy kept alongside is a copy that drifts.
+- **A gate**, fitted inside the screen and matted rather than blacked out.
+  What is outside the frame is still the scene, and being able to see it dimly
+  is what tells you what you are about to lose by moving in — which is the
+  decision the gate exists to make. The edge is one pixel of the same ink the
+  horizon is ruled in: a crop mark, not a border.
+- **A shutter and a sensitivity beside the aperture**, because those three are
+  one quantity — how much light lands — and you cannot see a triangle one
+  corner at a time. `t · (ISO/100) / N²`, normalised so that f/4 at 1/125 on
+  ISO 200 is exactly the picture the tool has always drawn: the setting the
+  lens arms on. **Aperture priority** is on by default, which is the mode most
+  bodies are actually left in — open up and the shutter moves under you to hold
+  the brightness, so the dial you reached for does the one thing you reached
+  for it to do, which is the depth of field. Switch the meter off and two stops
+  open is two stops brighter, which is how anybody learns what a stop is. The
+  readout then shows how far off the metered exposure you are, signed, in the
+  same place a real body puts it.
+- **And depth of field**, which is the part that cannot be faked with a knob.
+
+And it says all of it in one line at the top of the frame — `50 mm · f/2.8 ·
+1/125 · ISO 400 · A` — because a camera tells you where it is set without being
+asked, and in the order everybody reads it. That line is most of why a
+photographer can pick up a body they have never held.
+
+**Where the stop is applied, and why it is not on the renderer.** three runs its
+tone mapping inside each material's own shader and only when that material is
+drawn straight to the canvas: rendering into a target sets `NoToneMapping`, on
+the reasoning that a target is an intermediate and should stay linear. Every
+pixel this app draws goes into a target first — the cube pass, the flat pass —
+so `toneMappingExposure` was being read by nothing at all. The stop lives in the
+one pass that reaches the canvas, `components/Panorama.tsx`, alongside the blur.
+
+**And the curve is a shoulder, not a film curve.** ACES was tried and was wrong
+here: it is built for scene-referred radiance and it moves everything, so middle
+grey lifts and paper white lands at three quarters — in a tool whose subject is
+a white sheet with lines on it. Below a knee at 0.72 the picture is left exactly
+as drawn, which is the promise the base setting makes; above it an exponential
+rolls toward one, tangent to the identity at the knee so there is no corner.
+Three stops over then reads as a blown sky with its gradient still in it rather
+than as one flat white shape with the cloud dissolved into it.
+
+### Depth of field, at one tap per pixel
+
+It is a physical consequence of the other three numbers rather than a setting
+of its own. A lens of focal length *f* at f-number *N* focused at *S* throws a
+point at distance *D* onto a disc of diameter `f²/(N(S−f)) · |1 − S/D|`. The
+first factor does not depend on *D* at all, so it is worked out once on the CPU,
+turned from millimetres of sensor into pixels of source, and handed to the
+shader as one number.
+
+Two things make that affordable on a phone:
+
+- **The depth pass rides the existing cache.** The panorama already keeps its
+  source between frames — a cube map is indexed by direction, so turning your
+  head does not invalidate it, only moving does. The depth pass is the same
+  scene rendered again at half the size with one `overrideMaterial` over
+  everything, on exactly the same staleness check. No per-object shader, no
+  multiple render targets, and nothing at all redrawn while you stand still and
+  look around.
+- **The blur is the source's own mipmap chain.** A level *L* of it averages
+  about 2^L texels, so the level that averages a disc of *N* texels is log2(*N*)
+  — one trilinear fetch instead of the twenty-odd taps a poisson disc costs. It
+  is not a bokeh: a mip is a box, not an aperture, so a bright point does not
+  open into a disc with the shape of the blades. What it *is* is a correctly
+  sized, correctly placed, physically derived softness at one tap per pixel and
+  no second pass.
+
+The stored value is `near/D` rather than *D* — a reciprocal, because that is
+the quantity the circle of confusion is linear in (the whole blur is one
+subtraction in these units) and because it spends its precision on the near
+half of the scene, where the eye spends its. Half float rather than packed
+bytes: eight bits over a reciprocal bands exactly where the picture goes from
+sharp to soft, which is the one place anybody is looking.
+
+Focus is automatic unless you set it, and automatic means *where the eye line
+meets the floor* — one ray against one plane rather than a raycast against the
+geometry, which gives the same answer for a hundredth of the cost and does not
+flicker between an object and the gap beside it as the frame drifts.
+
+The picture that leaves has the same lens on it as the picture on the glass. A
+sharp export would have been easier to write and a quiet lie: the depth of
+field is most of what says where the eye is meant to go, and a file that
+silently undoes it is a file of a different drawing.
+
 ### Lights
 
 The sun is one hard light with no fill, which is what makes a box read as a box:
@@ -698,85 +1030,236 @@ a face turned away from it is genuinely unlit, and that separation is the thing
 being drawn. Its bearing, height, strength and colour temperature are four
 drags in the light sheet, and its shadows can be switched off.
 
-The panel is ten knobs in two rows and is exactly ten knobs wide — it hugs its
-contents rather than stretching to the edge of the screen, and each knob's
-reading floats clear of it rather than being kept inside by 40 px of empty
-headroom. It covers about a tenth of a phone where it used to cover a quarter,
-which matters for a control whose whole purpose is watching the scene change
-while you drag it.
+The panel hugs its contents rather than stretching to the edge of the screen,
+and each knob's reading floats clear of it rather than being kept inside by
+40 px of empty headroom — which matters for a control whose whole purpose is
+watching the scene change while you drag it. A rail across the top is every
+light there is, the key and the fill and each lamp you have stood somewhere,
+and whichever you tap comes under the same four knobs, because a light is a
+light.
 
 A **second light** lives under it, off until asked for: shadowless, cooler and
 weaker by default, the way a studio or an overcast sky answers the problem of
 one light leaving half of everything black.
 
-### The sky, when you switch it on
+### The sky, which is the other way of aiming the sun
 
-Double-tap the paper-tone control and the page becomes a world: a
-physically-modelled atmosphere, weather, and the real night sky over a real
-place on a real date. A button appears beside it — absent otherwise, like the
-drawn page's own settings — and opens the eleven things that world is made of.
+Those four drags are the right control for a *drawing*: you put the light where
+the drawing needs it. They are the wrong control for a *question*, and the
+question people bring to a perspective tool is not "what does 286° at 14 look
+like" — it is **"what will this look like here, at four o'clock, in October"**.
 
-This is the other perspective. Linear perspective is the one everybody
-teaches: things converge, things get smaller. The other one is what the mile of
-air between you and the hill does to the hill, and Leonardo wrote it down
-before anybody had a word for it. A tool that draws the convergence perfectly
-and has no air in it is teaching half the subject.
+So the light rail carries a third seat that is not a light. Give it a place and
+a moment and the sun goes and stands where the sun actually stands:
 
-**Air** is that mile, on one knob. It is a single-scattering integral — Rayleigh
-for the molecules, Mie for the dust, marched along the view ray — so nothing
-about it is a look-up table of pretty skies. The blue is blue because short
-wavelengths scatter about sixteen times as hard as long ones; the sunset is red
-because by then the beam has crossed forty times as much air and the blue has
-been taken out of it on the way. The *same multiplication* reddens the sunlight
-falling on your boxes, so a low sun paints the side of a white cube orange
-without any rule anywhere saying so.
+- **A place.** One press of the pin takes the device's own fix, sets the hour to
+  now and fetches the forecast for it, all together — a place moved under an
+  hour left over from a previous session is half an answer, and the wrong half
+  decides where the shadows go. Until that press it is Greenwich at noon, which
+  is deliberately somebody else's: a default that quietly guessed at your
+  latitude would be a location fix taken without a prompt. Nothing here asks the
+  browser for a permission except that one button.
+- **A moment**, as an hour and a date, both read and written in local time. The
+  position is the NOAA solar equations — a hundredth of a degree over any date
+  this tool will see — and it is checkable by eye: at Greenwich at noon the sun
+  is due south.
+- **A clock that runs.** Real time is in the rate list and is nearly useless to
+  watch, the sun crossing a quarter of a degree a minute — but it is the only
+  rate at which the picture is *true*, and a simulation that cannot be set to
+  true is a toy. The ones worth watching are between: a minute a second walks
+  the light across an afternoon while you draw, an hour a second runs a whole
+  day in half a minute.
+- **The real weather.** Cloud cover, how high the deck sits and what the wind is
+  doing to it, fetched from a public hourly forecast for that place and that
+  hour. One fetch covers two days back and three forward, so scrubbing across an
+  afternoon reads hour after hour out of what is already in hand rather than
+  asking again — and a sky left up on a desk asks again every half hour, so it
+  goes on being the sky outside. Put a hand on any of those four numbers and it
+  stops calling itself live: a reading you have overwritten is a sky you
+  composed, and a panel that goes on claiming otherwise is lying about where its
+  numbers came from.
 
-At the bottom of that knob there is no air at all. The sky goes black, the
-stars come out at noon, the sun becomes a white disc with no halo, and the
-shadows have nothing filling them. That is the moon — and it is also, exactly,
-the lighting model the rest of this tool uses when the sky is off, made visible
-for once instead of assumed.
+**Cover is not a dimmer.** It moves the deck overhead, which throws its own
+shadows across the scene; and it changes the sun underneath, which gets weaker
+*and less warm* — a covered noon is both, because the reddening happens along a
+path the cloud has already scattered. One number, three consequences, which is
+what makes it a condition rather than a knob.
 
-**Weather** is a plane, and that is the whole lesson. A deck of cloud at a
-fixed height is a ceiling over a flat world, drawn the way a floor is drawn and
-converging to the same horizon from the other side. Set it low and it races
-away over your head; set it high and it lies almost flat and reaches the
-horizon slowly. It is the one perspective plane everybody has looked at every
-day of their life and nobody has ever put a vanishing point on. It is met per
-pixel where the ray meets it, so it slides properly as you walk under it. As
-the cover comes up the beam goes down and the sky light goes up, which between
-them make the shadows fade out the way they really do — an overcast day is not
-a dimmer sun, it is a sun turned into a sky.
+**And the cloud is a deck, not a backdrop.** It is a shader on the inside of a
+dome, and every pixel of it asks one question: follow this ray out to the height
+the cloud base is at, and see what is there. That is what makes it read as a
+*plane overhead* — the puffs get smaller and crowd together toward the horizon
+because they are further away, which is the perspective this whole tool is
+about, and no arrangement of sprites on a dome will do it. Its shape comes out
+of a coverage threshold fitted to the noise field's own distribution, so sixty
+per cent cover is sixty per cent of the sky. It drifts at the real wind speed on
+the real bearing, and a cloud shadow crossing a courtyard at four metres a
+second is the one thing in the scene that says the picture is a moment rather
+than a diagram.
 
-**The stars** are the opposite of a perspective plane: things so far off that
-there is no perspective in them at all. They never converge, never grow, and
-walking a mile does not move one of them by a hair — the whole sphere turns
-rigidly and no figure in it ever changes shape. Having both on one screen, a
-cube with a vanishing point and a sky with none, is the clearest statement of
-what perspective *is* that this tool can make.
+**What makes it weather rather than blobs**, because a threshold on noise is a
+field of round shapes and a real cloud field is never round:
 
-So they are the real ones: the Yale Bright Star Catalogue cut at the naked-eye
-limit, 8404 stars, with their true right ascension, declination, magnitude and
-spectral colour. Orion is Orion — the belt three in a row, Betelgeuse orange at
-the shoulder, Rigel blue at the knee — because a shape you recognise is a shape
-you can watch stay the same, and a random dot field is a claim nobody can test.
-The Milky Way lies across them where it really lies, and the constellation
-figures are their own faint switch, because the stars are out there and the
-joining-up is something people drew on them.
+- **The field is read at a point a slower field has already moved.** Two extra
+  samples of noise, and they are the whole difference: the puffs lean and hook
+  and run into each other in lines, which is what the shear they are sitting in
+  actually does to them.
+- **A finer field is added before the threshold, not after.** It eats into the
+  outline without touching the cores, because the cores are far above the line
+  and the outline is sitting on it. That is the ragged fringe.
+- **The light through it is Beer and powder off a sunward path.** Two more
+  readings along the deck toward the sun — the puff's own face, and the shadow
+  another puff throws across it — with a powder term for the thing everybody
+  paints backwards: a cloud is darker at its *fringe* than a hand's width
+  inside it, because light entering a thin edge scatters straight back out
+  before it has been turned around enough times to come at you.
+- **The silver rim is a phase function**, Henyey–Greenstein rather than a
+  `pow(dot)`. Light that goes into a droplet mostly goes on forward: the puff
+  between you and the sun has a rim of fire on it and the identical puff behind
+  your shoulder is flat grey, and the falloff is narrow at the top and wide at
+  the bottom in a way no power curve tunes into.
+- **And a second deck of cirrus above it**, eight kilometres up, drawn out into
+  fibres along the wind because that shear is the whole look of the stuff and a
+  round version reads as smoke. A sky with no high cloud in it reads as a
+  render. It is ice, so it scatters forward harder than water does, and it
+  stops being drawn as the low deck closes over — you cannot see cirrus through
+  overcast.
+- **The heavier the deck, the less of the sun reaches the underside** you are
+  standing under. That is not a shading choice: an overcast sky is grey because
+  the light is two thousand feet of water away, and a deck that renders white
+  at nine tenths cover is drawing a bright day with a lid on it.
 
-**Where and when.** A latitude, a day of the year and an hour, and a switch
-that hands the sun over to them — after which the light panel's bearing and
-height knobs are a read-out of where the sun really is. The hour is the sun's
-own rather than a railway's, so twelve is local noon. The moon is there too, in
-its real place, with its real phase, throwing its own light once the sun is
-down; the horns point away from the sun, which is the thing everybody draws
-wrong.
+**And after the sun goes down there is a sky rather than a hole.** The night is
+drawn on the same dome, under the cloud, because that is the order the world is
+in — the stars are behind the weather:
 
-The read-out at the end of the row is the point of the whole row. At sixty
-north on midsummer's night the sun is six degrees under the horizon and it
-never gets dark. Ten degrees further up it does not set at all. Neither is a
-thing you can talk somebody into believing, and both are one drag of the date
-away.
+- **The stars are the real ones.** They were invented ones — a hash per cell of
+  the celestial sphere, fixed so the same invented stars came back every night.
+  That is the right answer for a backdrop and the wrong one here, because of
+  what a star sky is *for* in a tool about perspective: it is the one thing in
+  the world with none in it. Everything else the tool draws converges, shrinks,
+  has a vanishing point. The stars do none of it — walk a mile and not one moves
+  by a hair, and the whole sphere turns rigidly without any figure in it
+  changing shape. Having a cube with a vanishing point and a sky with none on
+  one screen is the clearest statement of what perspective *is* that this tool
+  can make, and it is only worth anything if the sky is **checkable**.
+- So it is the **Yale Bright Star Catalogue** cut at the naked-eye limit: 8404
+  stars at their true right ascension, declination, magnitude and spectral
+  class, packed six characters apiece into about fifty kilobytes. Orion is
+  Orion — the belt three in a row, Betelgeuse orange at the shoulder, Rigel blue
+  at the knee — and the joining-up is its own faint switch, because the stars are
+  out there and the constellation figures are something people drew on them.
+- **A star is drawn at least a pixel and a half wide**, because below a pixel a
+  point source does not get fainter, it gets *unreliable* — lit or not depending
+  on where the sample fell — and the whole sky boils as you turn your head. And
+  **how much of the catalogue is worth drawing depends on the field**: a star is
+  a point source, so what decides whether you can pick it out is its flux
+  against the sky behind it, and a wider field puts more sky behind every pixel.
+  It matters twice over on the six-faced path, where every star is drawn six
+  times.
+- **They are added over the weather, not shown through it.** The night layer on
+  the dome carries an alpha near one — it *is* the night sky — so anything
+  behind it is behind a curtain. Stars are seen through the air, so they go on
+  top, and what cloud does to them is done on the processor instead: a knob on
+  the gain rather than a curtain in front.
+- **The Milky Way is a great circle** tilted sixty-three degrees to the
+  celestial equator, which it gets for free by being defined in the same star
+  frame: it rises and sets with the catalogue because it is made of it. Its star
+  clouds and dust lanes are sines of the angle *along* the band rather than
+  noise, because noise on an angle has a seam where the angle wraps, and a seam
+  down the middle of the galaxy would be the most visible artefact in the file.
+- **And the moon is up there, in its real place, with its real phase**, throwing
+  its own light once the sun is down. The terminator is not a chord across the
+  disc — it is the edge of the lit hemisphere seen at an angle, so it is half an
+  ellipse — and the horns point exactly away from the sun however far under the
+  ground the sun has got. Both fall out of asking, per pixel, which way that bit
+  of the sphere faces and whether the sun can see it, which is why they come out
+  right rather than being drawn right.
+- **Twilight is its own colour, not a dimmer daylight.** The scattering model
+  underneath is Preetham's and Preetham has a cliff: a little over two degrees
+  below the horizon its sun term reaches zero and the whole dome snaps, in one
+  frame, to a flat grey wash. So the air is aimed at the sun's *true* height —
+  not the two-degree floor the lamp is held at, which is what kept the sky at a
+  permanent navy twilight at three in the morning — held a degree above that
+  cliff, and this layer takes over from it at the horizon: a deep blue overhead,
+  a warm band low down *on the side the sun went down*, and the stars coming up
+  through it as the night runs on to civil twilight's end.
+- **The dome carries its own stop.** Preetham's output is a radiance, not a
+  picture, and at a forty degree sun it is several times its output at a fifteen
+  degree one — true of the real sky and exactly why nobody photographs one at
+  noon without stopping down. Run at a fixed exposure it came out as a sheet of
+  white-cyan with the cloud lost in it, and a cloud you cannot see is not a
+  cloud that has been drawn realistically. Half a stop at the horizon, near two
+  at midsummer noon, which is roughly what an eye does.
+
+#### Air, which is the other perspective
+
+Linear perspective is the one everybody teaches: things converge, things get
+smaller. The other one is what the mile of air between you and the hill does to
+the hill — it goes pale, it goes blue, it loses its darks, and far enough off it
+is a flat shape the colour of the sky. Leonardo wrote it down before anybody had
+the word for it, and a tool that draws the convergence perfectly and has no air
+in it is teaching half the subject.
+
+So there is an **air** knob, and it is not a weather reading — the forecast has
+nothing to say about it.
+
+- **Upward it is haze.** More turbidity in the dome, a paler horizon, and a fog
+  whose colour is not picked: it is what a single-scattering integral — Rayleigh
+  for the molecules, Mie for the dust, marched along a ray — says the sky at the
+  horizon actually is, averaged over four bearings because a fog has one colour
+  and a sky at sundown plainly does not. So the haze under an evening sky is
+  orange without anybody saying so. The density is set for this tool's own
+  distances: about half veiled at a kilometre at one atmosphere, which is what
+  the thousand metres of floor this app lays down needs to show it. That is a
+  hazy day rather than a clear one — genuinely clear air is thinner than any
+  painting of it has ever been, which is why every painter reaches for more.
+- **It reaches the lit rungs and not the drawn ones**, and that falls out rather
+  than being decided: fog is a chunk in the standard materials, and the ink
+  shaders are written from scratch and never included it. Which is right. An ink
+  drawing has no air in it.
+- **Downward it is a vacuum**, and that is not an off switch. With no air there
+  is nothing to scatter sunlight, so there is nothing for a scattering model to
+  draw: no dome, no twilight, no cloud — cloud is water *in air* — and the frame
+  is cleared to black. Everything the sun can see goes on being lit, harder if
+  anything, since nothing is taking the beam apart on the way in. The shadows
+  have nothing filling them. The whole catalogue comes out **at midday**,
+  because there is no sky left to drown it. And the sun becomes a hard white
+  disc with no glare, drawn by the star pass because nothing else is drawing
+  one.
+
+That last setting is the moon, and it is worth a minute of anybody's time: it is
+also, exactly, the lighting model the rest of this tool has always used — one
+hard key, no ambient, no environment — made visible for once instead of assumed.
+
+**And the clock runs on the frame.** It used to step twice a second, and twice
+a second is not a clock, it is a metronome: at ten minutes of sky per second the
+sun jumped a degree and a quarter every step, and the whole point of watching
+light move is that it *moves*. What made a timer seem necessary was cost, and
+the cost was never in the clock — it was that a moving sun invalidates its own
+shadow, so every step redrew a four-megapixel shadow map. Those are separate
+now. The lamp's position is written every frame, unconditionally, because it is
+three floats and it is the thing you see; the map is redrawn eight times a
+second while the aim is sliding, and immediately for anything that is not a
+continuous slide. Shadows a twelfth of a second behind a sun that takes ten
+minutes to cross a degree are shadows nobody can catch out. A sun that jumps is
+one everybody can. The `sun` in the store is left as the *same object* while it
+has not really moved, too — below a twentieth of a degree nothing on screen can
+change, and a new object identity every frame re-rendered every component that
+reads the light, sixty times a second, to hand them numbers differing in the
+fifth decimal.
+
+While the sky is in charge, the sun's four knobs go dead and go on showing what
+the sun is doing — they are readings now, and a knob that silently loses its
+value the moment you let go is worse than one that plainly is not yours to turn.
+The shadows switch stays live either way: whether and how a shadow falls is a
+drawing decision, and a simulated overcast noon with hard shadows is a
+perfectly reasonable thing to want to draw.
+
+Nothing downstream knows any of this happened. The shadow map, the sky shader,
+the ink shader's terminator and the cloud deck all go on reading the one `sun`
+they always read; the simulation only writes it. `lib/sky.ts`,
+`lib/skyClock.ts`, `components/Sky.tsx`.
 
 ### Placed lamps
 
@@ -1168,7 +1651,22 @@ frame to be printed or dropped into a tablet layer and traced over. Which sheet
 you want is yours to choose — but a *white line on a black field* is not what
 the dark theme should hand you by default, so the two are separate decisions.
 
-### Five pages, and a shuffle
+### Five pages, dealt in the gaps
+
+**The tool opens on the same page every time**, and it is the brush page on
+black. It used to deal one off the deck at start-up. The argument for that was
+good and it was the wrong argument for a start-up: it is about what a viewer
+needs *after* they know the tool, not in the first second of it. What a start-up
+needs is to be the same. Opening on a different surface, sheet, mount and light
+each time is a tool with no face, where you cannot tell a setting you changed
+from a page you were dealt, cannot compare today's study with yesterday's, and
+every screenshot anybody takes is of a different app. The opening *mesh* lost
+exactly this argument years ago for exactly this reason, and the page should
+have lost it at the same time.
+
+The deck is not gone. It deals itself in the gaps between working, once you are
+here and drawing, which is where the comparison it offers is worth something.
+What has gone is the die on the front door.
 
 Everything in this tool is a knob, and a tool that is all knobs is a tool nobody
 ever sees the range of. Most of what it can do lives in *combinations*: the
@@ -1177,8 +1675,7 @@ wash, the lit room wants a floor to throw a shadow across. Any of those is a
 minute of fiddling to find and a second to lose.
 
 So there are whole pages — surface, sheet, mount, light, the pen and the floor,
-chosen together — and one control that deals a different one each time it is
-pressed:
+chosen together:
 
 | Card | What it is |
 | --- | --- |
@@ -1187,6 +1684,23 @@ pressed:
 | **Chalk on slate** | the sheet gone dark, and the whole page inverting with it |
 | **Sanguine** | one stain laid over the ink, on a toned sheet |
 | **Long shadows** | not a drawing at all — the objects, lit, standing on a floor |
+
+**There was a button for this, and it was the wrong shape for what it did.**
+The argument above is about somebody who does not yet know the knobs exist, and
+it was answered with a control in the fourth row of a menu two taps down — which
+is to say, with a control only somebody who already knew the knobs would ever
+find. Everyone it was for pressed it zero times; everyone it was not for pressed
+it once, wondered what had happened to their page, and never pressed it again.
+
+So it deals itself. Not while you are working — that would be the tool changing
+the drawing under your hand, which is the one thing it must never do — but in
+the gaps: put the phone down, look at the model, come back, and it is the same
+scene from the same place drawn a different way. Which is exactly the comparison
+the deck was always for, arriving when it *is* a comparison rather than an
+interruption. Four minutes between deals, and only after three quarters of a
+minute with nothing touched, nothing selected and no panel open. It takes a
+history step like any other page change, so one undo puts back the rungs it
+moved. `lib/autoDeal.ts`.
 
 **It was twenty-five, and that was the problem.** A deck grows by one every
 time a page turns out well, and what it grew into was a button you press four
@@ -1206,14 +1720,20 @@ one threw the view away: you would set up a shot, press the button to see it in
 ink, and get somebody else's 420° cylindrical frieze. Two of them existed *only*
 for their lens — a five-point hemisphere and that frieze — and those are lessons
 about the projection, which is a control on the panel with its own name on it,
-not something to be handed a page at a time. The comparison a shuffle is for is
+not something to be handed a page at a time. The comparison a deal is for is
 the same view drawn several ways, and that is only a comparison if the view
 holds still.
 
+**Nor does a page move a simulated sun.** Every card names a light, and that is
+most of what makes a card a card — but with the sky simulated the light is not a
+look, it is a reading, and a page that moved it would be a page that changed the
+hour. The card keeps the one part of the light that is a drawing decision —
+whether and how the shadows fall — and the rest stays the sky's.
+
 They are dealt in one `set()`, so a page lands on a single frame rather than
 arriving as six separate changes the renderer has to chase. And it never deals
-the page you are already on: a shuffle that can hand you back your own hand
-looks broken half the time it is pressed on a list this short.
+the page you are already on: a deal that can hand you back your own hand looks
+broken half the time on a list this short.
 
 ### Hatching that describes, rather than shades
 
@@ -1652,16 +2172,16 @@ dependency is pinned to the version they belong to.
 ```
 tests/harness.ts     the fixture and the helpers
 tests/smoke.spec.ts  proof that the harness works end to end
-tests/sky.spec.ts    the arithmetic behind the sky, which a picture cannot check
+tests/sky.spec.ts    the two claims about the air a screenshot cannot settle
 ```
 
-The sky spec is worth a note, because it is the one place in here that asserts
-something the app could get wrong while still looking right. A sign flipped in
-a rotation, a sidereal rate that is really the solar one, a latitude that is
-really a co-latitude — every one of those draws a handsome sky, and the wrong
-one. So the suite asks it the midnight sun: at ninety north on the twenty-first
-of June the sun does not set, at any hour, and there is no way to arrive at
-that by accident.
+The sky spec is worth a note. Most of the sky is a picture and a picture is
+checked by looking at it; these two are the claims the air knob makes that
+looking cannot settle, and both are the kind of thing that goes quietly wrong —
+a fog that reaches nothing, a star pass that never runs. Take the air away and
+the frame has to *change* and still have a range in it (a vacuum is not an off
+switch), and turning the catalogue off at the bottom of that knob has to change
+the frame again — because if it does not, the stars were never being drawn.
 
 **What is covered:** whatever the specs in `tests/` assert, and nothing else.
 This suite began as a net under work that had none — the tour, the per-object
@@ -1688,6 +2208,13 @@ of them rather than working around them:
   dev-only handles this README describes above (`window.__store`, `__pick`,
   `__forceMesh`) are **not** there: the suite runs against a production build,
   which is the thing that ships.
+- **Some of it happens on a timer.** The deck deals itself, so for a spec the
+  page can change while it waits for anything at all. There is a localStorage
+  key for it (`kjg-perspective-deal`), the same seam the opening page's own pin
+  already uses: the harness stands the dealer down for every spec, and the two
+  specs that are *about* the deck step it one deal at a time through the same
+  key. That is also the only way in — there is no button any more, and no store
+  handle in a production build.
 
 The rest of `harness.ts` is a list of ways this app can be tested wrongly, each
 with the reason attached: the tour has to be suppressed before the app reads
@@ -1699,3 +2226,16 @@ every one of them cost a run before it was written down.
 
 There are no retries, on purpose. A test that only passes sometimes teaches
 people that red means nothing, which is worse than not having the test.
+
+Which is exactly how five of them came to be ignored. `blockOutABox` lifts its
+strokes clear of whatever the panel slot is holding, and it found that panel
+with `closest('div[class*="rounded-"]')` — a **substring** match on the class
+attribute. The dock's clusters carry
+`[@media(max-height:560px)]:rounded-[1.125rem]`: a rule that is inert on any
+screen taller than 560 px, on an element that is `display: contents` and
+therefore reports a zero-sized rect at the origin. So the ceiling came back as
+−30, every stroke was lifted six hundred pixels to clear a panel at the top of
+the screen that does not exist, both ends landed off the glass, and five specs
+failed with "a stroke missed the floor" — which was true, unhelpful, and had
+nothing to do with the software renderer they were blamed on for weeks. A
+zero-height ancestor is not a panel.

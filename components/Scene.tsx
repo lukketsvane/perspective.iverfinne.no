@@ -14,8 +14,8 @@ import { updateFocus, focusPoint, setSelectionRange } from '../lib/focus';
 import { updateVanishing, clearVanishing, updateRoomPoints } from '../lib/vanishing';
 import { markSceneBuilt, sceneRevision } from '../lib/sceneRevision';
 import { Panorama } from './Panorama';
-import { ClockSun, SkyDome } from './SkyDome';
-import { aimVector, sunThrough, temperatureColor } from '../lib/atmosphere';
+import { Atmosphere } from './Sky';
+import { SUN_DISTANCE, sunPosition } from '../lib/sky';
 import { forgetView, registerView } from '../lib/pick';
 import { fieldOf } from '../lib/projection';
 import {
@@ -128,14 +128,13 @@ const SceneSettled = () => {
   return null;
 };
 
-const SUN_DISTANCE = 60;
-
-/** Where a bearing and a height above the horizon put the sun. */
-export const sunPosition = (azimuth: number, elevation: number): [number, number, number] => {
-  const a = THREE.MathUtils.degToRad(azimuth);
-  const e = THREE.MathUtils.degToRad(elevation);
-  const flat = Math.cos(e) * SUN_DISTANCE;
-  return [Math.sin(a) * flat, Math.sin(e) * SUN_DISTANCE, Math.cos(a) * flat];
+/** Approximate a black-body temperature as an sRGB lamp colour. */
+const temperatureColor = (kelvin: number) => {
+  const t = THREE.MathUtils.clamp(kelvin, 1000, 12000) / 100;
+  const red = t <= 66 ? 255 : 329.698727446 * Math.pow(t - 60, -0.1332047592);
+  const green = t <= 66 ? 99.4708025861 * Math.log(t) - 161.1195681661 : 288.1221695283 * Math.pow(t - 60, -0.0755148492);
+  const blue = t >= 66 ? 255 : t <= 19 ? 0 : 138.5177312231 * Math.log(t - 10) - 305.044792731;
+  return new THREE.Color(red / 255, green / 255, blue / 255);
 };
 
 /** How far the shadow camera reaches either side of where you are looking. */
@@ -149,6 +148,17 @@ const SHADOW_REACH = 10;
  * when you have actually gone somewhere.
  */
 const SHADOW_STEP = 8;
+
+/**
+ * The shortest gap between two shadow passes while the sun is sliding.
+ *
+ * Eight a second. The map is four megapixels and the pass is the single most
+ * expensive thing this renderer does, so the number is chosen against the
+ * frame budget rather than against the eye - and the eye cannot tell anyway:
+ * at the fastest rate the sky clock offers, the sun moves about a third of a
+ * degree in this long.
+ */
+const SHADOW_REST = 125;
 
 /**
  * The scene's only light.
@@ -184,43 +194,9 @@ const Fill: React.FC = () => {
 
 const Sun: React.FC = () => {
   const sun = useStore((state) => state.sun);
-  const sunEnvironment = useStore((state) => state.sunEnvironment);
-  const air = useStore((state) => state.sky.air);
-  const cloud = useStore((state) => state.sky.cloud);
   const light = useRef<THREE.DirectionalLight>(null);
   const anchor = useMemo(() => new THREE.Object3D(), []);
-  /*
-   * The sun's colour, and what the air does to it.
-   *
-   * Off the sky, the lamp is whatever colour temperature you set and nothing
-   * happens to it. Under a sky it is multiplied by what actually survives the
-   * trip - which is where sunset lighting comes from, and it comes from
-   * nowhere else: a sun ten degrees up has crossed about five atmospheres, the
-   * blue is scattered out of the beam long before it arrives, and the side of
-   * a white box goes orange. There is no orange-at-sunset rule anywhere in
-   * this file; there is one multiplication, and the rule falls out of it.
-   *
-   * It also puts the sun out when the sun goes down, which the clock needs and
-   * a bearing knob never did: the beam is zero below the horizon, so a light
-   * that has set stops lighting instead of shining up through the floor.
-   */
-  const color = useMemo(() => {
-    const lamp = temperatureColor(sun.temperature);
-    if (!sunEnvironment) return lamp;
-    const through = sunThrough(aimVector(sun.azimuth, sun.elevation), air);
-    return lamp.clone().multiply(new THREE.Color(through[0], through[1], through[2]));
-  }, [sun.temperature, sun.azimuth, sun.elevation, sunEnvironment, air]);
-
-  /*
-   * ...and what the weather does to its strength.
-   *
-   * An overcast sky is not a dimmer sun, it is a sun turned into a sky: the
-   * beam all but stops and the fill goes up to meet it, which is why an
-   * overcast day has no shadows and no black. Both halves of that are here and
-   * in the skylight next door, and between them the shadow simply fades out as
-   * the cloud comes over rather than being switched off by a rule.
-   */
-  const strength = sunEnvironment ? sun.intensity * (1 - 0.82 * cloud) : sun.intensity;
+  const color = useMemo(() => temperatureColor(sun.temperature), [sun.temperature]);
 
   const offset = useMemo(
     () => sunPosition(sun.azimuth, sun.elevation),
@@ -241,29 +217,57 @@ const Sun: React.FC = () => {
     shadow.needsUpdate = true;
   }, []);
 
-  const drawn = useRef({ revision: -1, x: NaN, z: NaN });
+  const drawn = useRef({ revision: -1, x: NaN, z: NaN, aim: NaN, at: 0 });
 
-  // A direction change must move the lamp and invalidate its cached shadow
-  // even when neither the geometry nor the viewer has moved.
-  useEffect(() => {
-    drawn.current.revision = -1;
-  }, [sun.azimuth, sun.elevation, sun.shadows]);
-
+  /**
+   * THE LIGHT MOVES EVERY FRAME. THE SHADOW MAP DOES NOT.
+   *
+   * Separating those two is the whole of what makes a running sun smooth, and
+   * running them together is what made it hack.
+   *
+   * A moving sun invalidates its own shadow, so the old code marked the cache
+   * stale on every change of bearing and did the lot in one branch: move the
+   * lamp, redraw the map. Under a clock that was stepping the hour twice a
+   * second that was tolerable and steppy. Under one that steps it every frame -
+   * which is what "smooth" actually requires - it is a four-megapixel shadow
+   * pass sixty times a second, and the frame rate collapses into exactly the
+   * judder it was supposed to cure.
+   *
+   * So the lamp's position is written every frame, unconditionally, because it
+   * is three floats and it is the thing you SEE: the terminator crawling across
+   * a face, the sky turning, the ink shader's own light vector. The map is
+   * redrawn eight times a second while the aim is moving, and immediately for
+   * anything else - a change of scene, a step of the viewer, a hand on the
+   * bearing knob - because those are not a continuous slide and waiting a
+   * twelfth of a second to see them would be a lag.
+   *
+   * Shadows a twelfth of a second behind a sun that takes ten minutes to cross
+   * a degree are shadows nobody can catch out. A sun that jumps is one
+   * everybody can.
+   */
   useFrame(() => {
     const lamp = light.current;
     if (!lamp) return;
 
     const cellX = Math.round(focusPoint.x / SHADOW_STEP) * SHADOW_STEP;
     const cellZ = Math.round(focusPoint.z / SHADOW_STEP) * SHADOW_STEP;
-    const was = drawn.current;
-    if (was.revision === sceneRevision.value && was.x === cellX && was.z === cellZ) return;
 
     // The lamp keeps its bearing on the sun and slides over the scene with you.
     anchor.position.set(cellX, 0, cellZ);
     anchor.updateMatrixWorld();
     lamp.position.set(cellX + offset[0], offset[1], cellZ + offset[2]);
 
-    drawn.current = { revision: sceneRevision.value, x: cellX, z: cellZ };
+    const aim = offset[0] * 7 + offset[1] * 13 + offset[2] * 29;
+    const was = drawn.current;
+    const stepped = was.x !== cellX || was.z !== cellZ;
+    const rebuilt = was.revision !== sceneRevision.value;
+    const aimed = was.aim !== aim;
+    if (!stepped && !rebuilt && !aimed) return;
+
+    const now = performance.now();
+    if (aimed && !stepped && !rebuilt && now - was.at < SHADOW_REST) return;
+
+    drawn.current = { revision: sceneRevision.value, x: cellX, z: cellZ, aim, at: now };
     lamp.shadow.needsUpdate = true;
   });
 
@@ -275,7 +279,7 @@ const Sun: React.FC = () => {
         target={anchor}
         position={offset}
         color={color}
-        intensity={strength}
+        intensity={sun.intensity}
         castShadow={sun.shadows !== 'off'}
         shadow-mapSize-width={mapSize}
         shadow-mapSize-height={mapSize}
@@ -476,13 +480,7 @@ const SceneContent = () => {
   return (
     <>
       <color attach="background" args={[sunEnvironment ? '#000000' : bgColor]} />
-      {/* The air, the weather, the stars and the two discs. Everything in
-          there is off unless the sky is switched on, and the whole subtree
-          unmounts with it - so a page drawn on paper pays nothing for it. */}
-      {sunEnvironment && <SkyDome />}
-      {/* And the clock's answer to where the sun is, written into the store so
-          the shadows, the ink and the sky can only ever agree. */}
-      {sunEnvironment && <ClockSun />}
+      {sunEnvironment && <Atmosphere />}
       {/* One sun, and nothing else.
 
           No ambient term and no environment map: a face turned away from the
@@ -492,6 +490,7 @@ const SceneContent = () => {
           washes it out - until it is asked for, which is what the fill is. */}
       <Sun />
       <Fill />
+      {/* The three dials in front of all of it, when there is a lens on. */}
 
       {/* Four walls and a ceiling round the origin. */}
       {roomLevel > 0 && <Room level={roomLevel} dark={isDark} inked={inkMode} />}

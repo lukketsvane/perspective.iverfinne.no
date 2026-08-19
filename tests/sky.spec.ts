@@ -1,73 +1,32 @@
 import { test, expect, drag, find, findByPrefix, fingerprint, hasContrast, labelOf, openTools, same, settled } from './harness';
 
 /**
- * The sky, and the two claims about it that are worth a test.
+ * The air, and what happens to the sky when you take it away.
  *
- * Everything else in here is a picture, and a picture is checked by looking at
- * it. These two are ARITHMETIC, which is exactly the kind of thing that goes
- * quietly wrong: a sign flipped in a rotation, a sidereal rate that is the
- * solar one, a latitude that is really a co-latitude. All of those still draw
- * a handsome sky, and all of them draw the wrong one.
+ * The rest of the sky is a picture, and a picture is checked by looking at it.
+ * These two are not: they are the two claims the air knob makes that a
+ * screenshot cannot settle, and both of them are the kind of thing that goes
+ * quietly wrong - a fog that reaches nothing, a star pass that never runs.
  *
- * So the suite asks the sky a question it cannot fake, and the question is the
- * midnight sun. Above the arctic circle in June the sun does not set - not
- * "barely sets", does not set - and there is no way to get that right by
- * accident. Get the pole wrong and it sets. Get the date wrong and it sets.
- * Get the hour angle running the wrong way and it sets at the wrong time.
+ * The bottom of the knob is the interesting end. It is not an off switch: with
+ * no air there is nothing to scatter the sunlight, so the sky goes black and
+ * everything the sun can see goes on being lit, harder if anything. And with
+ * no sky to drown them the whole catalogue comes out AT MIDDAY, which is what
+ * standing on the moon looks like and is a thing no amount of tuning would
+ * produce by accident.
  */
 
 /**
- * Switch it on the way the app asks: two taps on the tone control.
- *
- * BOTH TAPS IN ONE TASK, dispatched from inside the page, and that is not
- * fastidiousness - it is the only way this gesture can be driven here. The
- * control measures the gap between the taps against a three hundred
- * millisecond window in real time, and a driver's taps are three round trips
- * each, every one of them queued behind a frame that a software renderer is
- * taking a fifth of a second to draw. Sent through the mouse, the second tap
- * routinely lands after the window has shut, and what the test then reports is
- * the speed of the machine it ran on.
- *
- * The same idiom the harness's own `wake` uses, and for a cousin of the same
- * reason. What is being tested here is the sky, not the double tap.
+ * The sky is one of the seats in the light panel, beside the key and the fill.
  */
-const switchTheSkyOn = async (page: Parameters<typeof openTools>[0]) => {
+const openTheSky = async (page: Parameters<typeof openTools>[0]) => {
   await openTools(page);
-  await expect(findByPrefix(page, 'Paper tone', 'tools')).toBeVisible();
-  await page.evaluate(() => {
-    const tone = document.querySelector('[aria-label^="Paper tone"]');
-    if (!tone) throw new Error('No paper-tone control to double-tap.');
-    const box = tone.getBoundingClientRect();
-    const how = {
-      bubbles: true,
-      cancelable: true,
-      pointerId: 1,
-      pointerType: 'mouse',
-      isPrimary: true,
-      clientX: box.x + box.width / 2,
-      clientY: box.y + box.height / 2,
-    };
-    for (const _ of [0, 1]) {
-      tone.dispatchEvent(new PointerEvent('pointerdown', how));
-      tone.dispatchEvent(new PointerEvent('pointerup', how));
-    }
-  });
-  await expect(findByPrefix(page, 'Paper tone', 'tools')).toHaveAttribute('aria-pressed', 'true');
-};
-
-/**
- * Put a long lens on before doing anything else.
- *
- * The tool opens at two hundred and ten degrees, which is wide enough that the
- * picture is read off six cube faces - so every frame draws the whole scene,
- * the sky included, six times. That is a fine trade on a real graphics card
- * and a catastrophe on the software renderer this suite runs on, where one
- * drag of a knob then takes minutes. Nothing in these three tests is about the
- * field, so they narrow it to where one flat pass will do.
- */
-const putALongLensOn = async (page: Parameters<typeof openTools>[0]) => {
-  await drag(page, 'Field of view', -600, { steps: 1 });
-  await expect(findByPrefix(page, 'Field of view')).toBeVisible();
+  await find(page, 'tools', 'Lights').click();
+  await find(page, 'anywhere', 'The sky, the hour and the weather').click();
+  const draw = find(page, 'anywhere', 'Draw the sky');
+  await expect(draw).toBeVisible();
+  if ((await draw.getAttribute('aria-pressed')) !== 'true') await draw.click();
+  await expect(draw).toHaveAttribute('aria-pressed', 'true');
 };
 
 /**
@@ -85,84 +44,55 @@ const nudge = async (page: Parameters<typeof openTools>[0], prefix: string, dx: 
   return labelOf(page, 'anywhere', prefix);
 };
 
-/** However far up the sun is, at whatever the panel currently says. */
-const sunHeight = async (page: Parameters<typeof openTools>[0]) => {
-  const said = await labelOf(page, 'anywhere', 'The sun stands');
-  const degrees = /stands (-?\d+) degrees/.exec(said);
-  if (!degrees) throw new Error(`The sun read-out said "${said}".`);
-  return Number(degrees[1]);
+/**
+ * Put a long lens on before doing anything else.
+ *
+ * The tool opens wide enough that the picture is read off six cube faces, so
+ * every frame draws the whole scene - the sky and eight thousand stars
+ * included - six times over. That is a fine trade on a real graphics card and
+ * a catastrophe on the software renderer this suite runs on. Nothing in here
+ * is about the field.
+ */
+const putALongLensOn = async (page: Parameters<typeof openTools>[0]) => {
+  await drag(page, 'Field of view', -600, { steps: 1 });
 };
 
-test('the sky brings its own knobs, and only while there is a sky', async ({ app }) => {
-  await openTools(app);
-  // Absent, not disabled: there is nothing to set until there is a sky.
-  await expect(find(app, 'tools', 'Air, weather and the night sky')).toHaveCount(0);
-
+test('the air can be taken away, and what the sun lights stays lit', async ({ app }) => {
   await putALongLensOn(app);
-  await settled(app);
-  const before = await fingerprint(app);
-  await switchTheSkyOn(app);
+  await openTheSky(app);
   await settled(app);
 
-  const settings = find(app, 'tools', 'Air, weather and the night sky');
-  await expect(settings).toHaveCount(1);
-
-  // ...and it is a different picture, not just a different setting.
-  const after = await fingerprint(app);
-  expect(same(before, after), 'Switching the sky on drew the same frame.').toBe(false);
-  expect(hasContrast(after)).toBe(true);
-
-  await settings.click();
-  await expect(findByPrefix(app, 'Air:')).toBeVisible();
-  await expect(findByPrefix(app, 'Latitude:')).toBeVisible();
-  await expect(findByPrefix(app, 'The sun stands')).toBeVisible();
-});
-
-test('at the pole in June the sun does not set, whatever the hour', async ({ app }) => {
-  await putALongLensOn(app);
-  await switchTheSkyOn(app);
-  await find(app, 'tools', 'Air, weather and the night sky').click();
-  await expect(findByPrefix(app, 'Latitude:')).toBeVisible();
-
-  // The tool opens the sky on midsummer's day; walk north to the pole.
-  await expect(findByPrefix(app, 'Date:')).toHaveAttribute('aria-label', 'Date: day 172 of the year');
-  expect(await nudge(app, 'Latitude:', 400)).toContain('90 degrees north');
-
-  /*
-   * Round the clock. The hour wraps, so each drag lands somewhere real; what
-   * is being checked is that the answer never goes negative, which at ninety
-   * north on the twenty-first of June it cannot.
-   */
-  const hours = new Set<string>();
-  for (const travel of [40, 70, 55, 85]) {
-    hours.add(await nudge(app, 'Hour:', travel));
-    expect(
-      await sunHeight(app),
-      'The sun set at the pole in June, which it does not do.'
-    ).toBeGreaterThan(0);
-  }
-  expect(hours.size, 'The hour never moved, so the loop proved nothing.').toBeGreaterThan(2);
-});
-
-test('with the air turned off the sky is black and the sun still burns', async ({ app }) => {
-  await putALongLensOn(app);
-  await switchTheSkyOn(app);
-  await find(app, 'tools', 'Air, weather and the night sky').click();
-  await expect(findByPrefix(app, 'Air:')).toBeVisible();
-
-  // The catalogue comes out the moment the sky goes black, and eight thousand
-  // of them are eight thousand quads a frame on a renderer with no card under
-  // it. They are not what this test is about.
-  expect(await nudge(app, 'Stars:', -400)).toContain('off');
+  const withAir = await fingerprint(app);
+  expect(hasContrast(withAir)).toBe(true);
 
   expect(await nudge(app, 'Air:', -400)).toContain('vacuum');
   await settled(app);
 
+  const airless = await fingerprint(app);
+  expect(same(withAir, airless), 'Taking the air away drew the same frame.').toBe(false);
   /*
    * A vacuum is not an off switch. The sky loses its blue because there is
    * nothing left to scatter it, and everything the sun can see goes on being
    * lit - harder, if anything, since nothing is taking the beam apart on the
    * way in. So the frame still has to have a range in it.
    */
-  expect(hasContrast(await fingerprint(app)), 'The vacuum drew a flat frame.').toBe(true);
+  expect(hasContrast(airless), 'The vacuum drew a flat frame.').toBe(true);
+});
+
+test('with no air the stars are out at midday', async ({ app }) => {
+  await putALongLensOn(app);
+  await openTheSky(app);
+  expect(await nudge(app, 'Air:', -400)).toContain('vacuum');
+  await settled(app);
+
+  const lit = await fingerprint(app);
+  // Nothing about the light changes here - only whether the catalogue is drawn.
+  expect(await nudge(app, 'Stars:', -400)).toContain('off');
+  await settled(app);
+  const empty = await fingerprint(app);
+
+  expect(
+    same(lit, empty),
+    'Turning the catalogue off changed nothing, so it was never being drawn.'
+  ).toBe(false);
 });

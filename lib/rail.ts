@@ -83,6 +83,34 @@ export const releaseRail = (who = 'panel') => {
   if (holds.size === 0) showRail();
 };
 
+/**
+ * Whether anything is deliberately keeping the chrome up.
+ *
+ * Read by the page dealer, which is the one thing in the tool that changes
+ * what you are looking at without being asked to. An open panel or a running
+ * tour is somebody mid-decision - see lib/autoDeal.ts for why that is a
+ * decision the deal has to wait out rather than one it can talk over.
+ */
+export const railHeld = () => holds.size > 0;
+
+/**
+ * Put the chrome away NOW, rather than in six seconds.
+ *
+ * One caller: the lesson, which takes the whole tool over and is a
+ * performance. Six seconds of dock over the first card is six seconds of the
+ * wrong thing being looked at, and there was no way to say "down" - only "up",
+ * and "up until I let go".
+ *
+ * It does not hold it down. A touch brings it straight back, which is right:
+ * the tool is still there and still yours, it is simply not what is being
+ * shown.
+ */
+export const hideRail = () => {
+  if (timer !== undefined) clearTimeout(timer);
+  timer = undefined;
+  publish(false);
+};
+
 const subscribe = (listener: Listener) => {
   listeners.add(listener);
   return () => listeners.delete(listener);

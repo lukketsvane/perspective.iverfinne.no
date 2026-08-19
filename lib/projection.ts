@@ -51,6 +51,109 @@ export const MAX_FIELD = 1080;
  */
 export const HUMAN_SIGHT = 210;
 
+/**
+ * As wide as a FLAT sheet is worth opening.
+ *
+ * A rectilinear frame has no limit in principle - the tangent is defined all
+ * the way to ninety degrees off the axis - and every degree past about here is
+ * a degree spent stretching the corners rather than showing more. At 130 the
+ * corner of a phone frame is already about four times the scale of its middle,
+ * which is where a picture stops being a picture. A 12 mm ultra-wide, the
+ * widest rectilinear lens anybody actually sells, is 122.
+ *
+ * This is why the other three projections exist, and it is the one number that
+ * says so.
+ */
+export const FLAT_SIGHT = 130;
+
+/**
+ * A RECTILINEAR frame's own scale, from the field the rest of the tool speaks.
+ *
+ * Every other system here is radial in the angle: `fieldOf` hands back half-
+ * angles proportional to the screen's two edges, which is exactly right when a
+ * distance from the middle of the frame IS an angle. A rectilinear frame is not
+ * that. On a flat sheet a distance from the middle is the TANGENT of the angle,
+ * so it is the tangents that have to be proportional to the pixels - and a
+ * frame built the other way is a frame whose vertical field is wrong by
+ * however much the tangent has run ahead of the angle, which on a phone at a
+ * wide setting is most of the picture.
+ *
+ * So: the field still means what it has always meant - the angular diameter
+ * across the LONGEST edge of the frame - and this turns that into the half-
+ * tangents the other two edges need. One function, used by the shader, the
+ * picker and the flat pass's own frustum, so the three cannot drift.
+ */
+export const rectilinearTangents = (halfYaw: number, halfPitch: number) => {
+  const longest = Math.max(halfYaw, halfPitch, 1e-6);
+  // A rectilinear frame cannot reach half a turn at any size of paper: the
+  // tangent runs to infinity at ninety degrees off axis. Held a little short
+  // of it, which is a 172 degree frame - already far wider than any real lens
+  // and already stretching the corners past all use.
+  const scale = Math.tan(Math.min(longest, 1.5)) / longest;
+  return { tanYaw: halfYaw * scale, tanPitch: halfPitch * scale };
+};
+
+/**
+ * A lens, in the units a lens is sold in.
+ *
+ * The frame is full-frame 35 mm - 36 mm across - because it is the one sensor
+ * size whose focal lengths everybody already has a feel for: fifty is normal,
+ * twenty-four is wide, eighty-five is a portrait. A number that needs a crop
+ * factor applied before it means anything is a number nobody can compose with.
+ */
+export const FRAME_MM = 36;
+
+/**
+ * The gate, fitted inside the screen.
+ *
+ * A lens frames into a rectangle of its own shape, and the screen is a
+ * different rectangle. The gate is the largest one of the asked-for shape that
+ * fits - letterboxed on a phone held upright, pillarboxed on a wide desktop -
+ * and everything outside it is not part of the picture.
+ *
+ * Which matters for more than the mask. The tool's field of view is stated
+ * across the LONGEST EDGE OF THE SCREEN, and a focal length is stated across
+ * the longest edge of the GATE. Those are different edges by however much the
+ * gate had to shrink to fit, and a conversion that ignores the difference puts
+ * a fifty on the barrel and a thirty-five in the picture.
+ */
+export const gateFit = (aspect: number, width: number, height: number) => {
+  const safeWidth = Math.max(width, 1);
+  const safeHeight = Math.max(height, 1);
+  const shape = Math.max(aspect, 0.05);
+  const gateWidth = Math.min(safeWidth, safeHeight * shape);
+  const gateHeight = gateWidth / shape;
+  return {
+    width: gateWidth,
+    height: gateHeight,
+    long: Math.max(gateWidth, gateHeight),
+    screenLong: Math.max(safeWidth, safeHeight),
+  };
+};
+
+/**
+ * What focal length a field amounts to, through a gate of that shape.
+ *
+ * Tangents rather than angles, because this is the rectilinear frame and on a
+ * flat sheet it is the tangent that is proportional to the paper. The field is
+ * across the screen's longest edge; the gate takes a fraction of that edge; a
+ * lens is the half-tangent that fraction subtends against the sensor's own
+ * half-width.
+ */
+export const lensOfFrame = (degrees: number, aspect: number, width: number, height: number) => {
+  const { long, screenLong } = gateFit(aspect, width, height);
+  const tangent = Math.tan((Math.min(degrees, 170) * Math.PI) / 360) * (long / screenLong);
+  return FRAME_MM / 2 / Math.max(tangent, 1e-4);
+};
+
+/** ...and back: the field a given lens needs, on this screen, through this gate. */
+export const fieldOfFrame = (focal: number, aspect: number, width: number, height: number) => {
+  const { long, screenLong } = gateFit(aspect, width, height);
+  const tangent = (FRAME_MM / 2 / Math.max(focal, 4)) * (screenLong / long);
+  return (2 * Math.atan(tangent) * 180) / Math.PI;
+};
+
+
 export const fieldOf = (degrees: number, width: number, height: number) => {
   const angularRadius = (Math.min(MAX_FIELD, Math.max(20, degrees)) * Math.PI / 180) / 2;
   const safeWidth = Math.max(width, 1);
@@ -118,3 +221,23 @@ export const stereographicRadius = (angle: number, field: number) => {
   const half = Math.min(field, STEREO_LIMIT) / 2;
   return (Math.tan(angle / 2) / Math.tan(half)) * Math.max(field, 1e-6);
 };
+
+/**
+ * WHAT A SETTING OF THE THREE DIALS DOES TO THE PICTURE.
+ *
+ * The exposure triangle, as one number: time on the sensor, times how sensitive
+ * it is, over the area of the hole letting the light in. Aperture is squared
+ * because f-numbers are a ratio of diameter and light goes by area, which is
+ * the one piece of the arithmetic that surprises people and the reason the
+ * stops run in steps of the square root of two.
+ *
+ * Normalised so that f/4 at a hundred and twenty-fifth on ISO 200 comes out at
+ * exactly one - the setting a lens arms on, and the picture this tool has
+ * always drawn. That makes the camera an OVERLAY on the scene's own lighting
+ * rather than a second lighting system: arm it and nothing changes, move a dial
+ * and you have moved a dial.
+ */
+export const BASE_EXPOSURE = ((1 / 125) * (200 / 100)) / (4 * 4);
+
+export const exposureOf = (lens: { aperture: number; shutter: number; iso: number }) =>
+  (lens.shutter * (lens.iso / 100)) / (lens.aperture * lens.aperture) / BASE_EXPOSURE;

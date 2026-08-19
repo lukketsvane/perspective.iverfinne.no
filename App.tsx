@@ -15,10 +15,15 @@ import { walkInput } from './lib/walkInput';
 import { fieldOf } from './lib/projection';
 import { constructionInk, pageHex } from './lib/inkMaterial';
 import { keepAwake } from './lib/wakeLock';
+import { useSkyClock } from './lib/skyClock';
+import { useAutoDeal } from './lib/autoDeal';
 import { holdPreviews, resumePreviews } from './lib/meshPreview';
 import { downloadSceneFile, readSceneFile, toSceneFile } from './lib/sceneJson';
 import { beginActivity, reportFailure } from './lib/activity';
 import { Activity } from './components/Activity';
+import { CameraFeed } from './components/CameraFeed';
+import { Gate } from './components/Gate';
+import { Lesson } from './components/Lesson';
 import { Hints } from './components/Hints';
 import { Tour } from './components/Tour';
 import { beginTour, tourSeen } from './lib/tour';
@@ -40,6 +45,8 @@ export default function App() {
   // them in the tools row's slot over a live dock, so the covering rule below
   // never applies to them.
   const [sheet, setSheet] = useState<'meshes' | 'scenes' | null>(null);
+  /* The perspective lesson, which takes the whole tool over while it runs. */
+  const [teaching, setTeaching] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,6 +56,17 @@ export default function App() {
     keepAwake();
   }, [loadSceneHistory, loadOwnMeshes]);
   useEffect(() => useStore.subscribe((state) => saveSettings(state)), []);
+
+  /*
+   * The two things that happen without being asked.
+   *
+   * The sky's clock moves the simulated hour along and keeps a live sky live;
+   * the dealer turns a page of the deck over in the gaps between working. Both
+   * are here rather than inside the overlay because neither is chrome - they go
+   * on whether or not a panel is open, and the overlay unmounts nothing.
+   */
+  useSkyClock();
+  useAutoDeal();
 
   /*
    * The status bar is part of the page, on a phone saved to the home screen.
@@ -748,10 +766,16 @@ export default function App() {
       style={{ minHeight: '100dvh', backgroundColor: pageHex() }}
     >
       <Scene />
+      {/* The real room, under everything the tool draws over it. */}
+      <CameraFeed />
       <Activity />
       {/* Hold any control to be told what it is. */}
       <Hints />
       <Tour />
+      {teaching && <Lesson onDone={() => setTeaching(false)} />}
+      {/* The frame a lens composes into, over the picture and under the
+          chrome - ruled in the same ink as the rest of the construction. */}
+      <Gate ink={constructionInk(isSketch(surface), isDark)} />
       <VanishingPoints color={constructionInk(isSketch(surface), isDark)} />
       <Measures />
       {/*
@@ -769,6 +793,7 @@ export default function App() {
         onScenes={() => setSheet((at) => (at === 'scenes' ? null : 'scenes'))}
         shelfOpen={sheet !== null}
         onShelfAway={() => setSheet(null)}
+        onLesson={() => setTeaching(true)}
         shelf={
           sheet === 'meshes' ? (
             <MeshSheet

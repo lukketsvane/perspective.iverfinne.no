@@ -2,11 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { Icon, I } from './icons';
 import { bubble, chrome, readout, SIDEWAYS_SLOT, snugIconButton } from './ui';
-import { exportScaledModel } from '../lib/exportModel';
-import { SETTINGS_ICON, SURFACE_ICON } from './icons';
+import { SURFACE_ICON } from './icons';
+import { useHoldable } from './controls';
 import { useRail } from '../lib/rail';
 import { selectionRange } from '../lib/focus';
-import { selectionSurface, surfaceHasSettings, surfaceSettingsLabel } from '../types';
+import { selectionSurface, surfaceHasSettings } from '../types';
 import type { LampData } from '../types';
 
 /** Everything sizes to the centimetre. Below that is not a drawing decision. */
@@ -188,6 +188,7 @@ const LampBar: React.FC<{ lamp: LampData; raised: boolean }> = ({ lamp, raised }
   const theme = useStore((s) => s.theme);
   const updateLamp = useStore((s) => s.updateLamp);
   const removeLamp = useStore((s) => s.removeLamp);
+  const duplicateSelection = useStore((s) => s.duplicateSelection);
   const beginChange = useStore((s) => s.beginChange);
   const railVisible = useRail();
   const isDark = theme === 'dark';
@@ -262,6 +263,9 @@ const LampBar: React.FC<{ lamp: LampData; raised: boolean }> = ({ lamp, raised }
             'Aim - drag to swing it',
             aimScrub
           )}
+        <button onClick={duplicateSelection} className={button} aria-label="Duplicate selection">
+          <Icon path={I.duplicate} className="w-5 h-5" />
+        </button>
         <button onClick={() => removeLamp(lamp.id)} className={`${button} !text-red-500`} aria-label="Delete">
           <Icon path={I.trash} className="w-5 h-5" />
         </button>
@@ -301,13 +305,13 @@ export const SelectionBar: React.FC<{
   const railVisible = useRail();
 
   const [activeAxis, setActiveAxis] = useState<0 | 1 | 2>(1);
-  const [exporting, setExporting] = useState(false);
   const range = useRange();
 
   const liftSelection = useStore((s) => s.liftSelection);
   const sizeSelection = useStore((s) => s.sizeSelection);
   const heightSelection = useStore((s) => s.heightSelection);
   const removeSelection = useStore((s) => s.removeSelection);
+  const duplicateSelection = useStore((s) => s.duplicateSelection);
   const companions = useStore((s) => s.companions);
 
   const box = selectedId ? boxes.find((b) => b.id === selectedId) : null;
@@ -364,9 +368,6 @@ export const SelectionBar: React.FC<{
   const boxScrub = useScrub(activeDim, (v) => setBoxDim(activeAxis, v));
   const liftScrub = useLift(lift, setLift);
 
-  if (lamp) return <LampBar lamp={lamp} raised={raised} />;
-  if (!box && !model) return null;
-
   /*
    * Which rung this one is on.
    *
@@ -378,8 +379,25 @@ export const SelectionBar: React.FC<{
    * Through the shared reading rather than worked out here, because the overlay
    * asks the same question to decide which knobs the panel this bar opens
    * should hold, and the two answers have to be the same answer.
+   *
+   * ABOVE THE TWO RETURNS BELOW, and this is not tidiness. It feeds a hook,
+   * and a hook after a conditional return is a hook that is called on some
+   * renders and not others - which React does not survive: the first frame
+   * with something in your hand threw "rendered more hooks than during the
+   * previous render" and took the whole app down with it. Nothing selected
+   * gives no rung, which is a real answer and a safe one, because nothing that
+   * reads it renders in that case.
    */
-  const surface = selectionSurface({ boxes, models, selectedId, selectedModelId, surface: sceneSurface })!;
+  const surface = selectionSurface({ boxes, models, selectedId, selectedModelId, surface: sceneSurface });
+
+  /* This one's rung and its drawer, on one seat: tap steps, hold opens. */
+  const ownSurfaceControl = useHoldable({
+    onTap: cycleSelectionSurface,
+    onHold: onMaterial && surface && surfaceHasSettings(surface) ? onMaterial : undefined,
+  });
+
+  if (lamp) return <LampBar lamp={lamp} raised={raised} />;
+  if (!box && !model || !surface) return null;
 
   const isDark = theme === 'dark';
   const button = `${snugIconButton(isDark)} border border-transparent`;
@@ -394,18 +412,6 @@ export const SelectionBar: React.FC<{
    * can know whether the hand it just emptied still holds anything.
    */
   const remove = () => removeSelection();
-
-  const exportModel = async () => {
-    if (!model?.object || exporting) return;
-    setExporting(true);
-    try {
-      await exportScaledModel(model);
-    } catch (error) {
-      console.error('Failed to export model:', error);
-    } finally {
-      setExporting(false);
-    }
-  };
 
   return (
     <div
@@ -537,10 +543,17 @@ export const SelectionBar: React.FC<{
             </div>
           )}
         </div>
+        {/* ONE SEAT, tap to step the rung and hold to open the rung's own
+            settings - the same seat the panel band carries for the page, and
+            for the reasons written on useHoldable. It matters more here than
+            there: this bar grows with what you can do to a thing, and a seat
+            that comes and goes with the rung is a seat that shoves its
+            neighbours under your thumb. */}
         <button
-          onClick={cycleSelectionSurface}
-          className={button}
+          {...ownSurfaceControl}
+          className={`${button} touch-none`}
           aria-label={`Surface of this one: ${surface}`}
+          aria-expanded={onMaterial && surfaceHasSettings(surface) ? materialOpen : undefined}
         >
           <Icon path={SURFACE_ICON[surface]} className="w-5 h-5" />
         </button>
@@ -605,25 +618,20 @@ export const SelectionBar: React.FC<{
           />
         </button>
 
-        {onMaterial && surfaceHasSettings(surface) && (
-          <button
-            onClick={onMaterial}
-            aria-label={surfaceSettingsLabel(surface)}
-            aria-expanded={materialOpen}
-            className={`${button} ${materialOpen ? (isDark ? 'bg-white/10' : 'bg-black/10') : ''}`}
-          >
-            <Icon path={SETTINGS_ICON[surface]} className="w-5 h-5" />
-          </button>
-        )}
-        {model?.object && (
-          <button
-            onClick={exportModel}
-            className={`${button} ${exporting ? 'opacity-40 animate-pulse' : ''}`}
-            aria-label="Export this mesh at its current size"
-          >
-            <Icon path={I.upload} className="w-5 h-5 rotate-180" />
-          </button>
-        )}
+        {/* THE SCALED-MESH EXPORT IS NOT HERE ANY MORE.
+
+            It wrote the selected mesh back out as a .glb at whatever size it
+            had been dragged to, and it was the one seat on this bar that was
+            not about the drawing at all - a file operation, on a bar whose
+            every other control moves, sizes, rules or deletes the thing in
+            your hand. The scene file already carries every mesh at its placed
+            size, which is the export anybody actually wants, and it is on the
+            shelf where the other file operations live. */}
+        {/* Copy is a selection verb, so it stays beside delete where it is
+            available the moment an object is picked up. */}
+        <button onClick={duplicateSelection} className={button} aria-label="Duplicate selection">
+          <Icon path={I.duplicate} className="w-5 h-5" />
+        </button>
         <button onClick={remove} className={`${button} !text-red-500`} aria-label="Delete">
           <Icon path={I.trash} className="w-5 h-5" />
         </button>

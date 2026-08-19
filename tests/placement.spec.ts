@@ -63,9 +63,15 @@ const pairs = <T,>(items: T[]): [T, T][] =>
  *
  * The tiles disable themselves while anything is loading, so "clicked" is not
  * "placed" and the next tap would be swallowed. A placed mesh selects itself,
- * and the export control on the selection bar is mounted only when a model is
- * selected - not merely faded, mounted - so its presence is a real gate rather
- * than the sleep it replaces.
+ * and the size lock on the selection bar is mounted only when a MODEL is
+ * selected - a box gets an axis stepper in that slot instead - not merely
+ * faded, mounted, so its presence is a real gate rather than the sleep it
+ * replaces.
+ *
+ * It used to be the scaled-mesh export that stood here, for the same reason.
+ * That control has gone: it was the one seat on that bar that was not about
+ * the drawing at all, and the scene file already carries every mesh at its
+ * placed size.
  *
  * The cylinder rather than one of the meshes on the shelf because it is built
  * in code (primitive:cylinder) instead of fetched: a metre round, a metre tall,
@@ -74,7 +80,7 @@ const pairs = <T,>(items: T[]): [T, T][] =>
  */
 const placeCylinder = async (page: Page) => {
   await clickIn(page, 'anywhere', 'Cylinder');
-  await expect(page.locator('[aria-label="Export this mesh at its current size"]')).toBeAttached();
+  await expect(page.locator('[aria-label="Lock the size"]')).toBeAttached();
   await expect(find(page, 'anywhere', 'Add cube')).toBeEnabled();
 };
 
@@ -91,34 +97,39 @@ const placeCylinder = async (page: Page) => {
  */
 const dropTheProbe = (page: Page) => clickIn(page, 'anywhere', 'Add light');
 
-/*
- * The pencil beside the cube, which is where it lives now.
- *
- * It spent a release inside the tools panel, in a band of its own with the
- * measure, and blockOutABox in the harness reached it through there. Nothing
- * green in the suite went near that path - the four specs that block a box in
- * are all quarantined - so moving it was a change no test could have caught.
- * Hence this one: the shortest statement of what the shelf is now claiming,
- * which is that the by-eye version of the cube is one tap from the cube.
- */
-test('the pencil is on the shelf beside the cube, and blocks a box in from there', async ({
+test('the selection bar duplicates the selected object beside its original', async ({ app }) => {
+  await openShelf(app);
+  await clickIn(app, 'anywhere', 'Add cube');
+
+  const before = await readSceneBundle(app);
+  expect(before.boxes).toHaveLength(1);
+  await clickIn(app, 'anywhere', 'Duplicate selection');
+
+  const after = await readSceneBundle(app);
+  expect(after.boxes).toHaveLength(2);
+  expect(after.boxes[1].scale).toEqual(after.boxes[0].scale);
+  expect(after.boxes[1].rotation).toEqual(after.boxes[0].rotation);
+  expect(after.boxes[1].position[0] - after.boxes[0].position[0]).toBeCloseTo(0.5, 6);
+  expect(after.boxes[1].position[2] - after.boxes[0].position[2]).toBeCloseTo(0.5, 6);
+
+  await clickIn(app, 'anywhere', 'Undo');
+  expect((await readSceneBundle(app)).boxes).toHaveLength(1);
+});
+
+/* The block-out pencil is a primary dock action: it needs no shelf and leaves
+ * the drawing unobstructed while the two-stroke gesture is in progress. */
+test('the pencil is on the toolbar and blocks a box without opening a shelf', async ({
   app,
 }) => {
-  await openShelf(app);
   const pencil = find(app, 'anywhere', 'Draw boxes on the ground');
-  await expect(pencil, 'The block-out pencil is not on the model shelf.').toBeVisible();
+  await expect(pencil, 'The block-out pencil is not on the toolbar.').toBeVisible();
 
   await blockOutABox(app);
 
-  // ...and the shelf is STILL THERE, which is the opposite of what it used to
-  // assert. Taking the pencil closed the shelf, and since the pencil puts
-  // itself down after every box, a run of boxes cost three taps of overhead
-  // for every second one. The shelf stays now, so the pencil is one tap away
-  // for as long as you are blocking things in - see MeshSheet.tsx.
   await expect(
     find(app, 'anywhere', 'Add cube'),
-    'The shelf closed when the pencil was taken, so the next box costs a re-open.'
-  ).toHaveCount(1);
+    'The model shelf opened while using the toolbar pencil.'
+  ).toBeHidden();
 
   const scene = await readSceneBundle(app);
   expect(scene.boxes, 'Two strokes on the floor and no box stood up.').toHaveLength(1);

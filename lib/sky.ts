@@ -1,262 +1,358 @@
 /**
- * Where the sun, the moon and the stars actually are.
+ * Where the sun actually is, and what the sky over you is actually doing.
  *
- * Everything in here is arithmetic on a date and a place. Nothing draws; the
- * shaders in components/SkyDome.tsx do that, and they take what this works out.
+ * The tool's key light has always been two numbers you drag - a bearing and a
+ * height above the horizon - and that is the right control for a drawing: you
+ * put the light where the drawing needs it. It is the wrong control for a
+ * QUESTION, and the question people keep asking of a perspective tool is not
+ * "what does 286 degrees at 14 look like", it is "what will this look like
+ * here, at four o'clock, in October".
  *
- * WHY BOTHER BEING RIGHT ABOUT IT.
+ * So this module answers that one. It is three separate things that only make
+ * sense together:
  *
- * Because the question an illustrator asks about light is never "which way
- * shall I point the lamp". It is "it is four in the afternoon in October and I
- * am facing the fjord - where is the sun, how long are the shadows, and what
- * colour is the light". A bearing knob answers none of that; a date, an hour
- * and a latitude answer all three at once, and they answer them the same way
- * the world does, which means the answer is checkable against a window.
+ *   solarPosition   where the sun is, from a place and a moment. Astronomy,
+ *                   not a guess - the NOAA low-precision equations, good to a
+ *                   hundredth of a degree over any date this tool will see.
+ *   sunlight        how bright and how warm that sun is at that height, and
+ *                   what the cloud between you and it does to both.
+ *   conditions      what the sky over that place is really doing, fetched
+ *                   from a public forecast and read hour by hour.
  *
- * It also makes the sun and the stars ONE fact rather than two. Set the clock
- * to three in the morning and the sun is under the horizon because it is under
- * the horizon, and the sky is full of the stars that are really up at that
- * hour, turned to the angle they are really turned to. Nothing here is
- * decorative and nothing had to be kept in step by hand.
- *
- * THE FRAME THE APP DRAWS IN. `sunPosition` in components/Scene.tsx puts a
- * bearing of zero along +Z and a bearing of ninety along +X, with +Y up. So
- * world x is east, world y is up, world z is north, and everything below lands
- * in that frame.
- *
- * Accuracy: the sun to about a hundredth of a degree, the moon to about a
- * third of one - half its own width - which is the standard low-precision pair
- * out of Meeus and the Astronomical Almanac. Both are far finer than anything a
- * drawing can hold, and the moon's PHASE, which is what you would actually
- * draw, comes out of the elongation and is right to a per cent.
+ * Nothing here touches the store or the scene. It takes numbers and gives
+ * numbers back, which is what makes it the one piece of this feature that can
+ * be reasoned about on paper.
  */
 
 const RAD = Math.PI / 180;
-const DEG = 180 / Math.PI;
 
-/** Degrees, brought back into 0-360. */
-const wrap = (deg: number) => ((deg % 360) + 360) % 360;
+/**
+ * How far off a directional light is placed. It has no bearing on how it
+ * lights anything - a directional light is a direction - but it does decide
+ * where the shadow camera's near and far planes have to sit around it.
+ */
+export const SUN_DISTANCE = 60;
 
-const sinDeg = (deg: number) => Math.sin(deg * RAD);
-const cosDeg = (deg: number) => Math.cos(deg * RAD);
+/**
+ * Where a bearing and a height above the horizon put a light.
+ *
+ * The scene's own convention, spelled out in SolarPosition below: zero is
+ * +Z and ninety is +X, which with -Z read as north makes zero south and
+ * ninety east.
+ */
+export const sunPosition = (azimuth: number, elevation: number): [number, number, number] => {
+  const a = azimuth * RAD;
+  const e = elevation * RAD;
+  const flat = Math.cos(e) * SUN_DISTANCE;
+  return [Math.sin(a) * flat, Math.sin(e) * SUN_DISTANCE, Math.cos(a) * flat];
+};
 
-/** Where the sky is looked at from, and when. */
-export interface Standpoint {
-  /** Degrees north. Polaris stands this far above the horizon. */
-  latitude: number;
-  /** Degrees east. */
-  longitude: number;
-  /** Day of the year, 1 to 366. */
-  day: number;
+/** Days between the Unix epoch and J2000.0, the epoch the equations use. */
+const J2000 = 2451545.0;
+const UNIX_JULIAN = 2440587.5;
+
+export interface SolarPosition {
   /**
-   * The hour, as the SUN keeps it rather than as a railway does.
+   * The bearing, in the scene's own convention rather than a compass's.
    *
-   * Twelve is local noon at whatever longitude you have said you are at, so
-   * the sun is due south (north, below the equator) and as high as it will get
-   * that day. A time zone is an administrative rectangle laid over that, an
-   * hour wide and sometimes shifted for the summer, and it would put the sun
-   * somewhere slightly else for reasons that have nothing to do with drawing.
+   * The scene is a right-handed Y-up space and the app's `sunPosition` places
+   * a light at (sin a, sin e, cos a) - so a bearing of zero puts the sun on
+   * +Z and ninety puts it on +X. Calling -Z north and +X east, which is the
+   * ordinary way to lay a map into this space, that makes zero SOUTH and
+   * ninety EAST. A compass azimuth runs the other way round from the other
+   * end, hence the reflection at the bottom of solarPosition: this is not an
+   * arbitrary offset, it is the one place the two conventions are reconciled,
+   * and getting it wrong puts every shadow in the scene on the wrong side of
+   * every object at every hour but noon.
    */
-  hour: number;
-}
-
-/**
- * The year the sky is worked out for.
- *
- * Fixed, and it does not matter: precession moves a star about fifty arc
- * seconds a year, which is a pixel a century. What a year DOES change is the
- * moon, and the moon on the eighteenth of a given August is a real moon on a
- * real night - which is the honest answer to "what phase is it", and better
- * than a phase knob that shows a moon nobody ever saw.
- */
-const YEAR = 2026;
-
-/** Days from the start of the year to the start of each month, in a common year. */
-const MONTH_START = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-const MONTHS = ['januar', 'februar', 'mars', 'april', 'mai', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'desember'];
-
-/** A day of the year said the way a calendar says it. */
-export const dateName = (day: number) => {
-  const at = Math.max(1, Math.min(365, Math.round(day)));
-  let month = 11;
-  while (month > 0 && MONTH_START[month] >= at) month--;
-  return `${at - MONTH_START[month]}. ${MONTHS[month]}`;
-};
-
-/** The hour said the way a clock says it. */
-export const clockName = (hour: number) => {
-  const total = Math.round(((hour % 24) + 24) % 24 * 60);
-  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-};
-
-/**
- * Julian day, from a day of the year and an hour of universal time.
- *
- * The one number every ephemeris is written against: days, counted straight
- * through without months, since noon on the first of January 4713 BC.
- */
-export const julianDay = (day: number, universalHour: number) => {
-  // 1 January of YEAR at 00:00 UT, by the standard Gregorian sum.
-  const a = Math.floor((14 - 1) / 12);
-  const y = YEAR + 4800 - a;
-  const m = 1 + 12 * a - 3;
-  const start =
-    1 + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
-  return start - 0.5 + (day - 1) + universalHour / 24;
-};
-
-/** Universal time for a standpoint, the hour being the sun's own. */
-export const universalHour = (where: Standpoint) => where.hour - where.longitude / 15;
-
-/**
- * Greenwich mean sidereal time, in degrees.
- *
- * Sidereal time is which right ascension is currently overhead - the sky's own
- * clock, which runs about four minutes a day fast against the sun's, because a
- * year's worth of those four minutes is one extra turn.
- */
-export const siderealDegrees = (jd: number) => {
-  const d = jd - 2451545.0;
-  return wrap(280.46061837 + 360.98564736629 * d);
-};
-
-export interface Equatorial {
-  /** Right ascension, degrees. */
-  ra: number;
-  /** Declination, degrees. */
-  dec: number;
-}
-
-/**
- * The sun, to a hundredth of a degree.
- *
- * Mean longitude, mean anomaly, the equation of the centre to two terms, and
- * the obliquity of the ecliptic. Four lines of astronomy that have been the
- * same four lines since Kepler.
- */
-export const sunAt = (jd: number): Equatorial => {
-  const n = jd - 2451545.0;
-  const meanLongitude = wrap(280.46 + 0.9856474 * n);
-  const anomaly = wrap(357.528 + 0.9856003 * n);
-  const ecliptic = meanLongitude + 1.915 * sinDeg(anomaly) + 0.02 * sinDeg(2 * anomaly);
-  const tilt = 23.439 - 0.0000004 * n;
-  const ra = wrap(Math.atan2(cosDeg(tilt) * sinDeg(ecliptic), cosDeg(ecliptic)) * DEG);
-  const dec = Math.asin(sinDeg(tilt) * sinDeg(ecliptic)) * DEG;
-  return { ra, dec };
-};
-
-/** The moon, and how far round it has got from the sun. */
-export interface Moon extends Equatorial {
-  /**
-   * How much of the disc is lit, 0 at new and 1 at full.
-   *
-   * This is what you would draw. The rest of the moon's arithmetic decides
-   * where it is; this decides what shape it is.
-   */
-  lit: number;
-}
-
-/**
- * The moon, by the abridged series in the Astronomical Almanac.
- *
- * Seven terms of longitude and four of latitude, which is a third of a degree.
- * The full theory is several hundred terms and buys nothing anybody draws.
- */
-export const moonAt = (jd: number): Moon => {
-  const t = (jd - 2451545.0) / 36525;
-  const longitude =
-    218.32 +
-    481267.881 * t +
-    6.29 * sinDeg(135.0 + 477198.87 * t) -
-    1.27 * sinDeg(259.3 - 413335.36 * t) +
-    0.66 * sinDeg(235.7 + 890534.22 * t) +
-    0.21 * sinDeg(269.9 + 954397.74 * t) -
-    0.19 * sinDeg(357.5 + 35999.05 * t) -
-    0.11 * sinDeg(186.5 + 966404.03 * t);
-  const latitude =
-    5.13 * sinDeg(93.3 + 483202.02 * t) +
-    0.28 * sinDeg(228.2 + 960400.89 * t) -
-    0.28 * sinDeg(318.3 + 6003.15 * t) -
-    0.17 * sinDeg(217.6 - 407332.21 * t);
-
-  const tilt = 23.439 - 0.0000004 * (jd - 2451545.0);
-  const sinL = sinDeg(longitude);
-  const cosL = cosDeg(longitude);
-  const sinB = sinDeg(latitude);
-  const cosB = cosDeg(latitude);
-  const ra = wrap(Math.atan2(sinL * cosDeg(tilt) - (sinB / cosB) * sinDeg(tilt), cosL) * DEG);
-  const dec = Math.asin(sinB * cosDeg(tilt) + cosB * sinDeg(tilt) * sinL) * DEG;
-
-  // How far round the sky the moon has got from the sun. Zero is new, a
-  // half turn is full, and the lit fraction is the cosine half-angle.
-  const sun = sunAt(jd);
-  const elongation =
-    Math.acos(
-      Math.max(
-        -1,
-        Math.min(1, sinDeg(sun.dec) * sinDeg(dec) + cosDeg(sun.dec) * cosDeg(dec) * cosDeg(sun.ra - ra))
-      )
-    ) * DEG;
-  return { ra, dec, lit: (1 - cosDeg(elongation)) / 2 };
-};
-
-/** Where something at these coordinates stands, from here, right now. */
-export interface Aim {
-  /** Compass bearing, degrees, north through east - the app's own convention. */
   azimuth: number;
-  /** Degrees above the horizon. Negative is under the ground. */
+  /** Degrees above the horizon. Negative at night, which is a real answer. */
   elevation: number;
 }
 
-/** An equatorial position, said as a bearing and a height above the horizon. */
-export const aimOf = (at: Equatorial, where: Standpoint, jd: number): Aim => {
-  const hourAngle = siderealDegrees(jd) + where.longitude - at.ra;
-  const sinDec = sinDeg(at.dec);
-  const cosDec = cosDeg(at.dec);
-  const sinLat = sinDeg(where.latitude);
-  const cosLat = cosDeg(where.latitude);
-  const height = sinDec * sinLat + cosDec * cosLat * cosDeg(hourAngle);
-  const north = sinDec * cosLat - cosDec * sinLat * cosDeg(hourAngle);
-  const east = -cosDec * sinDeg(hourAngle);
+/**
+ * Where the sun stands over a place at a moment.
+ *
+ * The NOAA low-precision algorithm, which is a handful of polynomials in days
+ * since J2000 and is accurate to about a hundredth of a degree for a century
+ * either side of it. Refraction is deliberately not modelled: it lifts the
+ * disc about half a degree at the horizon, which matters to a navigator and
+ * not at all to where a shadow falls.
+ */
+export const solarPosition = (at: Date, latitude: number, longitude: number): SolarPosition => {
+  const days = at.getTime() / 86400000 + UNIX_JULIAN - J2000;
+
+  // The sun's place on the ecliptic: mean anomaly, mean longitude, and the
+  // first two terms of the equation of centre that turns one into the other.
+  const anomaly = (357.529 + 0.98560028 * days) * RAD;
+  const meanLongitude = (280.459 + 0.98564736 * days) * RAD;
+  const ecliptic =
+    meanLongitude + (1.915 * Math.sin(anomaly) + 0.02 * Math.sin(2 * anomaly)) * RAD;
+
+  // ...turned onto the equator, which is what an observer on a spinning ball
+  // needs: right ascension and declination.
+  const obliquity = (23.439 - 0.00000036 * days) * RAD;
+  const rightAscension = Math.atan2(Math.cos(obliquity) * Math.sin(ecliptic), Math.cos(ecliptic));
+  const declination = Math.asin(Math.sin(obliquity) * Math.sin(ecliptic));
+
+  // How far the earth has turned since the sun crossed this meridian.
+  const siderealHours = 18.697374558 + 24.06570982441908 * days;
+  const localSidereal = ((siderealHours % 24) + 24) % 24 + longitude / 15;
+  const hourAngle = localSidereal * 15 * RAD - rightAscension;
+
+  const lat = latitude * RAD;
+  const elevation =
+    Math.asin(
+      Math.sin(declination) * Math.sin(lat) +
+        Math.cos(declination) * Math.cos(lat) * Math.cos(hourAngle)
+    ) / RAD;
+
+  // Measured from due south, running west - the natural output of the two
+  // arguments below - and then read back into the scene's bearing.
+  const fromSouth =
+    Math.atan2(
+      Math.sin(hourAngle),
+      Math.cos(hourAngle) * Math.sin(lat) - Math.tan(declination) * Math.cos(lat)
+    ) / RAD;
+
+  return { azimuth: ((-fromSouth % 360) + 360) % 360, elevation };
+};
+
+/**
+ * How strong and how warm the sun is at a given height, under a given sky.
+ *
+ * Two effects, and they are separate. The first is the AIR: light at ten
+ * degrees has come through five times the atmosphere light at ninety has, so
+ * it is dimmer and it is redder, which is the whole of why a low sun looks the
+ * way it does. The second is the CLOUD: a covered sky loses most of the direct
+ * beam and what is left is neutral rather than warm, because the reddening
+ * happens along a path the cloud has already scattered.
+ *
+ * The numbers are fitted by eye against the tool's own exposure rather than
+ * measured in lux - what matters here is that noon reads as noon and six
+ * o'clock reads as six o'clock on this renderer, at the intensities the panel
+ * already offers.
+ */
+export const sunlight = (elevation: number, cover: number) => {
+  if (elevation <= 0) {
+    // Night. Not black: the sky after sunset is a large dim blue source, and a
+    // scene with literally no light in it is a scene nobody can check.
+    const depth = Math.min(1, -elevation / 12);
+    return {
+      intensity: 0.5 * (1 - depth * 0.8) * (1 - cover * 0.5),
+      temperature: 9500 + depth * 1500,
+    };
+  }
+  // Air mass, the Kasten-Young approximation, normalised so overhead is 1.
+  const air =
+    1 / (Math.sin(elevation * RAD) + 0.50572 * Math.pow(elevation + 6.07995, -1.6364));
+  const clear = Math.max(0, 1.06 * Math.pow(0.72, Math.pow(air, 0.678)));
+  // Cloud takes the beam down but never quite out - an overcast day still has
+  // a direction to its light, and a scene lit from nowhere reads as a mistake.
+  const through = 1 - cover * 0.82;
   return {
-    azimuth: wrap(Math.atan2(east, north) * DEG),
-    elevation: Math.asin(Math.max(-1, Math.min(1, height))) * DEG,
+    intensity: 11 * clear * through,
+    // Redder through more air, and pulled back toward daylight by cloud.
+    temperature: (2000 + 4700 * Math.pow(clear, 0.45)) * (1 - cover * 0.25) + cover * 1500,
   };
 };
 
 /**
- * The rotation that carries the catalogue onto the sky over your head.
+ * WHERE THE STARS ARE, which is a rotation and nothing else.
  *
- * One 3x3 matrix, so eight thousand stars are turned by the vertex shader for
- * the price of one uniform. It is two turns composed: about the celestial pole
- * by the sidereal time, which is the sky's daily spin, and then by the
- * co-latitude, which is the tilt that puts the pole where it belongs - at your
- * own latitude above the northern horizon.
+ * A star field that is a texture pasted on a dome is a wallpaper: it does not
+ * turn, it does not know what latitude it is at, and the pole is wherever the
+ * artist put it. This tool already knows the place and the moment, so it can
+ * do the real thing for the cost of one matrix.
  *
- * Column-major, ready for THREE.Matrix3.fromArray.
+ * The whole of it: the celestial sphere turns once a sidereal day about an
+ * axis that points north and stands at an altitude equal to your latitude. So
+ * build the rotation that takes the scene's own frame to a frame whose +Y is
+ * that axis, spin it by the local sidereal time, and hash the stars in THAT
+ * frame. Everything else follows for free and correctly - Polaris sits at your
+ * latitude, stars rise in the east and set in the west, the pole is overhead at
+ * the pole and on the horizon at the equator, and at Bergen in January the
+ * winter sky is the winter sky.
+ *
+ * Greenwich mean sidereal time is the same polynomial the solar position uses,
+ * which is why it is here and not somewhere with its own copy of the epoch.
  */
-export const equatorialToWorld = (where: Standpoint, jd: number): number[] => {
-  const spin = (siderealDegrees(jd) + where.longitude) * RAD;
-  const cosSpin = Math.cos(spin);
-  const sinSpin = Math.sin(spin);
-  const sinLat = sinDeg(where.latitude);
-  const cosLat = cosDeg(where.latitude);
-
-  /*
-   * Row by row, in world terms. Working in the frame the hour angle is
-   * measured in - x on the meridian, z on the pole - the sky's east is that
-   * frame's y, up is the pole tilted by the latitude, and north is what is
-   * left over. Composing that with the spin gives these nine.
-   */
-  const row = [
-    [-sinSpin, cosSpin, 0],
-    [cosLat * cosSpin, cosLat * sinSpin, sinLat],
-    [-sinLat * cosSpin, -sinLat * sinSpin, cosLat],
-  ];
-  // Column-major: down each column of the matrix above.
-  return [
-    row[0][0], row[1][0], row[2][0],
-    row[0][1], row[1][1], row[2][1],
-    row[0][2], row[1][2], row[2][2],
-  ];
+export const siderealAngle = (at: Date, longitude: number) => {
+  const days = at.getTime() / 86400000 + UNIX_JULIAN - J2000;
+  const hours = 18.697374558 + 24.06570982441908 * days;
+  const local = (((hours % 24) + 24) % 24) + longitude / 15;
+  return (local / 24) * Math.PI * 2;
 };
+
+/* ------------------------------------------------------------- the weather */
+
+/** What the sky over a place was doing at one hour. */
+export interface Conditions {
+  /** Fraction of the sky covered, 0 to 1. */
+  cover: number;
+  /** How high the deck sits, in metres - read off which layer dominates. */
+  base: number;
+  /** Metres per second at ten metres up. */
+  wind: number;
+  /** The bearing the wind comes FROM, in the scene's convention. */
+  windBearing: number;
+  /** The hour these readings describe, in epoch milliseconds. */
+  at: number;
+}
+
+/**
+ * An hourly series for one place, kept so the hours can be read without
+ * asking again.
+ *
+ * A scrub across a day is a hundred changes of hour, and a request per hour
+ * would be a hundred requests for a forecast that was already in the first
+ * reply. One fetch covers two days back and three forward, which is every
+ * moment the panel can reach in one sweep of its date knob.
+ */
+interface Series {
+  latitude: number;
+  longitude: number;
+  fetchedAt: number;
+  hours: Conditions[];
+}
+
+let series: Series | null = null;
+
+/** How far a cached series may be from the place being asked about, in degrees. */
+const NEAR = 0.25;
+
+/** And how old it may be before it is asked for again. */
+export const SERIES_LIFE = 30 * 60 * 1000;
+
+const layerBase = (low: number, mid: number, high: number) => {
+  // Whichever deck is thickest is the one you see the underside of.
+  if (low >= mid && low >= high) return 900;
+  if (mid >= high) return 3200;
+  return 7000;
+};
+
+/**
+ * Ask the forecast what the sky over a place is doing.
+ *
+ * Open-Meteo, because it needs no key, allows the request straight from a
+ * browser, and answers in plain hourly arrays. Everything the tool asks for is
+ * a documented core variable - a request for something exotic comes back as a
+ * column of nulls rather than an error, which is the sort of failure that
+ * looks like a working feature.
+ *
+ * Nothing here throws for the caller to handle: a sky the network cannot
+ * describe is not an error condition, it is a sky you set by hand.
+ */
+export const fetchConditions = async (
+  latitude: number,
+  longitude: number
+): Promise<boolean> => {
+  const url =
+    'https://api.open-meteo.com/v1/forecast' +
+    `?latitude=${latitude.toFixed(4)}&longitude=${longitude.toFixed(4)}` +
+    '&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m,wind_direction_10m' +
+    '&wind_speed_unit=ms&past_days=2&forecast_days=3&timezone=UTC';
+
+  const reply = await fetch(url, { headers: { accept: 'application/json' } });
+  if (!reply.ok) return false;
+  const body = (await reply.json()) as {
+    hourly?: {
+      time?: string[];
+      cloud_cover?: (number | null)[];
+      cloud_cover_low?: (number | null)[];
+      cloud_cover_mid?: (number | null)[];
+      cloud_cover_high?: (number | null)[];
+      wind_speed_10m?: (number | null)[];
+      wind_direction_10m?: (number | null)[];
+    };
+  };
+  const hourly = body.hourly;
+  if (!hourly?.time?.length) return false;
+
+  const number = (column: (number | null)[] | undefined, index: number, fallback: number) => {
+    const value = column?.[index];
+    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+  };
+
+  const hours = hourly.time.map((stamp, index) => {
+    const low = number(hourly.cloud_cover_low, index, 0);
+    const mid = number(hourly.cloud_cover_mid, index, 0);
+    const high = number(hourly.cloud_cover_high, index, 0);
+    return {
+      cover: Math.min(1, Math.max(0, number(hourly.cloud_cover, index, 0) / 100)),
+      base: layerBase(low, mid, high),
+      wind: Math.max(0, number(hourly.wind_speed_10m, index, 4)),
+      // A meteorological bearing is degrees clockwise from north; the scene
+      // counts the other way from south. Same reflection as the sun's.
+      windBearing: ((180 - number(hourly.wind_direction_10m, index, 270)) % 360 + 360) % 360,
+      // The API is asked for UTC and answers without a zone marker, which
+      // Date would otherwise read as local time - a silent error of up to
+      // twelve hours, in the one number the whole feature is indexed by.
+      at: Date.parse(`${stamp}Z`),
+    };
+  });
+
+  series = { latitude, longitude, fetchedAt: Date.now(), hours };
+  return hours.length > 0;
+};
+
+/** Whether the readings held cover this place and are still worth trusting. */
+export const haveConditions = (latitude: number, longitude: number, now = Date.now()) =>
+  series !== null &&
+  Math.abs(series.latitude - latitude) < NEAR &&
+  Math.abs(series.longitude - longitude) < NEAR &&
+  now - series.fetchedAt < SERIES_LIFE;
+
+/**
+ * What the sky was doing at a moment, off the series already held.
+ *
+ * The nearest hour rather than an interpolation. Cloud cover is not a
+ * continuous quantity you can average between two readings and still have
+ * something true - half four's eight oktas and half five's two do not make
+ * five oktas at five to five, they make a sky that cleared - and the sun moves
+ * far more in an hour than the weather does.
+ */
+export const conditionsAt = (when: number): Conditions | null => {
+  if (!series || series.hours.length === 0) return null;
+  let nearest = series.hours[0];
+  for (const hour of series.hours) {
+    if (Math.abs(hour.at - when) < Math.abs(nearest.at - when)) nearest = hour;
+  }
+  // Past the ends of the series is not "the last hour we have" - it is a
+  // moment nothing was fetched for, and saying otherwise would show a Tuesday
+  // sky over a Saturday.
+  return Math.abs(nearest.at - when) > 90 * 60 * 1000 ? null : nearest;
+};
+
+/** Throw away everything held - a different place, or a manual override. */
+export const forgetConditions = () => {
+  series = null;
+};
+
+/* -------------------------------------------------------------- the place */
+
+export interface Place {
+  latitude: number;
+  longitude: number;
+}
+
+/**
+ * Where the device thinks it is.
+ *
+ * A permission prompt, so it is only ever asked for on a press. Low accuracy
+ * on purpose: the sun's bearing changes by a degree over sixty miles, and a
+ * coarse fix arrives in a second off the network where a fine one spins up the
+ * radio and takes half a minute to answer the same question.
+ */
+export const deviceLocation = (): Promise<Place> =>
+  new Promise((resolve, reject) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      reject(new Error('This browser will not say where it is.'));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (fix) => resolve({ latitude: fix.coords.latitude, longitude: fix.coords.longitude }),
+      (failure) => reject(new Error(failure.message)),
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 10 * 60 * 1000 }
+    );
+  });
