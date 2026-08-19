@@ -237,7 +237,17 @@ const deal = async (page: Page) => {
   await page.evaluate(() => localStorage.setItem('kjg-perspective-deal', 'now'));
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem('kjg-perspective-deal')), {
-      timeout: 5000,
+      /*
+       * Generous, because what is being waited for is a TIMER.
+       *
+       * The dealer beats twice a second, so a working seam answers in well
+       * under one - but the beat is a setInterval on a main thread that is
+       * also rendering a three hundred and sixty degree cube map through
+       * software GL, and a starved timer is not a broken one. Five seconds
+       * flaked once in a full run and passed alone, which is the worst
+       * possible signal to leave in a suite with no retries.
+       */
+      timeout: 20000,
     })
     .toBe('off');
 };

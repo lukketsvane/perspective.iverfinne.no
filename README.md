@@ -1947,3 +1947,16 @@ every one of them cost a run before it was written down.
 
 There are no retries, on purpose. A test that only passes sometimes teaches
 people that red means nothing, which is worse than not having the test.
+
+Which is exactly how five of them came to be ignored. `blockOutABox` lifts its
+strokes clear of whatever the panel slot is holding, and it found that panel
+with `closest('div[class*="rounded-"]')` — a **substring** match on the class
+attribute. The dock's clusters carry
+`[@media(max-height:560px)]:rounded-[1.125rem]`: a rule that is inert on any
+screen taller than 560 px, on an element that is `display: contents` and
+therefore reports a zero-sized rect at the origin. So the ceiling came back as
+−30, every stroke was lifted six hundred pixels to clear a panel at the top of
+the screen that does not exist, both ends landed off the glass, and five specs
+failed with "a stroke missed the floor" — which was true, unhelpful, and had
+nothing to do with the software renderer they were blamed on for weeks. A
+zero-height ancestor is not a panel.
