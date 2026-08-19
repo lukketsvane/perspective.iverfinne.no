@@ -36,13 +36,105 @@ export type Instrument = 'none' | 'block' | 'measure';
  *   what makes a ruled sphere of it and what Kim Jung Gi draws on.
  * - 'stereographic': the conformal one. See `lib/projection.ts`.
  *
- * There used to be two more. 'linear' was straight-line perspective, kept only
- * for a session standing in a real room, and that went with the room. '5-point'
- * was the equidistant sheet opened past the hemisphere - which, once the sheet
- * was cut properly at its own edge, turned out to be the equidistant sheet
- * exactly. Two names for one mapping is one name too many.
+ * - 'rectilinear': one, two and three point. A straight line in the world is
+ *   a straight line on the page, everywhere, which is the defining property
+ *   and the entire reason it is what every camera, every draughtsman's board
+ *   and every perspective lesson since Alberti uses. It is also the ONE system
+ *   here that sight is not: it cannot reach 180 degrees at any size of paper,
+ *   and it stretches the corners of a wide frame without limit, which is why
+ *   the other three exist.
+ *
+ * It came back for two reasons. A camera is a rectilinear instrument, so a
+ * mode that frames the view as a lens has to be one; and one, two and three
+ * point perspective cannot be shown in a system that bows straight lines -
+ * a lesson about vanishing points drawn on a curved sheet is a lesson about
+ * a different sheet.
+ *
+ * There used to be one more. '5-point' was the equidistant sheet opened past
+ * the hemisphere - which, once the sheet was cut properly at its own edge,
+ * turned out to be the equidistant sheet exactly. Two names for one mapping is
+ * one name too many.
  */
-export type PerspectiveMode = 'cylindrical' | 'equidistant' | 'stereographic';
+export type PerspectiveMode = 'rectilinear' | 'cylindrical' | 'equidistant' | 'stereographic';
+
+/**
+ * The view as a LENS rather than as a pair of eyes.
+ *
+ * Everything else in this tool frames the world the way sight does: a field
+ * measured in degrees, opened as wide as two hundred and ten because that is
+ * what a person takes in, on a curved sheet because sight has no straight
+ * edges in it. That is the honest model of standing somewhere and looking, and
+ * it is the wrong model of the other thing people compose with, which is a
+ * camera.
+ *
+ * A camera is four numbers and none of them is "how much can you see". It is a
+ * focal length on a frame of a known size, an aperture, a distance it is
+ * focused at, and the shape of the gate - and what those four produce is not a
+ * wider or narrower version of sight but a different picture: rectilinear, so
+ * straight edges stay straight; bounded by a gate you compose INTO rather than
+ * by the edge of the screen; and, above all, only sharp at one distance.
+ *
+ * Depth of field is the part that cannot be faked with a knob. It is the one
+ * thing in a photograph that says where the photographer was standing and what
+ * they were looking at, it is a physical consequence of the other three
+ * numbers rather than a setting of its own, and every drawing decision a
+ * camera-framed composition makes runs through it.
+ */
+export interface CameraState {
+  /** Whether the view is a lens rather than a pair of eyes. */
+  on: boolean;
+  /*
+   * THE FOCAL LENGTH IS NOT HERE, and its absence is the design.
+   *
+   * It is a READING of the field of view, not a second number beside it. The
+   * field is what everything downstream of the view already runs on - the
+   * picker, the vanishing points, the ink's line weight, the panorama's choice
+   * of source - so a focal length kept alongside it is a copy that has to be
+   * held in step, and the two doors that set it are two chances to drift.
+   *
+   * It also cannot be stored honestly, because it is not a property of the
+   * lens alone: the same field is a different focal length through a 3:2 gate
+   * than through a square one, and different again on a phone held upright,
+   * because the gate has to shrink to fit the screen and the millimetres are
+   * counted across the gate. See `lensOfFrame` in lib/projection.ts. A number
+   * that depends on the window is a number that belongs where the window is
+   * known, which is not here.
+   */
+  /** The f-number. Small is a wide hole, a bright lens and a thin focus. */
+  aperture: number;
+  /**
+   * THE OTHER TWO CORNERS OF THE TRIANGLE, without which this is not a camera.
+   *
+   * A lens that changes the depth of field and not the BRIGHTNESS is a lens
+   * with half its physics missing, and it is the half a photographer notices
+   * in the first three seconds: f/1.4 and f/16 cannot produce the same
+   * picture. Aperture, shutter and sensitivity are one quantity between them -
+   * how much light reaches the sensor - and any two of them fix the third.
+   *
+   * `shutter` is in seconds, so 1/125 is 0.008. `iso` is the sensitivity, on
+   * the scale everybody already reads.
+   */
+  shutter: number;
+  iso: number;
+  /**
+   * Aperture priority: hold the exposure when the aperture moves.
+   *
+   * On, this is the mode nine photographers in ten actually shoot: you set the
+   * depth of field and the camera keeps the picture the same brightness by
+   * moving the shutter under you. Off, it is full manual and opening up two
+   * stops makes the picture two stops brighter, which is the thing you have to
+   * see once to understand what a stop IS.
+   */
+  auto: boolean;
+  /**
+   * What the lens is focused on, in metres - or 0 for whatever is under the
+   * middle of the frame, which is what a camera with one focus point does and
+   * what anybody pointing one actually means.
+   */
+  focus: number;
+  /** The gate's shape, width over height: 3:2, 4:3, 16:9, square. */
+  gate: number;
+}
 
 /**
  * How solidly one thing in the scene is drawn.
@@ -52,9 +144,6 @@ export type PerspectiveMode = 'cylindrical' | 'equidistant' | 'stereographic';
  *
  * - 'original': opaque, as the thing is. A box in plain white, a mesh in the
  *   materials its file was authored with. What is behind it is behind it.
- * - 'matte': opaque, plain white, no texture. Photographed skin and fabric is a
- *   lot of information to draw past; stripped out, a figure reads as form and
- *   value only, which is what it is doing in a scene full of white boxes.
  * - 'brush': the drawing itself, and the only question a perspective study
  *   actually asks - where would the pen go. Line where the form turns away
  *   from the eye, the terminator that says which way the light is, and the
@@ -79,7 +168,7 @@ export type PerspectiveMode = 'cylindrical' | 'equidistant' | 'stereographic';
  * car standing inside a wire box on a floor of inked ones - which is exactly the
  * arrangement a study wants and what a single scene-wide setting could never say.
  */
-export type Surface = 'original' | 'matte' | 'brush' | 'marker' | 'hatch';
+export type Surface = 'original' | 'brush' | 'marker' | 'hatch';
 
 /**
  * The whole ladder, in order. What the scene-wide control steps through.
@@ -88,7 +177,7 @@ export type Surface = 'original' | 'matte' | 'brush' | 'marker' | 'hatch';
  * texture gone, then the light gone too and only the line left, then the object
  * itself.
  */
-export const SURFACES: Surface[] = ['original', 'matte', 'brush', 'marker', 'hatch'];
+export const SURFACES: Surface[] = ['original', 'brush', 'marker', 'hatch'];
 
 /** What a box steps through: it has no authored material to strip. */
 export const BOX_SURFACES: Surface[] = ['original', 'brush', 'marker', 'hatch'];
@@ -97,7 +186,7 @@ export const BOX_SURFACES: Surface[] = ['original', 'brush', 'marker', 'hatch'];
  * What a mesh steps through: it has no cage to fall back on, so taking its
  * surface away entirely would leave nothing on screen to take hold of again.
  */
-export const MESH_SURFACES: Surface[] = ['original', 'matte', 'brush', 'marker', 'hatch'];
+export const MESH_SURFACES: Surface[] = ['original', 'brush', 'marker', 'hatch'];
 
 /**
  * The nearest rung a given kind of thing can actually draw.
@@ -108,7 +197,7 @@ export const MESH_SURFACES: Surface[] = ['original', 'matte', 'brush', 'marker',
  * disappearing - which is the honest neighbour, both being line and no surface.
  */
 export const nearestSurface = (surface: Surface, rungs: Surface[]): Surface =>
-  rungs.includes(surface) ? surface : surface === 'matte' ? 'original' : 'brush';
+  rungs.includes(surface) ? surface : 'brush';
 
 /**
  * The rung the thing in your hand is actually drawn on. Null when nothing is.
@@ -120,8 +209,7 @@ export const nearestSurface = (surface: Surface, rungs: Surface[]): Surface =>
  * button promising hatch over a panel of marker knobs is worse than no button.
  *
  * Its own override first, the scene's default behind it, and whichever of the
- * two comes back is answered on the ladder that kind of thing can actually
- * draw - a box asked for matte is already plain white.
+ * two comes back is answered on the ladder that kind of thing can draw.
  */
 export const selectionSurface = (state: {
   boxes: BoxData[];
@@ -169,12 +257,12 @@ export const selectionMaterial = (state: {
  * with the other two and which nobody could reach at all before; a page whose
  * outline you cannot set is a page missing its most important mark.
  *
- * The two solid rungs still have nothing: 'original' is whatever the file says
- * and 'matte' is that with the texture taken off, and neither is drawn.
+ * The original rung now exposes the conventional PBR response, while the
+ * three drawn rungs expose their pen and page settings.
  */
 export const surfaceHasSettings = (
   surface: Surface | null
-): surface is 'brush' | 'marker' | 'hatch' => surface !== null && isSketch(surface);
+): surface is 'original' | 'brush' | 'marker' | 'hatch' => surface !== null;
 
 /**
  * What the button that opens them should say it opens.
@@ -184,8 +272,10 @@ export const surfaceHasSettings = (
  * between them would be two names for one panel. Each names what that page has
  * on top of the pen, and brush has only the pen.
  */
-export const surfaceSettingsLabel = (surface: 'brush' | 'marker' | 'hatch') =>
-  surface === 'hatch'
+export const surfaceSettingsLabel = (surface: Surface) =>
+  surface === 'original'
+    ? 'Adjust the PBR material'
+    : surface === 'hatch'
     ? 'How the hatching is ruled'
     : surface === 'marker'
       ? "The marker's own settings"
@@ -523,98 +613,91 @@ export interface FillState extends SunState {
 }
 
 /**
- * The world outside: how much air, what weather, and which night.
+ * The sky the scene stands under, as a set of conditions rather than knobs.
  *
- * Sun mode used to be one switch and a gradient. It drew a clear blue sky
- * derived from the key light's own colour temperature, which is a pretty
- * backdrop and almost nothing else - and a backdrop is the least interesting
- * thing a sky can be to somebody learning to draw.
+ * The two knobs that aim the key light are the right control for a DRAWING -
+ * you put the light where the drawing needs it. They are the wrong control for
+ * a QUESTION, and the question people bring to a perspective tool is not "what
+ * does 286 degrees at 14 look like", it is "what will this look like here, at
+ * four o'clock, in October".
  *
- * WHAT A SKY IS FOR IN A PERSPECTIVE TOOL. Three things, and this is one field
- * per thing:
+ * So this is the other half of the same light: a place, a moment, and what the
+ * sky over that place was doing at it. With `simulate` on, the sun's bearing,
+ * height, strength and colour are all WORKED OUT from these rather than set -
+ * the knobs go read-only and say what the sun is doing, which is the honest
+ * thing for a control that is no longer in charge.
  *
- *   AIR is aerial perspective, which is one of the two perspectives there are.
- *   Linear perspective is the one everybody teaches - things converge, they get
- *   smaller. The other one is what the mile of air between you and the hill
- *   does to the hill: it goes pale, it goes blue, it loses its darks, and by
- *   the time it is far enough away it is a flat shape the colour of the sky.
- *   Leonardo wrote it down before anybody had the word. A tool that draws the
- *   convergence perfectly and has no air in it is teaching half the subject.
- *
- *   CLOUD is a plane. That is the whole lesson. A deck of cloud at a fixed
- *   height is a ceiling over a flat world, and it is drawn exactly the way a
- *   floor is drawn, converging to exactly the same horizon from the other side.
- *   Set it low and it races away over your head; set it high and it lies almost
- *   flat and reaches the horizon slowly. It is the one perspective plane
- *   everybody has seen every day and nobody has ever measured.
- *
- *   STARS are the opposite of a perspective plane: things so far off they have
- *   no perspective in them at all. They never converge, they never grow, and
- *   walking a mile does not move one of them by a hair. The sphere turns
- *   rigidly and no figure in it ever changes shape. Having both on the same
- *   screen - a cube with a vanishing point, a sky with none - is the clearest
- *   statement of what perspective actually IS that this tool can make.
- *
- * And a fourth, which is the one that made the rest worth doing: the sky can be
- * SOMEWHERE, on a DATE, at an HOUR. That is how an illustrator asks about light
- * - not "which way shall I point the lamp" but "it is four in the afternoon in
- * October at sixty north, so where is the sun and how long are the shadows".
+ * It is deliberately not a mode. Everything downstream - the shadows, the sky
+ * shader, the cloud deck - reads the same `sun` it always did, so a simulated
+ * hour and a hand-set light produce pictures made the same way.
  */
 /**
- * How far the sky's knobs reach.
+ * How far the air knob reaches.
  *
- * Air stops at three because three atmospheres of it is already a wall of
- * white a hundred metres out, and past that there is no picture left to draw.
- * The cloud deck stops at three hundred metres because a lower ceiling than
- * that is fog rather than weather, and at twelve kilometres because that is
- * the top of the troposphere and where cirrus lives - which is also, usefully,
- * the deck that lies so nearly flat overhead that its convergence is the whole
- * of what you can see of it.
+ * Three, because three atmospheres of it is already a wall of white a hundred
+ * metres out and past that there is no picture left to draw.
  */
-export const SKY_LIMITS = { air: 3, lowCloud: 300, highCloud: 12000 } as const;
+export const SKY_LIMITS = { air: 3 } as const;
 
 export interface SkyState {
+  /** Whether the place and the moment below are what aim the sun. */
+  simulate: boolean;
+  /** The moment being drawn, in epoch milliseconds. */
+  time: number;
+  /** Whether that moment runs on by itself. */
+  running: boolean;
+  /** How many seconds of sky pass per second of clock while it runs. */
+  rate: number;
+  latitude: number;
+  longitude: number;
+  /** Whether the place came from the device rather than being the default. */
+  located: boolean;
+  /** Fraction of the sky covered, 0 to 1. */
+  cover: number;
+  /** How high the cloud deck sits, in metres. */
+  base: number;
+  /** Wind at the deck, in metres per second. */
+  wind: number;
+  /** The bearing the wind comes from, in the scene's own convention. */
+  windBearing: number;
   /**
-   * How much atmosphere there is, against a clear day at sea level.
+   * Where the four numbers above came from.
    *
-   * At zero there is none: the sky is black, the stars are out at noon, the
-   * shadows have nothing filling them, and the sun is a white disc with no
-   * halo. That is the moon, and it is a real place to draw - it is also
-   * exactly the lighting model the rest of this tool uses when the sky is off,
-   * made visible for once instead of assumed.
+   * 'off' means they are yours; 'live' means they are the real readings for
+   * this place and this hour. Touching any of them by hand drops it back to
+   * 'off', because a number you have overwritten is not an observation any
+   * more and a panel that goes on claiming it is, is lying.
+   */
+  observed: 'off' | 'asking' | 'live' | 'failed';
+  /**
+   * HOW MUCH AIR THERE IS, against a clear day at sea level.
    *
-   * Past one is thicker air: haze, a paler horizon, and distance eating the
-   * darks sooner. Which is the whole of aerial perspective, on one knob.
+   * The other perspective. Linear perspective is the one everybody teaches -
+   * things converge, things get smaller. The other one is what the mile of air
+   * between you and the hill does to the hill: it goes pale, it goes blue, it
+   * loses its darks, and far enough off it is a flat shape the colour of the
+   * sky. Leonardo wrote it down before anybody had the word for it, and a tool
+   * that draws the convergence perfectly and has no air in it is teaching half
+   * the subject.
+   *
+   * Past one is thicker air - haze, a paler horizon, distance eating the darks
+   * sooner. At zero there is none: the sky goes black, the stars come out at
+   * noon, the sun is a white disc with no halo and the shadows have nothing
+   * filling them. That is the moon, and it is also exactly the lighting model
+   * the rest of this tool uses when the sky is off, made visible for once
+   * instead of assumed.
    */
   air: number;
-  /** Cloud cover overhead, none to overcast. */
-  cloud: number;
-  /** How high the deck stands, in metres. */
-  cloudBase: number;
-  /** How brightly the catalogue is drawn. Zero leaves the sky empty. */
+  /**
+   * How brightly the catalogue is drawn. Zero leaves the sky empty.
+   *
+   * A brightness rather than a switch, because there is nothing to see until
+   * the sun goes down - or until the air goes, which is the same thing to a
+   * star. See components/Starfield.tsx.
+   */
   stars: number;
   /** The joining-up: the constellation figures over the stars themselves. */
   figures: boolean;
-  /** How much the sky itself lights the side of things the sun cannot reach. */
-  skylight: number;
-  /** Degrees north. It is also how high the pole star stands. */
-  latitude: number;
-  /** Day of the year, 1 to 365. */
-  day: number;
-  /**
-   * The hour, kept by the sun rather than by a railway: twelve is local noon.
-   * See lib/sky.ts.
-   */
-  hour: number;
-  /**
-   * The clock aims the sun.
-   *
-   * On, the bearing and the height above the horizon are worked out from the
-   * date, the hour and the latitude, and the two knobs in the light panel
-   * become a read-out of where the sun really is. Off, the sun is yours to
-   * point and the date and hour only turn the stars.
-   */
-  clock: boolean;
 }
 
 /**
@@ -825,9 +908,23 @@ export interface SceneView {
   theme: ThemeMode;
   sun: SunState;
   fill?: FillState;
-  sunEnvironment: boolean;
-  /** Absent in scenes composed before the sky had any settings. */
+  /**
+   * The hour and the weather the scene was composed under. Absent in scenes
+   * saved before the sky could be simulated, which read as the default place
+   * with the simulation off - which is exactly what those scenes were.
+   */
   sky?: SkyState;
+  /**
+   * The lens the composition was framed with, if it was framed with one.
+   *
+   * Called `lens` here and `camera` in the live state, which is not sloppiness:
+   * a SceneView has carried a `camera` since long before there was a lens, and
+   * what it means there is WHERE YOU WERE STANDING. Renaming that would break
+   * every scene file anybody has ever written. So the new field takes the name
+   * that was free, and the two agree about everything except the word.
+   */
+  lens?: CameraState;
+  sunEnvironment: boolean;
   guides: GuideLevel;
   /** Written by a version that had one guides switch instead of levels. */
   showGuides?: boolean;
@@ -964,8 +1061,20 @@ export interface SceneState {
    * Each box and mesh carries its own; this is only where a new one starts.
    */
   surface: Surface;
-  /** Use the directional sun to generate a full-frame sky gradient. */
+  /**
+   * Draw the sky behind the scene: the air, and the cloud deck under it, both
+   * aimed by the key light. Not a gradient any more - see components/Sky.tsx.
+   */
   sunEnvironment: boolean;
+  /**
+   * The back camera, faintly, under the drawing - see components/CameraFeed.
+   *
+   * Never persisted and never saved into a scene, unlike every other flag near
+   * it. A camera that comes back on because a browser remembered a setting is
+   * a camera nobody asked for; this one is armed by a gesture and dies with
+   * the session.
+   */
+  cameraFeed: boolean;
   /**
    * The sun. It is the only light in the scene - no ambient, no environment -
    * so a face turned away from it is genuinely unlit, which is what makes a
@@ -974,8 +1083,10 @@ export interface SceneState {
   sun: SunState;
   /** A second, shadowless light, for when one is too few. */
   fill: FillState;
-  /** The air, the weather and the night, for when the sky is switched on. */
+  /** The place, the moment and the weather that can aim that sun instead. */
   sky: SkyState;
+  /** The view as a lens rather than as a pair of eyes. */
+  camera: CameraState;
   /** The marker page's own colour and reach. */
   marker: MarkerState;
   /** How the etched page is ruled. */
@@ -984,6 +1095,8 @@ export interface SceneState {
   pen: PenState;
   /** The flat tone laid under it. */
   wash: WashState;
+  /** Overrides applied to authored PBR materials in the original surface. */
+  pbr: { roughness: number; metalness: number };
   /**
    * A floor under the drawing, and what tone it is.
    *
@@ -1048,6 +1161,18 @@ export interface SceneState {
   selectLamp: (id: string | null) => void;
   /** Place the toolbar's canonical one-metre reference cube. */
   addCube: (position: [number, number, number]) => void;
+  /**
+   * Deal a field of unit cubes to draw, round wherever you are standing.
+   *
+   * One of ten arrangements, each of which is a different QUESTION about the
+   * construction - see lib/cubeFields.ts. It replaces what is standing there,
+   * because a practice field with somebody's chair in it is not the exercise,
+   * and it takes a history step like anything else that writes to the scene,
+   * so one undo puts the scene back.
+   */
+  dealCubeField: () => void;
+  /** The field on the floor now, so the deal never repeats itself. */
+  fieldName: string | null;
   /** Start the block-out gesture's drawn box. */
   beginBlock: (at: [number, number]) => void;
   updateBox: (id: string, updates: Partial<BoxData>) => void;
@@ -1064,6 +1189,8 @@ export interface SceneState {
   toggleCompanion: (id: string) => void;
   /** Everything in hand, out of the scene, in one step back. */
   removeSelection: () => void;
+  /** Copy everything in hand, offset beside the originals, and hold the copies. */
+  duplicateSelection: () => void;
   /** The same height off the floor for everything in hand. */
   liftSelection: (metres: number) => void;
   /** One axis of every box in hand, to the same metres. */
@@ -1089,6 +1216,16 @@ export interface SceneState {
   ) => void;
   setLens: (fov: number) => void;
   setPerspectiveMode: (mode: PerspectiveMode) => void;
+  /**
+   * Change the lens, and let the field follow it.
+   *
+   * The field of view stays the one number everything downstream reads - the
+   * picker, the vanishing points, the ink's line weight, the panorama's own
+   * sheet - and a focal length is a way of SETTING it, not a second copy of
+   * it. So this writes both, and the lens control reads back in millimetres
+   * while the camera is on and in degrees while it is not.
+   */
+  setCamera: (camera: Partial<CameraState>) => void;
   setCameraHeight: (height: number) => void;
   /** Step down through the room's construction: everything, less, none, round. */
   cycleGuides: () => void;
@@ -1120,6 +1257,7 @@ export interface SceneState {
     hatch?: Partial<HatchState>;
     wash?: Partial<WashState>;
   }) => void;
+  setPbr: (pbr: Partial<{ roughness: number; metalness: number }>) => void;
   /** Give the selection back to the page's own settings. */
   followPageMaterial: () => void;
   cycleRoom: () => void;
@@ -1152,11 +1290,25 @@ export interface SceneState {
   /** Step only the selection, through the rungs its own kind can draw. */
   cycleSelectionSurface: () => void;
   toggleSunEnvironment: () => void;
+  /** Put the room you are in under the drawing, or take it away. */
+  setCameraFeed: (on: boolean) => void;
+  /**
+   * Change the sky, and let the sun follow it.
+   *
+   * One action rather than a setter per field, because none of these fields
+   * means anything alone: a new moment is a new sun, and a new cloud cover is
+   * a different strength of the same sun. Working out the light is part of
+   * setting the sky, not a thing a caller has to remember to do afterwards.
+   */
+  setSky: (sky: Partial<SkyState>) => void;
+  /** Ask the device where it is, and move the sky there. */
+  locateSky: () => Promise<void>;
+  /** Ask what the sky over that place is really doing at that moment. */
+  observeSky: (force?: boolean) => Promise<void>;
   /** Move the sun, or change how hard it burns. */
   setSun: (sun: Partial<SunState>) => void;
   /** The same, for the fill. */
   setFill: (fill: Partial<FillState>) => void;
-  setSky: (sky: Partial<SkyState>) => void;
   /** Pick an instrument up, or put the one in your hand down with 'none'. */
   setInstrument: (instrument: Instrument) => void;
   /**

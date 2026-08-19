@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { useHeld, useStore } from '../store';
 import { isSketch, MESH_SURFACES, nearestSurface, SceneModel } from '../types';
@@ -7,19 +7,6 @@ import { constructionInk } from '../lib/inkMaterial';
 import { useObjectMaterial } from '../lib/ownMaterial';
 import { Line } from '@react-three/drei';
 import { BOX_EDGES, usePen } from '../lib/pen';
-
-/**
- * One matte white material, shared by every model that is switched to it.
- *
- * Photographed skin and fabric is a lot of information to draw past. Swapped
- * for plain white, a figure reads as form and value only - which is what it is
- * doing in a perspective scene full of white boxes.
- */
-const MATTE = new THREE.MeshStandardMaterial({
-  color: 0xf2f2f0,
-  roughness: 0.92,
-  metalness: 0,
-});
 
 /**
  * An uploaded model standing in the scene.
@@ -45,6 +32,22 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
   const surface = nearestSurface(model.surface ?? sceneSurface, MESH_SURFACES);
   const inked = isSketch(surface);
   const hardShadows = useStore((state) => state.sun.shadows) === 'hard';
+  const pbr = useStore((state) => state.pbr);
+  const pbrMaterials = useMemo(() => {
+    const adjusted = new WeakMap<THREE.Material, THREE.Material>();
+    const materialFor = (material: THREE.Material) => {
+      const held = adjusted.get(material);
+      if (held) return held;
+      const copy = material.clone();
+      if ('roughness' in copy) (copy as THREE.MeshStandardMaterial).roughness = pbr.roughness;
+      if ('metalness' in copy) (copy as THREE.MeshStandardMaterial).metalness = pbr.metalness;
+      copy.needsUpdate = true;
+      adjusted.set(material, copy);
+      return copy;
+    };
+    return (material: THREE.Material | THREE.Material[]) =>
+      Array.isArray(material) ? material.map(materialFor) : materialFor(material);
+  }, [pbr.roughness, pbr.metalness]);
 
   /*
    * The cage goes round the one in your hands, and only that one.
@@ -95,14 +98,14 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
        * not with a wash laid over the form.
        */
       mesh.castShadow = true;
-      mesh.receiveShadow = surface === 'original' || surface === 'matte';
+      mesh.receiveShadow = surface === 'original';
 
       // Read the authored materials before swapping, so the first swap is what
       // records them rather than what loses them.
       const own = authoredMaterial(mesh);
-      mesh.material = surface === 'matte' ? MATTE : (drawn ?? own);
+      mesh.material = drawn ?? pbrMaterials(own);
     });
-  }, [surface, hardShadows, model.object, drawn]);
+  }, [surface, hardShadows, model.object, drawn, pbrMaterials]);
 
   if (!model.object) return null;
 

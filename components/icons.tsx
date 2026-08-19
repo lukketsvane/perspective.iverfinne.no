@@ -24,6 +24,40 @@ export const I = {
 
   /** A road running to a vanishing point on the horizon, its edges bowed. */
   curved: (<><path d="M2 12c4-1.6 16-1.6 20 0" strokeOpacity="0.45" /><path d="M2 21C5 15 8 12 12 10.7M22 21c-3-6-6-9-10-10.3" /><circle cx="12" cy="10.5" r="1.3" fill="currentColor" stroke="none" /></>),
+  /* ------------------------------------------------------------- the lens
+   *
+   * Four marks for the mode that frames the view as a camera rather than as a
+   * pair of eyes. Drawn as the PARTS OF A LENS, not as a picture of a camera:
+   * the barrel, the iris, the distance scale round the focus ring and the
+   * shape of the gate are what somebody setting one actually touches, and a
+   * little camera body on a button says only "photograph".
+   */
+
+  /** The lens itself: a barrel seen end on, with the glass in it. */
+  lens: (<><rect x="2.6" y="6.2" width="18.8" height="11.6" rx="2" /><circle cx="12" cy="12" r="3.9" /><circle cx="12" cy="12" r="1.5" strokeOpacity="0.5" /><path d="M5.4 6.2V4.6h4.2v1.6" strokeOpacity="0.6" /></>),
+
+  /** The aperture: the blades of an iris, part closed. */
+  aperture: (<><circle cx="12" cy="12" r="8.6" /><path d="M12 3.4 7.2 18.2M20.2 9.2 4.8 12.6M17.6 18.9 6.7 7.4" strokeOpacity="0.55" /><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" fillOpacity="0.35" /></>),
+
+  /** The shutter: two curtains, one part drawn across the frame. */
+  shutter: (<><rect x="2.6" y="5" width="18.8" height="14" rx="1.4" /><path d="M2.6 9.6h18.8" strokeOpacity="0.8" /><path d="M2.6 14.4h18.8" strokeOpacity="0.35" /><path d="M6 5v4.6M12 5v4.6M18 5v4.6" strokeOpacity="0.4" /></>),
+
+  /** Sensitivity: grain, getting coarser up the scale. */
+  iso: (<><rect x="2.6" y="5" width="18.8" height="14" rx="1.4" strokeOpacity="0.6" /><circle cx="7" cy="9" r="0.5" fill="currentColor" stroke="none" /><circle cx="10.5" cy="12" r="0.6" fill="currentColor" stroke="none" /><circle cx="8" cy="15" r="0.9" fill="currentColor" stroke="none" /><circle cx="14" cy="8.6" r="1" fill="currentColor" stroke="none" /><circle cx="16.5" cy="13" r="1.4" fill="currentColor" stroke="none" /><circle cx="12.5" cy="16" r="1.7" fill="currentColor" stroke="none" /></>),
+
+  /** The meter: a needle on a scale, centred or free. */
+  meter: (<><path d="M3.4 17.4a9.4 9.4 0 0 1 17.2 0" /><path d="M12 17.4 16.4 9.8" /><circle cx="12" cy="17.4" r="1.3" fill="currentColor" stroke="none" /><path d="M6.6 12.4l.9.9M12 9.8V8.6M17.4 12.4l-.9.9" strokeOpacity="0.45" /></>),
+  meterAuto: (<><path d="M3.4 17.4a9.4 9.4 0 0 1 17.2 0" /><path d="M12 17.4V9.8" /><circle cx="12" cy="17.4" r="1.3" fill="currentColor" stroke="none" /><path d="M6.6 12.4l.9.9M17.4 12.4l-.9.9" strokeOpacity="0.45" /><circle cx="12" cy="8.4" r="1.5" strokeOpacity="0.8" /></>),
+
+  /** The focus: a distance scale, with the mark against one of them. */
+  focus: (<><circle cx="12" cy="12" r="8.6" strokeOpacity="0.45" /><path d="M12 3.4v2.2M18.1 5.9l-1.6 1.6M20.6 12h-2.2M5.9 5.9l1.6 1.6M3.4 12h2.2" strokeOpacity="0.45" /><circle cx="12" cy="12" r="3.4" /><path d="M12 1.4v2.6" strokeWidth="2.2" /></>),
+
+  /** The gate: two frames of different shape, one inside the other. */
+  gate: (<><rect x="2.6" y="7" width="18.8" height="10" rx="1" /><rect x="6.4" y="4.6" width="11.2" height="14.8" rx="1" strokeOpacity="0.45" /><path d="M12 10.6v2.8M10.6 12h2.8" strokeOpacity="0.35" /></>),
+
+  /** One, two, three point: a flat board, ruled to a point on the horizon. */
+  rectilinear: (<><path d="M2.5 10.5h19" strokeOpacity="0.45" /><circle cx="19" cy="10.5" r="1.2" fill="currentColor" stroke="none" /><path d="M4 17.4 19 10.5M4 21 19 10.5M12.5 19.6 19 10.5" strokeOpacity="0.35" /><path d="M4 6.5v14.2M12.5 9.6v10" /><path d="M4 6.5 12.5 9.6M4 20.7l8.5-1.1" /></>),
+
   cylindrical: (<><path d="M5 4h14v16H5z" /><path d="M5 8c2.2-1.3 4.5-2 7-2s4.8.7 7 2M5 16c2.2-1.3 4.5-2 7-2s4.8.7 7 2" strokeOpacity="0.45" /><line x1="12" y1="4" x2="12" y2="20" /></>),
 
   /**
@@ -101,6 +135,15 @@ export const I = {
    * step-marker inside it. Not a question mark - this is not help, it is the
    * same five cards from the beginning.
    */
+  /**
+   * The lesson: a cube, and the rays from its edges running to a point.
+   *
+   * The one drawing this whole app is about, reduced to a glyph - a form, and
+   * the construction that finds it. Not a mortarboard or a book: what is being
+   * offered is not a course, it is the thing on the page.
+   */
+  lesson: (<><path d="M3.4 8.4h17.2" strokeOpacity="0.3" /><circle cx="20.2" cy="8.4" r="1.1" fill="currentColor" stroke="none" /><path d="M5 12.4 20.2 8.4M5 19.4 20.2 8.4M12.4 17.9 20.2 8.4" strokeOpacity="0.3" /><path d="M5 12.4v7l7.4-1.5v-7z" /><path d="M12.4 11.4 16.6 10l-.1 6-4.1 1.9" strokeOpacity="0.6" /></>),
+
   tour: (<><circle cx="12" cy="12" r="8.4" strokeDasharray="3.6 2.8" /><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none" /></>),
 
   /** The floor itself: a plane running back to the horizon, filled in. */
@@ -112,14 +155,6 @@ export const I = {
   hatchLength: (<><path d="M5 4.5v6M5 13.5v6" /><path d="M12 6.5v11" /><path d="M19 3.5v17" strokeOpacity="0.7" /></>),
   /** One family full-strength, the crossing one lighter: the second pass. */
   hatchCross: (<><path d="M4.5 15 15 4.5M9 19.5 19.5 9" /><path d="M4.5 9 15 19.5M9 4.5 19.5 15" strokeOpacity="0.45" /></>),
-
-  /**
-   * The shuffle: two pages crossing on their way past each other.
-   *
-   * Not dice. A die is chance for its own sake; this deals one of five pages
-   * somebody chose, which is a different promise.
-   */
-  shuffle: (<><path d="M3 7.5h3.2c1.5 0 2.4.8 3.4 2.2l3.8 5.4c1 1.4 1.9 2.2 3.4 2.2H21" /><path d="M3 16.6h3.2c1.5 0 2.4-.8 3.4-2.2" strokeOpacity="0.6" /><path d="M14.4 8.8c1-1 1.8-1.3 2.6-1.3H21" strokeOpacity="0.6" /><path d="M18.6 5.1 21 7.5l-2.4 2.4M18.6 14.9 21 17.3l-2.4 2.4" /></>),
 
   /** An empty grid: the ground with nothing standing on it. */
   clearScene: (<><path d="M2.5 19.5c4.5-2.2 14.5-2.2 19 0M4.6 15.3c3.6-1.5 11.2-1.5 14.8 0M6.2 11.8c2.8-1 8.8-1 11.6 0" strokeOpacity="0.75" /><path d="M8.5 19.9 11.4 11M15.5 19.9 12.6 11" strokeOpacity="0.4" /><path d="M12 3.2v4.6M9.8 5.4 12 3.2l2.2 2.2" strokeOpacity="0.85" /></>),
@@ -134,6 +169,10 @@ export const I = {
   measure: (<><path d="M12 3.5L5.5 20M12 3.5L18.5 20" /><circle cx="12" cy="4.6" r="1.5" /><path d="M6.8 16.6a11.5 11.5 0 0 1 10.4 0" strokeOpacity="0.55" /></>),
 
   /** A phone held up, and the turn that steers the view. */
+  /** The same phone, with the room coming through it: the feed is under the
+      drawing. A lens where the screen was, and the frame drawn open. */
+  roomFeed: (<><rect x="8.5" y="4.5" width="7" height="13" rx="1.4" strokeDasharray="2.6 2" /><circle cx="12" cy="10.6" r="2.6" /><circle cx="12" cy="10.6" r="0.9" fill="currentColor" stroke="none" /><path d="M12 21.8a9.5 9.5 0 0 0 7.8-4M12 21.8l2.6-.4M12 21.8l-.9-2.4" strokeOpacity="0.7" /></>),
+
   arLook: (<><rect x="8.5" y="4.5" width="7" height="13" rx="1.4" /><path d="M12 21.8a9.5 9.5 0 0 0 7.8-4M12 21.8l2.6-.4M12 21.8l-.9-2.4" strokeOpacity="0.7" /><circle cx="12" cy="15.3" r="0.8" fill="currentColor" stroke="none" /></>),
 
   /**
@@ -205,7 +244,6 @@ export const I = {
   vanishing: (<><path d="M2.5 9h19" strokeOpacity="0.3" /><circle cx="2.5" cy="9" r="1.4" fill="currentColor" stroke="none" /><circle cx="21.5" cy="9" r="1.4" fill="currentColor" stroke="none" /><path d="M9 12.2 2.5 9M9 19 2.5 9M15 10.9 21.5 9M15 17.7 21.5 9" strokeOpacity="0.4" strokeDasharray="2.5 2.5" /><path d="M9 12.2l6-1.3v6.8L9 19z" /></>),
 
   surfaceSolid: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" fill="currentColor" fillOpacity="0.7" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" strokeOpacity="0.3" /></>),
-  matte: (<path d="M12 3s6 6.4 6 10a6 6 0 0 1-12 0c0-3.6 6-10 6-10z" />),
   surfaceWire: (<><path d="M12 3l8 4.2v9.6L12 21l-8-4.2V7.2z" strokeOpacity="0.75" /><path d="M4 7.2l8 4.3 8-4.3M12 11.5V21" strokeOpacity="0.75" /><path d="M12 11.5V3M12 11.5l8 5.3M12 11.5l-8 5.3" strokeOpacity="0.75" /></>),
 
   /**
@@ -248,37 +286,77 @@ export const I = {
   /** Make two of it. */
   duplicate: (<><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" /></>),
 
+  /**
+   * A field of cubes: several, at several depths, sharing their axes.
+   *
+   * Not a grid of squares and not one cube with copies behind it - what has to
+   * read at eight pixels is THREE OF THEM AT DIFFERENT SIZES, because the size
+   * difference is the whole subject. A small one high and far, a large one low
+   * and near, one between.
+   */
+  cubeField: (<><path d="M13.6 3.2 17 4.9v3.4l-3.4 1.7-3.4-1.7V4.9z" strokeOpacity="0.75" /><path d="M10.2 4.9l3.4 1.7 3.4-1.7M13.6 6.6v3.4" strokeOpacity="0.4" /><path d="M6.2 9.4 9 10.8v2.8l-2.8 1.4-2.8-1.4v-2.8z" strokeOpacity="0.6" /><path d="M3.4 10.8 6.2 12.2 9 10.8M6.2 12.2V15" strokeOpacity="0.35" /><path d="M15.4 12.6 20.4 15.1v5l-5 2.5-5-2.5v-5z" /><path d="M10.4 15.1l5 2.5 5-2.5M15.4 17.6v5" strokeOpacity="0.45" /></>),
+
   /** The setup panel, and the light/dark switch. */
   sliders: (<><line x1="2" y1="12" x2="22" y2="12" /><line x1="4" y1="17" x2="20" y2="20" /><line x1="4" y1="7" x2="20" y2="4" /><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" /></>),
   light: (<><circle cx="12" cy="12" r="5" /><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></>),
   dark: (<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />),
   sky: (<><path d="M3 17.5h18" /><path d="M5 17.5a7 7 0 0 1 14 0" /><circle cx="12" cy="8" r="2.5" /><path d="M12 2.5v2M5.8 5.2l1.4 1.4M18.2 5.2l-1.4 1.4" /></>),
 
-  /* ------------------------------------------------------------ the sky */
+  /* ------------------------------------------------------- the simulated sky
+   *
+   * Eight marks for the panel that answers "what will this look like here, at
+   * four o'clock, in October". They are drawn as INSTRUMENTS rather than as
+   * pictures of weather - a dial, a calendar, a vane - because every one of
+   * them is a reading being set, and a fluffy cloud on a button is a decoration
+   * where a number belongs. The one exception is the cover, which IS a picture
+   * of weather, because the quantity it sets is literally how much of the sky
+   * you cannot see through.
+   */
+
+  /** The simulation itself: a globe with a sun's track ruled across it. */
+  simulate: (<><circle cx="12" cy="13" r="7.6" /><path d="M4.4 13h15.2M12 5.4c3.6 3.9 3.6 11.5 0 15.2M12 5.4c-3.6 3.9-3.6 11.5 0 15.2" strokeOpacity="0.45" /><path d="M3 8.2a11 11 0 0 1 18 0" strokeOpacity="0.7" strokeDasharray="2.6 2.4" /><circle cx="17.6" cy="4.8" r="1.7" fill="currentColor" stroke="none" /></>),
+
+  /** The hour: a clock face, hands at four. */
+  hour: (<><circle cx="12" cy="12" r="8.6" /><path d="M12 6.6V12l3.8 2.6" /><path d="M12 2.6v1.4M12 20v1.4M2.6 12H4M20 12h1.4" strokeOpacity="0.45" /></>),
+
+  /** The date: a leaf of a calendar, one day ringed. */
+  day: (<><rect x="3.2" y="5" width="17.6" height="15.4" rx="1.8" /><path d="M3.2 9.6h17.6" strokeOpacity="0.7" /><path d="M8 2.8v3.6M16 2.8v3.6" /><circle cx="12" cy="15" r="2.2" fill="currentColor" stroke="none" /></>),
+
+  /** How fast the hour runs: a clock hand with the sweep drawn behind it. */
+  rate: (<><circle cx="12" cy="12" r="8.6" strokeOpacity="0.5" /><path d="M12 6.6V12l4.6 2.2" /><path d="M12 3.4a8.6 8.6 0 0 1 7.4 4.3" strokeWidth="2.2" /><path d="M17.4 6.6l2.4 1.4-.6 2.7" /></>),
+
+  /** Time standing still, and time running: the two faces of one seat. */
+  play: (<><path d="M8.5 5.2 19 12 8.5 18.8z" fill="currentColor" stroke="none" /></>),
+  pause: (<><rect x="7" y="5" width="3.6" height="14" rx="1" fill="currentColor" stroke="none" /><rect x="13.4" y="5" width="3.6" height="14" rx="1" fill="currentColor" stroke="none" /></>),
+
+  /** Where you are: the map pin every phone has taught everybody to read. */
+  place: (<><path d="M12 21.5s7-6.4 7-11.3A7 7 0 0 0 5 10.2c0 4.9 7 11.3 7 11.3z" /><circle cx="12" cy="10" r="2.6" /></>),
+
+  /** How much sky is covered: cloud over a sun that is half behind it. */
+  cover: (<><circle cx="8.6" cy="8.6" r="3.2" strokeOpacity="0.55" /><path d="M8.6 3.4v1.4M4.6 4.6l1 1M3.4 8.6h1.4" strokeOpacity="0.45" /><path d="M8.2 18.6a3.6 3.6 0 0 1 .5-7.2 5 5 0 0 1 9.4 1.3 3 3 0 0 1-.5 5.9z" fill="currentColor" fillOpacity="0.35" /></>),
+
+  /** The wind: a vane's streamers, running before it. */
+  wind: (<><path d="M3 8.4h11a2.8 2.8 0 1 0-2.8-2.8" /><path d="M3 13h14.6a2.8 2.8 0 1 1-2.8 2.8" strokeOpacity="0.8" /><path d="M3 17.6h6.4" strokeOpacity="0.5" /></>),
+
+  /** The air itself: a shell of atmosphere standing over the ground. */
+  air: (<><path d="M2 19.5h20" /><path d="M4.2 19.5a7.8 7.8 0 0 1 15.6 0" strokeOpacity="0.85" /><path d="M7.4 19.5a4.6 4.6 0 0 1 9.2 0" strokeOpacity="0.4" /><path d="M1.6 15.4a12 12 0 0 1 20.8 0" strokeOpacity="0.3" /></>),
+
+  /** How high the deck sits: a cloud, and the height it is carried at. */
+  cloudBase: (<><path d="M7.6 11.4a3.2 3.2 0 0 1 .4-6.4 4.4 4.4 0 0 1 8.3 1.1 2.7 2.7 0 0 1-.4 5.3z" /><path d="M3 20.5h18" strokeOpacity="0.5" /><path d="M12 19.4v-4.6M10 16.6 12 14.6l2 2" strokeOpacity="0.75" /></>),
+
+  /** Asking the sky what it is doing: an aerial putting out a reading. */
+  observe: (<><circle cx="12" cy="16.6" r="2" fill="currentColor" stroke="none" /><path d="M8.8 13.4a4.6 4.6 0 0 1 6.4 0" strokeOpacity="0.85" /><path d="M6.2 10.4a8.4 8.4 0 0 1 11.6 0" strokeOpacity="0.55" /><path d="M3.6 7.4a12.2 12.2 0 0 1 16.8 0" strokeOpacity="0.3" /></>),
 
   /**
-   * Air: a hill going pale behind another hill, which is the whole of aerial
-   * perspective in one mark. Turn it down and there is one hill.
+   * How much air there is: a hill going pale behind another hill, which is the
+   * whole of aerial perspective in one mark. Turn it down and there is one
+   * hill; turn it off and there is no sky behind either.
    */
-  air: (<><path d="M1.5 19h21" /><path d="M2.5 19 9 9.5 15.5 19z" /><path d="M11 19 16.5 11 22 19z" strokeOpacity="0.45" /><path d="M4 6.5h6M13 6.5h7M6.5 3.5h11" strokeOpacity="0.3" /></>),
-  /** Weather: a deck of it, seen from underneath. */
-  cloud: (<><path d="M6.5 17.5h11a3.6 3.6 0 0 0 .3-7.2 5.2 5.2 0 0 0-9.9-1.5A3.9 3.9 0 0 0 6.5 17.5z" /></>),
-  /** How high the deck stands: the same deck, with the ground under it. */
-  cloudBase: (<><path d="M6 8.5h10a2.9 2.9 0 0 0 .2-5.8A4.2 4.2 0 0 0 8.3 1.5 3.1 3.1 0 0 0 6 8.5z" /><line x1="2" y1="21" x2="22" y2="21" /><path d="M12 11v6.5M9.6 15.2 12 17.8l2.4-2.6" strokeOpacity="0.55" /></>),
+  haze: (<><path d="M1.5 19h21" /><path d="M2.5 19 9 9.5 15.5 19z" /><path d="M11 19 16.5 11 22 19z" strokeOpacity="0.45" /><path d="M4 6.5h6M13 6.5h7M6.5 3.5h11" strokeOpacity="0.3" /></>),
   /** The catalogue: a few of them, at the sizes they really differ by. */
   stars: (<><circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none" /><circle cx="16.5" cy="5.5" r="0.9" fill="currentColor" stroke="none" /><circle cx="12.5" cy="12" r="0.6" fill="currentColor" stroke="none" /><circle cx="18.5" cy="14.5" r="1.2" fill="currentColor" stroke="none" /><circle cx="5.5" cy="16.5" r="0.7" fill="currentColor" stroke="none" /><circle cx="10" cy="19" r="0.5" fill="currentColor" stroke="none" /></>),
   /** The joining-up, on the same stars. */
   figures: (<><path d="M6 7 12.5 11.5 18.5 5.5M12.5 11.5 11 19M18.5 5.5 20 13" strokeOpacity="0.55" /><circle cx="6" cy="7" r="1.3" fill="currentColor" stroke="none" /><circle cx="12.5" cy="11.5" r="1" fill="currentColor" stroke="none" /><circle cx="18.5" cy="5.5" r="1.1" fill="currentColor" stroke="none" /><circle cx="11" cy="19" r="0.9" fill="currentColor" stroke="none" /><circle cx="20" cy="13" r="0.8" fill="currentColor" stroke="none" /></>),
-  /** Skylight: the whole dome coming down on a thing, not one beam. */
-  skylight: (<><path d="M3.5 12a8.5 8.5 0 0 1 17 0" /><path d="M12 15.5v5M7.6 14.6l-1.4 3.2M16.4 14.6l1.4 3.2" strokeOpacity="0.5" /><line x1="2" y1="21.5" x2="22" y2="21.5" strokeOpacity="0.4" /></>),
-  /** Where on the earth you are standing: the pole star's own height. */
-  latitude: (<><circle cx="12" cy="12" r="9" /><path d="M3 12h18" strokeOpacity="0.5" /><path d="M4.4 7.2h15.2M4.4 16.8h15.2" strokeOpacity="0.3" /><path d="M12 3a13 13 0 0 1 0 18 13 13 0 0 1 0-18z" strokeOpacity="0.3" /></>),
-  /** The day of the year. */
-  calendar: (<><rect x="3" y="5" width="18" height="16" rx="2.5" /><path d="M3 10h18" /><path d="M8 2.5v4M16 2.5v4" /><circle cx="12" cy="15.5" r="1.6" fill="currentColor" stroke="none" /></>),
-  /** The hour, kept by the sun. */
-  clock: (<><circle cx="12" cy="12" r="9" /><path d="M12 6.8V12l3.6 2.4" /></>),
-  /** ...and the switch that lets the clock aim the light. */
-  clockSun: (<><circle cx="9.5" cy="12" r="6.6" /><path d="M9.5 8.2V12l2.6 1.8" /><circle cx="19" cy="5.5" r="2" /><path d="M19 1.6v1.2M19 8.2v1.2M15.8 5.5h-1.2M23.4 5.5h-1.2" strokeOpacity="0.6" /></>),
 
   /** Committing a scene to the browser: a floppy, still the clearest mark for it. */
   save: (<><path d="M4 5.6A1.6 1.6 0 0 1 5.6 4h9.6L20 8.8v9.6a1.6 1.6 0 0 1-1.6 1.6H5.6A1.6 1.6 0 0 1 4 18.4z" /><path d="M8 4v5h7" /><rect x="8" y="13" width="8" height="7" rx="1" /></>),
@@ -295,7 +373,6 @@ export const I = {
 /** Which cube goes on the button, for the rung the thing is currently on. */
 export const SURFACE_ICON: Record<Surface, React.ReactNode> = {
   original: I.surfaceSolid,
-  matte: I.matte,
   brush: I.brush,
   marker: I.marker,
   hatch: I.hatch,
@@ -310,7 +387,8 @@ export const SURFACE_ICON: Record<Surface, React.ReactNode> = {
  * brush the pen itself - which is all a brush page has, and all the other two
  * have above what they lay under it.
  */
-export const SETTINGS_ICON: Record<'brush' | 'marker' | 'hatch', React.ReactNode> = {
+export const SETTINGS_ICON: Record<Surface, React.ReactNode> = {
+  original: I.surfaceSolid,
   brush: I.outline,
   marker: I.hue,
   hatch: I.hatchAngle,

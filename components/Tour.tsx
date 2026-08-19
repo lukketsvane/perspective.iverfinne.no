@@ -187,7 +187,6 @@ export const Tour: React.FC = () => {
   const boxes = useStore((s) => s.boxes.length);
   const fov = useStore((s) => s.fov);
   const instrument = useStore((s) => s.instrument);
-  const presetName = useStore((s) => s.presetName);
 
   const [sighting, setSighting] = useState<Sighting>(NOTHING);
   const card = useRef<HTMLDivElement>(null);
@@ -206,13 +205,12 @@ export const Tour: React.FC = () => {
    * the card asked for one. Against absolutes, a viewer who already had three
    * boxes would find four cards answering themselves the instant they opened.
    */
-  const entry = useRef({ boxes: 0, fov: 0, yaw: 0, pitch: 0, preset: null as string | null });
+  const entry = useRef({ boxes: 0, fov: 0, yaw: 0, pitch: 0 });
   useEffect(() => {
     entry.current = {
       boxes,
       fov,
       ...heading(),
-      preset: presetName,
     };
     setSighting(NOTHING);
     // Only when the step changes: this is a snapshot of the moment it opened.
@@ -410,14 +408,13 @@ export const Tour: React.FC = () => {
       // and the step answered itself.
       (current.gate === 'lens' && Math.abs(fov - entry.current.fov) > 30) ||
       (current.gate === 'box' && boxes > entry.current.boxes) ||
-      (current.gate === 'pencil' && instrument === 'block') ||
-      (current.gate === 'page' && presetName !== entry.current.preset);
+      (current.gate === 'pencil' && instrument === 'block');
     if (!done) return;
     // A breath, so the card does not swap under a live thumb - and long enough
     // that the tick the ring turns green on is actually seen.
     const timer = setTimeout(nextStep, 450);
     return () => clearTimeout(timer);
-  }, [running, current, sighting.done, fov, boxes, instrument, presetName]);
+  }, [running, current, sighting.done, fov, boxes, instrument]);
 
   if (!running || !current) return null;
 

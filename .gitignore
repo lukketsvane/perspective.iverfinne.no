@@ -36,3 +36,4 @@ playwright-report
 # eye. They are written, run, and deleted - and one of them was not, and rode
 # into a commit.
 *.tmp.mjs
+shots/

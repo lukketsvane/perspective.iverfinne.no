@@ -4,32 +4,30 @@
  * WHY THE SKY IS BLUE, IN THE ONLY FORM THAT IS ANY USE TO A DRAWING: sunlight
  * comes in white, air scatters short wavelengths about sixteen times as
  * strongly as long ones, so a ray of daylight that never came from the sun's
- * direction at all still reaches your eye - and it is blue, because that is the
- * part that got turned. At sunset the direct beam has to cross forty times as
- * much air to reach you, the blue is scattered out of it long before it
+ * direction at all still reaches your eye - and it is blue, because that is
+ * the part that got turned. At sunset the direct beam has to cross forty times
+ * as much air to reach you, the blue is scattered out of it long before it
  * arrives, and what is left is red. The same one number does both.
  *
- * This is a single-scattering integral: march along the view ray, and at each
- * step ask how much sunlight reaches that point and how much of what scatters
- * there survives the trip back. Rayleigh for the molecules, Mie for the dust,
- * their two phase functions, one exponential density profile each. It is the
- * standard cheap model and it is genuinely a MODEL - turn the air off and you
- * get a black sky and an unreddened sun, because there is nothing left to
- * scatter, not because a switch somewhere said "space".
+ * This is a single-scattering integral: march along a ray, and at each step
+ * ask how much sunlight reaches that point and how much of what scatters there
+ * survives the trip back. Rayleigh for the molecules, Mie for the dust, their
+ * two phase functions, one exponential density profile each.
  *
- * WRITTEN TWICE, DELIBERATELY.
+ * NOTHING HERE DRAWS THE SKY. The dome is Preetham's, in components/Sky.tsx,
+ * and it is tuned. This answers the one question the dome cannot be asked
+ * because the answer is needed off the screen: what colour is the haze that
+ * eats the far end of the picture. That is four directions rather than a
+ * million pixels - a few hundred iterations, once, when something changes -
+ * and reading it back off the card would mean stalling the whole pipeline to
+ * fetch three bytes.
  *
- * Once in GLSL, which draws it, and once in TypeScript, which does not. Three
- * things off the screen need to know what colour the air is: the fog that eats
- * distance, the sky light that fills the shadows, and the sun's own colour as
- * it reddens. Those are three directions, not a million pixels - a few hundred
- * iterations, once, when something changes - and reading them back off the GPU
- * would mean stalling the pipeline to fetch six bytes. So the integral is here
- * in both languages, deliberately line for line, and the constants they share
- * are written once and pasted into the shader source. If one changes, change
- * the other; there is nothing else in this file.
+ * (What is left of the BEAM is the same integral asked along one more
+ * direction, and it is not here because lib/sky.ts already answers it: its
+ * `sunlight` runs the air mass through Kasten and Young and hands back a
+ * colour temperature, which is the same physics arriving by the road a
+ * photographer would take.)
  */
-import * as THREE from 'three';
 
 /** Metres. The earth, and the top of the air. */
 const GROUND = 6371000;
@@ -58,154 +56,6 @@ const LIGHT_STEPS = 8;
 
 /** The eye, a person's height up. */
 const EYE = 1.7;
-
-/**
- * The same numbers again, as a GLSL preamble.
- *
- * Pasted into the shader rather than passed as uniforms: every one of them is
- * a property of air, not a setting, and a uniform is a thing somebody can turn.
- */
-export const ATMOSPHERE_GLSL = /* glsl */ `
-const float GROUND = ${GROUND}.0;
-const float TOP = ${TOP}.0;
-const vec3 RAYLEIGH = vec3(${RAYLEIGH[0]}, ${RAYLEIGH[1]}, ${RAYLEIGH[2]});
-const float MIE = ${MIE};
-const float RAYLEIGH_HEIGHT = ${RAYLEIGH_HEIGHT}.0;
-const float MIE_HEIGHT = ${MIE_HEIGHT}.0;
-const float MIE_G = ${MIE_G};
-const float SUN_POWER = ${SUN_POWER}.0;
-const int VIEW_STEPS = ${VIEW_STEPS};
-const int LIGHT_STEPS = ${LIGHT_STEPS};
-const float EYE = ${EYE};
-
-/**
- * Where a ray enters and leaves a sphere about the origin. Near root first.
- *
- * A ray that misses comes back with the far root BEHIND the near one, which is
- * the one thing that cannot happen to a real pair - so hits() is the test, and
- * it is a named function because reading the near root alone gets it wrong in
- * the one case that matters most. A ray from high in the air toward a sun just
- * under the horizon MISSES the earth, which is exactly the ray that carries
- * twilight; read as a hit, the sky goes black the moment the sun goes down.
- */
-vec2 shell(vec3 from, vec3 dir, float radius) {
-  float b = dot(from, dir);
-  float c = dot(from, from) - radius * radius;
-  float d = b * b - c;
-  if (d < 0.0) return vec2(1.0, -1.0);
-  d = sqrt(d);
-  return vec2(-b - d, -b + d);
-}
-
-bool hits(vec2 roots) { return roots.y > roots.x; }
-
-/**
- * The light arriving along one direction, out of air of a given thickness.
- *
- * \`air\` is how many sea-level atmospheres there are: one is the real thing,
- * zero is a vacuum, and everything between is a haze knob that behaves.
- */
-vec3 airLight(vec3 dir, vec3 sun, float air) {
-  if (air <= 0.0) return vec3(0.0);
-  vec3 from = vec3(0.0, GROUND + EYE, 0.0);
-  vec2 top = shell(from, dir, TOP);
-  if (top.y <= 0.0) return vec3(0.0);
-  float far = top.y;
-  // A ray aimed under the horizon stops in the ground, and what you see along
-  // it is only the air between here and there - which is the haze that makes a
-  // distant hill pale, and the reason the horizon is the brightest part of a
-  // clear sky.
-  vec2 earth = shell(from, dir, GROUND);
-  if (hits(earth) && earth.x > 0.0) far = min(far, earth.x);
-
-  /*
-   * The steps get longer as they go out, rather than being all the same.
-   *
-   * A ray along the horizon crosses a hundred kilometres of atmosphere, and
-   * essentially all of the haze in it is in the first few. Sixteen even steps
-   * put the first sample three kilometres up and miss that entirely - which
-   * showed as a horizon that got DARKER as the air was thickened, when a
-   * thickening horizon is the one thing everybody has seen. Squaring the
-   * spacing spends half the samples in the first quarter of the ray.
-   */
-  vec3 gatheredRayleigh = vec3(0.0);
-  float gatheredMie = 0.0;
-  float depthRayleigh = 0.0;
-  float depthMie = 0.0;
-
-  for (int i = 0; i < VIEW_STEPS; i++) {
-    float near = float(i) / float(VIEW_STEPS);
-    float away = float(i + 1) / float(VIEW_STEPS);
-    float from0 = far * near * near;
-    float to0 = far * away * away;
-    float step = to0 - from0;
-    vec3 at = from + dir * (from0 + step * 0.5);
-    float height = length(at) - GROUND;
-    float dRayleigh = exp(-height / RAYLEIGH_HEIGHT) * step;
-    float dMie = exp(-height / MIE_HEIGHT) * step;
-    depthRayleigh += dRayleigh;
-    depthMie += dMie;
-
-    // ...and back out along the beam to the sun. A sample the earth stands in
-    // front of gets nothing, which is what makes twilight fall rather than
-    // linger: after sundown only the high air is still lit.
-    vec2 lit = shell(at, sun, TOP);
-    float lightStep = lit.y / float(LIGHT_STEPS);
-    float along = 0.0;
-    float lightRayleigh = 0.0;
-    float lightMie = 0.0;
-    vec2 shadow = shell(at, sun, GROUND);
-    bool blocked = hits(shadow) && shadow.x > 0.0;
-    for (int j = 0; j < LIGHT_STEPS; j++) {
-      vec3 spot = at + sun * (along + lightStep * 0.5);
-      float lightHeight = length(spot) - GROUND;
-      lightRayleigh += exp(-lightHeight / RAYLEIGH_HEIGHT) * lightStep;
-      lightMie += exp(-lightHeight / MIE_HEIGHT) * lightStep;
-      along += lightStep;
-    }
-    if (!blocked) {
-      vec3 through = exp(
-        -air * (MIE * (lightMie + depthMie) + RAYLEIGH * (lightRayleigh + depthRayleigh))
-      );
-      gatheredRayleigh += dRayleigh * through;
-      gatheredMie += dMie * through.g;
-    }
-  }
-
-  float mu = dot(dir, sun);
-  float rayleighPhase = 3.0 / (16.0 * 3.14159265) * (1.0 + mu * mu);
-  float g2 = MIE_G * MIE_G;
-  float miePhase = 3.0 / (8.0 * 3.14159265) * ((1.0 - g2) * (mu * mu + 1.0)) /
-    (pow(1.0 + g2 - 2.0 * mu * MIE_G, 1.5) * (2.0 + g2));
-  return SUN_POWER * air *
-    (rayleighPhase * RAYLEIGH * gatheredRayleigh + miePhase * MIE * gatheredMie);
-}
-
-/** What is left of the direct beam by the time it gets here. */
-vec3 sunThrough(vec3 sun, float air) {
-  vec3 from = vec3(0.0, GROUND + EYE, 0.0);
-  // Under the horizon first, and only then the vacuum: with no air there is
-  // nothing to dim the beam, so without this a sun that had set went on
-  // shining at full strength through the ground.
-  vec2 shadow = shell(from, sun, GROUND);
-  if (hits(shadow) && shadow.x > 0.0) return vec3(0.0);
-  if (air <= 0.0) return vec3(1.0);
-  vec2 lit = shell(from, sun, TOP);
-  float step = lit.y / float(LIGHT_STEPS * 2);
-  float along = 0.0;
-  float depthRayleigh = 0.0;
-  float depthMie = 0.0;
-  for (int j = 0; j < LIGHT_STEPS * 2; j++) {
-    float height = length(from + sun * (along + step * 0.5)) - GROUND;
-    depthRayleigh += exp(-height / RAYLEIGH_HEIGHT) * step;
-    depthMie += exp(-height / MIE_HEIGHT) * step;
-    along += step;
-  }
-  return exp(-air * (RAYLEIGH * depthRayleigh + MIE * depthMie));
-}
-`;
-
-// ---------------------------------------------------------------- the same, here
 
 type Triple = [number, number, number];
 
@@ -291,52 +141,6 @@ export const airLight = (dir: Triple, sun: Triple, air: number): Triple => {
   return [0, 1, 2].map(
     (k) => SUN_POWER * air * (rayleighPhase * RAYLEIGH[k] * gatheredRayleigh[k] + miePhase * MIE * gatheredMie)
   ) as Triple;
-};
-
-/**
- * What is left of the direct beam by the time it gets here.
- *
- * This is the sun's own colour, and it is not a preference: a sun ten degrees
- * up has crossed about five times as much air as one overhead, so the blue is
- * gone out of it and what lands on the side of a box is orange. Multiply the
- * lamp by this and sunset lighting comes out on its own.
- */
-export const sunThrough = (sun: Triple, air: number): Triple => {
-  const from: Triple = [0, GROUND + EYE, 0];
-  const shadow = shell(from, sun, GROUND);
-  if (hits(shadow) && shadow[0] > 0) return [0, 0, 0];
-  if (air <= 0) return [1, 1, 1];
-  const lit = shell(from, sun, TOP);
-  const steps = LIGHT_STEPS * 2;
-  const step = lit[1] / steps;
-  let along = 0;
-  let depthRayleigh = 0;
-  let depthMie = 0;
-  for (let j = 0; j < steps; j++) {
-    const height = length3(walk(from, sun, along + step * 0.5)) - GROUND;
-    depthRayleigh += Math.exp(-height / RAYLEIGH_HEIGHT) * step;
-    depthMie += Math.exp(-height / MIE_HEIGHT) * step;
-    along += step;
-  }
-  return [0, 1, 2].map((k) => Math.exp(-air * (RAYLEIGH[k] * depthRayleigh + MIE * depthMie))) as Triple;
-};
-
-/**
- * A black body at a temperature, as a colour.
- *
- * It lives here because it is the same question the rest of this file asks -
- * what colour is this light - and because two things need it: the lamps, and
- * the sun, whose beam is this multiplied by whatever the air leaves of it.
- */
-export const temperatureColor = (kelvin: number) => {
-  const t = Math.min(12000, Math.max(1000, kelvin)) / 100;
-  const red = t <= 66 ? 255 : 329.698727446 * Math.pow(t - 60, -0.1332047592);
-  const green =
-    t <= 66
-      ? 99.4708025861 * Math.log(t) - 161.1195681661
-      : 288.1221695283 * Math.pow(t - 60, -0.0755148492);
-  const blue = t >= 66 ? 255 : t <= 19 ? 0 : 138.5177312231 * Math.log(t - 10) - 305.044792731;
-  return new THREE.Color(red / 255, green / 255, blue / 255);
 };
 
 /** A bearing and a height above the horizon, as a unit vector in world axes. */

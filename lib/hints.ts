@@ -39,7 +39,7 @@ const HINTS: Record<string, string> = {
   // ---------------------------------------------------------------- the dock
   'Add model': 'Hylla: ting å setje ned',
   Scenes: 'Prosjekta dine',
-  'Field of view': 'Synsfelt — blått er innanfor menneskesyn',
+  'Field of view': 'Synsfelt. Blått er innanfor menneskesyn',
   'Camera height': 'Augehøgd over golvet',
   'Construction guides': 'Rommet sin konstruksjon: horisont og punkt',
   Undo: 'Angre',
@@ -48,40 +48,73 @@ const HINTS: Record<string, string> = {
 
   // -------------------------------------------------------------- the panel
   'Floor lines': 'Golvlinjene: bort, på tvers, begge',
-  'Floor:': 'Golvet — dra for tone',
+  'Floor:': 'Golvet. Dra for tone',
   'Snap to': 'Fest til rutenettet',
   'Snap off': 'Fest til rutenettet',
   'Construction around': 'Kassar rundt tinga',
-  'Deal a different page': 'Del ut ei ny side',
-  'Surface of everything': 'Kva alt er teikna med',
-  'Paper tone': 'Arket — dra for tone',
+  'Paper tone': 'Arket. Dra for tone',
   'Page behind the drawing': 'Bakgrunnen bak arket',
   Lights: 'Lyset',
   'Stand the scene in the room around you': 'Sjå det i rommet ditt (AR)',
   'Save the scene as USDZ for an AR device': 'Lagre som USDZ for AR',
-  'Projection: cylindrical': 'Sylindrisk — fire punkt, rette loddrette',
-  'Projection: equidistant': 'Ekvidistant — fem punkt, den rula sfæren',
-  'Projection: stereographic': 'Stereografisk — vinkelrett overalt',
+  'Projection: rectilinear': 'Flat plate: eitt, to og tre punkt',
+  'Projection: cylindrical': 'Sylinder: fire punkt, rette loddrette',
+  'Projection: equidistant': 'Kule: fem punkt, det rula arket',
+  'Projection: stereographic': 'Stereografisk: vinkelrett overalt',
   'Lens reach': 'Kor vidt linsa får opnast',
-  'Room,': 'Rommet rundt — dra for storleik',
+  'Frame the view as a lens': 'Sjå det som eit kamera',
+  'Lens:': 'Objektivet. Trykk for å leggje det bort',
+  Aperture: 'Blenderen. Kor tynt fokuset er',
+  Shutter: 'Lukkartida. Kor lenge lyset slepp inn',
+  Sensitivity: 'ISO. Kor følsam brikka er',
+  'Aperture priority': 'Lukkaren held lysmengda når du opnar blenderen',
+  'Manual exposure': 'Manuelt: blenderen endrar lysmengda',
+  Focus: 'Kva avstand som er skarp',
+  'Gate:': 'Forma på biletet',
+  'Room,': 'Rommet rundt. Dra for storleik',
   'Measure distances in the scene': 'Målebandet',
-  'Look by turning the phone': 'Sjå ved å snu telefonen',
+  'Look by turning the phone': 'Snu telefonen for å sjå. Dobbelttrykk for rommet under',
   'Save the view as a picture': 'Lagre biletet',
+  'Learn how perspective works': 'Leksjonen: kvifor perspektiv verkar',
   'Take the tour again': 'Ta omvisinga på nytt',
 
-  // ------------------------------------------------------------- the sky
-  'Air, weather and the night sky': 'Lufta, veret og natthimmelen',
+  // ------------------------------------------------------------- the lights
+  //
+  // The one panel in the tool with no words anywhere near it and the most to
+  // say: four knobs that are the same four knobs for every light there is, and
+  // then a whole sky behind them.
+  'The key light': 'Hovudlyset, altså sola',
+  'The fill light': 'Utfyllingslys, utan skygge',
+  'The sky, the hour and the weather': 'Himmelen: stad, tid og vêr',
+  Bearing: 'Kva leid lyset kjem frå',
+  'Height above the horizon': 'Kor høgt over horisonten',
+  Strength: 'Kor sterkt lyset er',
+  'Colour temperature': 'Fargen på lyset, varm til kald',
+  'Cast shadows': 'Skygge: av, hard, mjuk',
+  'Lamp on': 'Slå lampa av og på',
+  'A spot, throwing a cone': 'Spot, som kastar ein kjegle',
+  'A bulb, shining every way': 'Pære, som lyser alle vegar',
+
+  // --------------------------------------------------------- the real sky
+  'Aim the sun from a place and a moment': 'Lat stad og tid styre sola',
+  'Time of day': 'Klokkeslettet',
+  'Day of the year': 'Datoen',
+  'Let the hour run': 'Lat tida gå',
+  'Stop the clock': 'Stopp tida',
+  'How fast the hour runs': 'Kor fort tida går',
+  'Use where this device is': 'Bruk staden du er på',
+  'Using where this device is': 'Bruk staden du er på',
+  'Draw the sky': 'Teikn himmelen bak',
+  'the real conditions here': 'Hent det verkelege vêret her',
+  'Asking what the sky is doing': 'Spør kva vêret gjer',
+  'The conditions could not be fetched - try again': 'Fekk ikkje tak i vêret',
   Air: 'Kor mykje luft — botnen er vakuum',
-  Weather: 'Skydekket over deg',
-  'Cloud height': 'Kor høgt skydekket ligg',
-  'Sky light': 'Lyset himmelen sjølv gjev skuggesida',
   Stars: 'Alle stjerner eit auge kan sjå',
   'Constellation figures': 'Stjernebileta, teikna opp',
-  Latitude: 'Kor langt nord du står',
-  Date: 'Kva dag i året',
-  Hour: 'Klokka, slik sola går',
-  'The clock aims the sun': 'Lat klokka styre sola',
-  'The sun stands': 'Der sola faktisk står',
+  'How much of the sky is covered': 'Kor mykje av himmelen er dekt',
+  'How high the cloud sits': 'Kor høgt skyene ligg',
+  Wind: 'Vinden. Kor fort skyene driv',
+  'Which way the wind comes from': 'Kva leid vinden kjem frå',
 
   // ------------------------------------------------------- the drawn page
   'How the hatching is ruled': 'Korleis jatteringa er rula',
@@ -92,6 +125,7 @@ const HINTS: Record<string, string> = {
   // ------------------------------------------------------ the model shelf
   'Add light': 'Set ned ei lyskjelde',
   'Add cube': 'Målekube på ein meter',
+  'Deal a field of cubes to draw': 'Ei side med kassar å teikne',
   'Draw boxes on the ground': 'Teikn kassar: dra grunnflate, dra høgd',
   'Import a mesh into the library': 'Hent inn di eiga fil',
 
@@ -105,18 +139,31 @@ const HINTS: Record<string, string> = {
   Rename: 'Gje det eit namn',
 
   // ----------------------------------------------------- the selection bar
-  Height: 'Høgd i meter — dra',
+  Height: 'Høgd i meter. Dra',
   'Height, locked': 'Høgda er låst',
-  'Height off the floor': 'Høgd over golvet — dra',
+  'Height off the floor': 'Høgd over golvet. Dra',
   'Lock the size': 'Lås storleiken',
   'Size locked': 'Storleiken er låst',
-  'Surface of this one': 'Kva denne er teikna med',
   'Construction on this one': 'Punkt, diagonalar, firedelt golv',
-  'Export this mesh at its current size': 'Skriv meshen til fil',
   Delete: 'Slett',
-  'things in hand': 'Så mange du held — hald på ein til for å leggje han i handa',
+  'things in hand': 'Så mange du held. Hald på ein til for å leggje han i handa',
   'metres away': 'Så langt unna',
 };
+
+/*
+ * TWO CONTROLS ARE DELIBERATELY ABSENT FROM THE LIST ABOVE.
+ *
+ * The rung seats - "Surface of everything" and "Surface of this one" - open
+ * their own settings on a hold, so a hold on them cannot also put a name in a
+ * bubble. That is the trade useHoldable describes and it is the right one: a
+ * drawer that opens and shows you the knobs is a better answer to "what is
+ * this" than two words, and a control whose hold does something must never be
+ * a control whose hold explains something.
+ *
+ * Anything else missing from the list is missing by omission and should be
+ * added. These two are missing on purpose, and adding them would silently take
+ * the drawer away.
+ */
 
 /** The keys, longest first, so a stem never wins over a fuller match. */
 const KEYS = Object.keys(HINTS).sort((a, b) => b.length - a.length);

@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import {
   blockOutABox,
   clickIn,
@@ -103,16 +103,33 @@ const readingOf = (page: Page, label: string) => drag(page, label, 0, { steps: 1
 /* --------------------------------------------------------------- the panels */
 
 /**
+ * Hold a control until its drawer opens.
+ *
+ * The rung and its settings are one seat now: tap steps the ladder, hold opens
+ * the knobs. Playwright has no hold, so it is spelled out - down, wait past
+ * the app's own 450 ms threshold without moving, up. Moving would make it a
+ * drag, which the control deliberately treats as neither.
+ */
+const hold = async (page: Page, button: Locator) => {
+  const box = await button.boundingBox();
+  if (!box) throw new Error('Nothing to hold: the control is not on screen.');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(650);
+  await page.mouse.up();
+};
+
+/**
  * The knobs for the thing in your hand, from its own bar.
  *
  * Idempotent through aria-expanded, for the same reason openTools is: this
  * button toggles, and a helper that assumes the panel is shut closes it for the
  * spec that had just opened it.
  */
-const openOwnSettings = async (page: Page, label = HATCH_SETTINGS) => {
+const openOwnSettings = async (page: Page, _label = HATCH_SETTINGS) => {
   await wake(page);
-  const button = find(page, 'selection', label);
-  if ((await button.getAttribute('aria-expanded')) !== 'true') await button.click();
+  const button = findByPrefix(page, OWN_RUNG, 'selection');
+  if ((await button.getAttribute('aria-expanded')) !== 'true') await hold(page, button);
   await expect(button).toHaveAttribute('aria-expanded', 'true');
 };
 
@@ -125,11 +142,11 @@ const openOwnSettings = async (page: Page, label = HATCH_SETTINGS) => {
 // Exported rather than deleted: the page's own knobs are the other half of this
 // file's subject, and the spec that reaches for them next should not have to
 // write this again.
-export const openPageSettings = async (page: Page, label = HATCH_SETTINGS) => {
+export const openPageSettings = async (page: Page, _label = HATCH_SETTINGS) => {
   await openTools(page);
   await wake(page);
-  const button = find(page, 'tools', label);
-  if ((await button.getAttribute('aria-expanded')) !== 'true') await button.click();
+  const button = findByPrefix(page, PAGE_RUNG, 'tools');
+  if ((await button.getAttribute('aria-expanded')) !== 'true') await hold(page, button);
   await expect(button).toHaveAttribute('aria-expanded', 'true');
 };
 
@@ -202,7 +219,38 @@ const dealtPage = async (page: Page) => {
 const floorReads = async (page: Page) =>
   (await readingIn(page, 'tools', FLOOR)).replace(' - drag to change', '');
 
-const deal = (page: Page) => press(page, 'tools', 'Deal a different page');
+/**
+ * Turn one page of the deck over.
+ *
+ * There is no button for this. The deck deals ITSELF now, once in a while,
+ * while nobody is working - which is the right shape for the feature and the
+ * wrong shape for a test, since a spec cannot wait four minutes and must not
+ * be handed a second deal it did not ask for.
+ *
+ * So it is stepped through the same seam the harness uses to stand the dealer
+ * down for every other spec: 'now' asks for exactly one deal on the dealer's
+ * next beat, and the dealer writes 'off' back when it has done it. Waiting for
+ * that write is what makes this call synchronous - the page has changed by the
+ * time it returns, which is what every caller below assumes.
+ */
+const deal = async (page: Page) => {
+  await page.evaluate(() => localStorage.setItem('kjg-perspective-deal', 'now'));
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('kjg-perspective-deal')), {
+      /*
+       * Generous, because what is being waited for is a TIMER.
+       *
+       * The dealer beats twice a second, so a working seam answers in well
+       * under one - but the beat is a setInterval on a main thread that is
+       * also rendering a three hundred and sixty degree cube map through
+       * software GL, and a starved timer is not a broken one. Five seconds
+       * flaked once in a full run and passed alone, which is the worst
+       * possible signal to leave in a suite with no retries.
+       */
+      timeout: 20000,
+    })
+    .toBe('off');
+};
 
 /*
  * FOUR OF THE FIVE BELOW SAT ON test.fixme FOR THREE SESSIONS.

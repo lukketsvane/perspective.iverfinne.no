@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { fieldOf, stereographicAngle } from '../lib/projection';
+import { exposureOf, fieldOf, lensOfFrame, rectilinearTangents, stereographicAngle } from '../lib/projection';
+import { useStore } from '../store';
 import { registerFrameRenderer } from '../lib/capture';
 import { sceneRevision } from '../lib/sceneRevision';
 import type { PerspectiveMode } from '../types';
@@ -28,11 +29,141 @@ import type { PerspectiveMode } from '../types';
 /** What each projection is, to the shader. Equidistant is zero. */
 const PROJECTION_MODES: Record<PerspectiveMode, number> = {
   equidistant: 0,
+  rectilinear: 1,
   cylindrical: 2,
   stereographic: 6,
 };
 
 const HALF_PI = Math.PI / 2;
+
+/**
+ * The distance the depth pass is measured against, in metres.
+ *
+ * The camera's own near plane. Everything is stored as this over the distance,
+ * so straight ahead of the lens reads 1 and the far end of the world reads
+ * nearly 0 - a reciprocal, which is the quantity a circle of confusion is
+ * linear in and which spends its precision on the near half of the scene,
+ * where the eye spends its.
+ */
+const DEPTH_NEAR = 0.05;
+
+/**
+ * What the scene is drawn with while it is being measured rather than looked at.
+ *
+ * One material over everything, which is the whole reason this is affordable:
+ * no per-object shader, no patching forty materials to write a second output,
+ * no multiple render targets. The scene is simply rendered again with every
+ * surface replaced by this, which on a scene of a dozen meshes is a fraction of
+ * the cost of the colour pass it rides beside - and it rides beside it, on the
+ * SAME cache: neither is redrawn while you stand still and look around.
+ *
+ * Half float rather than packed bytes. Eight bits over a reciprocal is about
+ * three per cent of the distance, which is fine for a blur and not fine at the
+ * edges of it: the banding lands exactly where the picture goes from sharp to
+ * soft, which is the one place anybody is looking.
+ */
+const DEPTH_MATERIAL = new THREE.ShaderMaterial({
+  uniforms: { near: { value: DEPTH_NEAR } },
+  vertexShader: `
+    varying float vDistance;
+    void main() {
+      vec4 view = modelViewMatrix * vec4(position, 1.0);
+      vDistance = -view.z;
+      gl_Position = projectionMatrix * view;
+    }
+  `,
+  fragmentShader: `
+    uniform float near;
+    varying float vDistance;
+    void main() {
+      gl_FragColor = vec4(near / max(vDistance, near), 0.0, 0.0, 1.0);
+    }
+  `,
+  // The frame is a measurement, so it is not a colour and must not be treated
+  // as one - no tone mapping and no transfer function on the way out.
+  toneMapped: false,
+});
+
+const CLEARED = new THREE.Color();
+
+/**
+ * Measure the scene from wherever the rig is standing.
+ *
+ * Three things are swapped out and put back, and each of them is a bug if it
+ * is not. The materials, obviously. The background, because a sky drawn into a
+ * depth pass is a sky at whatever radius its dome happens to have. And the
+ * clear colour, because the value a pixel gets where NOTHING was drawn is the
+ * value the blur reads there - and the page's own near-white would say every
+ * empty pixel is five centimetres from the lens, which is the strongest blur
+ * the effect can produce, over the whole sky.
+ */
+const measureDepth = (
+  gl: THREE.WebGLRenderer,
+  scene: THREE.Scene,
+  draw: () => void
+) => {
+  const background = scene.background;
+  const overrides = scene.overrideMaterial;
+  gl.getClearColor(CLEARED);
+  const alpha = gl.getClearAlpha();
+
+  scene.background = null;
+  scene.overrideMaterial = DEPTH_MATERIAL;
+  // Zero: nothing is infinitely far away, which is what empty sky is.
+  gl.setClearColor(0x000000, 1);
+  try {
+    draw();
+  } finally {
+    scene.overrideMaterial = overrides;
+    scene.background = background;
+    gl.setClearColor(CLEARED, alpha);
+  }
+};
+
+/**
+ * What the lens focuses on when it is not told: where the eye line meets the
+ * floor.
+ *
+ * A camera with one focus point focuses on whatever is in the middle of the
+ * frame, and in a scene where everything stands on the ground, the middle of
+ * the frame means the floor under whatever you are looking at. So it is one
+ * ray against one plane rather than a raycast against the geometry - the same
+ * answer for a hundredth of the cost, and it does not flicker between an
+ * object and the gap beside it as the frame drifts.
+ *
+ * Deliberately NOT lib/focus.ts's point, which is the same idea clamped to
+ * between 1.2 and 6 metres because it decides where a dropped object lands. A
+ * lens clamped to six metres is a lens that can never focus on a building.
+ */
+const GAZE = new THREE.Vector3();
+
+const autoFocus = (camera: THREE.Camera) => {
+  camera.getWorldDirection(GAZE);
+  // Looking level or up there is no floor to meet: a middle distance, which is
+  // where anything worth looking at up there already is.
+  const reach = GAZE.y < -1e-3 ? Math.max(camera.position.y, 0.1) / -GAZE.y : 25;
+  return Math.min(80, Math.max(0.3, reach));
+};
+
+/** How much smaller the depth source is than the picture it softens. */
+const DEPTH_SHRINK = 2;
+
+/**
+ * How many pixels of blur a lens produces, per unit of `|1 - focus/distance|`.
+ *
+ * The photographer's own sum, and nothing in it is invented: a lens of focal
+ * length f at f-number N focused at S throws a point at D onto a disc of
+ * diameter f squared over N times (S minus f), times |1 - S/D|. That first
+ * factor is the whole of what the lens contributes and it does not depend on D
+ * at all, so it is worked out once here, turned from millimetres of sensor into
+ * pixels of source, and handed to the shader as one number.
+ */
+const dofGainFor = (focal: number, aperture: number, focusMetres: number, sourcePixels: number) => {
+  const focus = Math.max(focusMetres, 0.1) * 1000; // millimetres
+  const spread = (focal * focal) / (Math.max(aperture, 0.7) * Math.max(focus - focal, focal));
+  return (spread / 36) * sourcePixels;
+};
+
 
 /**
  * How far off the axis the corner of the frame may reach before the picture is
@@ -80,9 +211,20 @@ export const sheetFor = (
 ): Sheet => {
   const { halfYaw, halfPitch } = fieldOf(spread, cssWidth, cssHeight);
 
+  /*
+   * A rectilinear frame IS a flat frustum, so there is nothing to work out and
+   * nothing to resample: the flat pass renders exactly the picture, corner for
+   * corner, and the composite reads it back one to one. This is the only mode
+   * in the tool where the source and the sheet are the same projection - which
+   * is why a camera-framed view is the sharpest thing here and why the cube is
+   * never asked for unless the frame is wider than a frustum can hold.
+   */
+  const rectilinear = mode === 'rectilinear' ? rectilinearTangents(halfYaw, halfPitch) : null;
+
   /** How far off the axis the corner of the frame reaches. */
-  const corner =
-    mode === 'cylindrical'
+  const corner = rectilinear
+    ? Math.atan(Math.hypot(rectilinear.tanYaw, rectilinear.tanPitch))
+    : mode === 'cylindrical'
       ? Math.acos(
           Math.max(-1, Math.min(1, Math.cos(Math.min(halfYaw, Math.PI)) * Math.cos(Math.min(halfPitch, HALF_PI))))
         )
@@ -127,9 +269,14 @@ export const sheetFor = (
    */
   const cornerRadius = mode === 'cylindrical' ? 0 : Math.hypot(halfYaw, halfPitch);
   const stretch = Math.tan(corner) / Math.max(cornerRadius || corner, 1e-6);
-  const tanX = (mode === 'cylindrical' ? Math.tan(halfYaw) : halfYaw * stretch) * MARGIN;
+  const tanX =
+    (rectilinear ? rectilinear.tanYaw : mode === 'cylindrical' ? Math.tan(halfYaw) : halfYaw * stretch) * MARGIN;
   const tanY =
-    (mode === 'cylindrical' ? Math.tan(halfPitch) / Math.cos(halfYaw) : halfPitch * stretch) * MARGIN;
+    (rectilinear
+      ? rectilinear.tanPitch
+      : mode === 'cylindrical'
+        ? Math.tan(halfPitch) / Math.cos(halfYaw)
+        : halfPitch * stretch) * MARGIN;
 
   /*
    * And how many pixels of it.
@@ -215,6 +362,18 @@ export const Panorama: React.FC<{
 }> = ({ spread, mode, gridColor, pointStrength, sheetStrength, surround, repeat = false }) => {
   const { gl, scene, camera, size, viewport } = useThree();
 
+  /*
+   * The lens, read here rather than passed down.
+   *
+   * Depth of field is not a property of the picture the way the field or the
+   * projection is - it is a second SOURCE, built beside the first and on the
+   * same cache, and the component that owns those sources is the only one that
+   * can build it. Everything above the canvas passes a number; this needs a
+   * render target.
+   */
+  const lens = useStore((state) => state.camera);
+  const dof = lens.on && lens.aperture <= 22;
+
   /**
    * Where the picture is read from, and how big it has to be.
    *
@@ -298,6 +457,54 @@ export const Panorama: React.FC<{
         /** The ruled sphere behind them: the second. */
         sheetStrength: { value: 0 },
         surround: { value: new THREE.Color() },
+        /*
+         * DEPTH OF FIELD, which is four numbers and one extra texture.
+         *
+         * `dofCube` / `dofFlat` hold one value per pixel of the source: the
+         * near plane over the distance to whatever is along that ray. A
+         * reciprocal rather than the distance itself, because that is the
+         * quantity a circle of confusion is actually linear in - the whole
+         * blur is `|1 - focus/distance|`, which in these units is one
+         * subtraction - and because it spends its precision where the eye
+         * does, on the near half of the scene.
+         *
+         * `dofGain` is everything the lens contributes, worked out once on the
+         * CPU: the focal length, the f-number and how many source pixels there
+         * are across the frame, collapsed into "how many pixels of blur per
+         * unit of that difference". Zero switches the whole thing off, which
+         * is what happens whenever the view is a pair of eyes rather than a
+         * lens - eyes have a depth of field too and it is not what anybody
+         * means by one.
+         */
+        dofCube: { value: null },
+        dofFlat: { value: null },
+        dofFocus: { value: 0 },
+        dofGain: { value: 0 },
+        dofMaxLod: { value: 5 },
+        /*
+         * THE STOP, AND WHY IT IS HERE AND NOT ON THE RENDERER.
+         *
+         * three applies its tone mapping in each material's own shader, and it
+         * applies it ONLY when the material is being drawn straight to the
+         * canvas: rendering into a target sets NoToneMapping, on the reasoning
+         * that a target is an intermediate and should stay linear. Every pixel
+         * this app draws goes into a target first. So the renderer's
+         * toneMappingExposure - set, dutifully, from the shutter, the aperture
+         * and the ISO - was being read by nothing at all, and the camera's
+         * exposure triangle was three knobs that moved a number in a readout
+         * and changed the picture not at all.
+         *
+         * This pass is the one that reaches the canvas. The stop belongs here.
+         *
+         * Zero means "no lens", and no lens means the picture is left exactly
+         * as it was drawn: a drawing tool's paper is paper white, and running
+         * a filmic curve over a diagram nobody asked to photograph would take
+         * every sheet in the app down to eighty per cent grey. Arm a lens and
+         * it becomes a photograph, with a photograph's stop and a photograph's
+         * shoulder - which is a change you can see, at the moment you ask for
+         * a camera, which is the moment to show it.
+         */
+        exposure: { value: 0 },
       },
       vertexShader: `
         varying vec2 vUv;
@@ -321,6 +528,12 @@ export const Panorama: React.FC<{
         uniform float pointStrength;
         uniform float sheetStrength;
         uniform vec3 surround;
+        uniform samplerCube dofCube;
+        uniform sampler2D dofFlat;
+        uniform float dofFocus;
+        uniform float dofGain;
+        uniform float dofMaxLod;
+        uniform float exposure;
         varying vec2 vUv;
 
         const float PI = 3.14159265359;
@@ -368,7 +581,32 @@ export const Panorama: React.FC<{
            */
           bool offSheet = false;
 
-          if (projectionMode == 2) { // cylindrical
+          if (projectionMode == 1) {
+            /*
+             * ONE, TWO AND THREE POINT: the sheet is flat.
+             *
+             * A distance from the middle of the frame is the tangent of the
+             * angle away from the axis, and that single line is the whole of
+             * classical perspective - it is what makes a straight edge in the
+             * world a straight edge on the page, what makes a family of
+             * parallels meet at one point, and what every construction anybody
+             * has ever ruled on a board assumes.
+             *
+             * It is also why the other three systems in this file exist. The
+             * tangent runs to infinity at ninety degrees off the axis, so this
+             * frame cannot reach half a turn at any size of paper, and it
+             * stretches its own corners without bound long before that. Sight
+             * has neither property. See lib/projection.ts.
+             */
+            float longest = max(halfYaw, halfPitch);
+            float scale = tan(min(longest, 1.5)) / max(longest, 1e-6);
+            // Not named "flat": that is an interpolation qualifier in GLSL ES 3,
+            // and a shader that will not compile draws nothing at all rather
+            // than drawing something wrong - the same trap "half" set below.
+            vec2 onSheet = vec2(clip.x * halfYaw, clip.y * halfPitch) * scale;
+            direction = normalize(vec3(onSheet, -1.0));
+            offSheet = false;
+          } else if (projectionMode == 2) { // cylindrical
             float yaw = clip.x * halfYaw;
             float pitch = clip.y * halfPitch;
             // A band has a top and a bottom: past the zenith is not more sky.
@@ -436,12 +674,64 @@ export const Panorama: React.FC<{
           if (useFlat) {
             float ahead = max(-direction.z, 1e-4);
             vec2 flatUv = vec2(direction.x / ahead / flatTan.x, direction.y / ahead / flatTan.y) * 0.5 + 0.5;
-            sampled = texture2D(flatMap, flatUv);
+            /*
+             * THE CIRCLE OF CONFUSION, IN ONE TAP.
+             *
+             * A lens focused at S puts a point at D onto a disc whose diameter
+             * is proportional to |1 - S/D|. Both of those are already here: the
+             * depth pass stored near/D, the CPU folded S/near into dofFocus,
+             * so the difference is one subtraction and the size of the disc is
+             * one multiply.
+             *
+             * What turns that size into a blur is the source's own mipmap
+             * chain, which is built anyway and which nothing else was using.
+             * A level L of it is an average over about 2^L texels, so the level
+             * that averages a disc of N texels is log2(N) - and the whole
+             * effect is a single trilinear fetch at that level rather than the
+             * twenty-odd taps a poisson disc would cost. It is not a bokeh:
+             * a mip is a box, not an aperture, so a bright point does not open
+             * into a disc with the shape of the blades. What it IS is a
+             * correctly-sized, correctly-placed, physically-derived softness,
+             * at one tap per pixel and no second pass at all, and on a phone
+             * holding sixty frames that is the trade that gets it drawn.
+             */
+            float coc = dofGain * abs(1.0 - dofFocus * texture2D(dofFlat, flatUv).r);
+            sampled = texture2DLodEXT(flatMap, flatUv, clamp(log2(max(coc, 1.0)), 0.0, dofMaxLod));
           } else {
-            sampled = textureCube(panorama, world);
+            float coc = dofGain * abs(1.0 - dofFocus * textureCube(dofCube, world).r);
+            sampled = textureCubeLodEXT(panorama, world, clamp(log2(max(coc, 1.0)), 0.0, dofMaxLod));
           }
 
           gl_FragColor = offSheet ? vec4(surround, 1.0) : sampled;
+
+          /*
+           * THE FILM.
+           *
+           * A SHOULDER, NOT A WHOLE FILM CURVE, and the difference is the
+           * promise the base setting makes.
+           *
+           * The obvious thing here is ACES, which is what three would apply if
+           * it applied anything - and it was tried, and it was wrong. ACES is
+           * built for scene-referred radiance and it moves EVERYTHING: middle
+           * grey lifts, paper white lands at three quarters, and a tool whose
+           * subject is a white sheet with lines on it came out washed. Arming
+           * a lens at the setting it arms on is supposed to change nothing.
+           *
+           * So: below the knee, identity, exactly the picture the tool drew.
+           * Above it, an exponential roll toward one, tangent to the identity
+           * at the knee so there is no visible corner. Highlights bend over
+           * instead of clipping, which is the one thing a photograph does that
+           * a diagram does not - three stops over reads as a blown sky with
+           * its gradient still in it, rather than as one flat white shape with
+           * the cloud dissolved into it.
+           */
+          if (exposure > 0.0) {
+            const float knee = 0.72;
+            vec3 c = gl_FragColor.rgb * exposure;
+            vec3 over = knee + (1.0 - knee) * (1.0 - exp(-(c - knee) / (1.0 - knee)));
+            gl_FragColor.rgb = mix(c, over, step(vec3(knee), c));
+          }
+
           #include <colorspace_fragment>
 
           // The construction sheet, drawn where it belongs - on the sphere,
@@ -596,11 +886,42 @@ export const Panorama: React.FC<{
 
   useEffect(() => () => cube?.target.dispose(), [cube]);
 
+  /**
+   * The same six faces again, measured instead of drawn - and only if a lens
+   * is asking for them.
+   *
+   * Half the face size, no mipmaps and no filtering worth the name, because
+   * this is a field of distances rather than a picture: it is read once per
+   * screen pixel at the exact ray, and a distance averaged with its neighbour
+   * is a distance to nowhere. It is built and thrown away with the lens, so a
+   * viewer who never opens the camera never pays a byte for it.
+   */
+  const cubeDepth = useMemo(() => {
+    if (!wideSheet || !dof) return null;
+    const size = Math.max(128, wideSheet.faceSize / DEPTH_SHRINK);
+    const target = new THREE.WebGLCubeRenderTarget(size, {
+      type: THREE.HalfFloatType,
+      generateMipmaps: false,
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+    });
+    return { target, camera: new THREE.CubeCamera(0.05, 2000, target) };
+  }, [wideSheet?.faceSize, dof]);
+
+  useEffect(() => () => cubeDepth?.target.dispose(), [cubeDepth]);
+
   /** One flat pass, for a field that fits in one. */
   const flat = useMemo(() => {
     if (!flatSheet) return null;
     const target = new THREE.WebGLRenderTarget(flatSheet.width, flatSheet.height, {
-      minFilter: THREE.LinearFilter,
+      /*
+       * Mipmapped, which it was not, because the depth of field reads its blur
+       * off this chain rather than taking twenty taps for it. The cube has
+       * carried one all along for the projection's own sake; this is the same
+       * argument arriving for a different reason.
+       */
+      generateMipmaps: true,
+      minFilter: THREE.LinearMipmapLinearFilter,
       magFilter: THREE.LinearFilter,
       depthBuffer: true,
       // The same four samples the export takes. This is the path the default
@@ -618,6 +939,22 @@ export const Panorama: React.FC<{
   }, [flatSheet?.width, flatSheet?.height, flatSheet?.tanX, flatSheet?.tanY]);
 
   useEffect(() => () => flat?.target.dispose(), [flat]);
+
+  /** The same, for the one flat pass. */
+  const flatDepth = useMemo(() => {
+    if (!flatSheet || !dof) return null;
+    return new THREE.WebGLRenderTarget(
+      Math.max(64, Math.round(flatSheet.width / DEPTH_SHRINK)),
+      Math.max(64, Math.round(flatSheet.height / DEPTH_SHRINK)),
+      {
+        type: THREE.HalfFloatType,
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+      }
+    );
+  }, [flatSheet?.width, flatSheet?.height, dof]);
+
+  useEffect(() => () => flatDepth?.dispose(), [flatDepth]);
 
   /**
    * What the source was last drawn for.
@@ -658,6 +995,53 @@ export const Panorama: React.FC<{
     uniforms.flatMap.value = flat?.target.texture ?? null;
     if (flatSheet) uniforms.flatTan.value.set(flatSheet.tanX, flatSheet.tanY);
 
+    /*
+     * WHAT THE LENS IS FOCUSED ON, every frame, because it moves every frame.
+     *
+     * A distance of zero means "whatever is under the middle of the frame",
+     * which is what a camera with one focus point does and what anybody
+     * pointing one actually means - and this app has been tracking that point
+     * all along for a different reason. It is where a new object gets put
+     * down, where the shadow camera follows, and where the measure reads from,
+     * so the lens focusing on it costs one subtraction and gets the behaviour
+     * everybody expects: look at the thing, the thing is sharp.
+     */
+    const measured = dof && (cubeDepth || flatDepth);
+    if (measured) {
+      const distance = lens.focus > 0 ? lens.focus : autoFocus(camera);
+      const sourceLong = wideSheet
+        ? wideSheet.faceSize * (Math.PI / 2 / Math.max(fieldOf(spread, size.width, size.height).halfYaw * 2, 1e-3))
+        : Math.max(flatSheet!.width, flatSheet!.height);
+      uniforms.dofFocus.value = distance / DEPTH_NEAR;
+      uniforms.dofGain.value = dofGainFor(
+        // Worked out from the field rather than stored beside it, and worked
+        // out through the GATE: the same field is a different focal length
+        // through a square frame than through a wide one, and a blur that used
+        // the wrong one would be the blur of a lens nobody is holding.
+        lensOfFrame(spread, lens.gate, size.width, size.height),
+        lens.aperture,
+        distance,
+        sourceLong
+      );
+      uniforms.dofCube.value = cubeDepth?.target.texture ?? null;
+      uniforms.dofFlat.value = flatDepth?.texture ?? null;
+    } else {
+      uniforms.dofGain.value = 0;
+    }
+
+    /*
+     * ...and the stop, which is nothing but the three dials.
+     *
+     * Clamped at both ends, because the dials reach further than a picture
+     * does: thirty seconds at ISO 25600 wide open is nine stops over, which is
+     * a white rectangle and not a lesson. Six stops either way is the range in
+     * which the picture is still a picture, and past it the readout goes on
+     * telling the truth about what was asked for.
+     */
+    uniforms.exposure.value = lens.on
+      ? Math.min(64, Math.max(1 / 64, exposureOf(lens)))
+      : 0;
+
     const was = drawnAt.current;
     const moved =
       Math.abs(was.x - camera.position.x) > 1e-4 ||
@@ -676,12 +1060,22 @@ export const Panorama: React.FC<{
       if (cube) {
         cube.camera.position.copy(camera.position);
         cube.camera.update(gl, scene);
+        if (cubeDepth) {
+          cubeDepth.camera.position.copy(camera.position);
+          measureDepth(gl, scene, () => cubeDepth.camera.update(gl, scene));
+        }
       } else if (flat) {
         flat.camera.position.copy(camera.position);
         flat.camera.quaternion.copy(camera.quaternion);
         flat.camera.updateMatrixWorld();
         gl.setRenderTarget(flat.target);
         gl.render(scene, flat.camera);
+        if (flatDepth) {
+          measureDepth(gl, scene, () => {
+            gl.setRenderTarget(flatDepth);
+            gl.render(scene, flat.camera);
+          });
+        }
       }
       drawnAt.current = {
         x: camera.position.x,
@@ -718,6 +1112,10 @@ export const Panorama: React.FC<{
    */
   useEffect(() => {
     registerFrameRenderer((width, height) => {
+      // Read now rather than closed over: the export effect is not rebuilt when
+      // the lens changes, and a picture taken with last week's aperture in it
+      // is exactly the sort of thing nobody notices until it is on paper.
+      const lensNow = useStore.getState().camera;
       const density = width / Math.max(size.width, 1);
       const plan = sheetFor(mode, spread, size.width, size.height, { flat: density * SHARPEN, cube: density }, 4096);
       const { halfYaw, halfPitch } = fieldOf(spread, size.width, size.height);
@@ -728,6 +1126,9 @@ export const Panorama: React.FC<{
         flatMap: material.uniforms.flatMap.value,
         useFlat: material.uniforms.useFlat.value,
         flatTan: material.uniforms.flatTan.value.clone(),
+        dofCube: material.uniforms.dofCube.value,
+        dofFlat: material.uniforms.dofFlat.value,
+        dofGain: material.uniforms.dofGain.value,
       };
       const out = new THREE.WebGLRenderTarget(width, height, {
         minFilter: THREE.LinearFilter,
@@ -735,6 +1136,14 @@ export const Panorama: React.FC<{
       });
 
       let source: THREE.WebGLRenderTarget | THREE.WebGLCubeRenderTarget | null = null;
+      /*
+       * The picture that leaves has the same lens on it as the picture on the
+       * glass. A sharp export would be the easier thing to write and a quiet
+       * lie: the depth of field is a compositional decision - it is most of
+       * what says where the eye is meant to go - and a file that silently
+       * undoes it is a file of a different drawing.
+       */
+      let measured: THREE.WebGLRenderTarget | THREE.WebGLCubeRenderTarget | null = null;
       try {
         material.uniforms.encodeOutput.value = 1;
         if (plan.source === 'cube') {
@@ -749,6 +1158,27 @@ export const Panorama: React.FC<{
           rig.update(gl, scene);
           material.uniforms.useFlat.value = false;
           material.uniforms.panorama.value = cubeTarget.texture;
+          if (lensNow.on) {
+            const depthTarget = new THREE.WebGLCubeRenderTarget(
+              Math.max(128, plan.faceSize / DEPTH_SHRINK),
+              { type: THREE.HalfFloatType, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter }
+            );
+            measured = depthTarget;
+            const gauge = new THREE.CubeCamera(0.05, 2000, depthTarget);
+            gauge.position.copy(camera.position);
+            measureDepth(gl, scene, () => gauge.update(gl, scene));
+            material.uniforms.dofCube.value = depthTarget.texture;
+            material.uniforms.dofGain.value = dofGainFor(
+              lensOfFrame(spread, lensNow.gate, size.width, size.height),
+              lensNow.aperture,
+              lensNow.focus > 0 ? lensNow.focus : autoFocus(camera),
+              plan.faceSize * (Math.PI / 2 / Math.max(halfYaw * 2, 1e-3))
+            );
+            material.uniforms.dofFocus.value =
+              (lensNow.focus > 0 ? lensNow.focus : autoFocus(camera)) / DEPTH_NEAR;
+          } else {
+            material.uniforms.dofGain.value = 0;
+          }
         } else {
           const flatTarget = new THREE.WebGLRenderTarget(plan.width, plan.height, {
             // Four samples resolves the geometry's own edges; the mipmaps
@@ -773,6 +1203,29 @@ export const Panorama: React.FC<{
           material.uniforms.useFlat.value = true;
           material.uniforms.flatMap.value = flatTarget.texture;
           material.uniforms.flatTan.value.set(plan.tanX, plan.tanY);
+          if (lensNow.on) {
+            const depthTarget = new THREE.WebGLRenderTarget(
+              Math.max(64, Math.round(plan.width / DEPTH_SHRINK)),
+              Math.max(64, Math.round(plan.height / DEPTH_SHRINK)),
+              { type: THREE.HalfFloatType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter }
+            );
+            measured = depthTarget;
+            measureDepth(gl, scene, () => {
+              gl.setRenderTarget(depthTarget);
+              gl.render(scene, rig);
+            });
+            const distance = lensNow.focus > 0 ? lensNow.focus : autoFocus(camera);
+            material.uniforms.dofFlat.value = depthTarget.texture;
+            material.uniforms.dofFocus.value = distance / DEPTH_NEAR;
+            material.uniforms.dofGain.value = dofGainFor(
+              lensOfFrame(spread, lensNow.gate, size.width, size.height),
+              lensNow.aperture,
+              distance,
+              Math.max(plan.width, plan.height)
+            );
+          } else {
+            material.uniforms.dofGain.value = 0;
+          }
         }
 
         material.uniforms.halfYaw.value = halfYaw;
@@ -804,6 +1257,7 @@ export const Panorama: React.FC<{
         return null;
       } finally {
         source?.dispose();
+        measured?.dispose();
         out.dispose();
         gl.setRenderTarget(null);
         // Put the live frame's uniforms back; the next tick would anyway, but
@@ -812,6 +1266,9 @@ export const Panorama: React.FC<{
         material.uniforms.flatMap.value = held.flatMap;
         material.uniforms.useFlat.value = held.useFlat;
         material.uniforms.flatTan.value.copy(held.flatTan);
+        material.uniforms.dofCube.value = held.dofCube;
+        material.uniforms.dofFlat.value = held.dofFlat;
+        material.uniforms.dofGain.value = held.dofGain;
         material.uniforms.encodeOutput.value = 0;
       }
     });

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { fieldOf, stereographicAngle, stereographicRadius } from './projection';
+import { fieldOf, rectilinearTangents, stereographicAngle, stereographicRadius } from './projection';
 import type { PerspectiveMode } from '../types';
 
 /**
@@ -117,6 +117,22 @@ const aim = (clientX: number, clientY: number): boolean => {
   const { halfYaw, halfPitch } = fieldOf(view.fov, view.width, view.height);
   const rx = x * halfYaw;
   const ry = y * halfPitch;
+
+  if (view.mode === 'rectilinear') {
+    /*
+     * One, two and three point: the frame is a flat sheet, so a distance from
+     * the middle of it is the tangent of the angle away from the axis. That
+     * one line is the whole of what makes a straight edge in the world a
+     * straight edge on the page.
+     */
+    const { tanYaw, tanPitch } = rectilinearTangents(halfYaw, halfPitch);
+    direction
+      .set(x * tanYaw, y * tanPitch, -1)
+      .normalize()
+      .applyQuaternion(view.camera.quaternion);
+    raycaster.set(view.camera.position, direction);
+    return true;
+  }
 
   if (view.mode === 'cylindrical') {
     // Four point: the frame is a cylinder unrolled, so across is a bearing and
@@ -315,6 +331,14 @@ export const project = (point: THREE.Vector3): { x: number; y: number } | null =
   local.applyQuaternion(inverse.copy(view.camera.quaternion).invert()).normalize();
 
   const { halfYaw, halfPitch } = fieldOf(view.fov, view.width, view.height);
+
+  if (view.mode === 'rectilinear') {
+    // Behind the sheet there is no picture at all - a flat frame has no rim to
+    // put the world behind you on, which is the price of the straight lines.
+    if (local.z > -1e-6) return null;
+    const { tanYaw, tanPitch } = rectilinearTangents(halfYaw, halfPitch);
+    return toClient(local.x / -local.z / tanYaw, local.y / -local.z / tanPitch);
+  }
 
   if (view.mode === 'cylindrical') {
     return toClient(

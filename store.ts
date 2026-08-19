@@ -1,10 +1,10 @@
 import { create } from 'zustand';
-import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, SelectionGuide, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, SceneView, SKY_LIMITS, SkyState, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
+import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, SelectionGuide, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, CameraState, SceneView, SKY_LIMITS, SkyState, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
 import { releaseSource, cachedSourceUrls, loadModelFromUrl } from './lib/loadModel';
 import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
-import { HUMAN_SIGHT, MAX_FIELD, wholeSheetField } from './lib/projection';
+import { FLAT_SIGHT, HUMAN_SIGHT, MAX_FIELD, wholeSheetField } from './lib/projection';
 import {
   luminance,
   mountFor,
@@ -19,6 +19,17 @@ import {
   setShadowInk,
 } from './lib/inkMaterial';
 import { nextPreset, PRESETS, type Preset } from './lib/presets';
+import { looseTurn, nextField } from './lib/cubeFields';
+import {
+  conditionsAt,
+  deviceLocation,
+  fetchConditions,
+  forgetConditions,
+  haveConditions,
+  solarPosition,
+  sunlight,
+} from './lib/sky';
+import { beginActivity, reportFailure } from './lib/activity';
 import { walkInput } from './lib/walkInput';
 
 // ---------------------------------------------------------------------------
@@ -198,37 +209,6 @@ export const DEFAULT_FILL: FillState = {
   shadows: 'off',
 };
 
-/**
- * The sky, as it stands the first time it is switched on.
- *
- * A clear afternoon in late June at sixty north - which is Norway in the one
- * week a year the light is worth arguing about, and a sun high enough that the
- * shadows are short and everything reads. One unit of air is the real
- * atmosphere at sea level rather than a taste: the blue is the blue.
- *
- * No cloud, because the first thing anybody does with a weather knob is turn
- * it up, and a deck already overhead hides the fact that turning it up put one
- * there. No stars either - the sun is up, so there are none to see, and the
- * knob is a brightness rather than a switch: it does nothing until the sun
- * goes down, which is the honest behaviour and also the discoverable one.
- *
- * The clock does NOT aim the sun to begin with. Somebody who opens sun mode is
- * usually there to move a light about, and having the two knobs they reach for
- * turn into read-outs is a thing to opt into rather than a thing to survive.
- */
-export const DEFAULT_SKY: SkyState = {
-  air: 1,
-  cloud: 0,
-  cloudBase: 1500,
-  stars: 0.85,
-  figures: false,
-  skylight: 0.5,
-  latitude: 60,
-  day: 172,
-  hour: 15,
-  clock: false,
-};
-
 /** Eye-level presets, in metres. */
 export const EYE_LEVEL_PRESETS: { label: string; note: string; height: number }[] = [
   { label: '1.2', note: 'Seated', height: 1.2 },
@@ -347,33 +327,34 @@ const pinnedPage = (): Preset | null => {
 };
 
 /**
- * WHAT THE TOOL OPENS ON: A PAGE OFF THE DECK, DEALT.
+ * WHAT THE TOOL OPENS ON, AND IT IS THE SAME PAGE EVERY TIME.
  *
- * It opened on one fixed page - the finished brush page: line, spotted black,
- * hard shadow, warm sheet mounted on flat black - and that page is still in the
- * deck and still the best single answer if only one were allowed. One is not.
- * There are five of them, each a whole page somebody would draw from and each
- * a different thing this material can be, and a viewer who opens the tool a
- * hundred times had seen exactly one of them unless they went looking for the
- * die.
+ * The brush page on black: line, spotted black, hard shadow, warm sheet
+ * mounted on flat black. It is the page this tool opened on before there was a
+ * deck, and it is the best single answer if only one is allowed.
  *
- * THIS IS NOT THE ARGUMENT THE OPENING MESH LOST. lib/meshLibrary.ts used to
- * pick its object at random and was made to stand the racer up every time,
- * because opening on something different every time is not a room you know -
- * and that is right, about the OBJECT. The object is what you are drawing; you
- * need it to hold still to have any idea whether you are getting better. The
- * page is how it is drawn, and a different one each time is a different lesson
- * in what the material can do, over a subject that has not moved. The two
- * decisions look alike and are opposite for the same reason.
+ * IT USED TO DEAL ONE. The argument was good and it was the wrong argument for
+ * a start-up. Five whole pages, each a different thing this material can be,
+ * and a viewer who opens the tool a hundred times sees one of them unless they
+ * go looking. All true, and all of it about what a viewer needs after they know
+ * the tool rather than in the first second of it.
  *
- * AND IT OVERRULES WHAT WAS REMEMBERED, which is the price and is worth
- * stating plainly: the page you tuned by hand lasts the session and not the
- * reload. Everything that is not the page - the guides, the lens, the eye
- * level, the room, the snap, the floor's tone - is remembered as it always
- * was, and so is the scene. What you lose on a reload is the deal, and there
- * is a button that deals another.
+ * What a start-up needs is to be the same. Opening on a different surface, a
+ * different sheet, a different mount and a different light each time is a tool
+ * with no face: you cannot tell a setting you changed from a page you were
+ * dealt, you cannot compare todays study with yesterdays, and every screenshot
+ * anybody takes is of a different app. The opening MESH lost exactly this
+ * argument years ago and for exactly this reason, and the page should have
+ * lost it at the same time.
+ *
+ * The deck is not gone. It deals itself in the gaps between working, once you
+ * are here and drawing, which is where the comparison it offers is worth
+ * something: see lib/autoDeal.ts. What has gone is the die on the front door.
+ *
+ * The pin below still overrides it, which is how the suite fixes the page it
+ * tests against.
  */
-const OPENING_PAGE = pinnedPage() ?? nextPreset(null);
+const OPENING_PAGE = pinnedPage() ?? PRESETS.find((p) => p.name === 'Brush page on black') ?? PRESETS[0];
 
 /**
  * THE FLOOR A PAGE STANDS ON WHEN IT DID NOT COMPOSE ONE.
@@ -426,14 +407,27 @@ const floorFor = (paper: number) => ({ on: true, tone: Math.round(paper * 0.42) 
  */
 const pageOf = (
   p: Preset,
-  from: { sun: SunState; fill: FillState; marker: MarkerState; hatch: HatchState; pen: PenState; wash: WashState; ground: { on: boolean; tone: number } }
+  from: { sun: SunState; sky: SkyState; fill: FillState; marker: MarkerState; hatch: HatchState; pen: PenState; wash: WashState; ground: { on: boolean; tone: number } }
 ) => ({
   presetName: p.name,
   surface: p.surface,
   backdrop: p.backdrop,
   backgroundGray: p.paper,
   ...pageTheme(p.backdrop, p.paper, p.surface),
-  sun: { ...from.sun, ...p.sun },
+  /*
+   * A PAGE MAY LIGHT THE SCENE, BUT IT MAY NOT MOVE THE SUN OUT OF THE SKY.
+   *
+   * Every page in the deck names a light, and that is most of what makes a
+   * page a page - the etched one wants a low raking sun, the long-shadows one
+   * IS its sun. But with the sky simulated the light is not a look any more,
+   * it is a reading: the sun is where it is over that place at that moment,
+   * and a page that moved it would be a page that changed the hour. So the
+   * page keeps the one part of the light that is a drawing decision - whether
+   * and how the shadows fall - and the rest stays the sky's.
+   */
+  sun: from.sky.simulate
+    ? { ...from.sun, ...sunFromSky(from.sky), shadows: p.sun.shadows }
+    : { ...from.sun, ...p.sun },
   fill: { ...from.fill, enabled: p.fill },
   marker: p.marker ? { ...from.marker, ...p.marker } : from.marker,
   hatch: p.hatch ? { ...from.hatch, ...p.hatch } : from.hatch,
@@ -502,6 +496,98 @@ const nextSceneName = (history: SavedScene[]): string => {
   return `Scene ${highest + 1}`;
 };
 
+/**
+ * Where the sky starts, and why it starts there rather than at your feet.
+ *
+ * Greenwich, at noon, with a quarter of the sky covered - a place, an hour and
+ * a weather that are all somebody's, and none of them yours. That is the
+ * point: the simulation is OFF until asked for, and a default that quietly
+ * guessed at your latitude would be a location fix taken without a prompt.
+ * One press moves all three to where you actually are.
+ *
+ * The prime meridian rather than a city because it is the one longitude where
+ * clock time and sun time agree, so the opening state is the one that is
+ * easiest to check by eye: at noon the sun is due south.
+ */
+export const DEFAULT_SKY: SkyState = {
+  simulate: false,
+  time: Date.now(),
+  running: false,
+  rate: 600,
+  latitude: 51.48,
+  longitude: 0,
+  located: false,
+  cover: 0.25,
+  base: 1200,
+  wind: 6,
+  windBearing: 250,
+  observed: 'off',
+  /*
+   * One atmosphere is the real thing rather than a taste: the blue is the
+   * blue. No stars to begin with is not a decision - the knob is a brightness
+   * and the sun is up, so it does nothing until the hour comes round, which is
+   * the honest behaviour and also the discoverable one. The figures are off
+   * because they are somebody's drawing over the sky rather than the sky.
+   */
+  air: 1,
+  stars: 0.85,
+  figures: false,
+};
+
+/**
+ * The light a place, a moment and a weather add up to.
+ *
+ * Everything the sun needs except its shadows, which are a drawing decision
+ * and stay yours: a simulated overcast noon with hard shadows is a perfectly
+ * reasonable thing to want to draw, and a simulation that switched them off
+ * would be overruling the one knob in the panel that is about the picture
+ * rather than about the sky.
+ */
+export const sunFromSky = (sky: SkyState): Pick<SunState, 'azimuth' | 'elevation' | 'intensity' | 'temperature'> => {
+  const { azimuth, elevation } = solarPosition(new Date(sky.time), sky.latitude, sky.longitude);
+  const { intensity, temperature } = sunlight(elevation, sky.cover);
+  return {
+    azimuth,
+    /*
+     * Held above the horizon, and this is the one place the simulation is
+     * allowed to lie.
+     *
+     * A directional light at or below zero rakes the scene from underneath -
+     * every floor goes black, every object is lit from below, and the shadow
+     * camera looks up through the ground. What the picture should show at
+     * night is a dark scene, which is what the STRENGTH above already does;
+     * the two degrees here only keep the geometry of the light sane while it
+     * is doing that.
+     */
+    elevation: Math.max(2, elevation),
+    intensity,
+    temperature,
+  };
+};
+
+/**
+ * The lens the tool hands you when you ask for one.
+ *
+ * A fifty on a full frame, at f/4, focused on whatever you are looking at, on
+ * a 3:2 gate. Every one of those is the boring answer and every one of them is
+ * deliberate: fifty is the length that neither compresses nor stretches, f/4
+ * has a depth of field you can SEE without dissolving the scene behind it,
+ * auto-focus is what a camera does, and 3:2 is the shape of the frame those
+ * focal lengths were named on.
+ *
+ * A lens somebody has to fix before it makes a picture is a lens nobody opens
+ * twice.
+ */
+export const DEFAULT_CAMERA: CameraState = {
+  on: false,
+  aperture: 4,
+  shutter: 1 / 125,
+  iso: 200,
+  auto: true,
+  focus: 0,
+  gate: 3 / 2,
+};
+
 const SETTINGS_KEY = 'kjg-perspective-settings';
 
 const SETTING_KEYS = [
@@ -518,6 +604,7 @@ const SETTING_KEYS = [
   'hatch',
   'pen',
   'wash',
+  'pbr',
   'ground',
   'roomLevel',
   'room',
@@ -529,6 +616,7 @@ const SETTING_KEYS = [
   'sun',
   'fill',
   'sky',
+  'camera',
 ] as const;
 
 type PersistedSettings = Pick<SceneState, (typeof SETTING_KEYS)[number]>;
@@ -565,6 +653,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   hatch: object,
   pen: object,
   wash: object,
+  pbr: object,
   ground: object,
   roomLevel: number,
   room: object,
@@ -576,6 +665,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   sun: object,
   fill: object,
   sky: object,
+  camera: object,
 };
 
 /**
@@ -713,7 +803,10 @@ const readRoom = (stored: Partial<RoomSize> | undefined): RoomSize => {
 
 /** The same for the projection: two of them are not on offer any more. */
 const readMode = (stored: unknown): PerspectiveMode =>
-  stored === 'cylindrical' || stored === 'equidistant' || stored === 'stereographic'
+  stored === 'rectilinear' ||
+  stored === 'cylindrical' ||
+  stored === 'equidistant' ||
+  stored === 'stereographic'
     ? stored
     : 'equidistant';
 
@@ -747,30 +840,78 @@ const readSun = (stored: Partial<SunState> | undefined): SunState => ({
 });
 
 /**
- * A sky read back from something written earlier, or from nothing.
+ * A sky read back from storage.
  *
- * Same job as `readSun` and the same reason: the settings check asks only that
- * it is an object, so every field inside is whatever the last version wrote -
- * and a scene saved a week ago has none of them. Through the defaults, and
- * with the two that can be nonsense held inside their own ranges, because a
- * latitude of nine hundred is a rotation matrix that quietly stops being one.
+ * Field by field rather than a spread, and every one of them checked, because
+ * the whole of this object is arithmetic: a latitude that came back as a
+ * string, or an `undefined` that a spread copied over a default, puts a NaN
+ * into the solar equations - and a NaN there is not an error anybody sees, it
+ * is a sun at a position that is not a position and a frame that comes up
+ * black.
+ *
+ * The readings are deliberately not taken back: the forecast they came from is
+ * not in this session's memory any more, and a panel claiming a live sky it
+ * cannot show the source of is worse than one asking to fetch it again.
+ *
+ * Nor, from the SETTINGS, is a moment more than a day old - a stored clock is
+ * a setting, but a stored clock that has been in a drawer for a week is not a
+ * moment anybody meant. A moment read off a SAVED SCENE is the opposite: the
+ * hour is part of the composition, the whole reason to write it down was to
+ * come back to that light, and however long ago it was is not the point. Hence
+ * the flag rather than one rule for both.
  */
-const readSky = (stored: Partial<SkyState> | undefined): SkyState => {
-  const sky = { ...DEFAULT_SKY, ...(stored ?? {}) };
-  const hold = (value: number, low: number, high: number, fallback: number) =>
-    typeof value === 'number' && Number.isFinite(value) ? Math.min(high, Math.max(low, value)) : fallback;
+const DAY = 24 * 60 * 60 * 1000;
+
+const readSky = (stored: Partial<SkyState> | undefined, keepTime = false): SkyState => {
+  const take = (value: unknown, fallback: number, low: number, high: number) =>
+    typeof value === 'number' && Number.isFinite(value)
+      ? Math.min(high, Math.max(low, value))
+      : fallback;
+  const yes = (value: unknown, fallback: boolean) =>
+    typeof value === 'boolean' ? value : fallback;
+  const time = take(stored?.time, Date.now(), 0, Number.MAX_SAFE_INTEGER);
   return {
-    ...sky,
-    air: hold(sky.air, 0, SKY_LIMITS.air, DEFAULT_SKY.air),
-    cloud: hold(sky.cloud, 0, 1, DEFAULT_SKY.cloud),
-    cloudBase: hold(sky.cloudBase, SKY_LIMITS.lowCloud, SKY_LIMITS.highCloud, DEFAULT_SKY.cloudBase),
-    stars: hold(sky.stars, 0, 1, DEFAULT_SKY.stars),
-    skylight: hold(sky.skylight, 0, 1, DEFAULT_SKY.skylight),
-    latitude: hold(sky.latitude, -90, 90, DEFAULT_SKY.latitude),
-    day: Math.round(hold(sky.day, 1, 365, DEFAULT_SKY.day)),
-    hour: hold(sky.hour, 0, 24, DEFAULT_SKY.hour),
-    figures: sky.figures === true,
-    clock: sky.clock === true,
+    simulate: yes(stored?.simulate, DEFAULT_SKY.simulate),
+    time: !keepTime && Math.abs(Date.now() - time) > DAY ? Date.now() : time,
+    running: yes(stored?.running, DEFAULT_SKY.running),
+    rate: take(stored?.rate, DEFAULT_SKY.rate, 1, 7200),
+    latitude: take(stored?.latitude, DEFAULT_SKY.latitude, -90, 90),
+    longitude: take(stored?.longitude, DEFAULT_SKY.longitude, -180, 180),
+    located: yes(stored?.located, DEFAULT_SKY.located),
+    cover: take(stored?.cover, DEFAULT_SKY.cover, 0, 1),
+    base: take(stored?.base, DEFAULT_SKY.base, 200, 12000),
+    wind: take(stored?.wind, DEFAULT_SKY.wind, 0, 60),
+    windBearing: take(stored?.windBearing, DEFAULT_SKY.windBearing, 0, 360),
+    observed: 'off',
+    air: take(stored?.air, DEFAULT_SKY.air, 0, SKY_LIMITS.air),
+    stars: take(stored?.stars, DEFAULT_SKY.stars, 0, 1),
+    figures: yes(stored?.figures, DEFAULT_SKY.figures),
+  };
+};
+
+/**
+ * A lens read back from storage or off a saved scene.
+ *
+ * Checked field by field for the same reason the sky is: every number in here
+ * ends up inside a division. An aperture that came back as a string is a
+ * divide by NaN, and what a NaN gain produces is not an error message, it is a
+ * frame blurred to a uniform grey with no way to tell why.
+ */
+const readCamera = (stored: Partial<CameraState> | undefined): CameraState => {
+  const take = (value: unknown, fallback: number, low: number, high: number) =>
+    typeof value === 'number' && Number.isFinite(value)
+      ? Math.min(high, Math.max(low, value))
+      : fallback;
+  return {
+    on: typeof stored?.on === 'boolean' ? stored.on : DEFAULT_CAMERA.on,
+    aperture: take(stored?.aperture, DEFAULT_CAMERA.aperture, 0.7, 32),
+    shutter: take(stored?.shutter, DEFAULT_CAMERA.shutter, 1 / 8000, 30),
+    iso: take(stored?.iso, DEFAULT_CAMERA.iso, 25, 25600),
+    auto: typeof stored?.auto === 'boolean' ? stored.auto : DEFAULT_CAMERA.auto,
+    // Zero is not a distance, it is the word "auto" - so it is let through the
+    // floor the others get.
+    focus: stored?.focus === 0 ? 0 : take(stored?.focus, DEFAULT_CAMERA.focus, 0.3, 80),
+    gate: take(stored?.gate, DEFAULT_CAMERA.gate, 0.5, 3),
   };
 };
 
@@ -974,8 +1115,9 @@ export const currentView = (state: SceneState): SceneView => ({
   theme: state.theme,
   sun: { ...state.sun },
   fill: { ...state.fill },
-  sunEnvironment: state.sunEnvironment,
   sky: { ...state.sky },
+  lens: { ...state.camera },
+  sunEnvironment: state.sunEnvironment,
   guides: state.guides,
   gridX: state.gridX,
   gridZ: state.gridZ,
@@ -1075,10 +1217,12 @@ const restoreView = (view: SceneView | undefined, range: FieldRange): Partial<Sc
     ...pageTheme(backdrop, backgroundGray, surface),
     sun: readSun(view.sun),
     fill: { ...DEFAULT_FILL, ...(view.fill ?? {}) },
+    // The hour and the weather the composition was made under. Read through
+    // the same migration storage uses - a scene file is written by whatever
+    // version the viewer had, which is exactly the case that reader is for.
+    sky: readSky(view.sky, true),
+    camera: readCamera(view.lens),
     sunEnvironment: view.sunEnvironment,
-    // Through the defaults: a scene composed before the sky had settings must
-    // come back under a real atmosphere rather than under an undefined one.
-    sky: readSky(view.sky),
     guides: (Math.min(2, view.guides ?? ((view.showGuides ?? true) ? 3 : 0)) as GuideLevel),
     gridX: view.gridX ?? (view.guides ?? 3) >= 2,
     gridZ: view.gridZ ?? (view.guides ?? 3) >= 2,
@@ -1143,6 +1287,7 @@ export const useStore = create<SceneState>((set, get) => ({
   wash: DEFAULT_WASH,
   ground: DEFAULT_GROUND,
   sunEnvironment: false,
+  cameraFeed: false,
   instrument: 'none',
   undoStack: [],
   redoStack: [],
@@ -1150,6 +1295,7 @@ export const useStore = create<SceneState>((set, get) => ({
   // below, since the page it floats over is what decides it.
   backgroundGray: OPENING_PAGE.paper,
   presetName: null,
+  fieldName: null,
   currentSceneId: null,
   sceneHistory: [],
   ownMeshes: [],
@@ -1162,6 +1308,8 @@ export const useStore = create<SceneState>((set, get) => ({
   sun: readSun(remembered.sun),
   fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
   sky: readSky(remembered.sky),
+  camera: readCamera(remembered.camera),
+  pbr: { roughness: 0.7, metalness: 0, ...(remembered.pbr ?? {}) },
 
   /*
    * ...AND THE DEAL OVER THE TOP OF ALL OF IT, last, because it has to be.
@@ -1182,6 +1330,7 @@ export const useStore = create<SceneState>((set, get) => ({
    */
   ...pageOf(OPENING_PAGE, {
     sun: readSun(remembered.sun),
+    sky: readSky(remembered.sky),
     fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
     marker: { ...DEFAULT_MARKER, ...(remembered.marker ?? {}) },
     hatch: { ...DEFAULT_HATCH, ...(remembered.hatch ?? {}) },
@@ -1245,6 +1394,50 @@ export const useStore = create<SceneState>((set, get) => ({
    * floor, which is what the snap was for. And it steps around the meshes too:
    * the cell a chair is standing in is not an empty cell.
    */
+  /**
+   * A field of unit cubes to draw, dealt round where you are standing.
+   *
+   * ROUND YOU, not round the origin, because the exercise is what you can see
+   * from where you are - and somebody who has walked twenty metres to get a
+   * composition should not have to walk back to be given something to draw.
+   *
+   * It REPLACES rather than adds. A practice field is a page, not a scene: a
+   * swarm of cubes with the last session's chair standing in the middle of it
+   * is neither the exercise nor the composition, and the undo step this takes
+   * is what makes replacing safe to offer.
+   *
+   * Nothing about the view is touched - not the lens, not the sheet, not the
+   * projection, not where you are standing. Which field you get is the only
+   * thing that changes, and the whole point is to draw the same field on
+   * several sheets.
+   */
+  dealCubeField: () =>
+    set((state) => {
+      const field = nextField(state.fieldName);
+      const stand = { x: walkInput.position.x, z: walkInput.position.z };
+      return {
+        ...remember(state),
+        fieldName: field.name,
+        boxes: field.cubes.map(([x, y, z], at) => ({
+          id: newId(),
+          position: [stand.x + x, y, stand.z + z] as [number, number, number],
+          scale: [UNIT, UNIT, UNIT] as [number, number, number],
+          // Nine of the ten fields share one turn, which is what makes them one
+          // construction; the tenth gives every cube its own, and says so.
+          rotation: [0, field.turn === 0 ? looseTurn(at) : field.turn, 0] as [number, number, number],
+          surface: state.surface,
+        })),
+        // Nothing in hand: a field is something to look at, and a selection
+        // would put a bar over the bottom of it and a cage round one cube.
+        selectedId: null,
+        selectedModelId: null,
+        // The exercise is cubes. A scanned aircraft standing in the middle of
+        // a lattice is not a harder version of the exercise, it is a different
+        // drawing - and it is still on the shelf when it is wanted.
+        models: [],
+      };
+    }),
+
   addCube: (position) =>
     set((state) => {
       const id = newId();
@@ -1475,7 +1668,72 @@ export const useStore = create<SceneState>((set, get) => ({
   // straight-line camera can do neither - Scene clamps the actual lens just
   // short of 180, where a rectilinear projection stops meaning anything - but
   // the curvilinear pass can.
-  setLens: (fov) => set({ fov: Math.max(10, Math.min(MAX_FIELD, fov)) }),
+  /**
+   * The field, and - while the camera is on - the focal length that says it.
+   *
+   * One number stays authoritative. Everything downstream of the view reads
+   * `fov`: the picker, the vanishing points, the ink's line weight, the
+   * panorama's own choice of source. A focal length is a way of SETTING that
+   * number, not a second copy of it to be kept in step, so both doors write
+   * the same field and the other reading follows.
+   */
+  setLens: (fov) =>
+    set((state) => {
+      // A flat sheet has its own ceiling, and it is far below the others'.
+      const ceiling = state.perspectiveMode === 'rectilinear' ? FLAT_SIGHT : MAX_FIELD;
+      return { fov: Math.max(10, Math.min(ceiling, fov)) };
+    }),
+
+  setCamera: (change) =>
+    set((state) => {
+      const camera = { ...state.camera, ...change };
+      /*
+       * APERTURE PRIORITY, which is the mode most cameras are actually left in.
+       *
+       * Opening the aperture two stops lets in four times the light, so with
+       * `auto` on the shutter goes four times faster and the picture stays the
+       * brightness it was - and the only thing that changed is the one thing
+       * you were reaching for, which is the depth of field. Off, the same drag
+       * makes the picture two stops brighter, which is how anybody learns what
+       * a stop is.
+       *
+       * Only the aperture drives it. A hand on the shutter or the sensitivity
+       * is somebody deliberately changing the exposure, and a camera that
+       * undid that would be a camera with no manual mode at all.
+       */
+      if (camera.auto && change.aperture !== undefined && change.shutter === undefined) {
+        const ratio = (camera.aperture / state.camera.aperture) ** 2;
+        camera.shutter = Math.min(30, Math.max(1 / 8000, state.camera.shutter * ratio));
+      }
+      /*
+       * A LENS IS A RECTILINEAR INSTRUMENT, so arming one sets the projection.
+       *
+       * Not a suggestion and not a coupling that could be undone later: a
+       * focal length on a curved sheet is a number with no meaning. Fifty
+       * millimetres says exactly one thing about a picture - how much of a
+       * 36 mm frame a straight-line projection takes in - and a sheet that
+       * bows straight lines is not that projection.
+       *
+       * What it does NOT do is put the old projection back when the camera is
+       * switched off. Which sheet you draw on is a decision you make about the
+       * drawing; a mode that quietly undoes it on the way out is a mode that
+       * eats your setting.
+       */
+      const armed = camera.on && !state.camera.on;
+      return {
+        camera,
+        /*
+         * Arming one brings the field inside what a flat sheet can hold; the
+         * overlay puts a fifty over the top of that, because the millimetres
+         * are counted across the GATE and only the window knows how big the
+         * gate came out. See `fieldOfFrame` in lib/projection.ts.
+         */
+        ...(armed
+          ? { perspectiveMode: 'rectilinear' as PerspectiveMode, fov: Math.min(state.fov, FLAT_SIGHT) }
+          : {}),
+      };
+    }),
+
 
   setPerspectiveMode: (mode) =>
     set((state) => ({
@@ -1490,8 +1748,22 @@ export const useStore = create<SceneState>((set, get) => ({
        * field as the angle across the frame, so the number means the same thing
        * in each. Comparing the same view through all three IS what the button
        * is for, and it was impossible anywhere in the ordinary working range.
+       *
+       * EXCEPT ON THE WAY ONTO THE FLAT BOARD, which cannot hold it. That
+       * paragraph is true of the three curved systems and is not true of this
+       * one: a rectilinear sheet at two hundred and ten degrees is not a wide
+       * picture, it is a thumbnail in the middle of a frame whose corners have
+       * been stretched off the page - and this tool opens at exactly the field
+       * where the tangent runs away. So stepping onto the board brings the lens
+       * back to sixty, which is a frame a flat sheet can hold and about what
+       * anybody means by the word perspective when they sit down to draw it.
+       * Downwards only: a field already inside what the board can show is a
+       * field you chose.
        */
-      fov: Math.min(state.fov, MAX_FIELD),
+      fov:
+        mode === 'rectilinear' && state.fov > FLAT_SIGHT
+          ? 60
+          : Math.min(state.fov, MAX_FIELD),
     })),
 
   setCameraHeight: (height) => set({ cameraHeight: Math.max(0.2, Math.min(12, height)) }),
@@ -1619,6 +1891,7 @@ export const useStore = create<SceneState>((set, get) => ({
   setHatch: (hatch) => set((state) => ({ hatch: { ...state.hatch, ...hatch } })),
   setPen: (pen) => set((state) => ({ pen: { ...state.pen, ...pen } })),
   setWash: (wash) => set((state) => ({ wash: { ...state.wash, ...wash } })),
+  setPbr: (pbr) => set((state) => ({ pbr: { ...state.pbr, ...pbr } })),
 
   toggleGround: () => set((state) => ({ ground: { ...state.ground, on: !state.ground.on } })),
   // Turning it up from black is also turning it on: dragging a floor into view
@@ -1867,6 +2140,53 @@ export const useStore = create<SceneState>((set, get) => ({
     }),
 
   /**
+   * Copy the whole hand and put the copies in the hand instead.
+   *
+   * Duplication belongs to the selection, not the model shelf: it preserves
+   * every decision already made about size, turn, material and lift. A small
+   * diagonal step keeps the result close enough to compare while making it
+   * visible immediately instead of leaving two objects exactly superimposed.
+   * One press is one history step, however many things were held.
+   */
+  duplicateSelection: () =>
+    set((state) => {
+      const hand = handOf(state);
+      if (!hand.size) return {};
+
+      const ids = new Map<string, string>();
+      hand.forEach((id) => ids.set(id, newId()));
+      const offset = 0.5;
+      const boxes = state.boxes.filter((box) => hand.has(box.id)).map((box) => ({
+        ...box,
+        id: ids.get(box.id)!,
+        position: [box.position[0] + offset, box.position[1], box.position[2] + offset] as [number, number, number],
+      }));
+      const models = state.models.filter((model) => hand.has(model.id)).map((model) => ({
+        ...model,
+        id: ids.get(model.id)!,
+        position: [model.position[0] + offset, model.position[1], model.position[2] + offset] as [number, number, number],
+      }));
+      const lamps = state.lamps.filter((lamp) => hand.has(lamp.id)).map((lamp) => ({
+        ...lamp,
+        id: ids.get(lamp.id)!,
+        position: [lamp.position[0] + offset, lamp.position[1], lamp.position[2] + offset] as [number, number, number],
+      }));
+
+      const primary = state.selectedId ?? state.selectedModelId ?? state.selectedLampId;
+      const copiedPrimary = primary ? ids.get(primary) ?? null : null;
+      return {
+        ...remember(state),
+        boxes: [...state.boxes, ...boxes],
+        models: [...state.models, ...models],
+        lamps: [...state.lamps, ...lamps],
+        selectedId: state.selectedId ? copiedPrimary : null,
+        selectedModelId: state.selectedModelId ? copiedPrimary : null,
+        selectedLampId: state.selectedLampId ? copiedPrimary : null,
+        companions: state.companions.flatMap((id) => ids.get(id) ?? []),
+      };
+    }),
+
+  /**
    * The same height off the floor for everything in hand.
    *
    * An ABSOLUTE, not a nudge, and that is the point of it: what you want from
@@ -2070,11 +2390,151 @@ export const useStore = create<SceneState>((set, get) => ({
 
   toggleSunEnvironment: () => set((state) => ({ sunEnvironment: !state.sunEnvironment })),
 
+  setCameraFeed: (cameraFeed) => set({ cameraFeed }),
+
+  /**
+   * Change the sky, and let the sun follow.
+   *
+   * The sun is not stored twice - it is `sun`, the same one the two knobs
+   * write, and this writes it too. That is what keeps the simulation from
+   * being a second lighting system: the shadow map, the sky shader, the ink
+   * shader's terminator and the cloud deck all go on reading the one light
+   * they always read, and none of them has to know where it was aimed from.
+   *
+   * A hand on any of the four weather numbers drops the readings to 'off'.
+   * They were an observation; the moment one of them is overwritten they are
+   * a sky you composed, and a panel that goes on calling that live is lying
+   * about where its numbers came from.
+   */
+  setSky: (change) =>
+    set((state) => {
+      const overwritten =
+        change.cover !== undefined ||
+        change.base !== undefined ||
+        change.wind !== undefined ||
+        change.windBearing !== undefined;
+      const sky: SkyState = {
+        ...state.sky,
+        ...change,
+        observed:
+          change.observed ??
+          (overwritten && state.sky.observed === 'live' ? 'off' : state.sky.observed),
+      };
+      if (!sky.simulate) return { sky };
+      const sun = { ...state.sun, ...sunFromSky(sky) };
+      /*
+       * The same sun object, when the sun has not really moved.
+       *
+       * The clock steps the moment on every animation frame, and every step
+       * comes through here. A fresh `sun` object each time is a fresh object
+       * identity, and everything that reads the light off the store - the
+       * atmosphere, the deck, the lamp, the ink shader - re-renders on it,
+       * sixty times a second, to be handed numbers that differ in the fifth
+       * decimal. Below the tolerances here nothing on screen can change: a
+       * twentieth of a degree of sun moves a shadow edge by less than the
+       * pixel it lands on. So below them the old object is returned, React
+       * sees no change, and the frame is spent drawing instead.
+       */
+      const still =
+        Math.abs(sun.azimuth - state.sun.azimuth) < 0.05 &&
+        Math.abs(sun.elevation - state.sun.elevation) < 0.05 &&
+        Math.abs(sun.intensity - state.sun.intensity) < 0.002 &&
+        Math.abs(sun.temperature - state.sun.temperature) < 5;
+      return { sky, sun: still ? state.sun : sun };
+    }),
+
+  /**
+   * Move the sky to where the device says it is.
+   *
+   * Turning it off does not forget the fix, it stops CLAIMING it: the place
+   * stays where it was put, because throwing it back to Greenwich would be a
+   * switch that loses work rather than one that stops asking.
+   */
+  locateSky: async () => {
+    const { sky, setSky, observeSky } = get();
+    if (sky.located) {
+      setSky({ located: false });
+      return;
+    }
+    const done = beginActivity();
+    try {
+      const place = await deviceLocation();
+      forgetConditions();
+      /*
+       * A fix is a place AND a time. Somebody pressing this is asking what it
+       * looks like HERE, and here is a question about now - a place moved
+       * under an hour left over from a previous session is half an answer, and
+       * the half that is wrong is the one that decides where the shadows go.
+       */
+      setSky({
+        ...place,
+        located: true,
+        simulate: true,
+        time: Date.now(),
+        observed: 'off',
+      });
+      await observeSky(true);
+    } catch (error) {
+      console.error(error);
+      reportFailure();
+    } finally {
+      done();
+    }
+  },
+
+  /**
+   * Ask what the sky over this place is actually doing at this moment.
+   *
+   * One fetch covers two days back and three forward, so scrubbing the clock
+   * across a day reads hour after hour out of what is already held rather than
+   * asking again - which is why this is cheap enough to call on every change
+   * of the hour, and does.
+   */
+  observeSky: async (force = false) => {
+    const { sky, setSky } = get();
+    if (sky.observed === 'asking') return;
+
+    const apply = () => {
+      const now = get().sky;
+      const hour = conditionsAt(now.time);
+      if (!hour) {
+        // The series is held but does not reach this moment - which is a real
+        // answer for a date three weeks out, not a failure to fetch.
+        setSky({ observed: 'off' });
+        return false;
+      }
+      setSky({
+        cover: hour.cover,
+        base: hour.base,
+        wind: hour.wind,
+        windBearing: hour.windBearing,
+        observed: 'live',
+      });
+      return true;
+    };
+
+    if (!force && haveConditions(sky.latitude, sky.longitude)) {
+      apply();
+      return;
+    }
+
+    setSky({ observed: 'asking' });
+    const done = beginActivity();
+    try {
+      const got = await fetchConditions(sky.latitude, sky.longitude);
+      if (!got || !apply()) setSky({ observed: got ? 'off' : 'failed' });
+    } catch (error) {
+      console.error(error);
+      reportFailure();
+      setSky({ observed: 'failed' });
+    } finally {
+      done();
+    }
+  },
+
   setSun: (sun) => set((state) => ({ sun: { ...state.sun, ...sun } })),
 
   setFill: (fill) => set((state) => ({ fill: { ...state.fill, ...fill } })),
-
-  setSky: (sky) => set((state) => ({ sky: { ...state.sky, ...sky } })),
 
   setInstrument: (instrument) => set({ instrument }),
 

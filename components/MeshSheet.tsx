@@ -3,7 +3,7 @@ import { useStore } from '../store';
 import { MESH_LIBRARY } from '../lib/meshLibrary';
 import { MODEL_ACCEPT } from '../lib/loadModel';
 import { Icon, I } from './icons';
-import { ACTIVE, tile } from './ui';
+import { tile } from './ui';
 import { generateMeshPreview, getMeshPreview } from '../lib/meshPreview';
 import { focusPoint } from '../lib/focus';
 
@@ -131,8 +131,6 @@ export const MeshSheet: React.FC<{
 }> = ({ onPlace, onPlaceOwn, onImport, busyId }) => {
   const dark = useStore((s) => s.theme) === 'dark';
   const addCube = useStore((s) => s.addCube);
-  const instrument = useStore((s) => s.instrument);
-  const setInstrument = useStore((s) => s.setInstrument);
   const ownMeshes = useStore((s) => s.ownMeshes);
   const forgetMesh = useStore((s) => s.forgetMesh);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -147,12 +145,12 @@ export const MeshSheet: React.FC<{
    * things, not one, and the shelf is a shelf: you take what you need off it
    * and it stays where it is.
    *
-   * The block-out pencil was the last exception and is not one any more - see
-   * the note on it below. The shelf closes when you close it: the button that
-   * opened it, Escape, or a tap on the drawing.
+   * The block-out pencil now lives on the primary dock. The shelf closes when
+   * you close it: the button that opened it, Escape, or a tap on the drawing.
    */
   const handleAddCube = () => addCube([focusPoint.x, 0, focusPoint.z]);
 
+  const dealCubeField = useStore((s) => s.dealCubeField);
   const addLamp = useStore((s) => s.addLamp);
   const handleAddLamp = () => addLamp([focusPoint.x, focusPoint.z]);
 
@@ -186,50 +184,24 @@ export const MeshSheet: React.FC<{
           <Icon path={I.cube} className="w-8 h-8 opacity-80" />
         </button>
         {/*
-          * The block-out pencil, right beside the cube: the same verb, by eye.
+          * A whole page of cubes to draw, next to the one cube.
           *
-          * It sat in the tools panel with the measure, the two of them alone in
-          * a band because they are both modes. That is a fact about how they
-          * are implemented, not about what they are for - and it put the one
-          * control that turns standing in a room into a scene of its forms
-          * behind a menu of settings. This is where you already are when you
-          * want something in the drawing: a cube is one tap and comes out a
-          * metre on a side, and this is the same thing sized by your own
-          * judgement in two strokes - a footprint dragged on the floor, then
-          * its height pulled up. The paragraph above about the block of sized
-          * boxes that used to be here is the argument for it standing here.
-          *
-          * AND IT LEAVES THE SHELF WHERE IT IS, which it did not.
-          *
-          * Taking the pencil used to put the shelf away, on the argument that
-          * an instrument is for using on the drawing and the shelf would be
-          * over the floor you need to draw on. Half of that is true - it does
-          * cover the bottom of the frame - and the half that is not is the
-          * half you feel: the pencil puts ITSELF down after every box, by
-          * design, so a run of boxes was pencil, box, open the shelf, scroll
-          * to the pencil, box, open the shelf. Three taps of overhead for
-          * every second box, to save a strip of floor that the drawing is
-          * rarely in anyway.
-          *
-          * The floor above the shelf is where these boxes get drawn, which is
-          * where they were being drawn already: the horizon sits near the
-          * middle of the frame and the shelf occupies the last quarter of it.
-          * So the shelf stays, the pencil is one tap away for as long as you
-          * are blocking things in, and the way to be rid of both is the tap on
-          * the drawing that puts every panel away.
+          * This is the exercise the tool grew out of: unit cubes hanging in
+          * space, all square to the same three axes, ruled to the same six
+          * points. One at a time is a measuring stick - which is what its
+          * neighbour is for - and thirty at once is a page, which is a
+          * different thing entirely and the thing anybody actually practises
+          * on. Ten arrangements, each a different question about the
+          * construction; see lib/cubeFields.ts.
           */}
         <button
-          onClick={() => setInstrument(instrument === 'block' ? 'none' : 'block')}
+          onClick={dealCubeField}
           disabled={busy}
-          aria-label="Draw boxes on the ground"
-          aria-pressed={instrument === 'block'}
-          className={`relative w-full aspect-square rounded-xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${
-            instrument === 'block' ? ACTIVE : ''
-          } ${tile(dark)}`}
+          aria-label="Deal a field of cubes to draw"
+          className={`relative w-full aspect-square rounded-xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${tile(dark)}`}
         >
-          <Icon path={I.block} className="w-8 h-8 opacity-80" />
+          <Icon path={I.cubeField} className="w-8 h-8 opacity-80" />
         </button>
-
         {/* Your own files, right beside the cube: the way anything that is not
             one of the three gets into the tool at all. */}
         <button

@@ -3,10 +3,11 @@ import { useStore } from '../store';
 import { Icon, I } from './icons';
 import { Scrub } from './controls';
 import { ACTIVE, iconButton } from './ui';
-import { SHADOW_KINDS, type LampData, type SunState } from '../types';
+import { SHADOW_KINDS, SKY_LIMITS, type LampData, type SkyState, type SunState } from '../types';
 
 /**
- * Every light in the scene, in one place.
+ * Every light in the scene, in one place - and the sky the whole scene stands
+ * under, which is the other way of setting the biggest one of them.
  *
  * There used to be two panels' worth of two different ideas. The sun and the
  * fill were *settings*, edited here; a placed lamp was a scene *object*, edited
@@ -17,15 +18,17 @@ import { SHADOW_KINDS, type LampData, type SunState } from '../types';
  * that matters when you are lighting something.
  *
  * So it is one list. The rail across the top is every light there is: the key,
- * the fill, and each lamp you have stood somewhere. Tap one to bring it under
- * the knobs. The knobs are the same knobs for all of them, because a light is
- * a light - the only genuine difference is that a sun is *aimed*, being
- * infinitely far away, and a lamp is *placed*, so a sun has a bearing and a
- * height above the horizon where a lamp has a spot on the floor and a cone.
+ * the fill, the sky, and each lamp you have stood somewhere. Tap one to bring
+ * it under the knobs. The knobs are the same knobs for all of them, because a
+ * light is a light - the only genuine difference is that a sun is *aimed*,
+ * being infinitely far away, and a lamp is *placed*, so a sun has a bearing
+ * and a height above the horizon where a lamp has a spot on the floor and a
+ * cone.
  *
- * The two that are there when the tool opens are not privileged. They are the
- * two lights the opening scene happens to contain, with the same controls and
- * the same switch as anything you add.
+ * THE SKY IS ON THAT RAIL AND IT IS NOT A LIGHT. It is there because it is the
+ * other way of aiming the key - not by dragging it to where the drawing wants
+ * it, but by naming a place and a moment and letting the sun be where the sun
+ * actually is. See SkyKnobs below for what that costs and what it buys.
  */
 
 /** One light's knobs. The four every light has, then what only some have. */
@@ -37,59 +40,74 @@ const Knobs: React.FC<{
   shadows?: boolean;
   /** Aimed rather than placed: a sun has a height above the horizon. */
   aimed?: boolean;
-}> = ({ light, dark, onChange, shadows = false, aimed = true }) => {
+  /**
+   * Whether these four numbers are being worked out rather than set.
+   *
+   * A simulated sun's bearing, height, strength and colour are all readings -
+   * they say where the sun IS over that place at that moment. The knobs still
+   * show them, because they are the clearest statement of what the light is
+   * doing that this panel can make, and they go dead, because a knob that
+   * silently loses its value the moment you let go is worse than one that
+   * plainly is not yours to turn.
+   */
+  reading?: boolean;
+}> = ({ light, dark, onChange, shadows = false, aimed = true, reading = false }) => {
   const skin = { dark, touch: true };
   return (
     // Wrapping: five knobs at their smallest are a whisker over a 320 px
     // screen, and a knob pushed off the edge is not a knob.
     <div className="flex flex-wrap items-center justify-center gap-1">
-      <Scrub
-        skin={skin}
-        icon={I.bearing}
-        label="Bearing"
-        reading={`${Math.round(light.azimuth)}°`}
-        value={light.azimuth}
-        min={0}
-        max={360}
-        step={1}
-        wrap
-        onChange={(azimuth) => onChange({ azimuth })}
-      />
-      {aimed && (
+      <div className={`flex flex-wrap items-center justify-center gap-1 ${reading ? 'opacity-40 pointer-events-none' : ''}`}>
         <Scrub
           skin={skin}
-          icon={I.elevation}
-          label="Height above the horizon"
-          reading={`${Math.round(light.elevation)}°`}
-          value={light.elevation}
-          min={2}
-          max={89}
+          icon={I.bearing}
+          label="Bearing"
+          reading={`${Math.round(light.azimuth)}°`}
+          value={light.azimuth}
+          min={0}
+          max={360}
           step={1}
-          onChange={(elevation) => onChange({ elevation })}
+          wrap
+          onChange={(azimuth) => onChange({ azimuth })}
         />
-      )}
-      <Scrub
-        skin={skin}
-        icon={I.strength}
-        label="Strength"
-        reading={light.intensity.toFixed(1)}
-        value={light.intensity}
-        min={0}
-        max={aimed ? 12 : 60}
-        step={aimed ? 0.1 : 0.5}
-        onChange={(intensity) => onChange({ intensity })}
-      />
-      <Scrub
-        skin={skin}
-        icon={I.kelvin}
-        label="Colour temperature"
-        reading={`${Math.round(light.temperature / 50) * 50}K`}
-        value={light.temperature}
-        min={1800}
-        max={12000}
-        step={50}
-        onChange={(temperature) => onChange({ temperature })}
-      />
+        {aimed && (
+          <Scrub
+            skin={skin}
+            icon={I.elevation}
+            label="Height above the horizon"
+            reading={`${Math.round(light.elevation)}°`}
+            value={light.elevation}
+            min={2}
+            max={89}
+            step={1}
+            onChange={(elevation) => onChange({ elevation })}
+          />
+        )}
+        <Scrub
+          skin={skin}
+          icon={I.strength}
+          label="Strength"
+          reading={light.intensity.toFixed(1)}
+          value={light.intensity}
+          min={0}
+          max={aimed ? 12 : 60}
+          step={aimed ? 0.1 : 0.5}
+          onChange={(intensity) => onChange({ intensity })}
+        />
+        <Scrub
+          skin={skin}
+          icon={I.kelvin}
+          label="Colour temperature"
+          reading={`${Math.round(light.temperature / 50) * 50}K`}
+          value={light.temperature}
+          min={1800}
+          max={12000}
+          step={50}
+          onChange={(temperature) => onChange({ temperature })}
+        />
+      </div>
+      {/* Outside the dead block on purpose: whether and how the shadows fall
+          is a drawing decision, and it stays yours under a simulated sun. */}
       {shadows && (
         <button
           onClick={() =>
@@ -103,6 +121,313 @@ const Knobs: React.FC<{
           <Icon path={light.shadows === 'hard' ? I.shadowHard : I.shadow} className="w-5 h-5" />
         </button>
       )}
+    </div>
+  );
+};
+
+/* ------------------------------------------------------------- the sky pane */
+
+/**
+ * A moment, said in the two numbers anybody actually thinks in.
+ *
+ * The store holds one epoch millisecond, which is the only representation that
+ * can be compared, saved and handed to the solar equations without a timezone
+ * argument. Nobody sets a light by typing an epoch millisecond. So the pane
+ * offers the hour and the day, both read and written in LOCAL time, because
+ * "four o'clock" means four o'clock where the person is - and the place the
+ * sun is being computed for is, nine times in ten, the place they are sitting.
+ */
+const hourOf = (time: number) => {
+  const at = new Date(time);
+  return at.getHours() + at.getMinutes() / 60;
+};
+
+const withHour = (time: number, hour: number) => {
+  const at = new Date(time);
+  at.setHours(Math.floor(hour), Math.round((hour % 1) * 60), 0, 0);
+  return at.getTime();
+};
+
+const dayOf = (time: number) => {
+  const at = new Date(time);
+  const start = new Date(at.getFullYear(), 0, 1);
+  return Math.round((at.getTime() - start.getTime()) / 86400000) + 1;
+};
+
+const withDay = (time: number, day: number) => {
+  const at = new Date(time);
+  const moved = new Date(at.getFullYear(), 0, Math.round(day));
+  moved.setHours(at.getHours(), at.getMinutes(), 0, 0);
+  return moved.getTime();
+};
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const clockReading = (time: number) => {
+  const at = new Date(time);
+  return `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
+};
+
+const dateReading = (time: number) => {
+  const at = new Date(time);
+  return `${at.getDate()} ${MONTHS[at.getMonth()]}`;
+};
+
+/**
+ * How fast the sky runs.
+ *
+ * Real time is in the list and is nearly useless to look at - the sun crosses
+ * a quarter of a degree a minute - but it is the only rate at which the
+ * picture is TRUE, and a simulation that cannot be set to true is a toy. The
+ * rest are the ones worth watching: a minute a second walks the light across
+ * an afternoon while you draw, an hour a second runs a whole day in half a
+ * minute, and the two between are the ones that make a shadow move at about
+ * the speed a shadow looks like it should.
+ */
+const RATES = [1, 60, 300, 600, 1800, 3600];
+
+const rateReading = (rate: number) => {
+  if (rate <= 1) return 'real time';
+  if (rate < 3600) return `${Math.round(rate / 60)} min/s`;
+  return `${(rate / 3600).toFixed(rate % 3600 === 0 ? 0 : 1)} h/s`;
+};
+
+/** Which way a bearing is, said in the eight points anybody can picture. */
+const POINTS = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'];
+const pointOf = (bearing: number) => POINTS[Math.round((((bearing % 360) + 360) % 360) / 45) % 8];
+
+const OBSERVED_LABEL: Record<SkyState['observed'], string> = {
+  off: 'Fetch the real conditions here',
+  asking: 'Asking what the sky is doing',
+  live: 'These are the real conditions here',
+  failed: 'The conditions could not be fetched - try again',
+};
+
+/**
+ * The sky: a place, a moment, and what the sky over that place is doing.
+ *
+ * This is the answer to the question the two sun knobs cannot be asked. They
+ * are the right control for a DRAWING - put the light where the drawing wants
+ * it - and the wrong control for the thing people bring a perspective tool to
+ * settle, which is not "what does 286 degrees at 14 look like" but "what will
+ * this look like HERE, at four o'clock, in October". So:
+ *
+ *   the place    a default that is somebody else's until you press the pin,
+ *                at which point it is a real fix and the sun is your sun
+ *   the moment   an hour and a day, and a switch that lets them run - which
+ *                is the whole difference between a lighting setup and a
+ *                rehearsal of what the light is going to do
+ *   the weather  cloud cover, how high the deck is and what the wind is doing
+ *                to it, either set by hand or fetched for that place and hour
+ *
+ * The last of those is the one worth being careful about. Cover is not a
+ * dimmer: it moves the deck overhead, which throws its own shadows across the
+ * scene, and it changes the sun's strength and colour underneath - a covered
+ * noon is dimmer AND less warm than a clear one, because the reddening happens
+ * along a path the cloud has already scattered. One number, three consequences,
+ * which is what makes it a condition rather than a knob.
+ */
+const SkyKnobs: React.FC<{ sky: SkyState; dark: boolean }> = ({ sky, dark }) => {
+  const skin = { dark, touch: true };
+  const setSky = useStore((s) => s.setSky);
+  const locateSky = useStore((s) => s.locateSky);
+  const observeSky = useStore((s) => s.observeSky);
+  const drawn = useStore((s) => s.sunEnvironment);
+  const drawSky = useStore((s) => s.toggleSunEnvironment);
+
+  const seat = (on: boolean) => `${iconButton(dark)} ${on ? ACTIVE : 'opacity-40'}`;
+
+  return (
+    <div className="flex flex-col gap-1">
+      {/* WHERE AND WHEN. The half that decides what the light does. */}
+      <div className="flex flex-wrap items-center justify-center gap-1">
+        <button
+          onClick={() => setSky({ simulate: !sky.simulate })}
+          aria-label="Aim the sun from a place and a moment"
+          aria-pressed={sky.simulate}
+          className={seat(sky.simulate)}
+        >
+          <Icon path={I.simulate} className="w-5 h-5" />
+        </button>
+        <div className={sky.simulate ? 'flex flex-wrap items-center justify-center gap-1' : 'flex flex-wrap items-center justify-center gap-1 opacity-40 pointer-events-none'}>
+          <Scrub
+            skin={skin}
+            icon={I.hour}
+            label="Time of day"
+            reading={clockReading(sky.time)}
+            value={hourOf(sky.time)}
+            min={0}
+            max={24}
+            step={1 / 60}
+            wrap
+            onChange={(hour) => setSky({ time: withHour(sky.time, hour) })}
+          />
+          <Scrub
+            skin={skin}
+            icon={I.day}
+            label="Day of the year"
+            reading={dateReading(sky.time)}
+            value={dayOf(sky.time)}
+            min={1}
+            max={365}
+            step={1}
+            wrap
+            onChange={(day) => setSky({ time: withDay(sky.time, day) })}
+          />
+          <button
+            onClick={() => setSky({ running: !sky.running })}
+            aria-label={sky.running ? 'Stop the clock' : 'Let the hour run'}
+            aria-pressed={sky.running}
+            className={seat(sky.running)}
+          >
+            <Icon path={sky.running ? I.pause : I.play} className="w-5 h-5" />
+          </button>
+          <Scrub
+            skin={skin}
+            icon={I.rate}
+            label="How fast the hour runs"
+            reading={rateReading(sky.rate)}
+            value={sky.rate}
+            min={1}
+            max={3600}
+            step={1}
+            cycle={RATES}
+            onChange={(rate) => setSky({ rate })}
+          />
+          {/* The pin is what turns somebody else's sky into yours: a real fix,
+              the hour set to now, and the forecast for it fetched in one
+              press. It is the only control here that asks the browser for a
+              permission, which is why it is a press and never a default. */}
+          <button
+            onClick={() => void locateSky()}
+            aria-label={sky.located ? 'Using where this device is' : 'Use where this device is'}
+            aria-pressed={sky.located}
+            className={seat(sky.located)}
+          >
+            <Icon path={I.place} className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      <div className={`h-px mx-6 ${dark ? 'bg-white/15' : 'bg-black/10'}`} />
+
+      {/* WHAT IS IN IT. The half you can see. */}
+      <div className="flex flex-wrap items-center justify-center gap-1">
+        <button
+          onClick={drawSky}
+          aria-label="Draw the sky"
+          aria-pressed={drawn}
+          className={seat(drawn)}
+        >
+          <Icon path={I.air} className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => void observeSky(true)}
+          aria-label={OBSERVED_LABEL[sky.observed]}
+          aria-pressed={sky.observed === 'live'}
+          className={`${iconButton(dark)} ${
+            sky.observed === 'live'
+              ? ACTIVE
+              : sky.observed === 'failed'
+                ? '!text-red-500'
+                : sky.observed === 'asking'
+                  ? 'opacity-70'
+                  : 'opacity-40'
+          }`}
+        >
+          <Icon path={I.observe} className="w-5 h-5" />
+        </button>
+        {/*
+          * HOW MUCH AIR, which is the other perspective and not a weather
+          * reading - the forecast has nothing to say about it. At the bottom
+          * of it there is none at all: black sky, stars at noon, a hard white
+          * sun and nothing filling the shadows, which is the moon.
+          */}
+        <Scrub
+          skin={skin}
+          icon={I.haze}
+          label={`Air: ${sky.air <= 0.001 ? 'vacuum' : sky.air.toFixed(2)}`}
+          reading={
+            sky.air <= 0.001
+              ? 'Vakuum'
+              : sky.air < 0.7
+                ? `Tynn luft ${sky.air.toFixed(2)}`
+                : sky.air > 1.6
+                  ? `Dis ${sky.air.toFixed(2)}`
+                  : `Luft ${sky.air.toFixed(2)}`
+          }
+          value={sky.air}
+          min={0}
+          max={SKY_LIMITS.air}
+          step={0.05}
+          accent={sky.air <= 0.001}
+          onChange={(air) => setSky({ air })}
+        />
+        <Scrub
+          skin={skin}
+          icon={I.stars}
+          label={`Stars: ${sky.stars <= 0.001 ? 'off' : `${Math.round(sky.stars * 100)}%`}`}
+          reading={sky.stars <= 0.001 ? 'Av' : `${Math.round(sky.stars * 100)}%`}
+          value={sky.stars}
+          min={0}
+          max={1}
+          step={0.02}
+          onChange={(stars) => setSky({ stars })}
+        />
+        <button
+          onClick={() => setSky({ figures: !sky.figures })}
+          aria-label="Constellation figures"
+          aria-pressed={sky.figures}
+          className={`${iconButton(dark)} ${sky.figures ? ACTIVE : 'opacity-40'}`}
+        >
+          <Icon path={I.figures} className="w-5 h-5" />
+        </button>
+        <Scrub
+          skin={skin}
+          icon={I.cover}
+          label="How much of the sky is covered"
+          reading={`${Math.round(sky.cover * 100)}%`}
+          value={sky.cover}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={(cover) => setSky({ cover })}
+        />
+        <Scrub
+          skin={skin}
+          icon={I.cloudBase}
+          label="How high the cloud sits"
+          reading={`${Math.round(sky.base / 100) * 100} m`}
+          value={sky.base}
+          min={200}
+          max={12000}
+          step={50}
+          onChange={(base) => setSky({ base })}
+        />
+        <Scrub
+          skin={skin}
+          icon={I.wind}
+          label="Wind"
+          reading={`${sky.wind.toFixed(1)} m/s`}
+          value={sky.wind}
+          min={0}
+          max={40}
+          step={0.1}
+          onChange={(wind) => setSky({ wind })}
+        />
+        <Scrub
+          skin={skin}
+          icon={I.bearing}
+          label="Which way the wind comes from"
+          reading={`${pointOf(sky.windBearing)} ${Math.round(sky.windBearing)}°`}
+          value={sky.windBearing}
+          min={0}
+          max={360}
+          step={1}
+          wrap
+          onChange={(windBearing) => setSky({ windBearing })}
+        />
+      </div>
     </div>
   );
 };
@@ -122,6 +447,7 @@ export const LightPanel: React.FC = () => {
   const setSun = useStore((s) => s.setSun);
   const fill = useStore((s) => s.fill);
   const setFill = useStore((s) => s.setFill);
+  const sky = useStore((s) => s.sky);
   const lamps = useStore((s) => s.lamps);
   const updateLamp = useStore((s) => s.updateLamp);
   const removeLamp = useStore((s) => s.removeLamp);
@@ -136,7 +462,7 @@ export const LightPanel: React.FC = () => {
    * to the key light, which is the one anybody reaching for a light panel
    * wants first.
    */
-  const [picked, setPicked] = React.useState<'sun' | 'fill'>('sun');
+  const [picked, setPicked] = React.useState<'sun' | 'fill' | 'sky'>('sun');
   const lamp = lamps.find((l) => l.id === selectedLampId) ?? null;
   const chip = (on: boolean) =>
     `${iconButton(dark)} shrink-0 ${on ? ACTIVE : 'opacity-45'}`;
@@ -162,6 +488,17 @@ export const LightPanel: React.FC = () => {
           className={chip(!lamp && picked === 'fill')}
         >
           <Icon path={I.fill} className="w-5 h-5" />
+        </button>
+        {/* Not a light, and next to the lights because it is the other way of
+            setting the biggest one. Accented while it is in charge of the sun,
+            so the rail says at a glance why the key's knobs are dead. */}
+        <button
+          onClick={() => { setPicked('sky'); selectLamp(null); }}
+          aria-label="The sky, the hour and the weather"
+          aria-pressed={!lamp && picked === 'sky'}
+          className={chip(!lamp && picked === 'sky')}
+        >
+          <Icon path={I.sky} className="w-5 h-5" />
         </button>
         <div className={`w-px self-stretch my-1.5 shrink-0 ${dark ? 'bg-white/15' : 'bg-black/10'}`} />
         {lamps.map((l, i) => (
@@ -223,6 +560,8 @@ export const LightPanel: React.FC = () => {
             <Icon path={I.trash} className="w-5 h-5" />
           </button>
         </div>
+      ) : picked === 'sky' ? (
+        <SkyKnobs sky={sky} dark={dark} />
       ) : picked === 'fill' ? (
         <div className="flex flex-wrap items-center justify-center gap-1">
           <button
@@ -238,7 +577,7 @@ export const LightPanel: React.FC = () => {
           </div>
         </div>
       ) : (
-        <Knobs light={sun} dark={dark} onChange={setSun} shadows />
+        <Knobs light={sun} dark={dark} onChange={setSun} shadows reading={sky.simulate} />
       )}
     </div>
   );
