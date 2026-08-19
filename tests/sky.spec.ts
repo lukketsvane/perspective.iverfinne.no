@@ -79,20 +79,74 @@ test('the air can be taken away, and what the sun lights stays lit', async ({ ap
   expect(hasContrast(airless), 'The vacuum drew a flat frame.').toBe(true);
 });
 
+/**
+ * Turn the eye up until the frame is sky rather than floor.
+ *
+ * Two drags, because one is not enough of a pitch from a standing eye, and up
+ * the screen rather than down it: dragging the picture is dragging the WORLD,
+ * so pulling it towards you tips the view back.
+ */
+const lookUp = async (page: Parameters<typeof openTools>[0]) => {
+  for (const _ of [0, 1]) {
+    await page.mouse.move(195, 420);
+    await page.mouse.down();
+    await page.mouse.move(195, 200, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+  }
+};
+
+/**
+ * How much of the top of the frame is lit at all.
+ *
+ * Deliberately NOT the harness's fingerprint, which averages the canvas into
+ * thirty-six cells: eight thousand stars are eight thousand marks a pixel and a
+ * half across, and a cell average cannot tell that from nothing - measured, the
+ * whole catalogue moves it by a tenth of a value out of two hundred and
+ * fifty-five. An assertion that fine is one that passes by luck, and it did,
+ * twice, before it failed for no reason at all.
+ *
+ * Counting lit pixels is the honest measurement for this one claim, and it is
+ * only available because of what the claim IS: with the air turned off there is
+ * no sky, so above the horizon the frame is pure black and every lit pixel up
+ * there is a star.
+ */
+const litSky = (page: Parameters<typeof openTools>[0]) =>
+  page.evaluate(() => {
+    const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+    const copy = document.createElement('canvas');
+    copy.width = canvas.width;
+    copy.height = canvas.height;
+    const paper = copy.getContext('2d');
+    if (!paper) return 0;
+    paper.drawImage(canvas, 0, 0);
+    const band = paper.getImageData(0, 0, copy.width, Math.floor(copy.height * 0.4)).data;
+    let lit = 0;
+    for (let at = 0; at < band.length; at += 4) {
+      if (Math.max(band[at], band[at + 1], band[at + 2]) > 8) lit++;
+    }
+    return lit;
+  });
+
 test('with no air the stars are out at midday', async ({ app }) => {
   await putALongLensOn(app);
   await openTheSky(app);
   expect(await nudge(app, 'Air:', -400)).toContain('vacuum');
+  await lookUp(app);
   await settled(app);
 
-  const lit = await fingerprint(app);
+  const out = await litSky(app);
+  expect(out, 'Nothing at all was drawn above the horizon.').toBeGreaterThan(20);
+
   // Nothing about the light changes here - only whether the catalogue is drawn.
   expect(await nudge(app, 'Stars:', -400)).toContain('off');
   await settled(app);
-  const empty = await fingerprint(app);
 
-  expect(
-    same(lit, empty),
-    'Turning the catalogue off changed nothing, so it was never being drawn.'
-  ).toBe(false);
+  /*
+   * And with them off it is not merely dimmer, it is EMPTY. There is no sky in
+   * a vacuum, so what is left above the horizon is the black the frame was
+   * cleared to - which is the whole of the claim, and the reason this is a
+   * count and not a comparison.
+   */
+  expect(await litSky(app), 'The sky was not empty with the catalogue off.').toBe(0);
 });

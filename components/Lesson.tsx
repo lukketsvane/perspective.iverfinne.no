@@ -3,7 +3,6 @@ import { useStore } from '../store';
 import { walkInput } from '../lib/walkInput';
 import { ACTS, CARDS, CAST, OPENING, pingPong, sweepAt, type Act, type Card, type Cast, type Gate, type Stage } from '../lib/lesson';
 import { holdRail, muteRail, releaseRail, unmuteRail } from '../lib/rail';
-import { endTour } from '../lib/tour';
 
 /**
  * The hand on the controls - and, on nine cards out of sixteen, the hand
@@ -184,17 +183,6 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
      * away.
      */
     useStore.setState({ instrument: 'none', selectedModelId: null, models: [], lamps: [] });
-    /*
-     * ...and it stands the TOUR down as well, which is the same argument.
-     *
-     * The two are not the same thing - the tour points at controls, the lesson
-     * points at the subject - but they are both a card at the top of the
-     * screen waiting for a gesture, and a first-time viewer who taps the
-     * lesson while the tour is still going gets both at once, each asking for
-     * a different drag. The tour is already marked seen the moment it starts,
-     * so this is exactly what its own "skip" button does.
-     */
-    endTour();
     return () => {
       unmuteRail('lesson');
       releaseRail('lesson');
@@ -411,7 +399,7 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
   /*
    * THE PRESENTATION, AND IT IS NOT A PANEL.
    *
-   * The first two drafts put the lesson in the same glass card the tour uses:
+   * The first two drafts put the lesson in the same glass card the panels use:
    * a rounded slab with a border, two pill buttons and a row of dots. It read
    * as a dialog over an app, which is exactly what it is not - and a dialog is
    * a thing you dismiss. It made the most considered part of this tool feel

@@ -32,16 +32,6 @@ export { expect };
  * context - which is the only place it CAN be written from, since localStorage
  * needs an origin and the app reads both of these keys as it mounts.
  *
- * THE TOUR: nine cards, armed on every fresh visit as soon as models or boxes
- * appear, and every one of them covers the top of the frame and rings a control
- * somewhere else. A test that does not set this flag is a test of the tour, and
- * a badly behaved one: the cards WAIT for real gestures now, so an unsuppressed
- * tour does not simply sit there - it reads every drag the spec makes. The
- * shape is tour.ts's own - a
- * generation number, so that bumping the tour re-offers it to real viewers.
- * If that number moves, this line has to move with it, or the tour comes back
- * and every spec starts failing in the same baffling way.
- *
  * THE SETTINGS: store.ts persists the surface, the page, the guides, the eye
  * level and a dozen other knobs. A fresh context has none of it, so this clear
  * is belt and braces - but it is guarded by a sessionStorage marker so that it
@@ -66,7 +56,6 @@ export { expect };
  * button any more, and no store handle in a production build.
  */
 const PRELUDE = () => {
-  localStorage.setItem('kjg-perspective-tour', JSON.stringify({ seen: 6 }));
   localStorage.setItem('kjg-perspective-page', 'Brush page on black');
   localStorage.setItem('kjg-perspective-deal', 'off');
   if (!sessionStorage.getItem('harness-cleared')) {
@@ -79,8 +68,8 @@ export const test = base.extend<{ app: Page }>({
   /*
    * Every test gets its own context, and every context gets the prelude - so a
    * spec that wants to drive the load itself (a reload, a second tab, a scene
-   * seeded into storage before the app sees it) still gets the tour
-   * suppressed. Isolation is not a thing a spec has to remember here.
+   * seeded into storage before the app sees it) still gets the same start.
+   * Isolation is not a thing a spec has to remember here.
    */
   context: async ({ context }, use) => {
     await context.addInitScript(PRELUDE);

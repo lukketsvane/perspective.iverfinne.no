@@ -22,7 +22,6 @@ import * as THREE from 'three';
 import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipulate';
 import { exposureOf, fieldOfFrame, FLAT_SIGHT, HUMAN_SIGHT, lensOfFrame, MAX_FIELD, wholeSheetField } from '../lib/projection';
 import { SNAP_STEPS, selectionSurface, surfaceHasSettings, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
-import { beginTour, endTour, useTourStep } from '../lib/tour';
 
 /**
  * The systems the button steps through: the flat board, bowed horizontals, the
@@ -497,8 +496,6 @@ export const WalkOverlay: React.FC<{
     measurePointer.current = null;
   }, [instrument]);
   const railVisible = useRail();
-  /** The tour is drawn over everything, so Escape reaches it first. */
-  const tourRunning = useTourStep() >= 0;
   const sceneSurface = useStore((s) => s.surface);
   /*
    * Which rung the page's knobs are showing, read fresh from where they were
@@ -1276,13 +1273,7 @@ export const WalkOverlay: React.FC<{
         // A sheet closes itself on escape; backing out of one is not also a
         // reason to drop what was selected before it was opened. The pencil
         // goes down first: a mode whose exit is hard to reach is a trap.
-        //
-        // And the tour before even that, being the one thing drawn over all of
-        // it - the ladder's own principle is to put the topmost thing away
-        // first, and on a desktop this is the keyboard's half of the Skip chip.
-        if (tourRunning) {
-          endTour();
-        } else if (blocking || measuring) {
+        if (blocking || measuring) {
           setInstrument('none');
         } else if (shelfOpen) onShelfAway();
         else if (showMaterial) setMaterialFrom(null);
@@ -1488,17 +1479,13 @@ export const WalkOverlay: React.FC<{
         *
         * At the top, because that is the one band this tool's chrome does not
         * use - the dock, the panel slot and the walk corner are all along the
-        * bottom. Which is exactly where the tour's card stands, for exactly the
-        * same reason, so the two of them landed on top of each other the moment
-        * the tour reached the card about the pencil. The card wins while it is
-        * up: it says the same thing at more length, with the gesture drawn on
-        * the floor beside it.
+        * bottom.
         *
         * Not while a stroke is in progress either: the drag has its own live
         * reading a few pixels from the finger, and two labels for one gesture
         * is one label too many.
         */}
-      {(blocking || measuring) && !blockReadout && !tourRunning && (
+      {(blocking || measuring) && !blockReadout && (
         <div
           aria-live="polite"
           className={`fixed z-40 left-1/2 -translate-x-1/2 top-safe-panel pointer-events-none ${bubble(isDark)}`}
@@ -1532,7 +1519,7 @@ export const WalkOverlay: React.FC<{
         * down while that is up: two lines of chrome in the same strip is one
         * line too many, and a drag in progress has its own reading anyway.
         */}
-      {lens.on && !blocking && !measuring && !tourRunning && (
+      {lens.on && !blocking && !measuring && (
         <div
           aria-live="off"
           className={`fixed z-40 left-1/2 -translate-x-1/2 top-safe-panel pointer-events-none tabular-nums ${bubble(isDark)}`}
@@ -2085,7 +2072,7 @@ export const WalkOverlay: React.FC<{
 
           {/* The session itself. */}
           <div className={`${band} ${divider}`}>
-          {/* Taking the picture away, and the tour. The scene library headed
+          {/* Taking the picture away, and the lesson. The scene library headed
               this band once, on the argument that keeping compositions is a
               thing you do between drawings - true, and exactly why burying it
               was wrong: it is how every visit starts and ends, and it sat two
@@ -2098,27 +2085,32 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.camera} className="w-5 h-5" />
           </button>
-          {/* The five cards a first-time viewer gets, from the beginning. In
-              this band because it is a thing you do between drawings rather
-              than while drawing, and it closes the panel as it starts - the
-              same as the two instruments in the first band, and for the same
-              reason: what it points at is out here.
-
-              "Take the tour again" is read by lib/tour.ts. Never accented: it
-              is a verb, not a state. */}
           {/*
-            * The lesson, next to the tour, and they are not the same thing.
+            * The lesson, and there used to be a guided TOUR beside it.
             *
-            * The tour points at controls: nine cards that ring a button and
-            * wait for it to be pressed, so that a first-time viewer knows what
-            * is on screen. The lesson points at the SUBJECT: twelve cards that
-            * take the tool over and work it - the field, the sheet, where you
-            * stand, what is standing on the floor - to show why one, two,
-            * three, four and five point are one system and not five.
+            * The tour was nine cards that rang a button and waited for it to
+            * be pressed, so a first-time viewer knew what was on screen. Two
+            * things took its job. Holding any control says what it is, which
+            * is the same answer available at the moment you actually want it
+            * rather than once on the way in; and the lesson took over the
+            * teaching, at which point the two of them were a card at the top
+            * of the screen each waiting for a different drag - and a viewer
+            * who tapped the lesson while the tour was still running got both
+            * at once, with the tour's dashed walk zone ruled across the
+            * lesson's own text.
+            *
+            * What is left points at the SUBJECT rather than at the controls:
+            * cards that take the tool over and work it - the field, the sheet,
+            * where you stand, what is standing on the floor - to show why one,
+            * two, three, four and five point are one system and not five.
             *
             * It is the reason this app exists, so it sits where a viewer will
             * find it after they have played with the knobs and started
-            * wondering what the ruled sphere is actually for.
+            * wondering what the ruled sphere is actually for. In this band
+            * because it is a thing you do between drawings rather than while
+            * drawing, and it closes the panel as it starts - the same as the
+            * two instruments in the first band, and for the same reason: what
+            * it points at is out here.
             */}
           <button
             onClick={() => { setShowTools(false); onLesson(); }}
@@ -2126,13 +2118,6 @@ export const WalkOverlay: React.FC<{
             className={button}
           >
             <Icon path={I.lesson} className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => { setShowTools(false); beginTour(); }}
-            aria-label="Take the tour again"
-            className={button}
-          >
-            <Icon path={I.tour} className="w-5 h-5" />
           </button>
           </div>
         </div>
@@ -2272,8 +2257,6 @@ export const WalkOverlay: React.FC<{
             skin={{ dark: isDark, touch: true }}
             icon={I.cone}
             accent={flatBoard ? fov <= 100 : fov <= HUMAN_SIGHT}
-            // Read by the tour, which rings this control by name. Renaming it
-            // leaves that step with a card and no ring.
             label="Field of view"
             // On the flat board a field IS a focal length, and a focal
             // length is the unit anybody composing with one already

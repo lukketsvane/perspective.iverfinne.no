@@ -92,7 +92,7 @@ export const useAutoDeal = () => {
         if (document.visibilityState !== 'visible') return;
         if (Date.now() - dealt < wait) return;
         if (Date.now() - touched < IDLE) return;
-        // A panel is open or the tour is running: somebody is mid-decision,
+        // A panel is open or a lesson is running: somebody is mid-decision,
         // and a page dealt over an open panel changes every reading in it.
         if (railHeld()) return;
       }

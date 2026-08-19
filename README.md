@@ -326,7 +326,7 @@ the construction ladder); what the picture is made of (the surface,
 its settings, the sheet, the page, the lamps); where it is seen from (standing
 it in the real room, the projection, the lens reach, the room, the measure,
 looking by turning the phone); and the session (save the view as a PNG, and the
-tour again). Sixteen identical circles wrapping into whatever rows the
+lesson). Sixteen identical circles wrapping into whatever rows the
 width happened to give was a wall rather than a menu — nothing sat near anything
 it was related to, and which row a control landed in changed with the phone. A
 band is scanned in one movement and keeps its company at every width.
@@ -472,8 +472,8 @@ interactive cards have no clock on them at all, so most of the lesson runs at
 whatever pace you set.
 
 **There is no card, and that is the point.** The first two drafts put the lesson
-in the same glass panel the tour uses: a rounded slab with a border, two pill
-buttons and a row of eighteen dots. It read as a *dialog over an app*, which is
+in the same glass panel every other sheet uses: a rounded slab with a border, two
+pill buttons and a row of eighteen dots. It read as a *dialog over an app*, which is
 exactly what it is not, and a dialog is a thing you dismiss. It made the most
 considered part of this tool feel like the most skippable.
 
@@ -539,11 +539,15 @@ the bottom of the picture cannot press a button it can no longer see. The two
 cards that are *about* a control let go for their turn, and the whole thing is
 handed back when the lesson ends.
 
-**Starting a lesson also stands the tour down.** They are not the same thing —
-the tour points at controls, the lesson points at the subject — but they are
-both a card at the top of the screen waiting for a gesture, and a first-time
-viewer who taps the lesson while the tour is still running got both at once,
-each asking for a different drag.
+**There used to be a guided tour beside it**, and it is gone. It was nine cards
+that rang a button and waited for it to be pressed, so a first-time viewer knew
+what was on screen. Two things took its job: holding any control now says what
+it is, which is the same answer available at the moment you want it rather than
+once on the way in; and the lesson took over the teaching. What was left was two
+cards at the top of the screen each waiting for a different drag — a viewer who
+tapped the lesson while the tour was still running got both at once, with the
+tour's dashed walk zone ruled across the lesson's own text. Nothing is offered
+on the way in any more. The lesson is a thing you ask for.
 
 ### Hold a control, and it says what it is
 
@@ -553,7 +557,7 @@ is what you learn. That has one honest cost: three weeks later, the difference
 between the sphere and the endless band is a glyph you half remember.
 
 **So hold any control and its name appears above it**, two or three words, in the
-same language the tour is written in. Let go and it is gone — and the control
+same language the lesson is written in. Let go and it is gone — and the control
 does not fire, because reading what something is must never be the same gesture
 as doing it. Holding *clear the scene* to remember what it does and losing the
 scene is the exact opposite of an answer, so the click is swallowed in the
@@ -563,16 +567,17 @@ the hint on the way, since half the controls here are dragged and a slow drag
 starts with a finger sitting still.
 
 It is **one listener for forty buttons**, keyed on the `aria-label` each of them
-already carries — the same names the tour rings by and the harness clicks by, so
-there is no second register of names to keep in step. A control added tomorrow
+already carries — the same names the lesson reaches by and the harness clicks by,
+so there is no second register of names to keep in step. A control added tomorrow
 gets a hint by being named, which it has to be anyway. Labels that carry a live
 value (`Snap to 0.25 m`, `Floor: 128 of 255…`) are matched by their stem, longest
 key first.
 
-Always on, rather than something the tour switches on: the tour is nine cards you
-see once on your first visit, and the question this answers is one you have long
-after. A gesture that only works inside a mode you have already left is a gesture
-nobody finds.
+Always on, rather than something a mode switches on. The question this answers is
+one you have long after your first visit, and a gesture that only works inside a
+mode you have already left is a gesture nobody finds. It is also why the guided
+tour could go: this says the same thing, about every control rather than nine,
+at the moment you are actually asking.
 
 **Turned sideways, the dock splits in two.** A phone held in landscape is held
 in *two hands*, and the two places a thumb actually rests are the bottom
@@ -2197,7 +2202,7 @@ switch), and turning the catalogue off at the bottom of that knob has to change
 the frame again — because if it does not, the stars were never being drawn.
 
 **What is covered:** whatever the specs in `tests/` assert, and nothing else.
-This suite began as a net under work that had none — the tour, the per-object
+This suite began as a net under work that had none — the per-object
 materials, the stepped wash, the preset deck, the ground plane — so treat a
 green run as "the things somebody wrote down still work", not as "the app
 works".
@@ -2230,8 +2235,8 @@ of them rather than working around them:
   handle in a production build.
 
 The rest of `harness.ts` is a list of ways this app can be tested wrongly, each
-with the reason attached: the tour has to be suppressed before the app reads
-its own storage, the chrome fades after six seconds and a click on it lands on
+with the reason attached: the page has to be pinned before the app reads its own
+storage, the chrome fades after six seconds and a click on it lands on
 the scene instead, "Tools" is a toggle, the same `aria-label` is on two
 different buttons, a Scrub is dragged and reads out only while held, a box is
 two drags and both have to land on the floor. Read them before writing a spec;

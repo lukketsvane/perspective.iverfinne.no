@@ -7,21 +7,22 @@
  * you learn - and it has one honest cost: three weeks later, the difference
  * between the sphere and the endless band is a glyph you half remember.
  *
- * The tour answers that once, on the way in, for nine controls out of forty.
- * This answers it for all of them, whenever you ask: HOLD a control and its
- * name appears above it. Let go and it is gone, and the control does not fire
- * - reading what something is must never be the same gesture as doing it.
+ * There was a guided tour that answered it once, on the way in, for nine
+ * controls out of forty. This answers it for all of them, whenever you ask:
+ * HOLD a control and its name appears above it. Let go and it is gone, and the
+ * control does not fire - reading what something is must never be the same
+ * gesture as doing it.
  *
  * WHY IT IS KEYED ON THE ARIA-LABEL. Those labels already exist, they are
  * already exact, and they are already the thing this app hangs its meaning on:
- * the tour rings a control by its label, the harness clicks one by its label,
- * and a screen reader reads it. Keying the hints on anything else would be a
- * second register of names to keep in step with the first. The one thing that
+ * the lesson reaches a control by its label, the harness clicks one by its
+ * label, and a screen reader reads it. Keying the hints on anything else would
+ * be a second register of names to keep in step with the first. The one thing that
  * costs is that a label carrying a live value - `Snap to 0.25 m`, `Floor: 128
  * of 255 - drag to change` - has to be matched by its stem, which `hintFor`
  * does by taking the longest key the label starts with.
  *
- * THE TEXT IS NYNORSK, like the tour's cards and unlike the labels themselves:
+ * THE TEXT IS NYNORSK, like the lesson's cards and unlike the labels themselves:
  * the labels are machine-facing names, and this is the one place in the app
  * where a human is being told something in words. Two or three of them. A hint
  * that is a sentence is a hint nobody finishes reading with their thumb still
@@ -76,7 +77,6 @@ const HINTS: Record<string, string> = {
   'Look by turning the phone': 'Snu telefonen for å sjå. Dobbelttrykk for rommet under',
   'Save the view as a picture': 'Lagre biletet',
   'Learn how perspective works': 'Leksjonen: kvifor perspektiv verkar',
-  'Take the tour again': 'Ta omvisinga på nytt',
 
   // ------------------------------------------------------------- the lights
   //
