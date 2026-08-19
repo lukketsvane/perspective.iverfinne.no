@@ -5,6 +5,7 @@ import { beginMeasure, clearMeasures, endMeasure, updateMeasure } from '../lib/m
 import { holdRail, releaseRail, showRail, useRail } from '../lib/rail';
 import { SelectionBar } from './SelectionBar';
 import { LightPanel } from './LightPanel';
+import { SkyPanel } from './SkyPanel';
 import { MaterialPanel } from './MaterialPanel';
 import { Icon, I, SETTINGS_ICON, SURFACE_ICON } from './icons';
 import { Scrub, useBackdropControl, useGrayThemeControl, useGroundControl, useRoomControl } from './controls';
@@ -294,6 +295,8 @@ export const WalkOverlay: React.FC<{
    * panel, Tools swaps it back.
    */
   const [showLights, setShowLights] = useState(false);
+  /** The air, the weather and the night. Only reachable while the sky is on. */
+  const [showSky, setShowSky] = useState(false);
   /*
    * ...and the drawn page's own settings, in the same slot again.
    *
@@ -328,6 +331,7 @@ export const WalkOverlay: React.FC<{
   const swapTo = (open: () => void) => () => {
     setShowTools(false);
     setShowLights(false);
+    setShowSky(false);
     setMaterialFrom(null);
     open();
   };
@@ -960,6 +964,7 @@ export const WalkOverlay: React.FC<{
       if (!woke.current) {
         if (shelfOpen) onShelfAway();
         else if (showMaterial) setMaterialFrom(null);
+        else if (showSky) setShowSky(false);
         else if (showLights) setShowLights(false);
         else if (showTools) setShowTools(false);
         else selectBox(null);
@@ -1162,6 +1167,7 @@ export const WalkOverlay: React.FC<{
           setInstrument('none');
         } else if (shelfOpen) onShelfAway();
         else if (showMaterial) setMaterialFrom(null);
+        else if (showSky) setShowSky(false);
         else if (showLights) setShowLights(false);
         else if (showTools) setShowTools(false);
         else useStore.getState().selectBox(null);
@@ -1237,7 +1243,7 @@ export const WalkOverlay: React.FC<{
       walkInput.forward = 0;
       walkInput.strafe = 0;
     };
-  }, [showTools, showLights, showMaterial, shelfOpen, onShelfAway, measuring, blocking, undo, redo]);
+  }, [showTools, showLights, showSky, showMaterial, shelfOpen, onShelfAway, measuring, blocking, undo, redo]);
 
   // Opening the second row is a statement that the chrome is wanted. It used to
   // fade out from under an open panel six seconds later, leaving twelve
@@ -1250,9 +1256,9 @@ export const WalkOverlay: React.FC<{
   // away, inert, mid-decision. Browsing is not idleness; a library is open
   // because it is being read.
   useEffect(() => {
-    if (showTools || showLights || showMaterial || shelfOpen) holdRail();
+    if (showTools || showLights || showSky || showMaterial || shelfOpen) holdRail();
     else releaseRail();
-  }, [showTools, showLights, showMaterial, shelfOpen]);
+  }, [showTools, showLights, showSky, showMaterial, shelfOpen]);
 
   /*
    * The knobs go when the rung they belong to does.
@@ -1266,6 +1272,12 @@ export const WalkOverlay: React.FC<{
   useEffect(() => {
     if (materialFrom && !surfaceHasSettings(materialSurface)) setMaterialFrom(null);
   }, [materialFrom, materialSurface]);
+
+  // The sky's knobs go with the sky. Switching it off from underneath an open
+  // panel would otherwise leave a panel of settings for something not there.
+  useEffect(() => {
+    if (showSky && !sunEnvironment) setShowSky(false);
+  }, [showSky, sunEnvironment]);
 
 
   const button = iconButton(isDark);
@@ -1569,7 +1581,7 @@ export const WalkOverlay: React.FC<{
               hand, and either can be the one that has knobs. */}
           {surfaceHasSettings(sceneSurface) && (
             <button
-              onClick={() => { setShowTools(false); setShowLights(false); setMaterialFrom('scene'); onShelfAway(); }}
+              onClick={() => { setShowTools(false); setShowLights(false); setShowSky(false); setMaterialFrom('scene'); onShelfAway(); }}
               aria-label={surfaceSettingsLabel(sceneSurface)}
               aria-expanded={materialFrom === 'scene'}
               className={button}
@@ -1585,6 +1597,20 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={sunEnvironment ? I.sky : isDark ? I.dark : I.light} className="w-5 h-5" />
           </button>
+          {/* And what the sky is made of, when there is one. Absent otherwise,
+              for the reason its neighbour above is absent on the rungs with
+              nothing to set: a button that does nothing is one you learn to
+              distrust. */}
+          {sunEnvironment && (
+            <button
+              onClick={() => { setShowTools(false); setShowLights(false); setMaterialFrom(null); setShowSky(true); onShelfAway(); }}
+              aria-label="Air, weather and the night sky"
+              aria-expanded={showSky}
+              className={button}
+            >
+              <Icon path={I.air} className="w-5 h-5" />
+            </button>
+          )}
           {/* What the drawing is mounted on: the page behind the sheet its
               neighbour sets - tap for the sheet itself, black, white, and
               drag for any tone between. */}
@@ -1599,7 +1625,7 @@ export const WalkOverlay: React.FC<{
             <Icon path={I.backdrop} className="w-5 h-5" />
           </button>
           <button
-            onClick={() => { setShowTools(false); setMaterialFrom(null); setShowLights(true); onShelfAway(); }}
+            onClick={() => { setShowTools(false); setMaterialFrom(null); setShowSky(false); setShowLights(true); onShelfAway(); }}
             aria-label="Lights"
             aria-expanded={showLights}
             className={button}
@@ -1781,6 +1807,16 @@ export const WalkOverlay: React.FC<{
           </div>
         </div>
 
+        {/* The sky's own knobs, in the same slot again. */}
+        <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
+          <div
+            {...(showSky && dockVisible ? {} : { inert: '' })}
+            className={`max-w-full ${SIDEWAYS_BLOCK} p-1.5 rounded-[1.125rem] border shadow-2xl transition-all duration-300 transform origin-bottom ${showSky && dockVisible ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'} ${surface}`}
+          >
+            <SkyPanel />
+          </div>
+        </div>
+
         {/* The library, in the same slot: one row, scrolled sideways. */}
         <div className={`absolute bottom-0 inset-x-0 flex justify-center pointer-events-none ${SIDEWAYS_SLOT}`}>
           <div
@@ -1827,6 +1863,7 @@ export const WalkOverlay: React.FC<{
             }
             setShowTools(false);
             setShowLights(false);
+            setShowSky(false);
             setMaterialFrom('selection');
             onShelfAway();
           }}
@@ -2000,7 +2037,7 @@ export const WalkOverlay: React.FC<{
           <button
             // With the lights up, Tools means "back to the tools": the two
             // share the slot, so this swaps rather than stacks.
-            onClick={() => { setShowTools(showLights || showMaterial || shelfOpen ? true : !showTools); setShowLights(false); setMaterialFrom(null); onShelfAway(); }}
+            onClick={() => { setShowTools(showLights || showSky || showMaterial || shelfOpen ? true : !showTools); setShowLights(false); setShowSky(false); setMaterialFrom(null); onShelfAway(); }}
             aria-label="Tools"
             aria-expanded={showTools}
             className={`${button} ${showTools ? 'bg-black/10 dark:bg-white/10' : ''}`}

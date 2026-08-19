@@ -362,8 +362,21 @@ export const drag = async (
    * it is read from there rather than from the page: the block-out readout is
    * another bubble in the same style, and a spec dragging while a box is being
    * pulled up would otherwise read that one.
+   *
+   * AND IT MAY NOT BE THERE AT ALL, which is not a fault. A press held for
+   * getting on for half a second is a question about what the control is, and
+   * the app answers it with a hint over the button - which takes the reading
+   * bubble's place, deliberately. Nothing here holds a control on purpose, but
+   * on a machine drawing every frame in software the gap between the press and
+   * the first move goes past that on its own. Waiting for a bubble that has
+   * been replaced is waiting for ever; an empty reading is the honest answer,
+   * and a spec that needed the number will say so in its own assertion.
    */
-  const reading = await knob.locator('xpath=..').locator('div[class*="-top-12"]').textContent();
+  const reading = await knob
+    .locator('xpath=..')
+    .locator('div[class*="-top-12"]')
+    .textContent({ timeout: 2000 })
+    .catch(() => '');
   await page.mouse.up();
   return (reading ?? '').trim();
 };
