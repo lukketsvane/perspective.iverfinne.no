@@ -249,20 +249,38 @@ export const selectionMaterial = (state: {
   )?.material;
 
 /**
- * Whether a rung has anything to set.
+ * Whether a rung has anything to set beyond being that rung.
  *
- * All three of the drawn ones now. It was the two that are a family rather than
- * a look - the marker's colour, the hatch's rule - and brush was left out
+ * All three of the drawn ones. It was the two that are a family rather than a
+ * look - the marker's colour, the hatch's rule - and brush was left out
  * because it had nothing of its own to offer. It has the pen, which it shares
  * with the other two and which nobody could reach at all before; a page whose
  * outline you cannot set is a page missing its most important mark.
  *
- * The original rung now exposes the conventional PBR response, while the
- * three drawn rungs expose their pen and page settings.
+ * The plain lit surface does not. It had two - a roughness and a metalness,
+ * added when the matte rung was replaced by a global override - and they were
+ * two knobs nobody was ever going to reach for in a tool about where edges
+ * point. They are gone, and the drawer goes with them: the rung still steps on
+ * a tap, but holding it opens nothing, because a panel with nothing in it is
+ * worse than no panel at all. The values they sat at are `LIT_FINISH` below,
+ * so nothing about the picture changed with them.
  */
 export const surfaceHasSettings = (
   surface: Surface | null
-): surface is 'original' | 'brush' | 'marker' | 'hatch' => surface !== null;
+): surface is 'brush' | 'marker' | 'hatch' => surface !== null && surface !== 'original';
+
+/**
+ * The finish that rung is drawn with, everywhere.
+ *
+ * The two numbers the knobs sat at, so taking them away changed nothing about
+ * the picture: a dry, barely-specular surface, which is what a white block is
+ * and what makes its three faces read as three values.
+ *
+ * One pair rather than one per file, because the boxes and the meshes have to
+ * agree - a figure standing among cubes at a different roughness is a figure
+ * standing under a different sun.
+ */
+export const LIT_FINISH = { roughness: 0.7, metalness: 0 } as const;
 
 /**
  * What the button that opens them should say it opens.
@@ -273,9 +291,7 @@ export const surfaceHasSettings = (
  * on top of the pen, and brush has only the pen.
  */
 export const surfaceSettingsLabel = (surface: Surface) =>
-  surface === 'original'
-    ? 'Adjust the PBR material'
-    : surface === 'hatch'
+  surface === 'hatch'
     ? 'How the hatching is ruled'
     : surface === 'marker'
       ? "The marker's own settings"
@@ -1095,8 +1111,6 @@ export interface SceneState {
   pen: PenState;
   /** The flat tone laid under it. */
   wash: WashState;
-  /** Overrides applied to authored PBR materials in the original surface. */
-  pbr: { roughness: number; metalness: number };
   /**
    * A floor under the drawing, and what tone it is.
    *
@@ -1257,7 +1271,6 @@ export interface SceneState {
     hatch?: Partial<HatchState>;
     wash?: Partial<WashState>;
   }) => void;
-  setPbr: (pbr: Partial<{ roughness: number; metalness: number }>) => void;
   /** Give the selection back to the page's own settings. */
   followPageMaterial: () => void;
   cycleRoom: () => void;

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { useHeld, useStore } from '../store';
-import { isSketch, MESH_SURFACES, nearestSurface, SceneModel } from '../types';
+import { isSketch, LIT_FINISH, MESH_SURFACES, nearestSurface, SceneModel } from '../types';
 import { authoredMaterial } from '../lib/modelMaterials';
 import { constructionInk } from '../lib/inkMaterial';
 import { useObjectMaterial } from '../lib/ownMaterial';
@@ -32,22 +32,34 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
   const surface = nearestSurface(model.surface ?? sceneSurface, MESH_SURFACES);
   const inked = isSketch(surface);
   const hardShadows = useStore((state) => state.sun.shadows) === 'hard';
-  const pbr = useStore((state) => state.pbr);
-  const pbrMaterials = useMemo(() => {
+  /**
+   * The authored materials, flattened to the scene's own finish.
+   *
+   * WHY THEY ARE OVERRIDDEN AT ALL: a scanned figure arrives with photographed
+   * skin and fabric on it, which is a great deal of information to draw past
+   * when what the figure is doing here is standing among white boxes being read
+   * for form and value. Flattening leaves the shape and takes away the
+   * photograph - and it is the same finish the boxes are drawn with, so a
+   * figure among them is lit by the same sun.
+   *
+   * Each copy is kept against the material it came from, so the twenty meshes a
+   * scanned animal arrives in share one clone rather than carrying twenty.
+   */
+  const flattened = useMemo(() => {
     const adjusted = new WeakMap<THREE.Material, THREE.Material>();
     const materialFor = (material: THREE.Material) => {
       const held = adjusted.get(material);
       if (held) return held;
       const copy = material.clone();
-      if ('roughness' in copy) (copy as THREE.MeshStandardMaterial).roughness = pbr.roughness;
-      if ('metalness' in copy) (copy as THREE.MeshStandardMaterial).metalness = pbr.metalness;
+      if ('roughness' in copy) (copy as THREE.MeshStandardMaterial).roughness = LIT_FINISH.roughness;
+      if ('metalness' in copy) (copy as THREE.MeshStandardMaterial).metalness = LIT_FINISH.metalness;
       copy.needsUpdate = true;
       adjusted.set(material, copy);
       return copy;
     };
     return (material: THREE.Material | THREE.Material[]) =>
       Array.isArray(material) ? material.map(materialFor) : materialFor(material);
-  }, [pbr.roughness, pbr.metalness]);
+  }, []);
 
   /*
    * The cage goes round the one in your hands, and only that one.
@@ -103,9 +115,9 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       // Read the authored materials before swapping, so the first swap is what
       // records them rather than what loses them.
       const own = authoredMaterial(mesh);
-      mesh.material = drawn ?? pbrMaterials(own);
+      mesh.material = drawn ?? flattened(own);
     });
-  }, [surface, hardShadows, model.object, drawn, pbrMaterials]);
+  }, [surface, hardShadows, model.object, drawn, flattened]);
 
   if (!model.object) return null;
 
