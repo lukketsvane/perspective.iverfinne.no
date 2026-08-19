@@ -169,6 +169,15 @@ const toTheEtchedPage = async (page: Page) => {
   expect(await pageRung(page), 'The page never reached the etched rung.').toBe('hatch');
 };
 
+/** And onto the plain lit rung, counted the same way and for the same reason. */
+const toThePlainPage = async (page: Page) => {
+  await openTools(page);
+  for (let step = 0; step < 6 && (await pageRung(page)) !== 'original'; step++) {
+    await press(page, 'tools', PAGE_RUNG);
+  }
+  expect(await pageRung(page), 'The page never reached the plain rung.').toBe('original');
+};
+
 /**
  * Tap something in the scene to take hold of it.
  *
@@ -604,4 +613,62 @@ test('the floor a page brought with it does not follow the next page in', async 
     leakTested,
     'Twelve deals and never once an unnamed page after a different tone - the leak this guards was not exercised.'
   ).toBe(true);
+});
+
+/**
+ * A rung with nothing to set opens nothing.
+ *
+ * The plain lit rung used to have two knobs of its own - a roughness and a
+ * metalness - and they were two sliders in a tool about where edges point.
+ * They are gone, and this is what would quietly come back with them: the rung
+ * and its drawer are ONE seat, so a rung with nothing to show has to say so
+ * rather than open an empty panel. `surfaceHasSettings` is the whole of that
+ * decision and it is one word away from being wrong in either direction.
+ *
+ * "Is the panel there" is not a question a locator can answer, because the
+ * panel does not unmount when it shuts - it fades, so that on the way out it
+ * can go on showing whose settings it was showing. Whether it can be REACHED
+ * is answerable, and is the better question anyway: shut, the whole slot is
+ * pointer-events-none, so a hover on anything inside it never lands. A panel
+ * nobody can touch is a panel that is not open.
+ */
+test('the rung with nothing to set opens nothing, and the next one still opens its own', async ({
+  app,
+}) => {
+  await toThePlainPage(app);
+
+  await openTools(app);
+  await wake(app);
+  await hold(app, findByPrefix(app, PAGE_RUNG, 'tools'));
+  await app.waitForTimeout(500);
+  await openTools(app);
+
+  // The seat does not even advertise a drawer: `aria-expanded` is left off
+  // entirely on a rung that has nothing behind it, rather than set to false.
+  expect(
+    await findByPrefix(app, PAGE_RUNG, 'tools').getAttribute('aria-expanded'),
+    'The plain rung is advertising a drawer it does not have.'
+  ).toBe(null);
+  expect(await app.locator('[aria-label^="PBR"]').count(), 'The two knobs are back.').toBe(0);
+
+  const reachable = await app
+    .locator(`[aria-label="${SPACING}"]`)
+    .hover({ timeout: 1500 })
+    .then(
+      () => true,
+      () => false
+    );
+  expect(reachable, 'The panel opened on a rung with nothing to put in it.').toBe(false);
+
+  // One rung along, and the drawer is exactly where it should be.
+  await wake(app);
+  await press(app, 'tools', PAGE_RUNG);
+  await openTools(app);
+  await wake(app);
+  const drawn = findByPrefix(app, PAGE_RUNG, 'tools');
+  await hold(app, drawn);
+  await expect(drawn, 'A rung that has settings stopped opening them.').toHaveAttribute(
+    'aria-expanded',
+    'true'
+  );
 });
