@@ -604,7 +604,6 @@ const SETTING_KEYS = [
   'hatch',
   'pen',
   'wash',
-  'pbr',
   'ground',
   'roomLevel',
   'room',
@@ -653,7 +652,6 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   hatch: object,
   pen: object,
   wash: object,
-  pbr: object,
   ground: object,
   roomLevel: number,
   room: object,
@@ -1309,7 +1307,6 @@ export const useStore = create<SceneState>((set, get) => ({
   fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
   sky: readSky(remembered.sky),
   camera: readCamera(remembered.camera),
-  pbr: { roughness: 0.7, metalness: 0, ...(remembered.pbr ?? {}) },
 
   /*
    * ...AND THE DEAL OVER THE TOP OF ALL OF IT, last, because it has to be.
@@ -1891,7 +1888,6 @@ export const useStore = create<SceneState>((set, get) => ({
   setHatch: (hatch) => set((state) => ({ hatch: { ...state.hatch, ...hatch } })),
   setPen: (pen) => set((state) => ({ pen: { ...state.pen, ...pen } })),
   setWash: (wash) => set((state) => ({ wash: { ...state.wash, ...wash } })),
-  setPbr: (pbr) => set((state) => ({ pbr: { ...state.pbr, ...pbr } })),
 
   toggleGround: () => set((state) => ({ ground: { ...state.ground, on: !state.ground.on } })),
   // Turning it up from black is also turning it on: dragging a floor into view
