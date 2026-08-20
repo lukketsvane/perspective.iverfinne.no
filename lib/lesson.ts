@@ -130,6 +130,18 @@ export interface Stage {
   gridZ: boolean;
   /** The cube's own turn about its upright, in radians. */
   turn: number;
+  /**
+   * Who else is standing on the stage: figures off the mesh shelf, by id.
+   *
+   * The lesson is cubes on a bare floor on purpose - every card is about
+   * where EDGES point, and a scanned aircraft has no straight edge on it. The
+   * astronaut is the one exception, and earns it twice over: a body built
+   * openly out of spheres and capsules is construction rather than scenery,
+   * and a character whose height you have met is a measuring stick in a way
+   * no labelled box can be. Loaded on demand and gone with the card; a figure
+   * that fails to arrive is a thinner stage, never a broken lesson.
+   */
+  figures?: Array<{ who: string; at: [number, number]; turn?: number }>;
 }
 
 /**
@@ -387,8 +399,8 @@ export const CARDS: Card[] = [
      * right when they are read off the horizon rather than guessed.
      */
     headline: 'Linja er ein målestokk',
-    body: 'Ein pult på 75, eit lite barn på 110, ein bil på 150, ei dør på 210. Ingen av dei står i di høgd. Sjå kvar linja går på kvar av dei.',
-    found: 'Ho går over dei tre fyrste og gjennom den fjerde, fordi ho ligg i 170 og døra er det eine som er høgare enn auget ditt. Og du kjenner alt desse høgdene frå kroppen din: pulten når deg til låret, barnet til livet, bilen til brystet. Set linja der auget er, og storleikane er ei avlesing i staden for ei gjetting.',
+    body: 'Ein pult på 75, astronauten på ein meter, ein bil på 150, ei dør på 210. Ingen av dei står i di høgd. Sjå kvar linja går på kvar av dei.',
+    found: 'Ho går over dei tre fyrste og gjennom den fjerde, fordi ho ligg i 170 og døra er det eine som er høgare enn auget ditt. Og du kjenner alt desse høgdene frå kroppen din: pulten når deg til låret, astronauten til hofta, bilen til brystet. Set linja der auget er, og storleikane er ei avlesing i staden for ei gjetting.',
     stage: {
       cast: 'heights',
       mode: 'rectilinear',
@@ -397,6 +409,7 @@ export const CARDS: Card[] = [
       selectionGuides: 0,
       cameraHeight: EYE_HEIGHT,
       stand: { x: 0, z: 3, yaw: 0, pitch: 0 },
+      figures: [{ who: 'astro-walking', at: [-1.1, -6] }],
     },
     travel: 2000,
   },
@@ -616,7 +629,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Teikn ei sjølv',
     body: 'No har du arket. Blyanten teiknar grunnflata og dreg henne opp; hald ei kasse og slå på hennar eigne punkt for å sjå kvar kantane skal peike. Hylla har ei heil side med kassar å øve på. Resten er timar.',
-    stage: { cast: 'one', mode: 'equidistant', fov: 210, guides: 2, selectionGuides: 1, turn: Math.PI / 5, stand: { x: 0, z: 3.6, yaw: 0, pitch: 0 } },
+    stage: { cast: 'one', mode: 'equidistant', fov: 210, guides: 2, selectionGuides: 1, turn: Math.PI / 5, stand: { x: 0, z: 3.6, yaw: 0, pitch: 0 }, figures: [{ who: 'astro-back', at: [-2.1, -1], turn: -0.35 }] },
     chrome: true,
     travel: 2400,
   },
@@ -672,11 +685,11 @@ export const CAST: Record<Cast, Array<[number, number] | [number, number, number
     [-4.5, -18, EYE_HEIGHT],
     [3.5, -40, EYE_HEIGHT],
   ],
-  /* A desk, a small child, a car, a door. Spread so the line crosses each at a
-     visibly different place, and near enough that the difference is legible. */
+  /* A desk, a car, a door - and between them the astronaut, who is a figure
+     off the shelf rather than a box (see Stage.figures). Spread so the line
+     crosses each at a visibly different place, and near enough to read. */
   heights: [
     [-3.2, -4, 0.75],
-    [-1.1, -6, 1.1],
     [1.4, -8, 1.5],
     [3.9, -11, 2.1],
   ],

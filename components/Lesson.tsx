@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { walkInput } from '../lib/walkInput';
 import { ACTS, CARDS, CAST, OPENING, pingPong, sweepAt, type Act, type Card, type Cast, type Gate, type Stage } from '../lib/lesson';
+import { MESH_LIBRARY } from '../lib/meshLibrary';
+import { loadModelFromUrl } from '../lib/loadModel';
 import { holdRail, muteRail, releaseRail, unmuteRail } from '../lib/rail';
 
 /**
@@ -244,11 +246,35 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       gridX: stage.gridX,
       gridZ: stage.gridZ,
       boxes: cast,
+      // The stage is cleared of figures with every card and refilled below if
+      // this one names any, so a card never inherits the last card's company.
+      models: [],
       // The first of the cast is what the selection's own construction rules
       // to, which is how a card asks for one cube's six points.
       selectedId: stage.selectionGuides > 0 && cast.length > 0 ? cast[0].id : null,
       selectedModelId: null,
     });
+
+    /*
+     * The figures arrive when they arrive. The card is not held for a fetch:
+     * the boxes are the lesson, the astronaut is company, and on the second
+     * meeting the loader already holds the parsed file so he is simply there.
+     */
+    let standing = true;
+    if (stage.figures?.length) {
+      void Promise.all(
+        stage.figures.map(({ who, at: spot, turn }) => {
+          const entry = MESH_LIBRARY.find((mesh) => mesh.id === who);
+          if (!entry) return Promise.resolve(null);
+          return loadModelFromUrl(entry.url, entry.name, spot, entry.height)
+            .then(({ model }) => ({ ...model, id: `lesson-${who}`, rotationY: turn ?? 0 }))
+            .catch(() => null);
+        })
+      ).then((loaded) => {
+        const arrived = loaded.filter((figure): figure is NonNullable<typeof figure> => figure !== null);
+        if (standing && arrived.length) useStore.setState({ models: arrived });
+      });
+    }
 
     /*
      * The chrome goes down for every card that does not need it, and comes
@@ -384,6 +410,7 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
 
     frame = requestAnimationFrame(step);
     return () => {
+      standing = false;
       window.clearTimeout(settle);
       if (raise !== undefined) window.clearTimeout(raise);
       cancelAnimationFrame(frame);
