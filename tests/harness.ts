@@ -53,8 +53,8 @@ export { expect };
  * seen by a context that has never seen it - which is every context this suite
  * makes. Left alone it holds the chrome up and adds a row to the dock's column,
  * which lifts the panel by about fifty pixels and therefore lifts every stroke
- * `blockOutABox` aims under it, off the floor and onto the aircraft. The one
- * spec that is ABOUT the first visit clears this key itself.
+ * `blockOutABox` aims under it, off the floor and onto whatever is standing
+ * there. The one spec that is ABOUT the first visit clears this key itself.
  *
  * AND THE DEALER, which is the same input arriving on a timer. The tool deals
  * itself a new page in the gaps between working - see lib/autoDeal.ts - which
@@ -73,21 +73,35 @@ const PRELUDE = () => {
   }
 };
 
-export const test = base.extend<{ app: Page }>({
+export const test = base.extend<{ bare: boolean; app: Page }>({
+  /*
+   * Whether to open the tool BARE: the street stood down, the same stand over
+   * an empty grid. The door grew a scene - twelve cubes, a turned one, lamps,
+   * three figures - and the specs that block out and place things both need
+   * the floor it occupies and count what they made. They say `test.use({
+   * bare: true })` at the top of the file; everything else walks in the real
+   * front door, because a suite that never sees the opening is a suite that
+   * cannot tell you it broke.
+   */
+  bare: [false, { option: true }],
+
   /*
    * Every test gets its own context, and every context gets the prelude - so a
    * spec that wants to drive the load itself (a reload, a second tab, a scene
    * seeded into storage before the app sees it) still gets the same start.
    * Isolation is not a thing a spec has to remember here.
    */
-  context: async ({ context }, use) => {
+  context: async ({ context, bare }, use) => {
     await context.addInitScript(PRELUDE);
+    if (bare) {
+      await context.addInitScript(() => localStorage.setItem('kjg-perspective-bare', 'yes'));
+    }
     await use(context);
   },
 
-  /** The app, loaded, with the opening car standing up and the frame still. */
-  app: async ({ page }, use) => {
-    await open(page);
+  /** The app, loaded, with the street (or the bare stand) settled and still. */
+  app: async ({ page, bare }, use) => {
+    await open(page, { bare });
     await use(page);
   },
 });
@@ -101,28 +115,34 @@ export const test = base.extend<{ app: Page }>({
 const BUSY = 'div[class*="z-[60]"]';
 
 /** Load the app and wait until there is something to look at. */
-export const open = async (page: Page) => {
+export const open = async (page: Page, { bare = false } = {}) => {
   /*
    * Three gates, and each of them catches something the one before it cannot.
    *
-   * The response listener goes on before the navigation, because the opening
-   * mesh is fetched by the first effect that runs - the Hughes H-1, always,
-   * see meshLibrary.ts on why the racer is the object worth opening on.
+   * The response listener goes on before the navigation, because the street's
+   * figures are fetched by the first effect that runs - three small files
+   * where the opening used to pull a twenty-megabyte aeroplane.
    *
-   * But its bytes arriving is not the aircraft standing up: twenty megabytes
-   * still have to be parsed and framed, and until that happens the frame is an
-   * empty grid that is perfectly still - so a settle check alone would call it ready
-   * and hand a spec a scene with nothing in it. The hairline is still up at
-   * that point (the activity is cleared in a finally, after the stand-up), so
+   * But their bytes arriving is not the street standing up: they still have
+   * to be parsed and stood, and until that happens the frame is an empty grid
+   * that is perfectly still - so a settle check alone would call it ready and
+   * hand a spec a scene with nothing in it. The hairline is still up at that
+   * point (the activity is cleared in a finally, after the stand-up), so
    * waiting for it to go is what closes that window.
    *
    * Then, and only then, wait for the drawing itself to stop moving.
+   *
+   * A BARE open fetches nothing and raises no hairline - the whole point is
+   * that nothing stands up - so the first two gates would wait thirty seconds
+   * for events that never come. It goes straight to the settle.
    */
-  const mesh = page.waitForResponse(/\/meshes\/.*\.glb/, { timeout: 30_000 });
+  const mesh = bare ? null : page.waitForResponse(/\/meshes\/.*\.glb/, { timeout: 30_000 });
   await page.goto('/');
   await page.waitForSelector('canvas');
-  await mesh;
-  await page.waitForSelector(BUSY, { state: 'detached', timeout: 30_000 });
+  if (mesh) {
+    await mesh;
+    await page.waitForSelector(BUSY, { state: 'detached', timeout: 30_000 });
+  }
   await settled(page);
 };
 
@@ -520,10 +540,10 @@ export const readSceneBundle = async (page: Page): Promise<SceneManifest> => {
  *
  * WHERE IT DRAWS MATTERS, AND THE SHELF IS NOW PART OF WHERE. pickGround
  * returns nothing on the sky or past the edge of the sheet, and a stroke that
- * starts on nothing starts no box at all, silently. The app opens framed on an
- * eight-metre aircraft in the middle of the frame, so the default footprint is
- * low and off to the right: below the horizon, clear of the racer, and out of
- * the walk quadrant in the bottom left.
+ * starts on nothing starts no box at all, silently. The default footprint is
+ * low and off to the right - below the horizon and out of the walk quadrant in
+ * the bottom left - which was chosen against the framed opening of its day and
+ * holds on the bare stand these specs open on: nothing but floor down there.
  *
  * AND ABOVE THE SHELF, WHICH IS MEASURED RATHER THAN GUESSED. Taking the pencil
  * used to put the model shelf away, so the whole lower frame was free; it stays

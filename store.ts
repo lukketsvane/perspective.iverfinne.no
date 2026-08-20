@@ -270,12 +270,13 @@ const pageTheme = (backdrop: Backdrop, backgroundGray: number, surface: Surface)
 /**
  * A page pinned by name, which is how the deal is made to hold still.
  *
- * `window.__forceMesh` does this job for the opening object and is stripped
- * from the production bundle, which is exactly where it cannot be used from:
- * the regression suite runs against a real build. This is a key in storage
- * instead, written before the app's first line of script the same way the
- * lesson's flag is, and it survives minification because it is a string rather
- * than a global.
+ * `window.__forceMesh` used to do this job for the opening object, and was
+ * stripped from the production bundle - which is exactly where it could not be
+ * used from: the regression suite runs against a real build. (The hook is gone
+ * with the single opening object; the street needs no pointing.) This is a key
+ * in storage instead, written before the app's first line of script the same
+ * way the lesson's flag is, and it survives minification because it is a
+ * string rather than a global.
  *
  * IT IS NOT A DEBUG HATCH ONLY. A deck of pages is a thing you iterate on, and
  * iterating on one page means opening the tool on that page over and over

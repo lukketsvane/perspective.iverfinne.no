@@ -9,10 +9,9 @@ import { SceneSheet } from './components/SceneSheet';
 import { useStore, saveSettings, currentView } from './store';
 import { loadModelFile, loadModelFromUrl, modelRadius } from './lib/loadModel';
 import { findFreeSpot, onTheFloor } from './lib/placement';
-import { MESH_LIBRARY, openingMesh } from './lib/meshLibrary';
+import { MESH_LIBRARY } from './lib/meshLibrary';
 import { focusPoint } from './lib/focus';
 import { glideWalkerTo, walkInput } from './lib/walkInput';
-import { fieldOf } from './lib/projection';
 import { constructionInk, pageHex } from './lib/inkMaterial';
 import { keepAwake } from './lib/wakeLock';
 import { useSkyClock } from './lib/skyClock';
@@ -87,469 +86,179 @@ export default function App() {
       .forEach((meta) => meta.setAttribute('content', pageHex()));
   }, [surface, backgroundGray, backdrop]);
 
-  /** Above this, it is something you look at standing up. */
-  const EYE_TO_EYE = 1.2;
-
   /**
-   * How far the opening object is turned off square, in radians.
+   * THE STREET: what is standing there when the tool opens.
    *
-   * Forty degrees, which is the three-quarter view every product photograph and
-   * every drawing lesson opens on. Square-on, a thing this long is a one-point
-   * construction: one face, one point, and its whole depth hidden behind its own
-   * back. Turned, all three of its axes run off to three separate places, and
-   * the box drawn round it says so. That is the first thing the tool should be
-   * showing, so it is what it starts with.
+   * The opening used to be the racer with its yard - one beautiful object,
+   * framed. It taught scale and it taught nothing else, and everything this
+   * tool is actually about had to be walked to. The street teaches all of it
+   * at once, standing still: two rows of metre cubes run their edges to one
+   * point on the horizon; the gaps between them - a metre each, every one -
+   * compress toward it, which is depth made visible; the lamps repeat down
+   * one side, the measure the drawing books say to lean on; the figures put
+   * known heights at three depths for the eye-level line to cut; and one box
+   * stands turned in the middle of the road, carrying its own pair of points
+   * along the same horizon. It is the lesson's whole deck laid out as one
+   * place - and the racer is still on the shelf, one tap away.
+   *
+   * A composition, not a car park: laid out by hand against the stand below,
+   * and looked at from it, in both orientations, before any number settled.
    */
-  const OPENING_TURN = 0.7;
-
-  /*
-   * THE EYE STANDS ON THE Z AXIS, AND IT WAS WORTH TRYING NOT TO.
-   *
-   * With six things round the racer rather than one, standing on the scene's
-   * own axis looked like the mistake: everything at much the same distance,
-   * spread along the horizon, a team photograph. So the eye was walked
-   * twenty-two degrees round to port, with the racer turned by the same angle
-   * so it went on presenting its three-quarter.
-   *
-   * It is worse, measured rather than argued: the yard is composed for a
-   * viewer on the axis, and moving the viewer reprojects all of it at once.
-   * The stores rack swings across the fuselage and stands in front of the
-   * cockpit; the marshaller and the pilot slide off the left edge; the bowser
-   * loses its cab off the right. Every one of those is a placement that was
-   * chosen against a frame that no longer exists.
-   *
-   * The thing actually wrong with the opening was never the bearing. It is
-   * that half the frame is empty floor, and that is a matter of where the eye
-   * AIMS - see `middle` in the solve below.
-   */
-
-  /**
-   * THE YARD ROUND THE RACER: who else is standing there when the tool opens.
-   *
-   * The aircraft is the subject and the reason these four are not. Alone on the
-   * grid it is a beautiful object and a poor drawing: nothing in the frame says
-   * how big it is except a ruling you have to already believe in, nothing else
-   * is at a different depth, and there is no second form for its own to be read
-   * against. A man at six metres, a truck at eight and a rack at seven fix all
-   * three at once, and every one of them is a size you already know.
-   *
-   * WHERE THEY STAND is chosen against the racer's own box - 8.2 m long, 7.6 m
-   * across the wings, turned forty degrees - and every one of them is clear of
-   * it by more than a wingtip. Laid out by hand rather than handed to
-   * `findFreeSpot`, which answers "somewhere that is not inside something
-   * else"; this is a composition, and the difference between the two is the
-   * difference between a yard and a car park.
-   *
-   * THE PILOT IS NOT IN THE AEROPLANE. He is modelled sitting on a plain chair,
-   * which is a man waiting to fly and not a man flying, and dropping him into
-   * the cockpit would put a chair in there with him. He sits off the port wing
-   * where you can walk round him - and being the one seated figure here, he is
-   * also the only one whose whole mass is folded rather than standing, which is
-   * the harder drawing of the two.
-   *
-   * The bell is not here. It is on the shelf, and what it is for is a lesson in
-   * lathe-turned form rather than a thing an airfield has lying about.
-   */
-  /**
-   * The turn that points a figure at the aircraft from wherever it is standing.
-   *
-   * WORKED OUT, NOT EYEBALLED, and the first go at this was eyeballed: the
-   * marshaller who used to stand here had his back to the racer, signalling at
-   * nobody. It looks like a thing you can see and fix by nudging a number, and
-   * it was not, because the figures on the shelf then were authored facing
-   * opposite ways - so one turn that was right for one of them was a hundred
-   * and eighty degrees wrong for the next, which is exactly the shape of
-   * mistake that survives a glance at a screenshot.
-   *
-   * That is fixed in the files now rather than here: every figure in the
-   * library faces +Z at a turn of zero, measured once by rendering each from
-   * the four cardinal directions and seeing which tile showed a front, and the
-   * quarter turns baked in. So this is just a bearing. The aircraft is on the
-   * origin, so the bearing from a standing place to it is the bearing of the
-   * negated position - and moving anybody leaves them still looking at it.
-   */
-  const towardsTheRacer = (at: [number, number]) => Math.atan2(-at[0], -at[1]);
-
-  /*
-   * WHERE THE FOUR OF THEM STAND, AND WHY IT IS THIS TIGHT.
-   *
-   * The yard before this one was laid out for an eye standing seventeen metres
-   * back. The eye stands at SEVEN AND A THIRD now - the lens went to 210 and the
-   * frame solve came in with it - and nobody re-composed the yard, so half of
-   * it was outside the frame and one figure was standing behind the viewer's
-   * own head. That is the shape of mistake a screenshot does not show you,
-   * because what is missing from a picture does not appear in it.
-   *
-   * The frame is the binding constraint and it is worth writing down. Portrait,
-   * the field is measured along the LONG edge, so 210 degrees down the height
-   * leaves about 89 across the width - a half-angle of roughly 44. A figure at
-   * depth d from the eye has to stand within about 0.75 d of the axis to be
-   * comfortably inside that, and outside about six metres from the origin to be
-   * clear of the aeroplane. Those two do not both hold anywhere in the near
-   * half: at three metres in front of the racer there is a metre and a half of
-   * frame either side of it, and no more.
-   *
-   * So the near pair stand INSIDE six metres, in the gap between the port wing
-   * and the nose where the machine does not actually reach, and the far pair
-   * are seen past it. Every one of these was tried in the running app and
-   * looked at; four earlier arrangements put somebody behind the tail, off the
-   * edge, or under a wing.
-   */
-  const GROUND_CREW: { id: string; at: [number, number]; turn: number }[] = [
-    /*
-     * NEAREST, AND DOWN ON ONE KNEE: three and a half metres out, off the port
-     * bow, in front of the wing rather than under it.
-     *
-     * Kneeling is the pose that needs to be near. He is 1.4 m to the top of his
-     * cap where the standing men are 1.7, and a low folded figure at the back
-     * of a yard is a smudge - both of the other short poses tried at depth
-     * vanished behind the tailplane. Near, he is the one who reads as being at
-     * WORK, the only one of the four with a job in his hands, and the line he
-     * is hauling runs from the apron up past his head: the one long straight in
-     * this scene that is neither the aeroplane nor the grid.
-     */
-    { id: 'crew-kneeling', at: [-2.2, 4.4], turn: towardsTheRacer([-2.2, 4.4]) },
-    /*
-     * FOLDED RIGHT UP, five metres out on the starboard side, clear of the
-     * tailplane rather than under it.
-     *
-     * The hardest drawing here - a whole man compressed into 1.2 m with every
-     * limb foreshortened at once - so he goes where he is big enough to be
-     * worth drawing. Staggered two metres deeper than the kneeling man on
-     * purpose: side by side at the same distance the two of them read as a
-     * matched pair flanking the machine, which is an arrangement and not a
-     * yard.
-     *
-     * A pilot squatting beside his aeroplane doing nothing is what waiting for
-     * weather looks like, which is the ordinary reason a racer is standing
-     * still with men round it.
-     */
-    { id: 'pilot-crouched', at: [2.8, 3.2], turn: towardsTheRacer([2.8, 3.2]) },
-    /*
-     * BEHIND THE PORT WING, eleven metres out, seen underneath it.
-     *
-     * There is no room on that side to stand him anywhere else: the wingtip
-     * reaches to within three degrees of the frame edge, so on the left a
-     * figure is either in front of the wing or behind it, and the front is
-     * taken. Behind is the right answer anyway - head down over a board and
-     * perfectly still, he is the far mark the eye measures the near men
-     * against, and being partly occluded is what tells you he is beyond the
-     * wing rather than beside it.
-     */
-    { id: 'crew-clipboard', at: [-6.0, -1.6], turn: towardsTheRacer([-6.0, -1.6]) },
-    /*
-     * FURTHEST, thirteen metres out and well past the aircraft's own plane, so
-     * the four of them end up at four separate depths - three and a half, five,
-     * eleven, thirteen. That spread is the whole reason for standing them
-     * anywhere in particular: it is what makes the yard a measured space rather
-     * than a row.
-     *
-     * Being the far one he is also the smallest, and being upright and still he
-     * is the one that survives being small.
-     */
-    { id: 'crew-standing', at: [7.4, -3.0], turn: towardsTheRacer([7.4, -3.0]) },
+  const STREET_ROWS: { at: [number, number]; tall: number }[] = [
+    // The left row, with one cube grown into a tower so the skyline varies
+    // and there is a tall vertical to find the zenith with.
+    { at: [-2, -1], tall: 1 },
+    { at: [-2, -3], tall: 1 },
+    { at: [-2, -5], tall: 3 },
+    { at: [-2, -7], tall: 1 },
+    { at: [-2, -9], tall: 1 },
+    { at: [-2, -11], tall: 1 },
+    // The right row, its tower deeper so the two do not read as a gate.
+    { at: [2, -1], tall: 1 },
+    { at: [2, -3], tall: 1 },
+    { at: [2, -5], tall: 1 },
+    { at: [2, -7], tall: 2.2 },
+    { at: [2, -9], tall: 1 },
+    { at: [2, -11], tall: 1 },
   ];
 
   /**
-   * Stand where the whole of it can be seen, and look at its middle.
+   * The intruder: one cube in the roadway, turned half a radian off the grid.
    *
-   * IT HAS TO FIT IN BOTH DIRECTIONS, which is what this used to get wrong.
-   * The old solve measured the object against the VERTICAL field only, and
-   * then threw the answer away: the distance it actually used was the object's
-   * own length, clamped by how much floor the room has. On an upright phone
-   * that happened to look fine. Turned sideways it was a disaster - a landscape
-   * frame has barely twenty degrees of pitch and ninety of yaw, the car is six
-   * metres long, and the tool opened with its tail and its back wheel off the
-   * bottom right of the screen.
-   *
-   * So both fields are asked, and the binding one wins: how far back the
-   * object's LENGTH has to be to sit inside the horizontal half-field, how far
-   * back its HEIGHT has to be to sit inside the vertical one, and stand at
-   * whichever is greater. A six-metre car cannot fill a portrait phone without
-   * being cropped, and the honest answer there is to stand further back.
-   *
-   * A ROOM TOO SMALL TO SEE ITS OWN CONTENTS FROM IS NOT A ROOM.
-   *
-   * The floor bounds where you can stand, and with the default ten-metre room
-   * up that bound is 3.8 m - while a six-metre car on an upright phone needs
-   * nearly ten, because a 90 degree field is only 41 degrees WIDE when the
-   * longest edge of the frame is the vertical one. So the search returned the
-   * right answer and a hard clamp threw it away, and the tool opened with the
-   * car running off both edges. That is the crop, and it is the whole of it.
-   *
-   * The clamp is not the thing to remove: standing outside your own walls,
-   * looking in through them, is not a view anybody wants either. The room is
-   * the thing to change. It is furniture - the walls are there to give the
-   * scene a corner to read against, and a shell that will not let you back far
-   * enough to see what is inside it has failed at the one job it has. So when
-   * the framing needs more floor than there is, the room grows to give it,
-   * squarely, and only as far as it must. With the walls down nothing bounds
-   * it at all.
-   *
-   * Then whether to kneel. Anything taller than about a metre is something you
-   * meet from your own height - a person, a car - and dropping to its waist
-   * would be a strange way to do it. Anything lower has to be knelt to, or it
-   * is a thing on the floor seen from above.
+   * Everything else in the scene shares one family of edges and one pair of
+   * points. This one refuses, and holding it (its own construction is one tap
+   * away) shows its pair standing on the SAME horizon, somewhere else - which
+   * is the fact about turned things almost nobody is taught.
    */
-  const frame = (size: [number, number, number]) => {
-    const { cameraHeight, fov, setCameraHeight } = useStore.getState();
-    const field = fieldOf(fov, window.innerWidth, window.innerHeight);
+  const STREET_INTRUDER = { at: [0.95, -6.1] as [number, number], turn: 0.5 };
 
-    /**
-     * How much of each half-field the object is allowed to take.
-     *
-     * NINETY-SIX PER CENT, AND IT WAS EIGHTY-SIX. Fourteen per cent of margin
-     * on every edge is a lot of air when the subject is the whole reason for
-     * the view: on an upright phone it stood the eye eighteen metres off an
-     * eight-metre aeroplane and left the thing a band across the middle with
-     * empty floor under it and empty page over it. Ninety-six brings the eye
-     * in by about a sixth and the aircraft and its yard grow to match, without
-     * crossing the line this number exists to hold - the whole of the object
-     * is still inside the frame, which is the rule, and the four per cent left
-     * is the honest slack for the corner cases the search is solving against.
-     */
-    const FILL = 0.96;
-    const halfYaw = Math.min(field.halfYaw, Math.PI * 0.46);
-    const halfPitch = Math.min(field.halfPitch, Math.PI * 0.46);
-
-    /*
-     * The width to clear is what the TURN actually presents.
-     *
-     * Not the object's length - the opening turns it forty degrees off square,
-     * which is the whole point, so that all three of its axes run to three
-     * separate points, and a turned box shows some of its side as well as some
-     * of its end. Not the footprint's diagonal either, which is what this used
-     * to take: the diagonal is the width at the one bearing that presents it,
-     * forty-five degrees off, and everywhere else it is an over-estimate. On
-     * the car it is twelve per cent over, which is a metre of air added to
-     * every edge for nothing.
-     *
-     * AND IT IS NOT A WIDTH AT ALL, IT IS FOUR CORNERS.
-     *
-     * A width has to be held at some depth to become an angle, and the depth
-     * that matters is not the one through the middle of the object. The corner
-     * that reaches furthest across the frame is also the one nearest the eye,
-     * and being nearer it subtends more - on the car in portrait, 21.0 degrees
-     * against the 17.8 the mid-plane width predicted, which is a corner one
-     * degree outside a 20.7 degree field. That is the front wing, off the edge
-     * of an upright phone, at a distance the solve had just certified.
-     *
-     * So the four corners of the turned footprint are carried about and asked
-     * directly. It is the same trigonometry either way, done in the right
-     * place: each corner has its own lateral offset and its own depth.
-     */
-    /*
-     */
-    const cos = Math.cos(OPENING_TURN);
-    const sin = Math.sin(OPENING_TURN);
-    const feet = ([1, -1] as const).flatMap((a) =>
-      ([1, -1] as const).map((b) => {
-        const x = (a * size[0]) / 2;
-        const z = (b * size[2]) / 2;
-        return { x: x * cos + z * sin, z: -x * sin + z * cos };
-      })
-    );
-    /** The widest any corner reaches, standing d back. */
-    const widest = (d: number) =>
-      Math.max(...feet.map((foot) => Math.atan(Math.abs(foot.x) / Math.max(d - foot.z, 0.35))));
-    /** ...and how far the nearest of them is in front of the origin. */
-    const deep = Math.max(...feet.map((foot) => foot.z));
-    /*
-     * AIMED AT THE MIDDLE, and raising that was tried and put back.
-     *
-     * Half the opening frame is empty floor, and aiming higher looks like the
-     * fix: lift the aim to seven tenths of the object's height and the horizon
-     * should drop out of the centre. It does not. At the distance an eight
-     * metre aeroplane has to be stood at to fit an upright phone - eighteen
-     * metres - moving the aim point up by sixty centimetres is one degree of
-     * pitch, which is nothing; and because `fits` measures both ends of the
-     * object from the aim, aiming higher puts the FOOT further from it and the
-     * solve answers by standing further back still. Measured: 16.9 m became
-     * 18.3 m for a frame that looked the same.
-     *
-     * The empty floor is not a bug in the aim. It is what standing in a field
-     * at eye height and looking level at something eighteen metres away
-     * genuinely looks like, and the only lever that moves it is how much of the
-     * field the subject is allowed - which is FILL, above.
-     */
-    const middle = size[1] / 2;
-    const eye = size[1] >= EYE_TO_EYE ? cameraHeight : Math.max(0.8, middle + 0.55);
-
-    /*
-     * ...and the height to clear is not the object's height either.
-     *
-     * A long thing seen from a standing eye runs a long way DOWN the frame:
-     * its near end is close, and the angle from the horizon down to the ground
-     * at that near end is most of the vertical field on a landscape phone. The
-     * old solve measured the object's own height, which is the one number that
-     * has nothing to do with it, and the tool opened with the front wheel off
-     * the bottom of the screen.
-     *
-     * AND IT HAS TO FIT AROUND WHERE THE CAMERA WILL ACTUALLY POINT.
-     *
-     * The pitch is not free: the eye is aimed at the object's middle, which
-     * keeps the horizon and the vanishing points on the page, and that is the
-     * lesson the opening view exists to teach - so it is not something to give
-     * up to centre a car. But the vertical span is not centred on the object's
-     * middle. It runs from the GROUND at the near edge, which is far below it,
-     * up to the near top edge, which is barely above; the middle of that span
-     * sits some way beneath the point being looked at. Measuring the span's
-     * total width against the whole field, as this did, therefore passes
-     * distances at which the near end is still off the bottom - by six per
-     * cent of the frame on a landscape phone, which is the front wheel.
-     *
-     * So each end is measured from the aim rather than from each other, and
-     * the worse of the two has to fit its half of the field.
-     *
-     * Both conditions are transcendental in the distance, so they are searched
-     * rather than solved. Sixteen halvings settle it to a centimetre, once,
-     * when the object is stood up.
-     */
-    const fits = (d: number) => {
-      if (widest(d) > halfYaw * FILL) return false;
-      const near = Math.max(d - deep, 0.35);
-      const aim = Math.atan2(middle - eye, d);
-      // Signed, both of them: a thing shorter than the eye has its top BELOW
-      // the horizon, and calling that a rise of nothing was a small lie that
-      // stood you further back than the shape needed.
-      const top = Math.atan((size[1] - eye) / near);
-      const foot = -Math.atan(eye / near);
-      return Math.max(Math.abs(top - aim), Math.abs(foot - aim)) <= halfPitch * FILL;
-    };
-    let low = 0.9;
-    let high = 60;
-    if (!fits(high)) low = high;
-    else {
-      for (let i = 0; i < 16; i++) {
-        const mid = (low + high) / 2;
-        if (fits(mid)) high = mid;
-        else low = mid;
-      }
-    }
-    const wanted = Math.min(60, Math.max(0.9, high));
-
-    const distance = wanted;
-
-    setCameraHeight(eye);
-    /*
-     * Glided, not teleported. This lands one to three seconds after boot -
-     * whenever the aircraft finishes parsing - and it used to land as a hard
-     * cut from the default stand to the solved one, which read as the picture
-     * snapping under whoever was already looking at it. See glideWalkerTo for
-     * who wins if the viewer is saying something at the time.
-     */
-    walkInput.lookYaw = 0;
-    walkInput.lookPitch = 0;
-    walkInput.seeded = true;
-    glideWalkerTo({ x: 0, z: distance, yaw: 0, pitch: Math.atan2(middle - eye, distance) });
-
-    // Kept so a turned phone can be answered - see below.
-    framed.current = { size, z: distance, pitch: walkInput.pitch, eye };
-  };
+  /** Three lamps down the left side, two grid squares apart, every time. */
+  const STREET_LAMPS: [number, number][] = [
+    [-1.3, -2],
+    [-1.3, -6],
+    [-1.3, -10],
+  ];
 
   /**
-   * The opening framing, and the pose it chose - so turning the phone can be
-   * answered rather than ignored.
+   * Who is standing in the street, and at which depths.
    *
-   * The whole solve depends on the shape of the window: at 90 degrees the
-   * field is laid on the longest edge, so upright a phone has 41 degrees of
-   * yaw and 90 of pitch, and on its side exactly the other way round. Those
-   * are different answers - nine metres back against six for the same car -
-   * and the framing ran once, on mount, and never again. Open upright and turn
-   * the phone and the car went off the right-hand edge; the tool had framed
-   * itself for a window that no longer existed.
-   *
-   * Only while the view is still the one that was chosen, though. The moment
-   * you walk, turn or kneel, where you are standing is yours, and a framing
-   * that reasserted itself every time the address bar collapsed would be the
-   * worse bug by far. So the pose is remembered, and the first time the live
-   * one differs from it this stops watching for good.
+   * The walker is the 1.80 from the lesson, mid-street, coming toward you:
+   * the eye-level line cuts him through the face, which is the first check of
+   * any figure in any scene. The jetpack one hovers deeper at 1.15, so the
+   * line goes over his helmet - same line, different verdict, which is the
+   * point. The kneeling crewman is nearest and lowest, at work; a folded
+   * figure close up is the hardest of the three to draw and earns the near
+   * spot the way he earned it beside the racer.
    */
-  const framed = useRef<{ size: [number, number, number]; z: number; pitch: number; eye: number } | null>(null);
-  useEffect(() => {
-    const reframe = () => {
-      const held = framed.current;
-      if (!held) return;
-      const moved =
-        Math.abs(walkInput.position.x) > 0.01 ||
-        Math.abs(walkInput.position.z - held.z) > 0.01 ||
-        Math.abs(walkInput.yaw) > 0.004 ||
-        Math.abs(walkInput.pitch - held.pitch) > 0.004 ||
-        Math.abs(walkInput.lookYaw) > 0.004 ||
-        Math.abs(walkInput.lookPitch) > 0.004 ||
-        Math.abs(useStore.getState().cameraHeight - held.eye) > 0.01;
-      if (moved) {
-        framed.current = null;
-        return;
-      }
-      frame(held.size);
-    };
-    window.addEventListener('resize', reframe);
-    window.addEventListener('orientationchange', reframe);
-    return () => {
-      window.removeEventListener('resize', reframe);
-      window.removeEventListener('orientationchange', reframe);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const STREET_FIGURES: { id: string; at: [number, number]; turn: number }[] = [
+    // The library's figures face +Z at a turn of zero, and the eye stands at
+    // +Z: zero IS facing the viewer, walking out of the street.
+    { id: 'astro-walking', at: [0.5, -4.0], turn: 0 },
+    { id: 'astro-jetpack', at: [-1.05, -8.2], turn: 0.45 },
+    { id: 'crew-kneeling', at: [2.75, -1.3], turn: 2.6 },
+  ];
 
   /**
-   * The scene the tool starts from: the racer on the origin with its yard round
-   * it, framed to fill the frame with the aircraft.
+   * Where the tool stands you when it opens: at the mouth of the street,
+   * half a step off its axis so the near row leads in rather than walls off.
+   *
+   * A fixed stand, not a solve. The racer needed framing because it was one
+   * object of one size; a street is a place, and a place holds its view in
+   * either orientation - portrait sees it deep, landscape sees both rows.
+   */
+  const STREET_STAND = { x: 0.55, z: 1.8, yaw: -0.05, pitch: -0.02 };
+
+
+  /**
+   * The scene the tool starts from: the street, with the eye at its mouth.
    *
    * Both the opening and the reset go through here, so those two are the same
    * state by construction rather than by two pieces of code agreeing. Reset
    * therefore means "back to how this started", which is a place to draw from,
    * rather than "empty grid", which is a place to look at.
    *
-   * EVERYTHING IS FETCHED BEFORE ANYTHING STANDS UP. The crew could be stood as
-   * they arrived, which would put the aircraft on the grid a moment sooner - and
-   * would also mean the guard below is asked five separate times, so a viewer
-   * who placed a chair during the load would find half a yard landing on top of
-   * it. One await, one guard, one arrangement: it either all happens or none of
-   * it does. They are fetched in parallel and the four men come to a third of
-   * what the aircraft alone weighs, so the wall clock is the aircraft's either
-   * way.
+   * EVERYTHING IS FETCHED BEFORE ANYTHING STANDS UP: one await, one guard,
+   * one arrangement, so a viewer who placed something during the load never
+   * finds half a street landing on top of it. The cubes and the lamps cost
+   * nothing to fetch; the wall clock is the three figures', and they are a
+   * fraction of what the aeroplane that used to open here weighed - the
+   * twenty-megabyte racer now loads when it is asked for, from the shelf,
+   * instead of on every first visit.
    *
-   * Twenty-six megabytes over the network before anything stands up, and
-   * twenty of them are the aeroplane. The hairline says so, rather than the
-   * grid sitting empty for a second and a half with nothing to suggest that it
-   * will not stay that way. (A reset pays nothing: the parsed sources are still
-   * in hand, kept alive by the undo step.)
+   * The stand is glided to, not cut to: this lands a moment after boot, and a
+   * hard cut reads as the picture snapping under whoever is already looking.
    */
   const standOpening = () => {
-    const entry = openingMesh();
+    /*
+     * The suite's empty-yard door. Specs about blocking out and placing need
+     * the floor the street now occupies, and they count what they made - so a
+     * key written before the app's first line of script opens the tool bare:
+     * the same stand, nothing on it. The same seam the page pin uses, for the
+     * same reason: the production build the suite runs against has no other
+     * way in, and nobody reaches it by accident.
+     */
+    try {
+      if (localStorage.getItem('kjg-perspective-bare') !== null) {
+        walkInput.lookYaw = 0;
+        walkInput.lookPitch = 0;
+        walkInput.seeded = true;
+        glideWalkerTo({ ...STREET_STAND });
+        return Promise.resolve();
+      }
+    } catch {
+      /* no storage is no bare door, which is the right default */
+    }
     const done = beginActivity();
-    return Promise.all([
-      loadModelFromUrl(entry.url, entry.name, [0, 0], entry.height),
-      ...GROUND_CREW.map((who) => {
+    return Promise.all(
+      STREET_FIGURES.map((who) => {
         const mesh = MESH_LIBRARY.find((m) => m.id === who.id);
         if (!mesh) return Promise.resolve(null);
         return loadModelFromUrl(mesh.url, mesh.name, who.at, mesh.height)
           .then(({ model }) => ({ ...model, rotationY: who.turn }))
-          // One missing file is a thinner yard, not a tool that failed to open.
+          // One missing file is an emptier street, not a tool that failed to open.
           .catch(() => null);
-      }),
-    ])
-      .then(([{ model }, ...crew]) => {
+      })
+    )
+      .then((figures) => {
         // Anything the viewer did in the meantime wins: a scene opened from the
         // library, or a mesh placed by hand, is not something to land on top of.
-        const { models, boxes } = useStore.getState();
-        if (models.length || boxes.length) return;
-        standObject({ ...model, position: [0, 0, 0], rotationY: OPENING_TURN });
-        crew.forEach((who) => who && standObject(who));
-        // A scanned figure arrives normalised and is scaled on the way in, so
-        // what it will stand at is its authored size times that scale. The turn
-        // is not folded in: the framing wants the longest edge either way, and
-        // the diagonal it presents when turned is within a few per cent of it.
-        //
-        // Framed on the AIRCRAFT, not on everything standing there. The yard is
-        // for walking into and drawing from inside; a frame solved round the
-        // whole of it would open on a wide shot of four small things.
-        frame(model.size.map((metres) => metres * model.scale) as [number, number, number]);
+        const state = useStore.getState();
+        if (state.models.length || state.boxes.length) return;
+        useStore.setState({
+          boxes: [
+            ...STREET_ROWS.map(({ at: [x, z], tall }, n) => ({
+              id: `street-${n}`,
+              position: [x, tall / 2, z] as [number, number, number],
+              scale: [1, tall, 1] as [number, number, number],
+              rotation: [0, 0, 0] as [number, number, number],
+              surface: state.surface,
+            })),
+            {
+              id: 'street-turned',
+              position: [STREET_INTRUDER.at[0], 0.5, STREET_INTRUDER.at[1]] as [number, number, number],
+              scale: [1, 1, 1] as [number, number, number],
+              rotation: [0, STREET_INTRUDER.turn, 0] as [number, number, number],
+              surface: state.surface,
+            },
+          ],
+          lamps: STREET_LAMPS.map(([x, z], n) => ({
+            id: `street-lamp-${n}`,
+            position: [x, 2.2, z] as [number, number, number],
+            kind: 'bulb' as const,
+            aim: 0,
+            intensity: 8,
+            temperature: 3600,
+            enabled: true,
+          })),
+        });
+        figures.forEach((who) => who && standObject(who));
+        walkInput.lookYaw = 0;
+        walkInput.lookPitch = 0;
+        walkInput.seeded = true;
+        glideWalkerTo({ ...STREET_STAND });
       })
       .catch((error) => {
-        console.error('Could not stand the opening model up:', error);
+        console.error('Could not stand the opening scene up:', error);
         reportFailure();
       })
       .finally(done);

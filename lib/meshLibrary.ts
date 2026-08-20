@@ -179,29 +179,12 @@ export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'astro-walking', name: 'Astronaut, walking', url: '/meshes/astro-walking.glb', height: 1.8 },
 ];
 
-/**
- * What the tool stands up on the empty grid - when it opens, and again whenever
- * the scene is reset.
- *
- * THE RACER, always. It used to be whichever of them the dice picked, on the
- * reasoning that a different object each time is a different exercise, but
- * opening on something different every time is not a room you know - and they
- * are not equal for this.
- *
- * The H-1's fuselage is a solid of revolution tapering in two directions at
- * once, so the ellipse the cowling presents changes its openness continuously
- * from nose to tail rather than at the corners of a box; its wings are one
- * aerofoil section swept and stretched, so the section changes along the span
- * in a way no box construction predicts; and it stands on three points at a
- * nose-up angle, which puts its long axis off the ground plane as well as off
- * square. A box drawn round it is a box you have to think about.
+/*
+ * There is no openingMesh any more. The tool used to stand the racer up on
+ * the empty grid - the H-1 earned it, a solid of revolution no box
+ * construction predicts - but the opening is a STREET now, composed in
+ * App.tsx, and the racer waits on the shelf for whoever wants the harder
+ * drawing. The `__forceMesh` dev hook went with it: it existed to point the
+ * opening at each library object in turn, and there is no single opening
+ * object left to point.
  */
-export const openingMesh = (): LibraryMesh => {
-  if (import.meta.env.DEV) {
-    // A browser test needs to be able to look at each of them in turn.
-    const forced = (window as unknown as { __forceMesh?: string }).__forceMesh;
-    const wanted = MESH_LIBRARY.find((mesh) => mesh.id === forced);
-    if (wanted) return wanted;
-  }
-  return MESH_LIBRARY.find((mesh) => mesh.id === 'hughes-h1') ?? MESH_LIBRARY[0];
-};

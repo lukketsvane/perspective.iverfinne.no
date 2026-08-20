@@ -111,13 +111,22 @@ was rounded the way every real drum's is.
 
 ## Opening
 
-The racer is standing on its apron when the tool opens, the crew around it,
-under the real sky at noon: the plain lit surface, the sun where the sun is at
-twelve over the default place, soft shadows, a light concrete ground, a
-fair-weather deck overhead, and no construction chrome — the scene as a
-*place* before it is a drawing. The drawn pages are all one rung-tap away and
-the deck goes on dealing them in the gaps; what the front door shows is what
-those pages are *of*.
+A street is standing there when the tool opens, under the real sky at noon:
+two rows of metre cubes running their edges to one point, a tower in each row
+so the skyline varies, three lamps down the left side at equal spacings, a
+figure walking out of it at 1.80 with the horizon through his face, a second
+hovering deeper at 1.15 with the line over his helmet, a crewman kneeling at
+work by the first corner — and one cube standing turned in the roadway,
+carrying its own pair of points along the same horizon. Everything the tool
+teaches is in the frame before anything is tapped: the gaps compress, the
+repeated lamps measure the depth, the line cuts the figures at their honest
+heights, and the turned box refuses the street's points without leaving their
+line. It opened for years on the Hughes racer with its ground crew — one
+beautiful object, framed, which taught scale and nothing else until you
+walked. The racer is still on the shelf, one tap away, and it is still the
+best hard drawing in the library. The drawn pages are all one rung-tap away
+and the deck goes on dealing them in the gaps; what the front door shows is
+what those pages are *of*.
 
 It opened for years on the brush page on black — line and spotted black, hard
 light, black mount — and the paragraphs below are that reasoning, kept because
@@ -160,47 +169,14 @@ you draw from for an hour should not carry a button that empties it. Reloading
 the page is the way back to the opening, and it is a deliberate enough act to
 be the only one.
 
-It is always the car and never one of the chairs. A chair is a box with legs;
-the car is curved where a box is flat, six metres long so its far end is visibly
-smaller than its near one, and turned enough that all three of its axes run to
-three separate points. It is the object here with the most perspective in it.
-
-You stand as far back as the room has floor — 3.8 m at its default size. The car
-is nearly six metres long, so framing it by its own length used to put the
-viewer a step outside the front wall, looking in at it through the brickwork.
-Where the tool opens should be one place, whether or not the room is switched
-on; make the room smaller and the opening view comes in with it.
-
-**Framing has to work in both directions**, and getting that wrong is how the
-tool used to open with the car's tail and back wheel off the bottom right of a
-landscape screen. Three things were wrong at once. It measured the object
-against the *vertical* field only, then threw the answer away and stood at the
-object's own length instead — clamped by how much floor the room has, with the
-room switched off, which is the right limit for not standing outside the
-brickwork and the wrong one for an object on an open grid. And it framed on the
-object's *length*, when the opening turns it forty degrees off square, so what
-the frame has to clear is the footprint's diagonal — eight and a half metres,
-not six.
-
-Both conditions are transcendental in the distance, so the distance is searched
-rather than solved: the smallest standing distance at which the footprint fits
-the yaw *and* the near end's drop plus the far end's rise fit the pitch. That
-second one is the subtle half — a long thing seen from a standing eye runs a
-long way *down* the frame, because its near end is close and the angle from the
-horizon to the ground there is most of the vertical field on a phone held
-sideways. The object's own height, which is what the old solve used, has
-nothing to do with it. Sixteen halvings settle it to a centimetre, once, when
-the object is stood up.
-
-Framing solves for two legs, not one: how far back to stand, and how high the
-eye has to be. A chair 0.7 m away from a 1.9 m eye is not 0.7 m away — it is
-1.7 m away and mostly below you, which is why it used to open small however
-close the walker was put.
-
-Whether to kneel is the other half. Anything over about a metre is something you
-meet from your own height — a person, a car — and dropping to its waist would be
-a strange way to do it. Anything lower has to be knelt to, or it is a thing on
-the floor seen from above.
+**The stand is fixed, not solved.** You open at the mouth of the street, half
+a step off its axis so the near row leads in rather than walls off, at a
+standing eye. The one-object opening needed a framing solve — two
+transcendental conditions searched to a centimetre, a reframe listener for
+the phone turning, a whole apparatus for standing the right distance from one
+aeroplane — and the street needed none of it: a place holds its view in
+either orientation, portrait seeing it deep and landscape seeing both rows.
+The solve went out with the object it was built around.
 
 ## Moving about
 
