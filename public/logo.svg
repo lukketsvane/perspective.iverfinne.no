@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!--
+    The mark: the tool's own blocks, laid flat the way a child lays them,
+    and the one element that is not a thing - the red disc at eye height,
+    the principal point, with the horizon running through it behind the
+    stack. Cobalt for the cubes, orange for the tower, sky-blue for the
+    small one; the red belongs to the ruling and to nothing else.
+  -->
+  <line x1="30" y1="128" x2="482" y2="128" stroke="#d8242c" stroke-width="5"/>
+  <rect x="120" y="190" width="110" height="296" rx="5" fill="#1a51cd"/>
+  <rect x="246" y="88" width="212" height="96" rx="5" fill="#1a51cd"/>
+  <rect x="246" y="200" width="190" height="190" rx="5" fill="#f28018"/>
+  <rect x="246" y="406" width="90" height="80" rx="5" fill="#31a7e0"/>
+  <circle cx="170" cy="128" r="62" fill="#d8242c"/>
+</svg>
