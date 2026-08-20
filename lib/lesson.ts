@@ -409,7 +409,7 @@ export const CARDS: Card[] = [
       selectionGuides: 0,
       cameraHeight: EYE_HEIGHT,
       stand: { x: 0, z: 3, yaw: 0, pitch: 0 },
-      figures: [{ who: 'astro-walking', at: [-1.1, -6] }],
+      figures: [{ who: 'astro-walking', at: [-0.6, -6] }],
     },
     travel: 2000,
   },
@@ -439,6 +439,9 @@ export const CARDS: Card[] = [
       selectionGuides: 0,
       cameraHeight: EYE_HEIGHT,
       stand: { x: 0, z: 3, yaw: 0, pitch: 0 },
+      // The same scene as the card before, so the same company: a figure that
+      // vanished between two cards of one act would read as a broken prop.
+      figures: [{ who: 'astro-walking', at: [-0.6, -6] }],
     },
     hands: 'director',
     sweep: { seconds: 9, height: [0.55, 2.6] },
@@ -688,10 +691,14 @@ export const CAST: Record<Cast, Array<[number, number] | [number, number, number
   /* A desk, a car, a door - and between them the astronaut, who is a figure
      off the shelf rather than a box (see Stage.figures). Spread so the line
      crosses each at a visibly different place, and near enough to read. */
+  /* Spread to fit an UPRIGHT PHONE's field: at 85 degrees of diagonal the
+     horizontal half-field in portrait is about 24 degrees, and the old spread
+     put the desk 39 degrees off-axis - half the ladder stood outside the very
+     frame the card was teaching from. */
   heights: [
-    [-3.2, -4, 0.75],
-    [1.4, -8, 1.5],
-    [3.9, -11, 2.1],
+    [-1.7, -4, 0.75],
+    [1.3, -8, 1.5],
+    [3.0, -11, 2.1],
   ],
 };
 

@@ -569,19 +569,39 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
             setAt((was) => was + 1);
             return;
           }
-          // The sheet stays, and the pencil comes back into the hand it was
-          // taken out of. See `restore` above for why this exit is not the
-          // same exit as walking away.
+          /*
+           * The SHEET stays - the wide ruled page the lesson just handed over -
+           * and the pencil comes into the hand. Everything else goes back to
+           * before the lesson: the scene, and WHERE YOU STOOD. This used to
+           * keep the last card's stand while restoring the scene, which put
+           * the returning aeroplane through your view from three metres - the
+           * lesson ended inside the fuselage, with the practice cube standing
+           * in its tail. See `restore` above for why this exit is not the
+           * same exit as walking away.
+           */
           restore.current = false;
+          const before = held.current;
           useStore.setState({
             instrument: 'block',
-            models: held.current?.models ?? [],
-            lamps: held.current?.lamps ?? [],
+            models: before?.models ?? [],
+            lamps: before?.lamps ?? [],
+            boxes: before?.boxes ?? [],
+            selectedId: before?.selectedId ?? null,
+            selectedModelId: before?.selectedModelId ?? null,
+            cameraHeight: before?.cameraHeight ?? useStore.getState().cameraHeight,
           });
+          if (before) {
+            walkInput.position.x = before.stand.x;
+            walkInput.position.z = before.stand.z;
+            walkInput.yaw = before.stand.yaw;
+            walkInput.pitch = before.stand.pitch;
+            walkInput.lookYaw = 0;
+            walkInput.lookPitch = 0;
+          }
           onDone();
         }}
         aria-label={last ? 'Finish the lesson' : 'Next card of the lesson'}
-        className={`w-full pb-safe-lesson px-6 text-left pointer-events-auto ${ink}`}
+        className={`w-full ${card.chrome ? 'pb-safe-lesson-chrome' : 'pb-safe-lesson'} px-6 text-left pointer-events-auto ${ink}`}
       >
         <div key={`h-${at}`} className="text-[11px] uppercase tracking-[0.2em] opacity-45"
           style={{ animation: 'lesson-rise 620ms ease-out both' }}>

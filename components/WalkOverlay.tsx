@@ -1612,12 +1612,21 @@ export const WalkOverlay: React.FC<{
           *
           * It rides the same column as the dock, so it fades with the chrome
           * and disappears entirely while the lesson itself is running.
+          *
+          * And it stands aside while a panel or the shelf is up: they open in
+          * the same band, straight over it, and an invitation buried under
+          * furniture is worse than one that waits - somebody with a panel
+          * open is already exploring, and the offer is back the moment it
+          * closes.
           */}
-        {inviting && (
+        {inviting && !shelfOpen && !showTools && !showLights && (
           <div className={`pointer-events-auto flex items-center gap-1 p-1 rounded-full border shadow-2xl ${surface}`}>
             <button
               onClick={() => { spendTheOffer(); setShowTools(false); onLesson(); }}
-              aria-label="Learn how perspective works"
+              // Not the same accessible name as the tools-panel seat: two
+              // controls announcing identically is a trap for a screen reader
+              // and for every locator that ever reaches for either.
+              aria-label="Start the lesson: what is perspective?"
               className={`flex items-center gap-2 h-9 pl-3 pr-4 rounded-full text-[13px] font-medium transition-transform active:scale-95 ${
                 isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'
               }`}
