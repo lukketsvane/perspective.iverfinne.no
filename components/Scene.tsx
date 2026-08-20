@@ -455,14 +455,16 @@ const SceneContent = () => {
   /*
    * What is outside the sheet, once the field is wide enough to see round it.
    *
-   * The same colour the frame is cleared to, so the disc sits on the page
-   * rather than in a hole cut out of it. In sky mode that is black, which is
-   * what the scene's own background is set to there.
+   * The page, in every mode. This used to match the frame's clear colour
+   * instead - black when the sky is on - on the argument that the disc should
+   * sit on the page rather than in a hole cut out of it. But the clear never
+   * shows beside the sheet's edge (the last pixels of a sky sheet are sky),
+   * and once the sky became the opening world the match put black bands over
+   * the cylinder card's zenith and nadir and black corners round every wide
+   * disc, all of which read as the renderer failing rather than as a sheet
+   * ending. Paper is what a sheet ends on.
    */
-  const surround = useMemo(
-    () => new THREE.Color(sunEnvironment ? '#000000' : bgColor),
-    [sunEnvironment, bgColor]
-  );
+  const surround = useMemo(() => new THREE.Color(bgColor), [bgColor]);
 
   // Sync FOV with the store.
   useEffect(() => {
