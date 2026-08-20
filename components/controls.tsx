@@ -3,7 +3,6 @@ import { Icon } from './icons';
 import { useStore } from '../store';
 import { ACTIVE, bubble } from './ui';
 import { HOLD_MS, suppressing, useHinting } from './Hints';
-import type { RoomSize } from '../types';
 
 /**
  * The panel's controls.
@@ -299,78 +298,6 @@ export const useHoldable = ({
       onTap();
     },
     onPointerCancel: stop,
-  };
-};
-
-/**
- * The room's own control: tap to put it up or take it down, drag to size it.
- *
- * The same shape as the light/dark button, and for the same reason - there is
- * no toolbar room for a second control and no words to label one with, so the
- * mark that says whether a thing is there is also the mark that says how big.
- *
- * It is the floor that is dragged, on both of its axes at once: across for the
- * length running away from you, up and down for the width running across. One
- * diagonal drag finds a proportion, which is the thing being set - a corridor,
- * a square studio and a wide shallow hall are three different exercises, and
- * setting one number and then the other is a slower way of arriving at the same
- * place. The ceiling stays where it is; three metres is a ceiling.
- *
- * Continuous, not stepped: a room is set by eye against what is standing in it,
- * and a control that jumps under the thumb is a control fighting the eye.
- */
-const ROOM_RATE = 0.06; // metres per pixel, both ways
-
-export const useRoomControl = () => {
-  const room = useStore((state) => state.room);
-  const setRoom = useStore((state) => state.setRoom);
-  const cycleRoom = useStore((state) => state.cycleRoom);
-  const roomLevel = useStore((state) => state.roomLevel);
-  const drag = useRef<{ id: number; x: number; y: number; from: RoomSize; moved: boolean } | null>(null);
-  const [sizing, setSizing] = React.useState(false);
-
-  return {
-    sizing,
-    handlers: {
-      onPointerDown: (event: React.PointerEvent) => {
-        event.stopPropagation();
-        try { (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId); } catch { /* continue uncaptured */ }
-        drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, from: { ...room }, moved: false };
-      },
-      onPointerMove: (event: React.PointerEvent) => {
-        const held = drag.current;
-        if (held?.id !== event.pointerId) return;
-        const across = event.clientX - held.x;
-        const up = held.y - event.clientY;
-        // Nine pixels, the same as a tap on the scene. A four-pixel threshold
-        // meant a wobble on a tap intended to put the room away instead kept
-        // it up, forced it on if it was off, and resized it.
-        if (!held.moved && Math.hypot(across, up) < 9) return;
-        if (!held.moved) {
-          held.moved = true;
-          setSizing(true);
-          // Sizing a room you cannot see is a control with no feedback.
-          // Sizing a room you cannot see is sizing nothing. A drag from off
-          // raises the LINES rather than the walls: it is what you need to see
-          // to size it, and it is the rung nobody would otherwise find.
-          if (roomLevel === 0) useStore.setState({ roomLevel: 1 });
-        }
-        setRoom({
-          width: held.from.width + up * ROOM_RATE,
-          depth: held.from.depth + across * ROOM_RATE,
-        });
-      },
-      onPointerUp: (event: React.PointerEvent) => {
-        const held = drag.current;
-        drag.current = null;
-        setSizing(false);
-        if (held?.id === event.pointerId && !held.moved && !suppressing()) cycleRoom();
-      },
-      onPointerCancel: () => {
-        drag.current = null;
-        setSizing(false);
-      },
-    },
   };
 };
 

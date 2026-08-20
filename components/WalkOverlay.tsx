@@ -7,7 +7,7 @@ import { SelectionBar } from './SelectionBar';
 import { LightPanel } from './LightPanel';
 import { MaterialPanel } from './MaterialPanel';
 import { Icon, I, SURFACE_ICON } from './icons';
-import { Scrub, useBackdropControl, useGrayThemeControl, useGroundControl, useHoldable, useRoomControl } from './controls';
+import { Scrub, useBackdropControl, useGrayThemeControl, useGroundControl, useHoldable } from './controls';
 import { captureFileName, captureView } from '../lib/capture';
 // One import rather than a static one for the capability check and a dynamic
 // one for the work: the heavy part of this - the USDZ exporter itself - is
@@ -554,9 +554,6 @@ export const WalkOverlay: React.FC<{
       ? () => { setShowTools(false); setShowLights(false); setMaterialFrom('scene'); onShelfAway(); }
       : undefined,
   });
-  const roomLevel = useStore((s) => s.roomLevel);
-  const room = useStore((s) => s.room);
-  const roomControl = useRoomControl();
   const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
   const canUndo = useStore((s) => s.undoStack.length > 0);
@@ -2017,23 +2014,6 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={fieldRange === 'human' ? I.fieldHuman : fieldRange === 'endless' ? I.fieldEndless : I.fieldSphere} className="w-5 h-5" />
           </button>
-          <div className="relative flex items-center">
-            <button
-              {...roomControl.handlers}
-              aria-label={`Room, ${room.width.toFixed(1)} by ${room.depth.toFixed(1)} metres`}
-              aria-pressed={roomLevel > 0}
-              className={`${button} touch-none ${roomLevel > 0 ? ACTIVE : ''}`}
-            >
-              <Icon path={roomLevel === 2 ? I.roomWalls : I.room} className="w-5 h-5" />
-            </button>
-            {roomControl.sizing && (
-              <div
-                className={`absolute left-1/2 -translate-x-1/2 -top-11 pointer-events-none ${bubble(isDark)}`}
-              >
-                {room.width.toFixed(1)} × {room.depth.toFixed(1)}
-              </div>
-            )}
-          </div>
           {/*
             * Turn the phone to look - and tap it twice to put the room you are
             * actually in under the drawing.

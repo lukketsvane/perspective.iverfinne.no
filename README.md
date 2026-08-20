@@ -308,7 +308,7 @@ chrome is wanted" between them.
 - **Field of view** — drag for any value, tap to step through presets, the last
   of which stands back far enough to see the whole sheet
 - **Horizon** — eye level, from 0.2 m to 12 m
-- **Guides** — the room's own construction, stepped by tapping: nothing, the
+- **Guides** — the world's own construction, stepped by tapping: nothing, the
   horizon and the five points, then the whole ruled sphere
 - **Undo** and **redo** — properly disabled at the ends of the stack rather than
   dimmed and still live
@@ -1600,54 +1600,24 @@ while it is up — a thing floating a few centimetres off the ground for no reas
 is hard to see and easy to do. Sizing something that has been lifted keeps it at
 the height it was left at rather than dropping it.
 
-## The room
+## The room, which is gone
 
-Four walls, a ceiling and a floor, standing round the origin — ten metres square
-and three high to begin with, and settable. It is the perspective exercise. A box on open ground gives you
-its own twelve edges and a horizon somewhere past it; a room gives you the ones
-that reach the corners of the frame, which is where a curved projection does all
-of its visible work. Standing in the middle of one on a five-point sheet, the
-floor lines run to the point under your feet, the ceiling lines to the one over
-your head and the four wall corners out to the four around the horizon — five
-points, one picture, nothing left to imagine.
+There were four walls and a ceiling to stand the scene inside — a ladder of
+off, the lines, the walls — with its own seat, its own drag-to-size, its own
+clamp inside the opening framing, and a whole chapter here arguing for it as
+the five-point exercise: floor lines to the point under your feet, ceiling
+lines to the one overhead, wall corners out to the four on the horizon.
 
-The room is a ladder, not a switch: **off, the lines, the lines and the walls**.
-
-The lines are the rung that teaches. Where a wall meets the floor is the most
-informative mark in a room — it is the one that says how far away the wall is —
-and until this you could not have it without three flat greys standing between
-you and your drawing. At that rung the wall surfaces are gone and the ruling
-hangs in the air where they would be, writing no depth, so nothing inside the
-room is sorted away behind a wall you cannot see.
-
-At the top rung, on the clay, it is the flat value ladder it always was: one
-value per orientation, because a box under no lighting has to read as a box. In
-ink every face is paper. Ink has no tone in it anywhere else and does not get
-one here — what the top rung means on a sheet is "you cannot see through the
-walls", which is the more useful distinction anyway.
-
-Dragging the control while the room is off raises the **lines**, not the walls.
-You cannot size a room you cannot see, and it is the rung nobody would otherwise
-find.
-
-Three decisions are worth writing down.
-
-The floor sits four millimetres under the ground plane rather than on it.
-Everything else in the tool that draws the floor — the ruled grid, the plane the
-sun's shadows land on — is at exactly zero, and two surfaces at the same height
-fight for every pixel between them. And the room's floor face is not ruled at
-all: the ground already rules that exact plane, at the snap step as well as the
-metre, and fades honestly with distance where this did not, so the two were only
-doubling each other's darkness.
-
-There is no lighting. One directional sun outside a closed box leaves the
-ceiling and two of the four walls perfectly black, which is true and useless.
-These are construction surfaces.
-
-And the ruling is in world coordinates, not the plane's own. A line up the wall
-is the continuation of a line across the floor, because both are asking the same
-question of the same metre — which is the property that makes the room a
-measuring device rather than wallpaper.
+The argument was sound and nobody ever stood in it. The tool grew a yard, a
+real sky and an apron instead, and a box of three flat greys under a noon
+with weather in it stopped being an exercise and became furniture from an
+older idea of what this app was. The lesson teaches the five points now, on
+cards that take the tool over and work it, which is a better teacher than a
+room you had to already understand to want. It went the way of the tour and
+the deal button: removed whole — the component, the seat, the sizing hook,
+the store fields, the framing clamp — rather than left as a rung nobody
+steps on. Old scenes and settings that mention it load fine; the keys are
+simply no longer read.
 
 ## How solid a thing is drawn
 

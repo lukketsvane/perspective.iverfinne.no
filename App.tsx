@@ -6,7 +6,7 @@ import { VanishingPoints } from './components/VanishingPoints';
 import { Measures } from './components/Measures';
 import { MeshSheet } from './components/MeshSheet';
 import { SceneSheet } from './components/SceneSheet';
-import { useStore, saveSettings, currentView, standingRoom } from './store';
+import { useStore, saveSettings, currentView } from './store';
 import { loadModelFile, loadModelFromUrl, modelRadius } from './lib/loadModel';
 import { findFreeSpot, onTheFloor } from './lib/placement';
 import { MESH_LIBRARY, openingMesh } from './lib/meshLibrary';
@@ -292,7 +292,7 @@ export default function App() {
    * is a thing on the floor seen from above.
    */
   const frame = (size: [number, number, number]) => {
-    const { cameraHeight, fov, room, roomLevel, setCameraHeight } = useStore.getState();
+    const { cameraHeight, fov, setCameraHeight } = useStore.getState();
     const field = fieldOf(fov, window.innerWidth, window.innerHeight);
 
     /**
@@ -428,24 +428,7 @@ export default function App() {
     }
     const wanted = Math.min(60, Math.max(0.9, high));
 
-    /*
-     * Grow the room to the view rather than crop the view to the room.
-     *
-     * Squarely, because the object is turned and a room that gained ten metres
-     * of depth and none of width is a corridor with a car across it. Only when
-     * the walls are up, only as far as short, and setRoom's own limit of forty
-     * metres still has the last word - past that the honest answer really is
-     * that you cannot see the thing from inside the building.
-     */
-    const standing = () => (roomLevel > 0 ? standingRoom(useStore.getState().room) : Infinity);
-    if (roomLevel > 0 && wanted > standing()) {
-      const side = 2 * (wanted + 1.2);
-      useStore.getState().setRoom({
-        width: Math.max(room.width, side),
-        depth: Math.max(room.depth, side),
-      });
-    }
-    const distance = Math.min(standing(), wanted);
+    const distance = wanted;
 
     setCameraHeight(eye);
     /*
