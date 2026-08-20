@@ -304,7 +304,17 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     setCurtain(opens);
     const raise = opens ? window.setTimeout(() => setCurtain(null), 2500) : undefined;
 
-    const travel = card.travel ?? 1800;
+    /*
+     * A viewer who has asked for stillness gets cuts, not rides. The opening
+     * glide already honours this (see glideWalkerTo); a lesson that then pans
+     * for two seconds between every card would be the same motion under a
+     * different name. One millisecond rather than zero, because the tween
+     * divides by it. The sweeps stay: they are not travel, they are the
+     * demonstration itself, run at the pace of a head turning.
+     */
+    const still =
+      typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const travel = still ? 1 : card.travel ?? 1800;
     const viewers = card.hands === 'viewer';
     let frame = 0;
 
