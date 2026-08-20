@@ -954,7 +954,29 @@ export const WalkOverlay: React.FC<{
     });
   };
 
+  /*
+   * A moving MOUSE wakes the chrome, the way a touch does.
+   *
+   * The fade-and-wake contract was written for thumbs: any touch is a tap
+   * somewhere, so waking on pointerdown is free. A desktop mouse has a state
+   * thumbs do not - moving without pressing - and it is the desktop's whole
+   * way of saying "I am here": with the chrome faded, reaching for a button
+   * meant clicking blind at where it used to be, and the click also MEANT
+   * something to the scene. Move-to-wake gives the mouse what the thumb
+   * already had. Throttled to keep the idle timer from being re-armed sixty
+   * times a second by a wandering cursor; touch pointers never enter, so
+   * drags on the glass still let the picture stand clear.
+   */
+  const lastMouseWake = useRef(0);
+
   const onPointerMove = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.buttons === 0) {
+      const now = performance.now();
+      if (now - lastMouseWake.current > 250) {
+        lastMouseWake.current = now;
+        showRail();
+      }
+    }
     if (blocking) {
       const held = block.current;
       if (!held || held.pointer !== e.pointerId) return;
@@ -1596,7 +1618,12 @@ export const WalkOverlay: React.FC<{
         // Working the dock keeps the dock up: the fade is a six second idle
         // timer, and it used to be reset only by touching the scene.
         onPointerDown={showRail}
-        className={`fixed bottom-safe-panel left-0 right-0 z-40 flex flex-col items-center gap-3 x-safe-panel pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${dockVisible ? 'opacity-100' : 'opacity-0'}`}
+        /* will-change keeps the whole column on its own compositor layer: it
+           fades every six idle seconds, and on weak phone GPUs a fade that
+           repaints glass-blur chrome per frame stutters where a composited
+           one is free. One small layer, held for the app's life, is the
+           right trade for the most-animated element on screen. */
+        className={`fixed bottom-safe-panel left-0 right-0 z-40 flex flex-col items-center gap-3 x-safe-panel pointer-events-none will-change-[opacity] transition-opacity duration-[1500ms] ease-in-out ${dockVisible ? 'opacity-100' : 'opacity-0'}`}
       >
 
         {/*

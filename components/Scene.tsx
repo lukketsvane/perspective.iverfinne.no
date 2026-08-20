@@ -707,6 +707,11 @@ export const Scene = () => {
       // saved as a PNG at any time.
       gl={{
         antialias: true,
+        // Phones and dual-GPU laptops default to the battery-saving chip for
+        // WebGL unless asked; a tool that renders six cube faces is the case
+        // the fast one exists for. Costs battery only while the tab is open
+        // and drawing, which is exactly when it is worth it.
+        powerPreference: 'high-performance',
         toneMapping: THREE.ACESFilmicToneMapping,
         // Transparent, so an AR session can show the room through it. The
         // scene's own background colour is drawn as a scene background, so
@@ -726,6 +731,12 @@ export const Scene = () => {
       }}
       className="transition-colors duration-500"
       style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+      // The renderer on the dev console, beside __store and __walk: profiling
+      // needs renderer.info and there is no honest way to reach it from
+      // outside. Stripped from production like the rest of the handles.
+      onCreated={({ gl }) => {
+        if (import.meta.env.DEV) (window as unknown as { __gl?: unknown }).__gl = gl;
+      }}
     >
       <SceneContent />
     </Canvas>

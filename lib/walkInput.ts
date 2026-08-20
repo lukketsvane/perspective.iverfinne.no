@@ -45,6 +45,75 @@ export const walkInput = {
   speed: 1.4,
 };
 
+/**
+ * Ease the walker to a stand instead of teleporting it.
+ *
+ * The opening framing lands one to three seconds after boot, whenever the
+ * aircraft has finished parsing - and it used to land as a hard cut from the
+ * default stand to the solved one, mid-look, which read as the picture
+ * snapping under you. A short glide reads as the tool composing itself.
+ *
+ * It stands down the moment the viewer says anything: stick input, or any
+ * outside write to the pose it is easing (their look-drag wins over our
+ * glide). And it is a cut after all for anyone who asked the OS for reduced
+ * motion - a preference about exactly this.
+ */
+export const glideWalkerTo = (
+  to: { x: number; z: number; yaw: number; pitch: number },
+  ms = 650,
+  onTick?: (progress: number) => void
+) => {
+  const from = {
+    x: walkInput.position.x,
+    z: walkInput.position.z,
+    yaw: walkInput.yaw,
+    pitch: walkInput.pitch,
+  };
+  const still =
+    typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (still || ms <= 0) {
+    walkInput.position.x = to.x;
+    walkInput.position.z = to.z;
+    walkInput.yaw = to.yaw;
+    walkInput.pitch = to.pitch;
+    onTick?.(1);
+    return;
+  }
+  // The clock starts at the FIRST TICK, not at the call: this is scheduled at
+  // the busiest moment the main thread has - right after the opening mesh
+  // parses - and a starved first frame arriving 700 ms late used to land with
+  // the whole duration already spent, degenerating the glide back into the
+  // teleport it exists to replace.
+  let t0 = 0;
+  // What we last wrote, so another writer's hand is recognisable.
+  const wrote = { ...from };
+  const step = () => {
+    if (t0 === 0) t0 = performance.now();
+    if (walkInput.forward !== 0 || walkInput.strafe !== 0) return;
+    if (
+      Math.abs(walkInput.position.x - wrote.x) > 1e-4 ||
+      Math.abs(walkInput.position.z - wrote.z) > 1e-4 ||
+      Math.abs(walkInput.yaw - wrote.yaw) > 1e-4 ||
+      Math.abs(walkInput.pitch - wrote.pitch) > 1e-4
+    ) {
+      return;
+    }
+    const raw = Math.min(1, (performance.now() - t0) / ms);
+    const eased = (1 - Math.cos(raw * Math.PI)) / 2;
+    wrote.x = from.x + (to.x - from.x) * eased;
+    wrote.z = from.z + (to.z - from.z) * eased;
+    wrote.yaw = from.yaw + (to.yaw - from.yaw) * eased;
+    wrote.pitch = from.pitch + (to.pitch - from.pitch) * eased;
+    walkInput.position.x = wrote.x;
+    walkInput.position.z = wrote.z;
+    walkInput.yaw = wrote.yaw;
+    walkInput.pitch = wrote.pitch;
+    onTick?.(eased);
+    if (raw < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+};
+
 // ---------------------------------------------------------------------------
 // Device orientation
 // ---------------------------------------------------------------------------

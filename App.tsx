@@ -11,7 +11,7 @@ import { loadModelFile, loadModelFromUrl, modelRadius } from './lib/loadModel';
 import { findFreeSpot, onTheFloor } from './lib/placement';
 import { MESH_LIBRARY, openingMesh } from './lib/meshLibrary';
 import { focusPoint } from './lib/focus';
-import { walkInput } from './lib/walkInput';
+import { glideWalkerTo, walkInput } from './lib/walkInput';
 import { fieldOf } from './lib/projection';
 import { constructionInk, pageHex } from './lib/inkMaterial';
 import { keepAwake } from './lib/wakeLock';
@@ -448,12 +448,17 @@ export default function App() {
     const distance = Math.min(standing(), wanted);
 
     setCameraHeight(eye);
-    walkInput.position.set(0, 0, distance);
-    walkInput.yaw = 0;
-    walkInput.pitch = Math.atan2(middle - eye, distance);
+    /*
+     * Glided, not teleported. This lands one to three seconds after boot -
+     * whenever the aircraft finishes parsing - and it used to land as a hard
+     * cut from the default stand to the solved one, which read as the picture
+     * snapping under whoever was already looking at it. See glideWalkerTo for
+     * who wins if the viewer is saying something at the time.
+     */
     walkInput.lookYaw = 0;
     walkInput.lookPitch = 0;
     walkInput.seeded = true;
+    glideWalkerTo({ x: 0, z: distance, yaw: 0, pitch: Math.atan2(middle - eye, distance) });
 
     // Kept so a turned phone can be answered - see below.
     framed.current = { size, z: distance, pitch: walkInput.pitch, eye };
