@@ -108,11 +108,26 @@ was rounded the way every real drum's is.
 
 ## Opening
 
-The car is standing on the grid when the tool opens, framed for its size, at a
-90° field, with the eye level and the six points ruled and nothing else — drawn
-as a finished brush page, lit hard, on a black mount.
+The racer is standing on its apron when the tool opens, the crew around it,
+under the real sky at noon: the plain lit surface, the sun where the sun is at
+twelve over the default place, soft shadows, a light concrete ground, a
+fair-weather deck overhead, and no construction chrome — the scene as a
+*place* before it is a drawing. The drawn pages are all one rung-tap away and
+the deck goes on dealing them in the gaps; what the front door shows is what
+those pages are *of*.
 
-That last part is three separate decisions and it is worth saying which. The
+It opened for years on the brush page on black — line and spotted black, hard
+light, black mount — and the paragraphs below are that reasoning, kept because
+every argument in them still holds for the page itself; it is now the deck's
+first card rather than the door. What moved is only which face wins the
+door: a first visit reads a photographic noon instantly and a white-on-black
+ink plate only after it reads the tool, and the tool should not need reading
+first. The guides start folded away for the same reason - a thick red
+eye-line across a blue sky is debug chrome to anyone who has not met the
+ruling yet - and come back with one tap, or with the lesson, which raises its
+own per card.
+
+That brush page is three separate decisions and it is worth saying which. The
 **brush** rung rather than plain ink, because line-and-flat-black is what a
 brush-and-ink page looks like and it is the one that shows what the tool can do
 rather than the one with the least in it. **Hard** shadows rather than soft,
