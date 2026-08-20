@@ -163,7 +163,15 @@ export const MeshSheet: React.FC<{
      */
     <div
       data-tile-scroll
-      className="flex gap-2 max-w-full min-w-0 overflow-x-auto overscroll-contain scrollbar-none [&>*]:shrink-0 [&>*]:w-[4.75rem]"
+      /*
+       * 4.35rem, sized to the narrowest phones on purpose: at 4.75 the four
+       * action tiles filled a 390 px screen exactly, so opening the shelf
+       * answered with buttons and every actual THING sat off-screen with
+       * nothing to say so. At this width the first mesh peeks in from the
+       * right edge, which is both the proof there are things and the handle
+       * for reaching them.
+       */
+      className="flex gap-2 max-w-full min-w-0 overflow-x-auto overscroll-contain scrollbar-none [&>*]:shrink-0 [&>*]:w-[4.35rem]"
     >
         {/* A light is placed like anything else: it is a scene object, not a
             setting - see components/Lamps.tsx. */}

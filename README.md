@@ -543,7 +543,13 @@ Reaching the end means the opposite, and exits differently. The last card's
 whole subject is that you now *have* the sheet — ruled, at five point, with a
 cube on it and its own six points showing — so finishing hands it over with the
 block-out pencil in it rather than sweeping it away and giving back the blank
-page you arrived with.
+page you arrived with. The SHEET is what stays, though, not the stage: the
+scene and where you stood come back from before the lesson, because the first
+version kept the last card's stand while restoring the scene, and the
+returning aeroplane arrived through your view from three metres — the lesson
+ended inside the fuselage, with the practice cube standing in its tail. Now it
+ends where it began: the same yard, from the same spot, on the page you have
+just learned to read, pencil in hand.
 
 And the dock goes down while a card is up, and **stays** down. A lesson is a
 performance, and a performance with a toolbar over it is a screenshot of a menu.
@@ -563,7 +569,10 @@ never mentions it unasked again. It holds the chrome up while it stands, which
 is not fussiness: the dock fades six seconds after the last touch, and a
 first-time viewer looking at the picture for ten seconds — the correct thing to
 do with it — watched the one line telling them the lesson exists fade out before
-they had read it. Measured, that is exactly what happened.
+they had read it. Measured, that is exactly what happened. And it stands aside
+while the shelf or a panel is up — they open in the same band, straight over
+it, and the offer's own text ghosting through the shelf's glass tiles was the
+first thing a phone-sized walkthrough of a fresh visit turned up.
 
 **There used to be a guided tour beside it**, and it is gone. It was nine cards
 that rang a button and waited for it to be pressed, so a first-time viewer knew
