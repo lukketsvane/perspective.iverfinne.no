@@ -418,10 +418,8 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       /*
        * The answer on the cards that have no question to pass.
        *
-       * Three director cards carry a found - the ruler card, where the answer
-       * is where the line lands on each of the four heights; the posture card,
-       * where it is that the line came down with you; and the depth card,
-       * where it is that the metre steps shrink - and a found only ever
+       * Four director cards carry a found - the sheets slideshow, the ruler,
+       * the posture sweep and the shrinking steps - and a found only ever
        * arrived through a gate, so on all of them the best sentence on the
        * card was unreachable. They get it when the showing has had its time:
        * one full cycle for a sweep, a reading of the body for a still card.

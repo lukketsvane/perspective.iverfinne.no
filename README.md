@@ -493,10 +493,11 @@ back has still been round. **Neste is never disabled**: a viewer who cannot make
 the gesture must always be able to go on; it simply stops being the accented
 thing until the picture has answered.
 
-Three director cards carry an answer with no gate to pass — the ruler, the
-posture sweep, the shrinking steps — and theirs arrives on the reading clock
-instead: one full cycle for a sweep, a beat of looking for a still card. The
-sentence is still earned; the earning is just done with the eyes.
+Four director cards carry an answer with no gate to pass — the sheets
+slideshow, the ruler, the posture sweep, the shrinking steps — and theirs
+arrives on the reading clock instead: one full cycle for a sweep, a beat of
+looking for a still card. The sentence is still earned; the earning is just
+done with the eyes.
 
 The best of them is **Punktet flyttar seg ikkje**, and it is a fact almost nobody
 is taught. Walk, and every cube in the rank slides across the page while the
