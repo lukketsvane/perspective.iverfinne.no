@@ -8,7 +8,7 @@ import type { GuideLevel, PerspectiveMode, SelectionGuide } from '../types';
  * Everything else here was built to make that reachable. What was missing is
  * the thing a demonstration does not contain: WHY it works.
  *
- * ONE IDEA, EIGHTEEN CARDS.
+ * ONE IDEA, TWENTY-ONE CARDS.
  *
  * Almost every perspective tutorial teaches one, two and three point as three
  * separate recipes, then presents four and five point as exotica. That is not
@@ -35,7 +35,7 @@ import type { GuideLevel, PerspectiveMode, SelectionGuide } from '../types';
  * yourself, with your own thumb on the glass, and seeing it happen because you
  * did it.
  *
- * So the director stages each card and then, on ten of the eighteen, LETS GO:
+ * So the director stages each card and then, on ten of the twenty-one, LETS GO:
  * turn round and find the second point, walk and watch the point refuse to
  * move, look up, open the lens until the corners go. The card waits, and when
  * you have done it a sentence appears that was not there before - the one that
@@ -200,12 +200,12 @@ export interface Sweep {
 }
 
 /**
- * The four acts, and why a lesson this long needs them.
+ * The five acts, and why a lesson this long needs them.
  *
- * Eighteen cards in a row is a list, and a list has no shape: at card eleven
+ * Twenty-one cards in a row is a list, and a list has no shape: at card eleven
  * nobody knows whether they are near the end or a third of the way in, and a
  * viewer who cannot see the shape of a thing cannot tell whether it is going
- * anywhere. Four titles, held for two and a half seconds over the picture,
+ * anywhere. Five titles, held for two and a half seconds over the picture,
  * turn it into a piece with movements - and each of them names the one thing
  * its cards are about, so the answer to "why am I being shown this" is on
  * screen before the showing starts.
@@ -223,10 +223,10 @@ export interface Act {
 }
 
 export const ACTS: Act[] = [
-  { at: 0, title: 'Kula', line: 'Alt du kan sjå, som eit einaste kart' },
+  { at: 0, title: 'Kula', line: 'Eit bilete er eit kart over alt du ser' },
   { at: 4, title: 'Auget', line: 'Horisonten er ikkje ein stad. Han er høgda di' },
-  { at: 7, title: 'Punkta', line: 'Kvar dei kjem frå, og kvifor dei står stille' },
-  { at: 13, title: 'Arka', line: 'Fire flater å fange det same på' },
+  { at: 7, title: 'Punkta', line: 'Kvar dei kjem frå, og kvifor dei ikkje rører seg' },
+  { at: 13, title: 'Arka', line: 'Same verd, fire flater å fange henne på' },
   { at: 18, title: 'Handa', line: 'Frå rutenettet til blyanten' },
 ];
 
@@ -288,7 +288,7 @@ export const CARDS: Card[] = [
      * sphere of directions around one point.
      */
     headline: 'Ei kule av retningar',
-    body: 'Du står stille. Alt du kan sjå ligg i ei retning, og alle retningane til saman er ei kule rundt auget ditt. Eit bilete er eit kart over den kula, og ikkje noko meir enn det.',
+    body: 'Stå stille. Alt du ser, ser du i ei retning, og retningane til saman er ei kule rundt auget ditt. Eit bilete er eit kart over den kula. Ikkje noko meir.',
     stage: { cast: 'nothing', guides: 2, fov: 260, mode: 'equidistant' },
     sweep: { seconds: 44, yaw: [-0.5, 0.5] },
     travel: 2000,
@@ -301,7 +301,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Snu deg heilt rundt',
     body: 'Dra på biletet og snu deg heile vegen rundt. Sjå etter ein kant på kula.',
-    found: 'Det er ingen. Kula har ingen kant fordi ho ikkje er noko du ser PÅ. Ho er alle retningane frå der du står, og du er i midten av henne.',
+    found: 'Det finst ingen. Kula har ingen kant, for ho er ikkje noko du ser PÅ: ho er alle retningane frå deg, og du står i midten av henne.',
     stage: { cast: 'nothing', guides: 2, fov: 260, mode: 'equidistant' },
     hands: 'viewer',
     gate: { kind: 'turn', radians: 5.6 },
@@ -324,8 +324,8 @@ export const CARDS: Card[] = [
      * different. It is shown rather than said: the same scene, from the same
      * spot, stepping through the three surfaces with nothing else moving.
      */
-    headline: 'Kva fangar du det på?',
-    body: 'Kula er ikkje eit bilete enno. Eit bilete er ei flate med merke på, så strålane må fangast på noko. Sjå: same scene, same stad, tre ulike flater under.',
+    headline: 'Kva fangar du kula på?',
+    body: 'Kula er ikkje eit bilete enno. Eit bilete er ei flate med merke på, så kula må leggjast ut på noko flatt. Sjå: same scene, same stad, tre ulike ark etter tur.',
     stage: { cast: 'street', mode: 'rectilinear', fov: 100, guides: 1, selectionGuides: 0, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     sweep: { seconds: 21, surfaces: ['rectilinear', 'cylindrical', 'equidistant'] },
     travel: 2200,
@@ -347,7 +347,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Hovudpunktet og horisonten',
     body: 'Ringen midt i biletet er hovudpunktet: der du ser, avmerkt på flata. Snu deg og sjå etter kva som flyttar seg og kva som ikkje gjer det.',
-    found: 'Ringen står stille i midten fordi han ikkje er noko i verda. Og horisonten fylgjer auget ditt, ikkje bakken: han er alle retningane som ligg vassrett frå deg. Det er dei to fyrste merka nokon rular på ei side, og dei er dei einaste to som ikkje er noko du kan sjå på.',
+    found: 'Ringen står stille i midten, for han er ikkje ein ting i verda: han er retninga du ser i, avmerkt på arket. Horisonten er det same slaget merke - alle retningane som ligg vassrett frå deg - og difor fylgjer han auget ditt, ikkje bakken. Dei to er dei fyrste merka nokon rular på ei side, og dei einaste to som ikkje finst der ute.',
     stage: { cast: 'street', mode: 'equidistant', fov: 240, guides: 1, selectionGuides: 0, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     hands: 'viewer',
     gate: { kind: 'turn', radians: 1.9 },
@@ -371,8 +371,8 @@ export const CARDS: Card[] = [
      * same distance and the line still lands on every top.
      */
     headline: 'Alt i di eiga høgd',
-    body: 'Fire stolpar, alle nøyaktig like høge som auget ditt. Den næraste står tre meter unna, den fjernaste førti. Snu deg og sjå etter kvar horisonten kryssar dei.',
-    found: 'Han kryssar alle fire i toppen. Same kor langt unna dei står. Horisonten ligg i di eiga høgd, så alt som er like høgt som auget ditt blir kutta akkurat der - og det er den eine linja du kan måle med utan å måle.',
+    body: 'Fire stolpar, alle nøyaktig like høge som auget ditt. Den næraste står fem meter unna, den fjernaste over førti. Snu deg og sjå etter kvar horisonten kryssar dei.',
+    found: 'Han kryssar alle fire i toppen. Fem meter unna og førti meter unna: same kutt. Horisonten ligg i di eiga høgd, så alt som når auget ditt, endar nøyaktig på han - kor langt unna det enn står.',
     stage: {
       cast: 'level',
       mode: 'rectilinear',
@@ -400,7 +400,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Linja er ein målestokk',
     body: 'Ein pult på 75, ein bil på 150, astronauten på 180, ei dør på 210. Ingen av dei står nøyaktig i di høgd. Sjå kvar linja går på kvar av dei.',
-    found: 'Ho går over pulten og bilen, og gjennom dei to som er høgare enn auget ditt: gjennom andletet på astronauten - han er 180, linja ligg i 170, så ho kuttar han akkurat der ho ville kutta deg - og gjennom døra eit stykke under karmen. Du kjenner alt desse høgdene frå kroppen din: pulten når deg til låret, bilen til brystet, astronauten ser deg i auga. Set linja der auget er, og storleikane er ei avlesing i staden for ei gjetting.',
+    found: 'Over pulten, over bilen - og gjennom dei to som er høgare enn auget: gjennom andletet på astronauten, akkurat der ho ville kutta deg, og gjennom døra, eit stykke under karmen. Kroppen din kan desse høgdene alt - astronauten ser deg i auga. Set linja der auget er, og kvar storleik er ei avlesing, ikkje ei gjetting.',
     stage: {
       cast: 'heights',
       mode: 'rectilinear',
@@ -430,7 +430,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Auget flyttar seg med deg',
     body: 'Ingenting på golvet rører seg no. Berre du - ned på huk, og opp igjen.',
-    found: 'Linja fylgde deg. Ho er ikkje ein stad i verda, ho er høgda di - difor teiknar ein ho fyrst og bestemmer med det kvar den som ser står. Sjå òg kva som skjer med topp- og botnflatene på vegen: dei lukkar seg jo nærare linja dei kjem, og RETT på henne er dei borte. Ei flate du ser oppå er ei flate under auget ditt.',
+    found: 'Linja fylgde deg. Ho er ikkje ein stad i verda; ho er høgda di, og difor er ho det fyrste merket på eit ark: å setje henne er å velje kvar den som ser, står. Og sjå kva toppflatene gjer på vegen: dei lukkar seg di nærare linja dei kjem, og RETT på henne er dei borte. Ei flate du ser oppå, ligg under auget ditt.',
     stage: {
       cast: 'heights',
       mode: 'rectilinear',
@@ -455,7 +455,7 @@ export const CARDS: Card[] = [
      * the lines are - which is the next card, and the best one in the lesson.
      */
     headline: 'Parallelle linjer møtest',
-    body: 'Ei rekkje kassar, alle med same retning. Jo lenger ut du fylgjer dei, jo nærare kjem retninga frå auget ditt den retninga linjene sjølve har, så alle saman peikar mot det same punktet.',
+    body: 'Ei rekkje kassar, alle med same retning. Fylg kantane utover: di lenger ut du ser, di nærare kjem blikket ditt den retninga kantane sjølve har. Til slutt er blikk og kant same retning - det er punktet.',
     stage: { cast: 'row', mode: 'rectilinear', fov: 70, selectionGuides: 1, stand: { x: 0, z: 5, yaw: 0, pitch: 0 } },
     travel: 2200,
   },
@@ -478,8 +478,8 @@ export const CARDS: Card[] = [
     // card's tap-to-advance block, and a thumb aimed there walks nothing.
     // The stick zone is the whole lower-left QUARTER of the picture, and the
     // words now point at the part of it that is picture.
-    body: 'Gå: hald tommelen på venstre halvdelen av biletet, ovanfor desse orda, og dra. Fylg med på punktet medan kassane glir forbi deg.',
-    found: 'Kassane flytta seg. Punktet stod stille. Det høyrer til RETNINGA, ikkje til linjene og ikkje til staden. Difor kan du rule dei seks punkta éin gong og teikne heile sida mot dei.',
+    body: 'Gå: hald tommelen på venstre sida av biletet, ovanfor desse orda, og dra. Hald auga på punktet medan kassane glid forbi.',
+    found: 'Kassane flytta seg. Punktet stod stille. Det høyrer til RETNINGA, ikkje til kassane og ikkje til staden du står på - difor kan du rule punkta éin gong og teikne heile sida mot dei.',
     stage: { cast: 'row', mode: 'rectilinear', fov: 80, selectionGuides: 1, stand: { x: 1.6, z: 6, yaw: -0.12, pitch: 0 } },
     hands: 'viewer',
     gate: { kind: 'walk', metres: 3.5 },
@@ -494,7 +494,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Kvart knippe har to punkt',
     body: 'Same rekkje, men på det bøygde arket. Snu deg heilt rundt og finn det andre punktet.',
-    found: 'Der er det. Eit knippe parallelle linjer forsvinn i dei TO punkta der retninga stikk gjennom kula: eitt framover, eitt bakover. Det flate arket kan berre vise deg det eine.',
+    found: 'Der er det. Ei retning stikk gjennom kula to stader, så eit knippe parallelle kantar har TO punkt: eitt framover, eitt bakover. Det flate arket kan berre vise deg det eine av dei.',
     stage: { cast: 'row', mode: 'equidistant', fov: 300, guides: 1, selectionGuides: 1, stand: { x: 0, z: 5, yaw: 0, pitch: 0 } },
     hands: 'viewer',
     gate: { kind: 'turn', radians: 3.4 },
@@ -502,7 +502,7 @@ export const CARDS: Card[] = [
   },
   {
     headline: 'Eitt punkt',
-    body: 'Tilbake til det flate arket, med ei kasse rett på. To av dei tre knippa er parallelle med arket og blir liggjande parallelle på papiret òg; berre det tredje går innover. Eitt punkt, og det ligg midt i biletet fordi du ser rett langs retninga.',
+    body: 'Tilbake til det flate arket, med ei kasse rett på. To av dei tre knippa ligg parallelt med arket og held seg parallelle på papiret òg; berre det tredje går innover. Eitt punkt - og det ligg midt i biletet, for du ser rett langs retninga.',
     stage: { cast: 'one', mode: 'rectilinear', fov: 55, turn: 0, selectionGuides: 1, stand: { x: 0, z: 4.5, yaw: 0, pitch: 0 } },
     travel: 2400,
   },
@@ -518,7 +518,7 @@ export const CARDS: Card[] = [
      */
     headline: 'To punkt',
     body: 'Ikkje rør kassa. Snu deg litt til sides og sjå kva som skjer med kantane som gjekk rett på.',
-    found: 'To punkt no, eitt til kvar side. Ingenting i verda har endra seg. Arket står vinkelrett på der du ser, så då du snudde deg slutta flatene å vere parallelle med det. «Eitt punkt» og «to punkt» er ikkje to slag kassar. Det er den same kassa, sett to stader frå.',
+    found: 'To punkt no, eitt til kvar side - og ingenting i verda har endra seg. Arket står vinkelrett på blikket ditt, så då du snudde deg, slutta kantane å liggje parallelt med det. «Eitt punkt» og «to punkt» er ikkje to slag kassar. Det er same kassa, sett frå to stader.',
     stage: { cast: 'one', mode: 'rectilinear', fov: 65, turn: 0, selectionGuides: 1, stand: { x: 0, z: 4.5, yaw: 0, pitch: 0 } },
     hands: 'viewer',
     gate: { kind: 'turn', radians: 0.45 },
@@ -527,7 +527,7 @@ export const CARDS: Card[] = [
   {
     headline: 'Tre punkt',
     body: 'Same kasse igjen. Dra oppover og sjå opp på henne.',
-    found: 'No er ikkje loddlinjene parallelle med arket heller, så dei samlar seg òg, i eit punkt over deg. Tre knippe, tre punkt, same kasse, same stad. Alt du gjorde var å løfte blikket.',
+    found: 'No ligg ikkje loddlinjene parallelt med arket heller, så dei samlar seg òg, i eit punkt over deg. Tre knippe, tre punkt, same kasse, same stad. Du løfta berre blikket.',
     stage: { cast: 'one', mode: 'rectilinear', fov: 88, turn: Math.PI / 5, selectionGuides: 1, stand: { x: 0, z: 3.4, yaw: 0, pitch: 0 } },
     hands: 'viewer',
     gate: { kind: 'pitch', radians: 0.45 },
@@ -541,7 +541,7 @@ export const CARDS: Card[] = [
      * exercises never gives anybody.
      */
     headline: 'Ingenting av dette er kassa',
-    body: 'Eitt, to og tre punkt er ikkje tre slag kassar og ikkje tre system. Det er kor mange av dei tre knippa som ikkje ligg parallelt med arket ditt, og det er ei opplysning om kvar DU står og kvar du ser, ikkje om det du teiknar.',
+    body: 'Eitt, to og tre punkt er ikkje tre slag kassar, og ikkje tre system. Talet seier berre kor mange av dei tre knippa som ikkje ligg parallelt med arket ditt - og det er ei opplysning om DEG, kvar du står og kvar du ser, ikkje om det du teiknar.',
     stage: { cast: 'one', mode: 'rectilinear', fov: 88, turn: Math.PI / 5, selectionGuides: 1, stand: { x: 0, z: 3.4, yaw: 0.5, pitch: 0.4 } },
     travel: 2200,
   },
@@ -554,7 +554,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Det flate arket tek slutt',
     body: 'Verktøylinja er tilbake. Dra i kjegla nede og opne linsa så langt ho går.',
-    found: 'Sjå hjørna. Ei rett linje held seg rett, og det er heile poenget med systemet. Prisen er at avstanden frå midten er TANGENTEN til vinkelen, og tangenten spring frå deg. Ved 180 grader er han uendeleg. Difor finst dei tre andre arka.',
+    found: 'Sjå hjørna. Ei rett linje held seg rett på dette arket, og det er heile verdien av det. Prisen: avstanden frå midten veks som TANGENTEN til vinkelen, og tangenten spring frå deg - ved 180 grader er han uendeleg. Difor finst dei tre andre arka.',
     stage: { cast: 'street', mode: 'rectilinear', fov: 55, guides: 1, selectionGuides: 0, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     hands: 'viewer',
     chrome: true,
@@ -571,7 +571,7 @@ export const CARDS: Card[] = [
   },
   {
     headline: 'Fire punkt',
-    body: 'Same scene, fanga på sylinderen. Han held loddlinjene rette og lèt vassrette linjer bue, og no er horisonten ein heil sirkel, med begge punkta til eit knippe på arket samstundes.',
+    body: 'Same scene, fanga på sylinderen. Han held loddlinjene rette og lèt dei vassrette bue - og no går horisonten heile vegen rundt, så begge punkta til eit knippe står på arket samstundes.',
     stage: { cast: 'street', mode: 'cylindrical', fov: 300, guides: 1, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     sweep: { seconds: 40, yaw: [0, Math.PI] },
     // The two arrivals are the crescendo of the whole lesson, and a crescendo
@@ -585,7 +585,7 @@ export const CARDS: Card[] = [
      * came from are drawn on.
      */
     headline: 'Fem punkt',
-    body: 'Og fanga på kula sjølv. Alle retningar ligg på arket: fire punkt rundt horisonten, eitt rett opp, eitt rett ned. Avstand frå midten er vinkelen sjølv, jamt i alle retningar. Dette er arket ein rular når heile rommet skal med.',
+    body: 'Og til slutt: fanga på kula sjølv. Alle retningar ligg på arket - fire punkt rundt horisonten, eitt rett opp, eitt rett ned - og avstanden frå midten er vinkelen sjølv, jamt heile vegen. Dette er arket ein rular når alt ikring deg skal med.',
     stage: { cast: 'street', mode: 'equidistant', fov: 360, guides: 2, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     travel: 4200,
   },
@@ -608,7 +608,7 @@ export const CARDS: Card[] = [
      * shader draws at and the spacing in the videos: close enough to sight an
      * angle against, open enough to draw between.
      */
-    headline: 'Rul arket først',
+    headline: 'Rul arket fyrst',
     body: 'Meridianane står femten grader frå kvarandre og møtest i dei same seks punkta. Det er dette rutenettet du siktar mot: kvar oppreist kant i verda fylgjer ei av kurvene, og kvar vassrett kant kryssar dei jamt.',
     stage: { cast: 'street', mode: 'equidistant', fov: 360, guides: 2, selectionGuides: 0, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     sweep: { seconds: 48, pitch: [-0.35, 0.35] },
@@ -622,7 +622,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Sikt langs kurvene',
     body: 'Snu deg og sjå deg omkring. Vel éin oppreist kant på ei kasse og fylg han medan du snur.',
-    found: 'Han slepper aldri kurva si. Det er dette som gjer at ein kan teikne på fri hand i fem punkt: du treng ikkje rekne ut noko, du treng berre å vite kva for ei kurve kanten høyrer til.',
+    found: 'Han slepp aldri kurva si. Det er dette som gjer fem punkt teiknbart på fri hand: ingenting skal reknast ut, du skal berre vite kva for ei kurve kanten høyrer til.',
     stage: { cast: 'street', mode: 'equidistant', fov: 340, guides: 2, selectionGuides: 0, stand: { x: 0, z: 5, yaw: 0, pitch: 0.1 } },
     hands: 'viewer',
     gate: { kind: 'turn', radians: 2.6 },
@@ -635,7 +635,7 @@ export const CARDS: Card[] = [
      * a lesson about somebody else's picture.
      */
     headline: 'Teikn ei sjølv',
-    body: 'No har du arket. Blyanten teiknar grunnflata og dreg henne opp; hald ei kasse og slå på hennar eigne punkt for å sjå kvar kantane skal peike. Hylla har ei heil side med kassar å øve på. Resten er timar.',
+    body: 'No er arket ditt. Blyanten teiknar grunnflata og dreg henne opp; hald på ei kasse og slå på hennar eigne punkt, så ser du kvar kanten skal peike. Hylla har ei heil side med kassar å øve på. Resten er timar.',
     stage: { cast: 'one', mode: 'equidistant', fov: 210, guides: 2, selectionGuides: 1, turn: Math.PI / 5, stand: { x: 0, z: 3.6, yaw: 0, pitch: 0 }, figures: [{ who: 'astro-back', at: [-2.1, -1], turn: -0.35 }] },
     chrome: true,
     travel: 2400,

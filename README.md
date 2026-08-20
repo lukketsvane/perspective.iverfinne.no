@@ -452,9 +452,9 @@ the horizon rather than guessed.
 | --- | --- |
 | **Ei kule av retningar** | the sphere, ruled, with nothing standing on it |
 | **Snu deg heilt rundt** | *do it*: look for an edge on the sphere, and find there is none |
-| **Kva fangar du det på?** | the same scene, same spot, stepping plane → cylinder → sphere |
+| **Kva fangar du kula på?** | the same scene, same spot, stepping plane → cylinder → sphere |
 | **Hovudpunktet og horisonten** | *do it*: turn, and see which two marks refuse to move |
-| **Alt i di eiga høgd** | *do it*: four posts of exactly your own height, three metres out and forty — the line cuts every one of them at the top |
+| **Alt i di eiga høgd** | *do it*: four posts of exactly your own height, five metres out and forty — the line cuts every one of them at the top |
 | **Linja er ein målestokk** | a desk, a car, the astronaut at his 180, a door: read their heights off where the line crosses them |
 | **Auget flyttar seg med deg** | the eye slides from a crouch to a stretch while nothing on the floor moves |
 | **Parallelle linjer møtest** | a rank of cubes, and *why* the point exists — as a limit, not a rule |
@@ -468,11 +468,11 @@ the horizon rather than guessed.
 | **Fire punkt** | bend one axis; the horizon becomes a circle |
 | **Fem punkt** | bend both; zenith and nadir arrive |
 | **Ei kasse har seks** | *do it*: turn slowly and count the ringed points |
-| **Rul arket først** | the 15° meridians, and what you sight against them |
+| **Rul arket fyrst** | the 15° meridians, and what you sight against them |
 | **Sikt langs kurvene** | *do it*: follow one upright edge round and watch it hold its meridian |
 | **Teikn ei sjølv** | the pencil, on the sheet you have just been given — and the astronaut flat on his back, cheering |
 
-**Eleven of the twenty-two are done by you, not shown to you.** The first draft ran
+**Ten of the twenty-one are done by you, not shown to you.** The first draft ran
 the whole thing as a performance, and it was a film — correct, watchable, and
 *agreed with* rather than learned. You do not learn that the verticals gather by
 watching them gather. You learn it by looking up yourself, with your own thumb
@@ -527,9 +527,9 @@ way out is one unlabelled mark in the far corner at a third of an opacity. The
 difference between that and a pill marked *skip* is the difference between a door
 and a sign pointing at a door.
 
-**Four acts, with titles.** Eighteen cards in a row is a list, and a list has no
+**Five acts, with titles.** Twenty-one cards in a row is a list, and a list has no
 shape: at card eleven nobody knows whether they are near the end. **Kula**,
-**Punkta**, **Arka**, **Handa** — each held large over a dimmed picture for two
+**Auget**, **Punkta**, **Arka**, **Handa** — each held large over a dimmed picture for two
 and a half seconds, naming the one thing its cards are about. It is the only
 full-screen moment in the app and the only place a single word is the whole
 picture, which is what makes it worth the seconds it costs.
