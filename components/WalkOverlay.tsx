@@ -2290,7 +2290,7 @@ export const WalkOverlay: React.FC<{
           // The wrapping stays, because it wraps rather than clips when it
           // truly cannot fit, and a control pushed off the edge is not a
           // smaller control.
-          className={`flex flex-wrap items-center justify-center max-w-full p-1.5 gap-1 max-[429px]:p-1 max-[429px]:gap-0.5 max-[389px]:gap-0 rounded-[1.125rem] border shadow-2xl ${SIDEWAYS_DOCK} ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
+          className={`flex flex-wrap items-center justify-center max-w-full p-1.5 gap-1 max-[429px]:p-1 max-[429px]:gap-0.5 max-[389px]:gap-0 max-[359px]:p-0.5 rounded-[1.125rem] border shadow-2xl ${SIDEWAYS_DOCK} ${dockVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${surface}`}
         >
           <div className={`${SIDEWAYS_CLUSTER} ${surface}`}>
           {/*

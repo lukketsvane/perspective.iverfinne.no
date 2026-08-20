@@ -51,8 +51,13 @@ export const chrome = (dark: boolean) =>
  * folded in half over the drawing is worse than either. The height does not
  * move, and a thumb is wider than it is tall.
  */
+/*
+ * ...and thirty-six below 360, where even forty puts the dock's eighth seat
+ * alone on a second row. The height stays at forty-four, so the hit area
+ * loses four pixels of width and nothing of reach.
+ */
 export const iconButton = (dark: boolean) =>
-  `flex items-center justify-center w-11 max-[429px]:w-10 h-11 rounded-full transition-transform active:scale-95 ${
+  `flex items-center justify-center w-11 max-[429px]:w-10 max-[359px]:w-9 h-11 rounded-full transition-transform active:scale-95 ${
     dark
       ? 'text-white hover:bg-white/10 disabled:hover:bg-transparent'
       : 'text-gray-900 hover:bg-black/5 disabled:hover:bg-transparent'

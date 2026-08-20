@@ -474,7 +474,11 @@ export const CARDS: Card[] = [
      * sounds obvious and is not believed; done, it is startling.
      */
     headline: 'Punktet flyttar seg ikkje',
-    body: 'Gå: dra i nedre venstre hjørne. Fylg med på punktet medan kassane glir forbi deg.',
+    // Not 'the lower-left corner': on a phone the corner itself is this very
+    // card's tap-to-advance block, and a thumb aimed there walks nothing.
+    // The stick zone is the whole lower-left QUARTER of the picture, and the
+    // words now point at the part of it that is picture.
+    body: 'Gå: hald tommelen på venstre halvdelen av biletet, ovanfor desse orda, og dra. Fylg med på punktet medan kassane glir forbi deg.',
     found: 'Kassane flytta seg. Punktet stod stille. Det høyrer til RETNINGA, ikkje til linjene og ikkje til staden. Difor kan du rule dei seks punkta éin gong og teikne heile sida mot dei.',
     stage: { cast: 'row', mode: 'rectilinear', fov: 80, selectionGuides: 1, stand: { x: 1.6, z: 6, yaw: -0.12, pitch: 0 } },
     hands: 'viewer',
