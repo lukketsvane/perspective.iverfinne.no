@@ -8,7 +8,7 @@ import type { GuideLevel, PerspectiveMode, SelectionGuide } from '../types';
  * Everything else here was built to make that reachable. What was missing is
  * the thing a demonstration does not contain: WHY it works.
  *
- * ONE IDEA, TWENTY-ONE CARDS.
+ * ONE IDEA, TWENTY-TWO CARDS.
  *
  * Almost every perspective tutorial teaches one, two and three point as three
  * separate recipes, then presents four and five point as exotica. That is not
@@ -35,7 +35,7 @@ import type { GuideLevel, PerspectiveMode, SelectionGuide } from '../types';
  * yourself, with your own thumb on the glass, and seeing it happen because you
  * did it.
  *
- * So the director stages each card and then, on ten of the twenty-one, LETS GO:
+ * So the director stages each card and then, on ten of the twenty-two, LETS GO:
  * turn round and find the second point, walk and watch the point refuse to
  * move, look up, open the lens until the corners go. The card waits, and when
  * you have done it a sentence appears that was not there before - the one that
@@ -202,7 +202,7 @@ export interface Sweep {
 /**
  * The five acts, and why a lesson this long needs them.
  *
- * Twenty-one cards in a row is a list, and a list has no shape: at card eleven
+ * Twenty-two cards in a row is a list, and a list has no shape: at card eleven
  * nobody knows whether they are near the end or a third of the way in, and a
  * viewer who cannot see the shape of a thing cannot tell whether it is going
  * anywhere. Five titles, held for two and a half seconds over the picture,
@@ -226,8 +226,8 @@ export const ACTS: Act[] = [
   { at: 0, title: 'Kula', line: 'Eit bilete er eit kart over alt du ser' },
   { at: 4, title: 'Auget', line: 'Horisonten er ikkje ein stad. Han er høgda di' },
   { at: 7, title: 'Punkta', line: 'Kvar dei kjem frå, og kvifor dei ikkje rører seg' },
-  { at: 13, title: 'Arka', line: 'Same verd, fire flater å fange henne på' },
-  { at: 18, title: 'Handa', line: 'Frå rutenettet til blyanten' },
+  { at: 14, title: 'Arka', line: 'Same verd, fire flater å fange henne på' },
+  { at: 19, title: 'Handa', line: 'Frå rutenettet til blyanten' },
 ];
 
 export interface Card {
@@ -430,7 +430,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Auget flyttar seg med deg',
     body: 'Ingenting på golvet rører seg no. Berre du - ned på huk, og opp igjen.',
-    found: 'Linja fylgde deg. Ho er ikkje ein stad i verda; ho er høgda di, og difor er ho det fyrste merket på eit ark: å setje henne er å velje kvar den som ser, står. Og sjå kva toppflatene gjer på vegen: dei lukkar seg di nærare linja dei kjem, og RETT på henne er dei borte. Ei flate du ser oppå, ligg under auget ditt.',
+    found: 'Linja fylgde deg. Ho er ikkje ein stad i verda; ho er høgda di, og difor er ho det fyrste merket på eit ark: å setje henne er å velje kvar den som ser, står - og å finne henne i ei framand teikning er å finne att auget som såg. Og sjå toppflatene på vegen: dei lukkar seg di nærare linja dei kjem, og RETT på henne er dei borte. Ei flate du ser oppå, ligg under auget ditt.',
     stage: {
       cast: 'heights',
       mode: 'rectilinear',
@@ -483,6 +483,23 @@ export const CARDS: Card[] = [
     stage: { cast: 'row', mode: 'rectilinear', fov: 80, selectionGuides: 1, stand: { x: 1.6, z: 6, yaw: -0.12, pitch: 0 } },
     hands: 'viewer',
     gate: { kind: 'walk', metres: 3.5 },
+    travel: 2000,
+  },
+  {
+    /*
+     * The one drawing-quality rule in the deck, straight out of the book this
+     * tool grew from: depth compresses. Equal metre steps in the world render
+     * as shrinking steps on the sheet, and the face nearest the point is a
+     * sliver - which beginners reliably draw several times too deep, because
+     * the hand wants the world's intervals rather than the picture's. The rank
+     * of metre-spaced cubes has been on stage twice already; this card finally
+     * points at the GAPS instead of the edges. No gate: the whole task is
+     * looking, so the answer arrives on the reading clock.
+     */
+    headline: 'Djupna kryp saman',
+    body: 'Same rekkje, nærare. Kvar kasse står nøyaktig ein meter frå den neste. Sjå på stega mellom dei - kva gjer dei på vegen inn mot punktet?',
+    found: 'Dei kryp saman. Like steg i verda vert krympande steg på arket, og flata nærast punktet vert ei smal strimle - å teikne henne for djup er eit av dei vanlegaste feilgrepa i faget. Lit difor på det som gjentek seg: vindauge, master, heller. Alt som står jamt i verda, målar djupna for deg på arket.',
+    stage: { cast: 'row', mode: 'rectilinear', fov: 80, selectionGuides: 1, stand: { x: 0.9, z: 3.0, yaw: -0.17, pitch: -0.08 } },
     travel: 2000,
   },
   {
@@ -541,7 +558,7 @@ export const CARDS: Card[] = [
      * exercises never gives anybody.
      */
     headline: 'Ingenting av dette er kassa',
-    body: 'Eitt, to og tre punkt er ikkje tre slag kassar, og ikkje tre system. Talet seier berre kor mange av dei tre knippa som ikkje ligg parallelt med arket ditt - og det er ei opplysning om DEG, kvar du står og kvar du ser, ikkje om det du teiknar.',
+    body: 'Eitt, to og tre punkt er ikkje tre slag kassar, og ikkje tre system. Talet seier berre kor mange av dei tre knippa som ikkje ligg parallelt med arket ditt - og det er ei opplysning om DEG, kvar du står og kvar du ser, ikkje om det du teiknar. Snu kassa i staden, og punkta hennar glid berre langs horisonten: kvar vassrett retning i verda eig sitt eige par på den linja.',
     stage: { cast: 'one', mode: 'rectilinear', fov: 88, turn: Math.PI / 5, selectionGuides: 1, stand: { x: 0, z: 3.4, yaw: 0.5, pitch: 0.4 } },
     travel: 2200,
   },
@@ -554,7 +571,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Det flate arket tek slutt',
     body: 'Verktøylinja er tilbake. Dra i kjegla nede og opne linsa så langt ho går.',
-    found: 'Sjå hjørna. Ei rett linje held seg rett på dette arket, og det er heile verdien av det. Prisen: avstanden frå midten veks som TANGENTEN til vinkelen, og tangenten spring frå deg - ved 180 grader er han uendeleg. Difor finst dei tre andre arka.',
+    found: 'Sjå hjørna. Ei rett linje held seg rett på dette arket, og det er heile verdien av det. Prisen: avstanden frå midten veks som TANGENTEN til vinkelen, og tangenten spring frå deg - ved 180 grader er han uendeleg. Ingen linjal fiksar strekken i hjørna; han er arket sitt, ikkje handa di. Difor finst dei tre andre arka.',
     stage: { cast: 'street', mode: 'rectilinear', fov: 55, guides: 1, selectionGuides: 0, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     hands: 'viewer',
     chrome: true,
