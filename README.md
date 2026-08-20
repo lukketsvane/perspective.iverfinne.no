@@ -459,6 +459,7 @@ the horizon rather than guessed.
 | **Auget flyttar seg med deg** | the eye slides from a crouch to a stretch while nothing on the floor moves |
 | **Parallelle linjer møtest** | a rank of cubes, and *why* the point exists — as a limit, not a rule |
 | **Punktet flyttar seg ikkje** | *do it*: walk, and watch the point refuse to move |
+| **Djupna kryp saman** | metre-equal steps in the world, shrinking steps on the sheet — and the too-deep mistake |
 | **Kvart knippe har to punkt** | *do it*: turn right round and find the other one |
 | **Eitt punkt** | cube square on; two families parallel to the sheet |
 | **To punkt** | *do it*: turn your head — the cube is untouched and now has two |
@@ -472,7 +473,7 @@ the horizon rather than guessed.
 | **Sikt langs kurvene** | *do it*: follow one upright edge round and watch it hold its meridian |
 | **Teikn ei sjølv** | the pencil, on the sheet you have just been given — and the astronaut flat on his back, cheering |
 
-**Ten of the twenty-one are done by you, not shown to you.** The first draft ran
+**Ten of the twenty-two are done by you, not shown to you.** The first draft ran
 the whole thing as a performance, and it was a film — correct, watchable, and
 *agreed with* rather than learned. You do not learn that the verticals gather by
 watching them gather. You learn it by looking up yourself, with your own thumb
@@ -527,7 +528,7 @@ way out is one unlabelled mark in the far corner at a third of an opacity. The
 difference between that and a pill marked *skip* is the difference between a door
 and a sign pointing at a door.
 
-**Five acts, with titles.** Twenty-one cards in a row is a list, and a list has no
+**Five acts, with titles.** Twenty-two cards in a row is a list, and a list has no
 shape: at card eleven nobody knows whether they are near the end. **Kula**,
 **Auget**, **Punkta**, **Arka**, **Handa** — each held large over a dimmed picture for two
 and a half seconds, naming the one thing its cards are about. It is the only
