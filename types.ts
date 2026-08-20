@@ -411,54 +411,6 @@ export type Backdrop = 'paper' | number;
 export const FIELD_RANGES: FieldRange[] = ['human', 'sphere', 'endless'];
 
 /**
- * How much of the room is drawn.
- *
- * 0 nothing, 1 the ruling alone - lines hanging in the air where the walls
- * would be - and 2 the surfaces with it.
- *
- * A rung rather than a second switch. It was one boolean giving walls AND
- * twelve edges together, and the lines are the part that does the teaching: the
- * line where a wall meets the floor is the most informative mark in a room,
- * being the one that says how far away the wall is. You could not have it
- * without three flat greys standing in front of your drawing.
- */
-export type RoomLevel = 0 | 1 | 2;
-
-/**
- * Read a room setting written by any version.
- *
- * `true` reads as 2, not 1: it is what the flag used to draw, and nobody's
- * saved composition should come back looking different from how they left it.
- */
-export const readRoomLevel = (stored: unknown): RoomLevel =>
-  stored === true ? 2 : stored === 1 || stored === 2 ? stored : 0;
-
-/**
- * How big the room is, in metres.
- *
- * The floor is the part worth changing and it is the part you drag: a corridor,
- * a square studio and a wide shallow hall are three different exercises, and
- * which one you are in is decided by these two numbers. The ceiling is not
- * dragged - three metres is a ceiling, and moving it turns out to be the least
- * interesting thing about a room - but it is kept here so a scene saved with a
- * different one comes back with it.
- */
-export interface RoomSize {
-  /** Across, along X. */
-  width: number;
-  /** Away, along Z. */
-  depth: number;
-  height: number;
-}
-
-/** As small and as large as the room goes. */
-export const ROOM_LIMITS = {
-  width: [3, 40] as const,
-  depth: [3, 40] as const,
-  height: [2, 12] as const,
-};
-
-/**
  * Metres that dragging snaps to. 0 is free.
  *
  * The ground grid is ruled at whatever is chosen here, so what you snap to is
@@ -975,11 +927,6 @@ export interface SceneView {
   ground?: { on: boolean; tone: number };
   /** Written by a version whose surface setting was models-only and had two rungs. */
   modelMaterial?: Surface;
-  /** Whether the room was standing round the scene, and how big it was. */
-  roomLevel?: RoomLevel;
-  /** Written by the version that had one switch for the room. */
-  showRoom?: boolean;
-  room?: RoomSize;
   /** Written by every version before the selection's construction was a ladder. */
   showVanishing?: boolean;
   selectionGuides?: SelectionGuide;
@@ -1041,16 +988,6 @@ export interface SceneState {
   construction: ConstructionLevel;
   fieldRange: FieldRange;
   backdrop: Backdrop;
-  /**
-   * Four walls and a ceiling, standing round the origin.
-   *
-   * The room is the perspective exercise. A box on open ground shows you its
-   * own twelve edges; a room shows you the ones that reach the edge of the
-   * frame, which is where a curved projection does its most visible work.
-   */
-  roomLevel: RoomLevel;
-  /** How big it is. */
-  room: RoomSize;
   /**
    * The selection's own vanishing points, and its edges carried out to them.
    *
@@ -1273,9 +1210,6 @@ export interface SceneState {
   }) => void;
   /** Give the selection back to the page's own settings. */
   followPageMaterial: () => void;
-  cycleRoom: () => void;
-  /** Change the floor's two axes, or the ceiling. Clamped to what a room can be. */
-  setRoom: (room: Partial<RoomSize>) => void;
   /** Step the construction round the selection: off, rays, diagonals, quarters. */
   cycleSelectionGuides: () => void;
   /** Read the viewer's own shelf back out of the browser. */

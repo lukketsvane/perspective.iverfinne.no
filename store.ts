@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, SelectionGuide, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readRoomLevel, readShadows, readSurface, ROOM_LIMITS, RoomLevel, RoomSize, SavedScene, SceneModel, SceneState, CameraState, SceneView, SKY_LIMITS, SkyState, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
+import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, SelectionGuide, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readShadows, readSurface, SavedScene, SceneModel, SceneState, CameraState, SceneView, SKY_LIMITS, SkyState, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
 import { releaseSource, cachedSourceUrls, loadModelFromUrl } from './lib/loadModel';
 import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
@@ -217,39 +217,9 @@ export const EYE_LEVEL_PRESETS: { label: string; note: string; height: number }[
   { label: '2.5', note: 'Raised - the wide establishing view', height: 2.5 },
 ];
 
-/**
- * The room, as it stands when first switched on.
- *
- * A studio rather than a hall: ten metres each way is far enough to walk about
- * in and to stand the six-metre car in with room at both ends, and a three metre
- * ceiling is close enough over your head - a metre above a standing eye - that
- * its convergence is something you can see rather than something you have to
- * measure. All three are whole metres, so every edge of the room lands on a
- * ruled line instead of a hand's width off one.
- */
-export const DEFAULT_ROOM: RoomSize = { width: 10, depth: 10, height: 3 };
-
-/**
- * The furthest back anything should stand the viewer from the middle of it.
- *
- * A metre and a bit inside the wall, so a framing worked out from an object's
- * size cannot put you through it.
- *
- * It bounds the framing only when the walls are actually up: with them down
- * there is nothing to be inside of, and clamping to an imaginary room was half
- * of why the tool used to open with the car running off both edges. The other
- * half was that with the walls up it clamped and stopped - so the room grows
- * to the view instead now, and this is the floor it grows from rather than a
- * ceiling on how far back the framing may stand. See App.tsx.
- */
-export const standingRoom = (room: RoomSize) =>
-  Math.max(1.6, (Number.isFinite(room.depth) ? room.depth : DEFAULT_ROOM.depth) / 2 - 1.2);
 
 /** Snap a spawned cube to the centre of a 1 m grid cell, so stacks line up. */
 const snapToCell = (v: number) => Math.floor(v) + 0.5;
-
-const clampTo = (value: number, [low, high]: readonly [number, number]) =>
-  Math.max(low, Math.min(high, value));
 
 /**
  * The tone actually behind everything: the sheet's own, or the page's.
@@ -623,8 +593,6 @@ const SETTING_KEYS = [
   'pen',
   'wash',
   'ground',
-  'roomLevel',
-  'room',
   'selectionGuides',
   'fov',
   'snapStep',
@@ -671,8 +639,6 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   pen: object,
   wash: object,
   ground: object,
-  roomLevel: number,
-  room: object,
   selectionGuides: (v) => v === 0 || v === 1 || v === 2 || v === 3,
   fov: number,
   snapStep: number,
@@ -705,7 +671,7 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
 const VIEW_GENERATION = 5;
 
 /** The keys the reset above drops. Everything else survives it. */
-const VIEW_KEYS = ['fov', 'guides', 'construction', 'surface', 'roomLevel', 'backdrop'] as const;
+const VIEW_KEYS = ['fov', 'guides', 'construction', 'surface', 'backdrop'] as const;
 
 /**
  * Whether the stored setup predates the current opening view.
@@ -792,30 +758,6 @@ const legacy = (() => {
     return {};
   }
 })();
-
-/**
- * A room read back out of storage, whatever shape it was written in.
- *
- * The floor was one number for a square room before it was two, and a stored
- * `{ floor, height }` came back through the allow-list intact - which left the
- * room with no width and no depth at all, and every sum that touched it holding
- * a NaN. The one that mattered was where to stand: a NaN reached the walker,
- * and a camera at NaN draws an empty frame. Nothing threw and nothing logged;
- * the app simply came up white for anybody who had used the previous version.
- *
- * Which is why this is not a `??` in a spread but a function that starts from
- * the defaults and only takes numbers.
- */
-const readRoom = (stored: Partial<RoomSize> | undefined): RoomSize => {
-  const square = legacy.room?.floor;
-  const take = (value: unknown, fallback: number) =>
-    typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-  return {
-    width: take(stored?.width, take(square, DEFAULT_ROOM.width)),
-    depth: take(stored?.depth, take(square, DEFAULT_ROOM.depth)),
-    height: take(stored?.height, DEFAULT_ROOM.height),
-  };
-};
 
 /** The same for the projection: two of them are not on offer any more. */
 const readMode = (stored: unknown): PerspectiveMode =>
@@ -970,10 +912,6 @@ const remembered = kept({
   // ...and before the surface was a property of each thing rather than one
   // switch over every mesh in the scene.
   surface: loadedSettings.surface ?? (staleView ? undefined : legacy.modelMaterial),
-  // ...and before the room was a ladder rather than a switch.
-  roomLevel: loadedSettings.roomLevel ?? (staleView || !legacy.showRoom ? undefined : 2),
-  // ...and before the room's floor was two numbers rather than one.
-  room: readRoom(loadedSettings.room),
   // Through the defaults, so a page written by a version with fewer knobs
   // does not come back with an undefined angle and rule nothing.
   marker: loadedSettings.marker === undefined ? undefined : { ...DEFAULT_MARKER, ...loadedSettings.marker },
@@ -1150,8 +1088,6 @@ export const currentView = (state: SceneState): SceneView => ({
   pen: { ...state.pen },
   wash: { ...state.wash },
   ground: { ...state.ground },
-  roomLevel: state.roomLevel,
-  room: { ...state.room },
   selectionGuides: state.selectionGuides,
   snapStep: state.snapStep,
   camera: {
@@ -1256,8 +1192,6 @@ const restoreView = (view: SceneView | undefined, range: FieldRange): Partial<Sc
     pen: { ...DEFAULT_PEN, ...(view.pen ?? {}) },
     wash: { ...DEFAULT_WASH, ...(view.wash ?? {}) },
     ground: { ...DEFAULT_GROUND, ...(view.ground ?? {}) },
-    roomLevel: readRoomLevel(view.roomLevel ?? view.showRoom),
-    room: readRoom(view.room),
     // A stored boolean is the rung it used to mean: on was the rays.
     selectionGuides: view.selectionGuides ?? (view.showVanishing === false ? 0 : 1),
     snapStep: view.snapStep ?? 0.25,
@@ -1292,8 +1226,6 @@ export const useStore = create<SceneState>((set, get) => ({
    * are both things sight cannot do, so they are worth asking for.
    */
   fieldRange: 'human',
-  roomLevel: 0,
-  room: DEFAULT_ROOM,
   selectionGuides: 1,
   snapStep: 0.25, // Quarter metre, so sizes stay readable against the grid
   models: [],
@@ -2405,50 +2337,9 @@ export const useStore = create<SceneState>((set, get) => ({
       };
     }),
 
-  cycleRoom: () => set((state) => ({ roomLevel: ((state.roomLevel + 1) % 3) as RoomLevel })),
 
   cycleSelectionGuides: () =>
     set((state) => ({ selectionGuides: (((state.selectionGuides + 1) % 4) as SelectionGuide) })),
-
-  /**
-   * Size it.
-   *
-   * Continuous, not stepped. A wall that lands on a whole metre lines up with
-   * the ruling on its own floor, which is tidy - and getting there by having
-   * the control jump under the thumb is not worth it, because a room is set by
-   * eye against what is standing in it rather than by reading a number off a
-   * dial. Every value between is reachable, and the whole ones are still there
-   * to be stopped on.
-   */
-  setRoom: (room) =>
-    set((state) => {
-      const next = { ...state.room, ...room };
-      const sized = {
-        width: clampTo(next.width, ROOM_LIMITS.width),
-        depth: clampTo(next.depth, ROOM_LIMITS.depth),
-        height: clampTo(next.height, ROOM_LIMITS.height),
-      };
-
-      /*
-       * If the walls have gone past you, come in with them.
-       *
-       * Shrinking a room you are standing in the middle of eventually puts the
-       * wall behind your back, and what you are then looking at is the outside
-       * of a box - which is not the thing being sized and not a view anybody
-       * asked for. Half a metre inside, keeping the bearing: the walls close on
-       * you rather than pass you, which is the whole point of dragging the
-       * control while watching. Only while the room is up; with it down there is
-       * nothing to be outside of.
-       */
-      if (state.roomLevel > 0) {
-        const across = Math.max(0.3, sized.width / 2 - 0.5);
-        const along = Math.max(0.3, sized.depth / 2 - 0.5);
-        walkInput.position.x = Math.max(-across, Math.min(across, walkInput.position.x));
-        walkInput.position.z = Math.max(-along, Math.min(along, walkInput.position.z));
-      }
-
-      return { room: sized };
-    }),
 
   toggleSunEnvironment: () => set((state) => ({ sunEnvironment: !state.sunEnvironment })),
 

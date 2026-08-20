@@ -72,7 +72,6 @@ const HINTS: Record<string, string> = {
   'Manual exposure': 'Manuelt: blenderen endrar lysmengda',
   Focus: 'Kva avstand som er skarp',
   'Gate:': 'Forma på biletet',
-  'Room,': 'Rommet rundt. Dra for storleik',
   'Measure distances in the scene': 'Målebandet',
   'Look by turning the phone': 'Snu telefonen for å sjå. Dobbelttrykk for rommet under',
   'Save the view as a picture': 'Lagre biletet',

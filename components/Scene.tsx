@@ -7,7 +7,6 @@ import { useStore, DEFAULT_CAMERA_HEIGHT } from '../store';
 import { Lamps } from './Lamps';
 import { GroundGrid } from './GroundGrid';
 import { KimBox } from './KimBox';
-import { Room } from './Room';
 import { SceneModels } from './SceneModels';
 import { WalkControls } from './WalkControls';
 import { updateFocus, focusPoint, setSelectionRange } from '../lib/focus';
@@ -318,7 +317,6 @@ const SceneContent = () => {
   const groundColor = `rgb(${ground.tone}, ${ground.tone}, ${ground.tone})`;
   const shadowKind = useStore((state) => state.sun.shadows);
   const hardShadows = shadowKind === 'hard';
-  const roomLevel = useStore((state) => state.roomLevel);
   const sunEnvironment = useStore((state) => state.sunEnvironment);
   const sun = useStore((state) => state.sun);
   /**
@@ -493,7 +491,6 @@ const SceneContent = () => {
       {/* The three dials in front of all of it, when there is a lens on. */}
 
       {/* Four walls and a ceiling round the origin. */}
-      {roomLevel > 0 && <Room level={roomLevel} dark={isDark} inked={inkMode} />}
 
       <group>
         {boxes.map((box) => (
