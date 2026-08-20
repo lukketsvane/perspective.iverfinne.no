@@ -163,10 +163,12 @@ export const MESH_LIBRARY: LibraryMesh[] = [
    * the factors owned in the file (metallic 0 - the glTF default of 1 would
    * draw them black the day the app's own override stopped covering for it).
    *
-   * NO REAL SIZE EXISTS FOR A CARTOON, so the heights are chosen, not
-   * measured: a metre-and-a-bit standing, which reads as a child beside the
-   * 1.72 m crewman and keeps the whole set obviously a character rather than
-   * a fifth man. The lying one is 0.9 to the top of the raised mitten.
+   * NO REAL SIZE EXISTS FOR A CARTOON, so each is sized for its job. The
+   * walker stands at 1.80, because he is the lesson's measuring stick: a
+   * figure in grown-up height that the horizon cuts just under the top -
+   * exactly where it would cut you. The other two stay character-sized, a
+   * metre and a bit standing and 0.9 to the raised mitten, children beside
+   * the 1.72 m crewman.
    *
    * And they face +Z like everything here - one arrived facing away and one
    * lying with its feet across the ruling, and both quarter-turns are baked
@@ -174,7 +176,7 @@ export const MESH_LIBRARY: LibraryMesh[] = [
    */
   { id: 'astro-back', name: 'Astronaut, on their back', url: '/meshes/astro-back.glb', height: 0.9 },
   { id: 'astro-jetpack', name: 'Astronaut, with a jetpack', url: '/meshes/astro-jetpack.glb', height: 1.15 },
-  { id: 'astro-walking', name: 'Astronaut, walking', url: '/meshes/astro-walking.glb', height: 1.0 },
+  { id: 'astro-walking', name: 'Astronaut, walking', url: '/meshes/astro-walking.glb', height: 1.8 },
 ];
 
 /**

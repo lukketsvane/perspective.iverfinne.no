@@ -399,8 +399,8 @@ export const CARDS: Card[] = [
      * right when they are read off the horizon rather than guessed.
      */
     headline: 'Linja er ein målestokk',
-    body: 'Ein pult på 75, astronauten på ein meter, ein bil på 150, ei dør på 210. Ingen av dei står i di høgd. Sjå kvar linja går på kvar av dei.',
-    found: 'Ho går over dei tre fyrste og gjennom den fjerde, fordi ho ligg i 170 og døra er det eine som er høgare enn auget ditt. Og du kjenner alt desse høgdene frå kroppen din: pulten når deg til låret, astronauten til hofta, bilen til brystet. Set linja der auget er, og storleikane er ei avlesing i staden for ei gjetting.',
+    body: 'Ein pult på 75, ein bil på 150, astronauten på 180, ei dør på 210. Ingen av dei står nøyaktig i di høgd. Sjå kvar linja går på kvar av dei.',
+    found: 'Ho går over pulten og bilen, og gjennom dei to som er høgare enn auget ditt: gjennom andletet på astronauten - han er 180, linja ligg i 170, så ho kuttar han akkurat der ho ville kutta deg - og gjennom døra eit stykke under karmen. Du kjenner alt desse høgdene frå kroppen din: pulten når deg til låret, bilen til brystet, astronauten ser deg i auga. Set linja der auget er, og storleikane er ei avlesing i staden for ei gjetting.',
     stage: {
       cast: 'heights',
       mode: 'rectilinear',
