@@ -32,15 +32,22 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
   const surface = nearestSurface(model.surface ?? sceneSurface, MESH_SURFACES);
   const inked = isSketch(surface);
   const hardShadows = useStore((state) => state.sun.shadows) === 'hard';
-  /**
-   * The authored materials, flattened to the scene's own finish.
+  /*
+   * Whether the real sky is up, which is what decides if a model is shown AS
+   * ITSELF or flattened to the scene's own finish.
    *
-   * WHY THEY ARE OVERRIDDEN AT ALL: a scanned figure arrives with photographed
-   * skin and fabric on it, which is a great deal of information to draw past
-   * when what the figure is doing here is standing among white boxes being read
-   * for form and value. Flattening leaves the shape and takes away the
-   * photograph - and it is the same finish the boxes are drawn with, so a
-   * figure among them is lit by the same sun.
+   * With the sky drawn there is an environment for materials to answer - the
+   * dome is rendered into scene.environment (see Sky.tsx) - so the racer's
+   * authored aluminium can actually BE aluminium: base colour, metal and
+   * normal maps, untouched. Without one, a metallic surface has no diffuse
+   * term and nothing to reflect, and the same aircraft renders as tar; the
+   * flat dry finish below is the honest sky-less fallback, and it is what
+   * this tool showed for years.
+   */
+  const skyLit = useStore((state) => state.sunEnvironment);
+  /**
+   * The authored materials, flattened to the scene's own finish - the
+   * SKY-LESS path, see skyLit above.
    *
    * Each copy is kept against the material it came from, so the twenty meshes a
    * scanned animal arrives in share one clone rather than carrying twenty.
@@ -115,9 +122,9 @@ const PlacedModel: React.FC<{ model: SceneModel }> = ({ model }) => {
       // Read the authored materials before swapping, so the first swap is what
       // records them rather than what loses them.
       const own = authoredMaterial(mesh);
-      mesh.material = drawn ?? flattened(own);
+      mesh.material = drawn ?? (skyLit ? own : flattened(own));
     });
-  }, [surface, hardShadows, model.object, drawn, flattened]);
+  }, [surface, hardShadows, model.object, drawn, flattened, skyLit]);
 
   if (!model.object) return null;
 

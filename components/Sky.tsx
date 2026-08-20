@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Sky as SkyDome } from '@react-three/drei';
+import { Environment, Sky as SkyDome } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../store';
 import type { SunState } from '../types';
@@ -755,6 +755,24 @@ export const Atmosphere: React.FC = () => {
     material.needsUpdate = true;
   }, [stop]);
 
+  /*
+   * THE SKY IS ALSO THE LIGHT THE MATERIALS ANSWER.
+   *
+   * A metal has no diffuse term: with nothing in scene.environment the
+   * racer's authored aluminium renders as tar, however bright the sun. So
+   * the same Preetham parameters are rendered once more, at sixty-four
+   * pixels, into an environment map - with a ground-coloured floor under the
+   * horizon, because real tarmac fills the bottom half of every real
+   * reflection. drei renders the children itself; nothing is fetched.
+   *
+   * KEYED COARSELY on purpose. Re-rendering six 64-pixel faces and running
+   * PMREM is cheap once and not cheap sixty times a second, and the clock
+   * commits ten times a second when it runs. A reflection that follows the
+   * sun to the nearest degree and the weather to the nearest eighth is a
+   * reflection nobody can fault; the dome above stays exact.
+   */
+  const envKey = `${Math.round(altitude)}:${Math.round(bearing / 4) * 4}:${Math.round(cover * 8)}:${Math.round(air * 8)}`;
+
   return (
     <>
       {air > 0.05 && (
@@ -767,6 +785,22 @@ export const Atmosphere: React.FC = () => {
           mieCoefficient={0.003 + warmth * 0.012}
           mieDirectionalG={0.82 + energy * 0.12}
         />
+      )}
+      {air > 0.05 && (
+        <Environment key={envKey} frames={1} resolution={64}>
+          <SkyDome
+            distance={400}
+            sunPosition={position}
+            turbidity={2 + warmth * 7 + (1 - energy) * 2 + cover * 6 + (air - 1) * 4}
+            rayleigh={(0.8 + energy * 2.2) * air}
+            mieCoefficient={0.003 + warmth * 0.012}
+            mieDirectionalG={0.82 + energy * 0.12}
+          />
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]}>
+            <circleGeometry args={[380, 24]} />
+            <meshBasicMaterial color="#8e8d8a" />
+          </mesh>
+        </Environment>
       )}
       <CloudDeck />
       {/* Everything past the weather: the catalogue, the band, the figures and

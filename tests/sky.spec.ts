@@ -153,7 +153,17 @@ test('with no air the stars are out at midday, and they turn with the clock', as
    * about the celestial pole on demand.
    */
   await find(app, 'anywhere', 'Aim the sun from a place and a moment').click();
-  await drag(app, 'Time of day', 220, { steps: 2 });
+  /*
+   * 110 PIXELS, NOT 220. A Scrub sweeps its whole range in SWEEP pixels, SWEEP
+   * is 220, and the clock WRAPS - so a 220-pixel drag is one full lap of the
+   * day and the hour lands exactly where it began. Two runs passed that way
+   * anyway, because the old default time carried Date.now()'s seconds and
+   * withHour zeroes them: the "rotation" those runs measured was the
+   * sub-minute accident of snapping to the minute grid, and the moment the
+   * default became noon exactly, it vanished. Half a sweep is twelve hours,
+   * which turns the sky as far as it can be turned.
+   */
+  await drag(app, 'Time of day', 110, { steps: 3 });
   await settled(app);
 
   const after = await starPrint(app);
