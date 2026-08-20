@@ -326,6 +326,9 @@ export const CARDS: Card[] = [
      */
     headline: 'Kva fangar du kula på?',
     body: 'Kula er ikkje eit bilete enno. Eit bilete er ei flate med merke på, så kula må leggjast ut på noko flatt. Sjå: same scene, same stad, tre ulike ark etter tur.',
+    // The answer lands as the slideshow closes its first full cycle: the dwell
+    // for a sweep card is one cycle, and the cycle here is all three sheets.
+    found: 'Same verd i alle tre; berre arket skifte. Det flate heldt kvar kant rett og sleit i hjørna. Sylinderen heldt loddlinjene og bøygde resten. Kula bøygde alt, jamt. Å velje ark er å velje kva som får vere rett.',
     stage: { cast: 'street', mode: 'rectilinear', fov: 100, guides: 1, selectionGuides: 0, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     sweep: { seconds: 21, surfaces: ['rectilinear', 'cylindrical', 'equidistant'] },
     travel: 2200,
@@ -372,7 +375,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Alt i di eiga høgd',
     body: 'Fire stolpar, alle nøyaktig like høge som auget ditt. Den næraste står fem meter unna, den fjernaste over førti. Snu deg og sjå etter kvar horisonten kryssar dei.',
-    found: 'Han kryssar alle fire i toppen. Fem meter unna og førti meter unna: same kutt. Horisonten ligg i di eiga høgd, så alt som når auget ditt, endar nøyaktig på han - kor langt unna det enn står.',
+    found: 'Han kryssar alle fire i toppen. Fem meter unna og førti meter unna: same kutt. Horisonten ligg i di eiga høgd, så alt som rekk deg til auga, endar nøyaktig på han - kor langt unna det enn står.',
     stage: {
       cast: 'level',
       mode: 'rectilinear',
@@ -455,7 +458,7 @@ export const CARDS: Card[] = [
      * the lines are - which is the next card, and the best one in the lesson.
      */
     headline: 'Parallelle linjer møtest',
-    body: 'Ei rekkje kassar, alle med same retning. Fylg kantane utover: di lenger ut du ser, di nærare kjem blikket ditt den retninga kantane sjølve har. Til slutt er blikk og kant same retning - det er punktet.',
+    body: 'Ei rekkje kassar, alle med same retning. Fylg ein kant utover: di lenger ut du ser, di meir ser du LANGS han og di mindre PÅ han. Til slutt ser du reint langs - det er punktet.',
     stage: { cast: 'row', mode: 'rectilinear', fov: 70, selectionGuides: 1, stand: { x: 0, z: 5, yaw: 0, pitch: 0 } },
     travel: 2200,
   },
