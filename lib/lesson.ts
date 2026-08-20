@@ -400,7 +400,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Linja er ein målestokk',
     body: 'Ein pult på 75, ein bil på 150, astronauten på 180, ei dør på 210. Ingen av dei står nøyaktig i di høgd. Sjå kvar linja går på kvar av dei.',
-    found: 'Over pulten, over bilen - og gjennom dei to som er høgare enn auget: gjennom andletet på astronauten, akkurat der ho ville kutta deg, og gjennom døra, eit stykke under karmen. Kroppen din kan desse høgdene alt - astronauten ser deg i auga. Set linja der auget er, og kvar storleik er ei avlesing, ikkje ei gjetting.',
+    found: 'Over pulten, over bilen - og gjennom dei to som er høgare enn auget: gjennom andletet på astronauten, akkurat der ho ville kutta deg, og gjennom døra, eit stykke under karmen. Kroppen din kan desse høgdene alt: pulten til låret, bilen til brystet, astronauten i auga. Set linja der auget er, og kvar storleik er ei avlesing, ikkje ei gjetting.',
     stage: {
       cast: 'heights',
       mode: 'rectilinear',
