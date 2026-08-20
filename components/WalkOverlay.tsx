@@ -1708,43 +1708,6 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={GUIDE_ICON[guides]} className="w-5 h-5" />
           </button>
-          {/* The floor's two rulings, on ONE seat, tapped through four states.
-              They were a switch each - see cycleFloorRuling in store.ts for why
-              that was right and why one seat says the same four things. This is
-              the widest band in the panel and the widest band is what sets the
-              panel's whole width, so a seat here is worth more than a seat
-              anywhere else in it. */}
-          <button
-            onClick={cycleFloorRuling}
-            aria-label={`Floor lines: ${
-              gridZ && gridX ? 'away and across' : gridZ ? 'running away' : gridX ? 'running across' : 'none'
-            }`}
-            aria-pressed={gridX || gridZ}
-            className={`${button} ${gridX || gridZ ? ACTIVE : ''}`}
-          >
-            <Icon path={gridZ && !gridX ? I.gridAway : gridX && !gridZ ? I.gridAcross : I.clearScene} className="w-5 h-5" />
-          </button>
-          {/* ...and the floor itself, under both of them. The ruling says
-              where the ground IS; this is the ground. Tap it on and off, drag
-              it from black through to white - one control, because a band with
-              room for six should not spend two on whether a plane exists and
-              what tone it is. */}
-          <button
-            {...groundControl}
-            aria-label={`Floor: ${ground.on ? `${ground.tone} of 255` : 'none'} - drag to change`}
-            aria-pressed={ground.on}
-            className={`${button} touch-none ${ground.on ? ACTIVE : ''}`}
-          >
-            <Icon path={I.ground} className="w-5 h-5" />
-          </button>
-          <button
-            onClick={cycleSnap}
-            aria-label={snapStep ? `Snap to ${snapStep} m` : 'Snap off'}
-            aria-pressed={snapStep > 0}
-            className={`${button} ${snapStep ? ACTIVE : ''}`}
-          >
-            <Icon path={SNAP_ICON[SNAP_STEPS.indexOf(snapStep as (typeof SNAP_STEPS)[number])] ?? I.snapFree} className="w-5 h-5" />
-          </button>
           {/* A ladder like the guides': off, the selection's, everything's.
               The top rung is the page blocked in whole - every object boxed
               before any object is drawn - which is a thing you step onto
@@ -1762,13 +1725,37 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={construction === 2 ? I.cages : I.cage} className="w-5 h-5" />
           </button>
+          {/* The floor's two rulings, on ONE seat, tapped through four states.
+              They were a switch each - see cycleFloorRuling in store.ts for why
+              that was right and why one seat says the same four things. This is
+              the widest band in the panel and the widest band is what sets the
+              panel's whole width, so a seat here is worth more than a seat
+              anywhere else in it. */}
+          <button
+            onClick={cycleFloorRuling}
+            aria-label={`Floor lines: ${
+              gridZ && gridX ? 'away and across' : gridZ ? 'running away' : gridX ? 'running across' : 'none'
+            }`}
+            aria-pressed={gridX || gridZ}
+            className={`${button} ${gridX || gridZ ? ACTIVE : ''}`}
+          >
+            <Icon path={gridZ && !gridX ? I.gridAway : gridX && !gridZ ? I.gridAcross : I.clearScene} className="w-5 h-5" />
+          </button>
+          <button
+            onClick={cycleSnap}
+            aria-label={snapStep ? `Snap to ${snapStep} m` : 'Snap off'}
+            aria-pressed={snapStep > 0}
+            className={`${button} ${snapStep ? ACTIVE : ''}`}
+          >
+            <Icon path={SNAP_ICON[SNAP_STEPS.indexOf(snapStep as (typeof SNAP_STEPS)[number])] ?? I.snapFree} className="w-5 h-5" />
+          </button>
           </div>
 
-          {/* What the picture is made of: the surface every object wears,
-              the sheet it is drawn on, the page that sheet is mounted on,
-              and the lamps lighting it. The two tones were a rung apart -
-              one on the dock, one buried here - and they are one decision
-              taken twice, so they stand together. */}
+          {/* What the picture is made of, all four tones in one band: the
+              surface every object wears, the sheet it is drawn on, the page
+              that sheet is mounted on, and the floor it stands on. The lights
+              door that used to end this band is with the other doors now -
+              a door among knobs reads as a knob. */}
           <div className={`${band} ${divider}`}>
           {/* THE DEAL IS NOT A BUTTON ANY MORE.
 
@@ -1822,56 +1809,27 @@ export const WalkOverlay: React.FC<{
           >
             <Icon path={I.backdrop} className="w-5 h-5" />
           </button>
+          {/* ...and the floor, which is the picture's fourth tone: surface,
+              sheet, mount, ground, in one band, because they are one decision
+              about what the image is made OF. It sat in the ruling band for
+              years - the ruling says where the ground IS, a fair argument -
+              but a tone control among line controls was the seat everybody
+              hunted for. Tap it on and off, drag it from black to white. */}
           <button
-            onClick={() => { setShowTools(false); setMaterialFrom(null); setShowLights(true); onShelfAway(); }}
-            aria-label="Lights"
-            aria-expanded={showLights}
-            className={button}
+            {...groundControl}
+            aria-label={`Floor: ${ground.on ? `${ground.tone} of 255` : 'none'} - drag to change`}
+            aria-pressed={ground.on}
+            className={`${button} touch-none ${ground.on ? ACTIVE : ''}`}
           >
-            <Icon path={I.strength} className="w-5 h-5" />
+            <Icon path={I.ground} className="w-5 h-5" />
           </button>
           </div>
 
           {/* Where the drawing is seen from, and on what sheet: the
-              projection, how far the lens may open, the room around it,
-              looking by turning the phone - and the pencil held at arm's
-              length, which is how you read an angle off any of it. Set once
-              and drawn from, which is why none of them is on the dock. */}
+              projection, how far the lens may open, the room around it, and
+              looking by turning the phone. Set once and drawn from, which is
+              why none of them is on the dock. */}
           <div className={`${band} ${divider}`}>
-          {/*
-            * The real room, first, because it is the best answer in the band.
-            *
-            * Everything else here decides where a virtual eye stands. This one
-            * hands the scene to the phone's own AR viewer, at true size, and
-            * the eye is then yours: walk round it, kneel to it, sight along
-            * it, with ARKit doing the tracking. See lib/exportAR.ts for why
-            * that is an export rather than a renderer.
-            */}
-          <button
-            onClick={() => whileWorking(async () => {
-              const { boxes, models } = useStore.getState();
-              /*
-               * Preserve what the press means: the point under the middle of
-               * the canvas becomes Quick Look's placement origin. Prefer the
-               * visible form itself; if the ray misses one, use the floor it
-               * meets. Looking level has no floor intersection, so the live
-               * gaze point remains the final, bounded fallback.
-               */
-              const centreX = window.innerWidth / 2;
-              const centreY = window.innerHeight / 2;
-              const ahead = pickObject(centreX, centreY)?.point
-                ?? pickGround(centreX, centreY)
-                ?? focusPoint;
-              const file = await sceneToUSDZ(boxes, models, { x: ahead.x, z: ahead.z });
-              const name = `perspective-scene-${new Date().toISOString().slice(0, 10)}.usdz`;
-              if (inRoom) openInQuickLook(file, name);
-              else downloadUSDZ(file, name);
-            })}
-            aria-label={inRoom ? 'Stand the scene in the room around you' : 'Save the scene as USDZ for an AR device'}
-            className={`${button} ${inRoom ? ACTIVE : ''}`}
-          >
-            <Icon path={I.ar} className="w-5 h-5" />
-          </button>
           {/* Accented only away from the sheet it opens on, which is what the
               colour means everywhere else in this panel. On the dock it was
               permanently blue and that was readable as identity; in a line of
@@ -2050,32 +2008,6 @@ export const WalkOverlay: React.FC<{
             )}
           </div>
           {/*
-            * The tape, in the band about the eye.
-            *
-            * While it is up, a drag lays a mark between two places in the room
-            * instead of turning the view, with the metres between them at it -
-            * and while the drag is live it also reads the angle those two
-            * places subtend at your eye, which is the pencil held out at a
-            * straight arm and the reading every artist takes. That is why it
-            * is in THIS line: the angle is a reading of exactly what the other
-            * controls here set, how much of the world the lens takes in and
-            * onto what sheet.
-            *
-            * It stands this panel down as it arms. What it lays stays laid;
-            * two taps with it in your hand clear the lot.
-            */}
-          <button
-            onClick={() => {
-              setInstrument(measuring ? 'none' : 'measure');
-              setShowTools(false);
-            }}
-            aria-label="Measure distances in the scene"
-            aria-pressed={measuring}
-            className={`${button} ${measuring ? ACTIVE : ''}`}
-          >
-            <Icon path={I.measure} className="w-5 h-5" />
-          </button>
-          {/*
             * Turn the phone to look - and tap it twice to put the room you are
             * actually in under the drawing.
             *
@@ -2147,14 +2079,50 @@ export const WalkOverlay: React.FC<{
           </button>
           </div>
 
-          {/* The session itself. */}
-          <div className={`${band} ${divider}`}>
-          {/* Taking the picture away, and the lesson. The scene library headed
-              this band once, on the argument that keeping compositions is a
-              thing you do between drawings - true, and exactly why burying it
-              was wrong: it is how every visit starts and ends, and it sat two
-              taps deep behind a menu of settings. It is on the dock now,
+          {/* THE DOORS: every seat here leaves this panel for somewhere else -
+              the light panel, an instrument in the hand, a photograph, the
+              phone's AR viewer, the lesson. Grouped by that one property,
+              because a door among knobs reads as a knob and gets turned. The
+              scene library headed this band once and is on the dock now,
               beside the model shelf it is the sibling of. */}
+          <div className={`${band} ${divider}`}>
+          <button
+            onClick={() => { setShowTools(false); setMaterialFrom(null); setShowLights(true); onShelfAway(); }}
+            aria-label="Lights"
+            aria-expanded={showLights}
+            className={button}
+          >
+            <Icon path={I.strength} className="w-5 h-5" />
+          </button>
+          {/*
+            * The tape. It sat in the view band, on the argument that the
+            * angle it reads is a reading of the lens - true, but it is a
+            * DOOR: it arms an instrument and stands the panel down, like
+            * everything else in this band.
+            *
+            * While it is up, a drag lays a mark between two places in the room
+            * instead of turning the view, with the metres between them at it -
+            * and while the drag is live it also reads the angle those two
+            * places subtend at your eye, which is the pencil held out at a
+            * straight arm and the reading every artist takes. That is why it
+            * is in THIS line: the angle is a reading of exactly what the other
+            * controls here set, how much of the world the lens takes in and
+            * onto what sheet.
+            *
+            * It stands this panel down as it arms. What it lays stays laid;
+            * two taps with it in your hand clear the lot.
+            */}
+          <button
+            onClick={() => {
+              setInstrument(measuring ? 'none' : 'measure');
+              setShowTools(false);
+            }}
+            aria-label="Measure distances in the scene"
+            aria-pressed={measuring}
+            className={`${button} ${measuring ? ACTIVE : ''}`}
+          >
+            <Icon path={I.measure} className="w-5 h-5" />
+          </button>
           <button
             onClick={() => whileWorking(() => captureView(captureFileName(cameraHeight, fov, perspectiveMode)))}
             aria-label="Save the view as a picture"
@@ -2189,6 +2157,41 @@ export const WalkOverlay: React.FC<{
             * two instruments in the first band, and for the same reason: what
             * it points at is out here.
             */}
+          {/*
+            * The real room. The best answer this tool has to 'where does
+            * the eye stand': hand the scene to the phone's own AR viewer.
+            *
+            * Everything else here decides where a virtual eye stands. This one
+            * hands the scene to the phone's own AR viewer, at true size, and
+            * the eye is then yours: walk round it, kneel to it, sight along
+            * it, with ARKit doing the tracking. See lib/exportAR.ts for why
+            * that is an export rather than a renderer.
+            */}
+          <button
+            onClick={() => whileWorking(async () => {
+              const { boxes, models } = useStore.getState();
+              /*
+               * Preserve what the press means: the point under the middle of
+               * the canvas becomes Quick Look's placement origin. Prefer the
+               * visible form itself; if the ray misses one, use the floor it
+               * meets. Looking level has no floor intersection, so the live
+               * gaze point remains the final, bounded fallback.
+               */
+              const centreX = window.innerWidth / 2;
+              const centreY = window.innerHeight / 2;
+              const ahead = pickObject(centreX, centreY)?.point
+                ?? pickGround(centreX, centreY)
+                ?? focusPoint;
+              const file = await sceneToUSDZ(boxes, models, { x: ahead.x, z: ahead.z });
+              const name = `perspective-scene-${new Date().toISOString().slice(0, 10)}.usdz`;
+              if (inRoom) openInQuickLook(file, name);
+              else downloadUSDZ(file, name);
+            })}
+            aria-label={inRoom ? 'Stand the scene in the room around you' : 'Save the scene as USDZ for an AR device'}
+            className={`${button} ${inRoom ? ACTIVE : ''}`}
+          >
+            <Icon path={I.ar} className="w-5 h-5" />
+          </button>
           <button
             onClick={() => { spendTheOffer(); setShowTools(false); onLesson(); }}
             aria-label="Learn how perspective works"
