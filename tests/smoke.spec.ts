@@ -6,10 +6,10 @@ import { test, expect, fingerprint, hasContrast, open, same } from './harness';
  * It asserts almost nothing about the app on purpose - it is here to prove
  * that the harness underneath it works end to end: that a real build got
  * built, that a server came up and is being torn down again, that chromium
- * found a WebGL context worth having, that the opening car stood up, that the
- * page was pinned before the app read its own storage, and that the canvas can
- * be read back at all. If this one goes red, nothing else in the suite is worth
- * reading.
+ * found a WebGL context worth having, that the opening street stood up, that
+ * the page was pinned before the app read its own storage, and that the canvas
+ * can be read back at all. If this one goes red, nothing else in the suite is
+ * worth reading.
  */
 
 test('the app opens and draws, with nothing sitting over it', async ({ app }) => {

@@ -2,6 +2,10 @@ import type { Page } from '@playwright/test';
 import type { SceneInstance } from '../types';
 import { test, expect, blockOutABox, clearTheScene, clickIn, find, openShelf, readSceneBundle } from './harness';
 
+// Placing needs the floor the opening street occupies, and every count below
+// is a count of what the spec itself made - so this file walks in bare.
+test.use({ bare: true });
+
 /**
  * NOTHING STANDS INSIDE ANYTHING ELSE.
  *

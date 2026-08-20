@@ -18,6 +18,11 @@ import {
 } from './harness';
 import { PRESETS } from '../lib/presets';
 
+// Every count in here is a count of what the spec itself blocked out, and the
+// strokes need the floor the opening street occupies - so this file walks in
+// bare.
+test.use({ bare: true });
+
 /**
  * Whose settings are whose.
  *
