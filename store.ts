@@ -18,7 +18,7 @@ import {
   setPageTone,
   setShadowInk,
 } from './lib/inkMaterial';
-import { nextPreset, PRESETS, type Preset } from './lib/presets';
+import { nextPreset, OPENING, PRESETS, type Preset } from './lib/presets';
 import { looseTurn, nextField } from './lib/cubeFields';
 import {
   conditionsAt,
@@ -353,8 +353,13 @@ const pinnedPage = (): Preset | null => {
  *
  * The pin below still overrides it, which is how the suite fixes the page it
  * tests against.
+ *
+ * AND THE SAME PAGE IS A DIFFERENT PAGE NOW. It opened on the brush page for
+ * years - the drawing first - and it opens on the scene first: the plain lit
+ * surface under the real sky at noon, which is what the drawings are OF. The
+ * argument above about having one face is untouched; which face won.
  */
-const OPENING_PAGE = pinnedPage() ?? PRESETS.find((p) => p.name === 'Brush page on black') ?? PRESETS[0];
+const OPENING_PAGE = pinnedPage() ?? OPENING;
 
 /**
  * THE FLOOR A PAGE STANDS ON WHEN IT DID NOT COMPOSE ONE.
@@ -509,9 +514,22 @@ const nextSceneName = (history: SavedScene[]): string => {
  * clock time and sun time agree, so the opening state is the one that is
  * easiest to check by eye: at noon the sun is due south.
  */
+/** Today at twelve: the moment the tool opens on, and the stalest a stored
+ *  clock is allowed to get before it is brought back to it. Noon rather than
+ *  now, because a first visit at half past three in the morning should still
+ *  be handed a lit yard - the clock is a control, not a punishment. */
+const noonToday = () => {
+  const at = new Date();
+  at.setHours(12, 0, 0, 0);
+  return at.getTime();
+};
+
 export const DEFAULT_SKY: SkyState = {
+  // False here even though the opening simulates: this is the base every
+  // PAGE lands on, and a page's authored sun only lights the scene while the
+  // simulation is off. The opening raises it with the rest of its face.
   simulate: false,
-  time: Date.now(),
+  time: noonToday(),
   running: false,
   rate: 600,
   latitude: 51.48,
@@ -867,10 +885,12 @@ const readSky = (stored: Partial<SkyState> | undefined, keepTime = false): SkySt
       : fallback;
   const yes = (value: unknown, fallback: boolean) =>
     typeof value === 'boolean' ? value : fallback;
-  const time = take(stored?.time, Date.now(), 0, Number.MAX_SAFE_INTEGER);
+  // A sky with no stored moment opens at noon, not at whatever hour it is:
+  // the same face every time, and a lit one. See noonToday above.
+  const time = take(stored?.time, noonToday(), 0, Number.MAX_SAFE_INTEGER);
   return {
     simulate: yes(stored?.simulate, DEFAULT_SKY.simulate),
-    time: !keepTime && Math.abs(Date.now() - time) > DAY ? Date.now() : time,
+    time: !keepTime && Math.abs(Date.now() - time) > DAY ? noonToday() : time,
     running: yes(stored?.running, DEFAULT_SKY.running),
     // Not read back: the rate knob is gone from the panel, so a stored rate is
     // a value nothing can change any more. Ten minutes a second is the one
@@ -1288,6 +1308,9 @@ export const useStore = create<SceneState>((set, get) => ({
   pen: DEFAULT_PEN,
   wash: DEFAULT_WASH,
   ground: DEFAULT_GROUND,
+  // False here on purpose even though the opening stands it up: this is the
+  // base a PINNED page lands on, and the suite pins its pages against a bare
+  // backdrop. The real opening raises it after the deal, below.
   sunEnvironment: false,
   cameraFeed: false,
   instrument: 'none',
@@ -1339,6 +1362,45 @@ export const useStore = create<SceneState>((set, get) => ({
     wash: { ...DEFAULT_WASH, ...(remembered.wash ?? {}) },
     ground: { ...DEFAULT_GROUND, ...(remembered.ground ?? {}) },
   }),
+  /*
+   * The sky is part of the opening face, so it comes back up with the page.
+   *
+   * It has to land here, after `...remembered`, for the same reason the deal
+   * does: sunEnvironment is a remembered setting, everyone who opened the tool
+   * before today has `false` stored, and a default that only reaches fresh
+   * browsers is not the tool's face. Turning it off still works and still
+   * lasts the whole sitting - it is only the next OPENING that stands it back
+   * up, exactly as the page stands the surface back up.
+   */
+  ...(OPENING_PAGE === OPENING
+    ? (() => {
+        /*
+         * The sky rises with the page: drawn, simulated, and at noon. The
+         * simulation cannot come from DEFAULT_SKY - that is the base every
+         * dealt page lands on, and a page's authored sun only lights the
+         * scene while the simulation is off, so a simulating default would
+         * quietly strip the deck of its own light. It is the OPENING's
+         * choice, made here, with the sun worked out of the same ephemeris
+         * setSky would use so the first frame already agrees with the panel.
+         */
+        const sky = { ...readSky(remembered.sky), simulate: true };
+        return {
+          sunEnvironment: true,
+          sky,
+          sun: { ...readSun(remembered.sun), ...sunFromSky(sky), shadows: OPENING.sun.shadows },
+          /*
+           * ...and the construction sheet starts folded away, unless the
+           * viewer had it out. Guides over a photographic noon read as debug
+           * chrome - a thick red eye-line across a blue sky was the first
+           * thing every fresh screenshot showed - and the guides seat is one
+           * tap, the lesson raises its own per card, and anyone who chose a
+           * level keeps it: only a browser with no remembered choice opens
+           * clean.
+           */
+          ...(remembered.guides === undefined ? { guides: 0 as const } : null),
+        };
+      })()
+    : null),
 
   /**
    * The line under everything about to change.

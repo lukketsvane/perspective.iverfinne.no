@@ -95,10 +95,39 @@ export interface Preset {
   ground?: { on: boolean; tone: number };
 }
 
+/**
+ * THE FRONT DOOR'S OWN CARD, beside the deck rather than in it.
+ *
+ * The tool opens on the plain lit surface under the real sky at noon - the
+ * scene as a place before it is a drawing. The deck's whole argument is one
+ * card apiece of what the DRAWN material can be, and plain 'original' is not
+ * one of those; it is what the drawings are OF, which is exactly why it is the
+ * right first thing to see and the wrong thing to deal. So it lives here, out
+ * of the rotation: the opening uses it by name, the deal never lands on it.
+ *
+ * The sun written on it is the reserve: with the sky simulated the light is
+ * read off the place and the moment, and these numbers only take over if the
+ * simulation is turned off - at which point they are the same noon, held
+ * still by hand.
+ */
+export const OPENING: Preset = {
+  name: 'Noon on the apron',
+  surface: 'original',
+  backdrop: 'paper',
+  paper: 240,
+  sun: { azimuth: 35, elevation: 52, intensity: 3.2, temperature: 5700, shadows: 'soft' },
+  fill: true,
+  // A concrete apron rather than the computed step-under-the-sheet: with the
+  // sky drawn behind it, the floor is ground, not mount.
+  ground: { on: true, tone: 158 },
+};
+
 export const PRESETS: Preset[] = [
   {
-    // Where the tool opens: line, flat black, and nothing between, mounted so
-    // the drawing is the only thing on the screen with a value.
+    // The deck's first card, and for years the front door: line, flat black,
+    // and nothing between, mounted so the drawing is the only thing on the
+    // screen with a value. The tool opens on the scene itself now - see
+    // OPENING above - and this is the first drawn page the deal reaches.
     //
     // The two weights are the ones it has always been drawn at. They are
     // written down now because a page names its whole hand or it inherits
