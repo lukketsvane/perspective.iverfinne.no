@@ -58,8 +58,9 @@ foreshortening study, the pose every figure course sets and no standing figure
 can teach. The walk is a figure in motion, weight mid-transfer, nothing
 symmetrical. The one with the jetpack is the same body standing still, which
 is the datum the other two are measured against. Two of them also stand in
-the lesson now: the walker is the metre mark on the measuring-stick card, a
-height you read off a character you have met rather than off a labelled box,
+the lesson now: the walker is the 180-centimetre mark on the measuring-stick card,
+a height you read off a character you have met rather than off a labelled box
+- and the one the horizon cuts through the face, exactly where it cuts yours,
 and the one on his back is lying beside the last card's cube, cheering,
 because you have just been handed the sheet. They are generated meshes
 rather than scans and it shows in the numbers — twenty-five thousand triangles
@@ -68,10 +69,12 @@ photograph anywhere on them — so unlike the crew they keep their base colour,
 at 1024 like everything else, and drop the normal and metallic-roughness maps
 the way the animals did, with the factors owned in the file: glTF defaults
 metallic to 1, and a fully metallic surface with no environment map draws very
-nearly black. No real size exists for a cartoon, so their heights are chosen
-rather than measured — a metre and a bit standing, 0.9 to the raised mitten
-lying down, which reads as a child beside the 1.72 m crewman and keeps the set
-obviously a character rather than a fifth man. And they face +Z like
+nearly black. No real size exists for a cartoon, so each is sized for
+its job: the walker stands at 1.80, because he is the lesson's measuring
+stick — a figure in grown-up height that the horizon cuts just under the top,
+exactly where it cuts you — and the other two stay character-sized, a metre
+and a bit standing and 0.9 to the raised mitten, children beside the 1.72 m
+crewman. And they face +Z like
 everything here: one arrived facing away and one lying with its feet across
 the ruling, and the quarter turns are baked into the files, same rule as the
 crew, no table of exceptions.
@@ -452,7 +455,7 @@ the horizon rather than guessed.
 | **Kva fangar du det på?** | the same scene, same spot, stepping plane → cylinder → sphere |
 | **Hovudpunktet og horisonten** | *do it*: turn, and see which two marks refuse to move |
 | **Alt i di eiga høgd** | *do it*: four posts of exactly your own height, three metres out and forty — the line cuts every one of them at the top |
-| **Linja er ein målestokk** | a desk, the astronaut at his one metre, a car, a door: read their heights off where the line crosses them |
+| **Linja er ein målestokk** | a desk, a car, the astronaut at his 180, a door: read their heights off where the line crosses them |
 | **Auget flyttar seg med deg** | the eye slides from a crouch to a stretch while nothing on the floor moves |
 | **Parallelle linjer møtest** | a rank of cubes, and *why* the point exists — as a limit, not a rule |
 | **Punktet flyttar seg ikkje** | *do it*: walk, and watch the point refuse to move |
