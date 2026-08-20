@@ -1620,7 +1620,16 @@ export const WalkOverlay: React.FC<{
            repaints glass-blur chrome per frame stutters where a composited
            one is free. One small layer, held for the app's life, is the
            right trade for the most-animated element on screen. */
-        className={`fixed bottom-safe-panel left-0 right-0 z-40 flex flex-col items-center gap-3 x-safe-panel pointer-events-none will-change-[opacity] transition-opacity duration-[1500ms] ease-in-out ${dockVisible ? 'opacity-100' : 'opacity-0'}`}
+        /*
+         * NO will-change HERE, and it was here, briefly, as a compositing hint
+         * for the rail fade. A permanent hint makes this column a permanent
+         * backdrop root - and every pane of glass inside it then has nothing
+         * behind it to sample, on WebKit and Chromium alike, so the whole
+         * chrome rendered as its fallback fill from the day the hint landed.
+         * The fade promotes a layer by itself while it runs, which is the only
+         * time one is wanted.
+         */
+        className={`fixed bottom-safe-panel left-0 right-0 z-40 flex flex-col items-center gap-3 x-safe-panel pointer-events-none transition-opacity duration-[1500ms] ease-in-out ${dockVisible ? 'opacity-100' : 'opacity-0'}`}
       >
 
         {/*

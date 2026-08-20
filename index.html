@@ -164,23 +164,46 @@
        * AND IT GOES INERT FOR A MOMENT AT A TIME. An ancestor at any opacity
        * other than 1 is a backdrop root, and a backdrop-filter inside one has
        * nothing behind it to sample - so for the length of the rail's 1500 ms
-       * fade every panel here is a flat third-opacity fill. It cannot be seen:
-       * the same fade has the panel at a fraction of its own opacity for
-       * exactly those milliseconds.
+       * fade every panel here is a flat fill. It cannot be seen: the same fade
+       * has the panel at a fraction of its own opacity for exactly those
+       * milliseconds.
+       *
+       * WHICH IS WHY THE FILL IS A FLOOR AND NOT AN AFTERTHOUGHT. A
+       * `will-change` hint on the dock's column once made that backdrop root
+       * PERMANENT - every pane in the app fell back to its fill, full time, on
+       * the phones this tool is mostly used on - and a fill chosen on the
+       * assumption the collapse is always there was a ghost: icons floating
+       * on the picture with a hairline round them. The hint is gone, but the
+       * lesson stays in the numbers: the fill alone must carry a legible
+       * panel, because on a phone the filter is a guest. iOS Safari declines
+       * to sample a WebGL canvas through a backdrop-filter often enough -
+       * layer promotions, fades, its own moods - that any milliseconds it
+       * grants are decoration. Sixty-five and fifty-eight per cent are the
+       * floors - the weight of the system's own thick material - and they were
+       * thirty once, measured against a sky: a black ink edge under thirty per
+       * cent of white is still a black edge, and a panel over the drawing's
+       * ink read as icons tangled in the picture. Ink under these floors is a
+       * murmur with the filter dead, and with the collapse running the pane
+       * still breathes - which is all a working phone can be promised.
+       *
+       * The collapse itself is GENTLER than it was, for the same reason: it
+       * was tuned to do all the hiding under a see-through fill, and under a
+       * fill that hides by itself that much contrast collapse rendered the
+       * backdrop as fog. Now it rounds off what the fill has already quieted.
        */
       .glass-light,
       .glass-dark {
-        -webkit-backdrop-filter: blur(44px) saturate(1.75) contrast(0.48) brightness(var(--glass-lift));
-        backdrop-filter: blur(44px) saturate(1.75) contrast(0.48) brightness(var(--glass-lift));
+        -webkit-backdrop-filter: blur(28px) saturate(1.6) contrast(0.78) brightness(var(--glass-lift));
+        backdrop-filter: blur(28px) saturate(1.6) contrast(0.78) brightness(var(--glass-lift));
       }
       .glass-light {
-        --glass-lift: 1.16;
-        background-color: rgba(255, 255, 255, 0.14);
+        --glass-lift: 1.08;
+        background-color: rgba(250, 250, 252, 0.65);
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), inset 0 -1px 0 rgba(255, 255, 255, 0.18);
       }
       .glass-dark {
-        --glass-lift: 0.58;
-        background-color: rgba(12, 12, 16, 0.22);
+        --glass-lift: 0.78;
+        background-color: rgba(22, 22, 26, 0.58);
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
       }
 
