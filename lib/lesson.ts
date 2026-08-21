@@ -279,6 +279,20 @@ export type Gate =
  */
 export interface Sweep {
   seconds: number;
+  /**
+   * The field, out and back.
+   *
+   * Three cards use it and all three use it for the same thing: opening the
+   * paper until the WHOLE sheet is on the page - the sphere as a round side,
+   * the cylinder as a band with paper over and under - and closing it again so
+   * the picture comes back to a size worth looking at. That is not a thing a
+   * viewer can be asked to do: the field is one control on a dock this lesson
+   * has put away, and the one card that does hand it back (`chrome`) is about
+   * the flat sheet running out rather than about the sheet's own shape.
+   *
+   * A `WHOLE_SHEET` at either end is resolved against the real frame - see the
+   * constant, and `fieldFor` in components/Lesson.tsx.
+   */
   field?: [number, number];
   yaw?: [number, number];
   pitch?: [number, number];
@@ -337,7 +351,21 @@ export const ACTS: Act[] = [
   { at: 0, title: 'Kula', line: 'Eit bilete er eit kart over alt du ser' },
   { at: 4, title: 'Auget', line: 'Horisonten er ikkje ein stad. Han er høgda di' },
   { at: 10, title: 'Punkta', line: 'Kvar dei kjem frå, og kvifor dei ikkje rører seg' },
-  { at: 18, title: 'Arka', line: 'Same verd, fire flater å fange henne på' },
+  /*
+   * EIGHTEEN WAS THE WRONG CARD, and it is exactly the failure the note above
+   * warns about: an act whose index no longer points at the card it names
+   * opens its title over the wrong picture, silently.
+   *
+   * The sheets act used to open on "none of this is the box", and the two
+   * cards after it are the ramp's own pair and the side face closing towards
+   * its point. All three are about POINTS - they are the last and best of that
+   * act, not the first of this one - so a viewer was shown the word ARKA and
+   * then three more cards of the subject they had just been told was over.
+   *
+   * Twenty-one is where the sheets actually start: the flat one running out
+   * under the viewer's own thumb, and then the cylinder and the sphere.
+   */
+  { at: 21, title: 'Arka', line: 'Same verda, tre ark å fange henne på' },
   { at: 26, title: 'Handa', line: 'Frå rutenettet til blyanten' },
 ];
 
@@ -371,6 +399,24 @@ export interface Card {
    * own hand, which is the only moment it means anything.
    */
   found?: string;
+  /**
+   * Whether the question stays up once the answer has arrived.
+   *
+   * It does not, normally, and that is the point: a body and a found together
+   * run to twenty lines, which on an upright phone is better than half the
+   * glass - and what is under that half is the picture the card is about. The
+   * body collapses as the found rises, so the block ends up about the height
+   * it was and the posts, the boxes and the closing faces stay in sight.
+   *
+   * One card asks otherwise. The last one's body is not a question at all: it
+   * is the only place the handover is written down - which button draws, and
+   * what holding a box gets you - and its found is the list of things to draw
+   * with them. Both are wanted, and the viewer is about to be handed the
+   * pencil. (The glossary keeps its body too, and does not need to say so: its
+   * body is the line that introduces the list, and a `terms` card is caught by
+   * the same rule in Lesson.tsx.)
+   */
+  stays?: boolean;
   stage: Partial<Stage>;
   /** Who has the controls once the move into this card is over. */
   hands?: 'director' | 'viewer';
@@ -390,6 +436,84 @@ export interface Card {
  * and a number typed twice is a number that will one day disagree with itself.
  */
 export const EYE_HEIGHT = 1.7;
+
+/**
+ * THE FIELD AT WHICH THE WHOLE SHEET IS ON THE PAGE, WRITTEN AS A WISH.
+ *
+ * Three cards in the deck make a claim the picture was not wide enough to
+ * keep. "The horizon goes all the way round, so both points of a bundle are
+ * on the sheet at once" is true of the cylinder and false of the frame it was
+ * said in: at three hundred degrees an upright phone shows about seventy
+ * degrees of yaw either side of the axis, so the second point of every bundle
+ * was off the paper while the card asserted it was on it. The same for the
+ * sphere - "all directions lie on the sheet" over a picture cropped to a
+ * vertical slice of the disc - and for the first card of all, which says a
+ * picture is a MAP of the sphere and then shows you the inside of the sphere
+ * rather than the map.
+ *
+ * How wide is wide enough is not a number, it is a sum: the field follows the
+ * longest edge of the frame, so how far it has to open before the shorter edge
+ * stops cropping depends entirely on the shape of the window - about five
+ * hundred degrees on a laptop and nearer eight on a phone held upright. That
+ * cannot be written into a card. So a card writes this instead, and the
+ * conductor works the real number out of the frame it is actually running in.
+ *
+ * Negative because a field is an angle and no angle is: nothing can mistake it
+ * for a setting, and anything that forgets to resolve it fails loudly rather
+ * than quietly drawing a twenty-degree keyhole.
+ */
+export const WHOLE_SHEET = -1;
+
+/**
+ * THE HOUR THE LESSON IS TAUGHT AT, AND WHY IT IS NOT THE ONE OUTSIDE.
+ *
+ * The construction is drawn INTO the picture - the meridians, the eye line and
+ * the six rings are a shader laid over the sky and the floor, at a fraction of
+ * an ink - and the tool opens on a bright afternoon. Over a white cloud at
+ * noon a line drawn at four tenths of anything is not a line, it is a rumour:
+ * every card in this deck is about a mark you are being asked to follow, and
+ * on a phone in daylight most of them could not be followed at all.
+ *
+ * So the lesson takes the sky down to a low sun while it runs, and hands the
+ * viewer's own hour back on the way out. Nothing else in the tool changes: the
+ * page, the sheet, the pen and the paper are all still theirs.
+ *
+ * TEN DEGREES, AND IT WAS ARRIVED AT WITH A RULER RATHER THAN A MOOD. Two
+ * things on this screen need opposite skies and both of them are the lesson:
+ *
+ *   the construction over the SKY - the meridians, the eye-level ring, the six
+ *   points - is drawn at a fraction of a mid grey, and it needs the sky behind
+ *   it to be dark and even. Every degree of sun works against it, and a white
+ *   cloud kills it outright.
+ *
+ *   the metre ruling on the FLOOR is drawn in the page's own pen, which is
+ *   nearly black, and it needs the floor to be light enough to see a dark line
+ *   on. A floor takes the sine of the sun's height, so it goes out fast: at
+ *   six degrees it is a silhouette and the ruling on it is gone.
+ *
+ * Measured on the frame this tool is used on, ten is where both are still
+ * legible - a floor around a third of noon's value with its metre lines
+ * plainly on it, and a sky dim enough that the meridians read across the whole
+ * dome. Below eight the floor closes; above about fourteen the sky opens.
+ *
+ * AND THE WEATHER GOES WITH IT: no cloud at all. A quarter cover puts white
+ * cumulus behind exactly the lines that have to be followed, and the cloud is
+ * the single biggest thing standing between a viewer and the construction. A
+ * clear sky is also the more honest ground for a diagram - it is a gradient
+ * rather than a picture, and nothing on it competes with a ruled line.
+ *
+ * Ten degrees is also still a raking light, which two cards need badly: the
+ * one that hides a long box behind a cube and is given away only by what falls
+ * on the floor, and every card whose cubes have to read as solids. The bearing
+ * is the tool's own, over the viewer's left shoulder, so both visible faces of
+ * a cube are lit and they are lit differently.
+ *
+ * Simulated OFF rather than an hour on the clock, deliberately. An hour is a
+ * different height of sun in June than in December and a different one again
+ * at a different latitude, and a lesson that is legible in Bergen in August
+ * and black in January is not a lesson. This is a light, stated.
+ */
+export const LESSON_LIGHT = { azimuth: 55, elevation: 10 };
 
 /** Where every card starts from, so a card only has to say what it changes. */
 export const OPENING: Stage = {
@@ -415,9 +539,31 @@ export const CARDS: Card[] = [
      * sphere of directions around one point.
      */
     headline: 'Ei kule av retningar',
-    body: 'Stå stille. Alt du ser, ser du i ei retning, og retningane til saman er ei kule rundt auget ditt. Eit bilete er eit kart over den kula. Ikkje noko meir.',
+    body: 'Stå stille. Alt du ser, ser du i ei retning, og alle retningane til saman er ei kule rundt auget ditt. Eit bilete er eit kart over den kula. Ikkje noko meir. Sjå kartet bli til: synsfeltet opnar seg til heile kula ligg på sida.',
+    found: 'Der er det: ei rund side med papir rundt, og alt du kunne sjå frå den staden, står ein stad inne i sirkelen. Eit bilete er ikkje eit vindauge og ikkje ein boks. Det er kula di, lagd flat.',
     stage: { cast: 'nothing', guides: 2, fov: 260, mode: 'equidistant' },
-    sweep: { seconds: 44, yaw: [-0.5, 0.5] },
+    /*
+     * IT USED TO TURN ITS HEAD, and the card's own first word is "stand
+     * still". Forty-four seconds of slow yaw under a sentence telling you not
+     * to move was the wrong demonstration twice over: it contradicted the
+     * instruction, and it showed the one thing the NEXT card exists to have
+     * you do with your own thumb.
+     *
+     * What this card says and never showed is the second half - that a picture
+     * is a MAP of the sphere. So the field opens instead, out until the whole
+     * disc is on the page with paper round it, and then closes again. You are
+     * inside the sphere, then you are holding the map of it, then you are back
+     * inside. Nothing else in the deck can say that, because nothing else in
+     * the deck is allowed to move the paper.
+     */
+    /*
+     * Twenty seconds out and back, which is shorter than the deck's other
+     * sweeps on purpose: this one carries a found, and a found on a sweep card
+     * arrives at the close of one full cycle. At the pace the rest of the deck
+     * runs at, the first card in the lesson would have been holding its best
+     * sentence back for the better part of half a minute.
+     */
+    sweep: { seconds: 20, field: [260, WHOLE_SHEET] },
     travel: 2000,
   },
   {
@@ -452,11 +598,30 @@ export const CARDS: Card[] = [
      * spot, stepping through the three surfaces with nothing else moving.
      */
     headline: 'Kva fangar du kula på?',
-    body: 'Kula er ikkje eit bilete enno. Eit bilete er ei flate med merke på, så kula må leggjast ut på noko flatt. Sjå: same scene, same stad, tre ulike ark etter tur.',
+    body: 'Kula er ikkje eit bilete enno. Eit bilete er ei flate med merke på, så kula må fangast på ei flate og leggjast ut på papiret. Sjå: same scena, same staden, tre ulike ark etter tur.',
     // The answer lands as the slideshow closes its first full cycle: the dwell
     // for a sweep card is one cycle, and the cycle here is all three sheets.
-    found: 'Same verd i alle tre; berre arket skifte. Det flate heldt kvar kant rett og sleit i hjørna. Sylinderen heldt loddlinjene og bøygde resten. Kula bøygde alt, jamt. Å velje ark er å velje kva som får vere rett.',
-    stage: { cast: 'street', mode: 'rectilinear', fov: 100, guides: 1, selectionGuides: 0, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
+    found: 'Same verda i alle tre; berre arket skifte. Det flate heldt kvar kant rett og sleit i hjørna. Sylinderen heldt loddlinjene rette og bøygde resten. Kula bøygde alt, jamt. Å velje ark er å velje kva som får vere rett.',
+    /*
+     * A HUNDRED AND TEN, WHICH WAS A HUNDRED.
+     *
+     * The card's whole content is that the three sheets differ, and at a
+     * hundred degrees they very nearly do not: the flat frame's corners have
+     * barely begun to pull, the cylinder's horizontals barely bow, and the
+     * slideshow reads as the same picture three times with a flicker between.
+     * The differences all live in the corners and they arrive with the field.
+     *
+     * A HUNDRED AND TEN AND NOT MORE, and the ceiling here is not taste. A
+     * rectilinear frame is rendered as one flat pass while its corner stays
+     * inside sixty degrees off the axis, and read off the whole cube once it
+     * does not - see FLAT_LIMIT in components/Panorama.tsx. On an upright
+     * phone that crossing is at about a hundred and fifteen: a hundred and
+     * twenty puts this one card on the six-face path for the third of its
+     * cycle that is flat, and measured on a software renderer it was the
+     * slowest card in the deck by an order of magnitude. A hundred and ten
+     * buys most of the difference for none of that.
+     */
+    stage: { cast: 'street', mode: 'rectilinear', fov: 110, guides: 1, selectionGuides: 0, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     sweep: { seconds: 21, surfaces: ['rectilinear', 'cylindrical', 'equidistant'] },
     travel: 2200,
   },
@@ -486,7 +651,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Hovudpunktet og horisonten',
     body: 'Krysset midt i biletet er hovudpunktet: der du ser, avmerkt på flata. Ringane er noko anna. Snu deg og sjå etter kva som flyttar seg og kva som ikkje gjer det.',
-    found: 'Ringane gleid; krysset stod. Ringane er punkt i verda - dei viser kvar retningane i rommet går, så dei fylgjer rommet. Krysset er ikkje ein ting i verda i det heile: det er retninga DU ser i, avmerkt på arket, og difor kan det ikkje flytte seg. Horisonten er det same slaget merke - alle retningane som ligg vassrett frå deg - og difor fylgjer han auget ditt og ikkje bakken. Dei to er dei fyrste merka nokon rular på ei side.',
+    found: 'Ringane gleid; krysset stod. Ringane er punkt i verda og fylgjer rommet. Krysset er ikkje ein ting i verda i det heile: det er retninga DU ser i, avmerkt på arket, og difor kan det ikkje flytte seg. Horisonten er det same slaget merke - alle retningane som ligg vassrett frå deg - og difor fylgjer han auget ditt og ikkje bakken. Dei to er dei fyrste merka nokon set på ei side.',
     stage: { cast: 'street', mode: 'equidistant', fov: 240, guides: 1, selectionGuides: 0, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     hands: 'viewer',
     gate: { kind: 'turn', radians: 1.9 },
@@ -511,7 +676,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Alt i di eiga høgd',
     body: 'Fire stolpar, alle nøyaktig like høge som auget ditt. Den næraste står fem meter unna, den fjernaste over førti. Snu deg og sjå etter kvar horisonten kryssar dei.',
-    found: 'Han kryssar alle fire i toppen. Fem meter unna og førti meter unna: same kutt. Horisonten ligg i di eiga høgd, så alt som rekk deg til auga, endar nøyaktig på han - kor langt unna det enn står.',
+    found: 'Han kryssar alle fire i toppen. Fem meter unna og førti meter unna: same kuttet. Horisonten ligg i di eiga høgd, så alt som rekk deg til auga, endar nøyaktig på han - kor langt unna det enn står.',
     stage: {
       cast: 'level',
       mode: 'rectilinear',
@@ -547,8 +712,8 @@ export const CARDS: Card[] = [
      * it.
      */
     headline: 'Linja er ein målestokk',
-    body: 'Ein pult på 75, ein bil på 150, ei dør på 210 - og haren, som er 170 til issa. Sjå kvar linja går på kvar av dei.',
-    found: 'Over pulten, over bilen, og gjennom døra eit stykke under karmen - og tvers i issa på haren, som er nøyaktig så høg som auget ditt sit. Kroppen din kan desse høgdene alt: pulten til låret, bilen til brystet, døra over hovudet. Set linja der auget er, og kvar storleik er ei avlesing, ikkje ei gjetting.',
+    body: 'Ein pult på 75 cm, ein bil på 150, ei dør på 210 - og haren, som er 170 til issa. Sjå kvar linja går på kvar av dei.',
+    found: 'Over pulten, over bilen, gjennom døra eit stykke under karmen - og tvers i issa på haren, som er nøyaktig så høg som auget ditt sit. Kroppen din kan desse høgdene alt: pulten til låret, bilen til brystet, døra over hovudet. Set linja der auget er, og kvar storleik er ei avlesing, ikkje ei gjetting.',
     stage: {
       cast: 'heights',
       mode: 'rectilinear',
@@ -578,7 +743,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Auget flyttar seg med deg',
     body: 'Ingenting på golvet rører seg no. Berre du - ned på huk, og opp igjen.',
-    found: 'Linja fylgde deg. Ho er ikkje ein stad i verda; ho er høgda di, og difor er ho det fyrste merket på eit ark: å setje henne er å velje kvar den som ser, står - og å finne henne i ei framand teikning er å finne att auget som såg. Og sjå toppflatene på vegen: dei lukkar seg di nærare linja dei kjem, og RETT på henne er dei borte. Ei flate du ser oppå, ligg under auget ditt.',
+    found: 'Linja fylgde deg. Ho er ikkje ein stad i verda; ho er høgda di - så å setje henne er å velje kvar den som ser, står, og å finne henne i ei framand teikning er å finne att auget som såg. Sjå toppflatene på vegen: dei lukkar seg di nærare linja dei kjem, og RETT på henne er dei borte. Ei flate du ser oppå, ligg under auget ditt.',
     stage: {
       cast: 'heights',
       mode: 'rectilinear',
@@ -617,8 +782,8 @@ export const CARDS: Card[] = [
      * not a flock: the eye reads the repetition and stops reading the rule.
      */
     headline: 'Heile flokken på ein gong',
-    body: 'Ein flokk, alle 170 høge, frå fem meter unna til nesten tretti. Gå: hald tommelen på venstre sida av biletet, ovanfor desse orda, og dra. Hald auga på kvar linja kryssar dei.',
-    found: 'Ho skjer dei i issa, kvar einaste ein, og ho slapp ikkje taket medan du gjekk. Den næraste og den fjernaste er kutta i nøyaktig same høgd på kroppen, for linja ligg i DI høgd og dei er den høgda - avstand kjem ikkje inn i det. Set deg på huk, og ho fell til livet på heile flokken på ein gong. Det er slik ein flokk vert teikna: linja fyrst, så føtene, og hovuda fylgjer av seg sjølve.',
+    body: 'Ein flokk, alle 170 cm høge, frå fem meter unna til nesten tretti. Gå: hald tommelen på venstre sida av biletet, ovanfor desse orda, og dra. Hald auga på kvar linja kryssar dei.',
+    found: 'Ho skjer dei i issa, kvar einaste ein, og ho slapp ikkje taket medan du gjekk. Den næraste og den fjernaste er kutta i nøyaktig same høgda på kroppen, for linja ligg i DI høgd og dei er den høgda. Avstand kjem ikkje inn i det. Slik vert ein flokk teikna: linja fyrst, så føtene, og hovuda fylgjer av seg sjølve.',
     stage: {
       cast: 'flock',
       mode: 'rectilinear',
@@ -659,7 +824,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Dei som står høgare',
     body: 'Same flokken. Tre av dei har gått opp på ei opphøgd flate. Sjå kvar linja tek dei no - og kvar ho framleis tek dei andre.',
-    found: 'I knea. Flata er 1,2 meter høg, og linja fell nøyaktig 1,2 meter lenger ned på kroppane deira - ikkje eit hår meir. Regelen har ikkje brote saman; han handlar berre ikkje om folk. Han handlar om GOLV: horisonten kryssar alt som er i di høgd rekna frå det same golvet du står på. Kvar gong du teiknar eit trappetrinn, ein fortauskant eller ein scenekant, deler du biletet i to slike golv, og figurane på kvar av dei skal lesast mot linja kvar for seg.',
+    found: 'I knea. Flata er 1,2 meter høg, og linja fell nøyaktig 1,2 meter lenger ned på kroppane deira. Regelen handlar ikkje om folk; han handlar om GOLV: horisonten kryssar alt som er i di høgd rekna frå det same golvet du står på. Kvart trappetrinn og kvar fortauskant deler biletet i to slike golv, og kvart av dei skal lesast mot linja for seg.',
     stage: {
       cast: 'stage',
       mode: 'rectilinear',
@@ -698,7 +863,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Storleik ut av staden',
     body: 'To like kassar, begge 2,4 meter høge: ei fem meter unna, ei atten. Sjå kvar horisonten skjer kvar av dei.',
-    found: 'Same brøkdelen av høgda på begge - sju tiandedelar oppe. Det er linja brukt baklengs. Du veit kvar føtene står, du veit kvar linja går, og forholdet mellom dei to ER høgda: mål frå golvet opp til linja, del på den same brøken, og du har toppen. Difor kan du setje ei kasse på 2,4 kvar som helst på arket og vite nøyaktig kor høg ho skal teiknast - utan å gjette, og utan å måle noko i verda.',
+    found: 'Same brøkdelen av høgda på begge - sju tiandedelar oppe. Det er linja brukt baklengs: du veit kvar føtene står, du veit kvar linja går, og forholdet mellom dei ER høgda. Difor kan du setje ei kasse på 2,4 kvar som helst på arket og vite nøyaktig kor høg ho skal teiknast, utan å gjette og utan å måle noko i verda.',
     stage: {
       cast: 'pair',
       mode: 'rectilinear',
@@ -719,7 +884,7 @@ export const CARDS: Card[] = [
      * the lines are - which is the next card, and the best one in the lesson.
      */
     headline: 'Parallelle linjer møtest',
-    body: 'Ei rekkje kassar, alle med same retning. Fylg ein kant utover: di lenger ut du ser, di meir ser du LANGS han og di mindre PÅ han. Til slutt ser du reint langs - det er punktet.',
+    body: 'Ei rekkje kassar, alle med same retninga. Fylg ein kant utover: di lenger ut du ser, di meir ser du LANGS han og di mindre PÅ han. Til slutt ser du reint langs - det er punktet.',
     stage: { cast: 'row', mode: 'rectilinear', fov: 70, selectionGuides: 1, stand: { x: 0, z: 5, yaw: 0, pitch: 0 } },
     travel: 2200,
   },
@@ -743,7 +908,7 @@ export const CARDS: Card[] = [
     // The stick zone is the whole lower-left QUARTER of the picture, and the
     // words now point at the part of it that is picture.
     body: 'Gå: hald tommelen på venstre sida av biletet, ovanfor desse orda, og dra. Hald auga på punktet medan kassane glid forbi.',
-    found: 'Kassane flytta seg. Punktet stod stille. Det høyrer til RETNINGA, ikkje til kassane og ikkje til staden du står på - difor kan du rule punkta éin gong og teikne heile sida mot dei.',
+    found: 'Kassane flytta seg. Punktet stod stille. Det høyrer til RETNINGA, ikkje til kassane og ikkje til staden du står på - difor kan du merkje av punkta éin gong og teikne heile sida mot dei.',
     stage: { cast: 'row', mode: 'rectilinear', fov: 80, selectionGuides: 1, stand: { x: 1.6, z: 6, yaw: -0.12, pitch: 0 } },
     hands: 'viewer',
     gate: { kind: 'walk', metres: 3.5 },
@@ -761,7 +926,7 @@ export const CARDS: Card[] = [
      * looking, so the answer arrives on the reading clock.
      */
     headline: 'Djupna kryp saman',
-    body: 'Same rekkje, nærare. Kvar kasse står nøyaktig ein meter frå den neste. Sjå på stega mellom dei - kva gjer dei på vegen inn mot punktet?',
+    body: 'Same rekkja, nærare. Kvar kasse står nøyaktig ein meter frå den neste. Sjå på stega mellom dei - kva gjer dei på vegen inn mot punktet?',
     found: 'Dei kryp saman. Like steg i verda vert krympande steg på arket, og flata nærast punktet vert ei smal strimle - å teikne henne for djup er eit av dei vanlegaste feilgrepa i faget. Lit difor på det som gjentek seg: vindauge, master, heller. Alt som står jamt i verda, målar djupna for deg på arket.',
     stage: { cast: 'row', mode: 'rectilinear', fov: 80, selectionGuides: 1, stand: { x: 0.9, z: 3.0, yaw: -0.17, pitch: -0.08 } },
     travel: 2000,
@@ -774,7 +939,7 @@ export const CARDS: Card[] = [
      * curvilinear systems, where both are on the page at once.
      */
     headline: 'Kvart knippe har to punkt',
-    body: 'Same rekkje, men på det bøygde arket. Snu deg heilt rundt og finn det andre punktet.',
+    body: 'Same rekkja, men på det bøygde arket. Snu deg heilt rundt og finn det andre punktet.',
     found: 'Der er det. Ei retning stikk gjennom kula to stader, så eit knippe parallelle kantar har TO punkt: eitt framover, eitt bakover. Det flate arket kan berre vise deg det eine av dei.',
     stage: { cast: 'row', mode: 'equidistant', fov: 300, guides: 1, selectionGuides: 1, stand: { x: 0, z: 5, yaw: 0, pitch: 0 } },
     hands: 'viewer',
@@ -807,8 +972,8 @@ export const CARDS: Card[] = [
   },
   {
     headline: 'Tre punkt',
-    body: 'Same kasse igjen. Dra oppover og sjå opp på henne.',
-    found: 'No ligg ikkje loddlinjene parallelt med arket heller, så dei samlar seg òg, i eit punkt over deg. Tre knippe, tre punkt, same kasse, same stad. Du løfta berre blikket.',
+    body: 'Same kassa igjen. Dra oppover og sjå opp på henne.',
+    found: 'No ligg ikkje loddlinjene parallelt med arket heller, så dei samlar seg òg, i eit punkt over deg. Tre knippe, tre punkt, same kassa, same staden. Du løfta berre blikket.',
     stage: { cast: 'one', mode: 'rectilinear', fov: 88, turn: Math.PI / 5, selectionGuides: 1, stand: { x: 0, z: 3.4, yaw: 0, pitch: 0 } },
     hands: 'viewer',
     gate: { kind: 'pitch', radians: 0.45 },
@@ -837,7 +1002,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Kvar kasse sitt eige par',
     body: 'Eit golv med kassar snudde kvar sin veg. Trykk på ei av dei, så på ei anna, og fylg punkta medan du byter.',
-    found: 'Punkta hoppa; kassane rørte seg ikkje. Kvar einaste ting i ei scene har sitt eige par, og alle para ligg på den same linja - for kvar vassrett retning i verda eig sine to punkt på horisonten, og å snu ei kasse er berre å skyve paret hennar langs han. Det finst ikkje ei scene som er «i topunkts». Det finst ein ståstad, og så mange par som det er retningar i det du teiknar.',
+    found: 'Punkta hoppa; kassane rørte seg ikkje. Kvar einaste ting i ei scene har sitt eige par, og alle para ligg på den same linja: kvar vassrett retning i verda eig sine to punkt på horisonten, og å snu ei kasse er berre å skyve paret hennar langs han. Det finst ikkje ei scene som er «i topunktsperspektiv». Det finst ein ståstad, og så mange par som det er retningar i det du teiknar.',
     stage: {
       cast: 'turned',
       mode: 'rectilinear',
@@ -858,7 +1023,7 @@ export const CARDS: Card[] = [
      * exercises never gives anybody.
      */
     headline: 'Ingenting av dette er kassa',
-    body: 'Eitt, to og tre punkt er ikkje tre slag kassar, og ikkje tre system. Talet seier berre kor mange av dei tre knippa som ikkje ligg parallelt med arket ditt - og det er ei opplysning om DEG, kvar du står og kvar du ser, ikkje om det du teiknar. Snu kassa i staden, og punkta hennar glid berre langs horisonten: kvar vassrett retning i verda eig sitt eige par på den linja.',
+    body: 'Eitt, to og tre punkt er ikkje tre slag kassar, og ikkje tre system. Talet seier berre kor mange av dei tre knippa som ikkje ligg parallelt med arket ditt - og det er ei opplysning om DEG, kvar du står og kvar du ser, ikkje om det du teiknar.',
     stage: { cast: 'one', mode: 'rectilinear', fov: 88, turn: Math.PI / 5, selectionGuides: 1, stand: { x: 0, z: 3.4, yaw: 0.5, pitch: 0.4 } },
     travel: 2200,
   },
@@ -888,8 +1053,8 @@ export const CARDS: Card[] = [
      * sentence.
      */
     headline: 'Rampa har sine eigne',
-    body: 'Ei rampe, og ei flat helle av same storleik ved sida av. Kantane oppover rampa er eit knippe som alle andre - men dei ligg ikkje vassrett. Snu deg heilt rundt og finn dei to punkta deira.',
-    found: 'Over og under horisonten, akkurat så mykje som rampa stig. Hella ved sida har paret sitt på linja, slik alt anna du har sett har hatt det - og det var aldri ein regel om punkt. Det var ein regel om GOLV. Eit knippe har paret sitt på horisonten viss og berre viss det ligg vassrett; alt som skrår, har sitt eige par over og under han. Tak, trapper, stigar, bakkar, opne lokk: kvar av dei tek med seg to punkt til inn i teikninga di.',
+    body: 'Ei rampe, og ei flat helle av same storleiken ved sida av. Kantane oppover rampa er eit knippe som alle andre - men dei ligg ikkje vassrett. Snu deg heilt rundt og finn dei to punkta deira.',
+    found: 'Over og under horisonten, akkurat så mykje som rampa stig. Hella ved sida har paret sitt på linja, slik alt anna du har sett har hatt det - og det var aldri ein regel om punkt. Det var ein regel om GOLV: eit knippe har paret sitt på horisonten viss og berre viss det ligg vassrett. Tak, trapper, stigar, bakkar, opne lokk: kvar av dei tek med seg to punkt til inn i teikninga di.',
     stage: {
       cast: 'ramp',
       mode: 'equidistant',
@@ -920,7 +1085,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Sideflata krympar',
     body: 'To like kassar, nøyaktig like langt unna. Den eine ligg rett på punktet sitt; den andre langt frå det. Sjå på sideflatene.',
-    found: 'Den som ligg på punktet, viser nesten inga side - berre ei rein framside. Den andre viser ei brei ei. Dei står like langt unna, så avstand er ikkje det som gjer det: ei flate lukkar seg etter kor nær punktet SITT ho ligg på arket, og er heilt borte når ho når det. Same regelen som toppflatene fylgde inn mot horisonten, lagt på sida. Difor får ein ting du plasserer midt på punktet ditt inga form, og difor flyttar teiknarar ting til sides.',
+    found: 'Den som ligg på punktet, viser nesten inga side - berre ei rein framside. Den andre viser ei brei ei. Dei står like langt unna, så avstand er ikkje det som gjer det: ei flate lukkar seg etter kor nær ho ligg punktet sitt på arket, og er heilt borte når ho når det. Difor får ein ting du plasserer midt på punktet ditt inga form, og difor flyttar teiknarar ting til sides.',
     stage: {
       cast: 'faces',
       mode: 'equidistant',
@@ -939,8 +1104,8 @@ export const CARDS: Card[] = [
      * afterwards.
      */
     headline: 'Det flate arket tek slutt',
-    body: 'Verktøylinja er tilbake. Dra i kjegla nede og opne linsa så langt ho går.',
-    found: 'Sjå hjørna. Ei rett linje held seg rett på dette arket, og det er heile verdien av det. Prisen: avstanden frå midten veks som TANGENTEN til vinkelen, og tangenten spring frå deg - ved 180 grader er han uendeleg. Ingen linjal fiksar strekken i hjørna; han er arket sitt, ikkje handa di. Difor finst dei tre andre arka.',
+    body: 'Verktøylinja er tilbake. Kjegla nedst er synsfeltet - kor stor bit av kula arket ditt tek med. Dra i henne og opn det så vidt det går.',
+    found: 'Sjå hjørna. Ei rett linje held seg rett på dette arket, og det er heile verdien av det. Prisen er at avstanden frå midten veks som TANGENTEN til vinkelen, og tangenten spring frå deg: ved 180 grader er han uendeleg. Ingen linjal rettar opp strekken i hjørna; han er arket sitt, ikkje handa di. Difor finst dei bøygde arka.',
     stage: { cast: 'street', mode: 'rectilinear', fov: 55, guides: 1, selectionGuides: 0, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     hands: 'viewer',
     chrome: true,
@@ -957,9 +1122,29 @@ export const CARDS: Card[] = [
   },
   {
     headline: 'Fire punkt',
-    body: 'Same scene, fanga på sylinderen. Han held loddlinjene rette og lèt dei vassrette bue - og no går horisonten heile vegen rundt, så begge punkta til eit knippe står på arket samstundes.',
+    body: 'Same scena, fanga på sylinderen: loddlinjene rette, dei vassrette bøygde. Sjå kva som kjem fram når synsfeltet opnar seg heilt - eit band med papir over og under, som møter seg sjølv i endane, og fire punkt på arket samstundes.',
     stage: { cast: 'street', mode: 'cylindrical', fov: 300, guides: 1, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
-    sweep: { seconds: 40, yaw: [0, Math.PI] },
+    /*
+     * THE CARD SAID IT AND THE PICTURE DID NOT SHOW IT.
+     *
+     * "The horizon goes all the way round, so both points of a bundle are on
+     * the sheet at once" - said over a frame three hundred degrees wide, which
+     * on an upright phone is about seventy degrees of yaw either side of the
+     * axis. The second point of every bundle was a quarter of a turn off the
+     * paper. The card was asking to be taken on trust, which is the one thing
+     * this deck exists not to do.
+     *
+     * So the field opens until the whole band is on the page: the full turn
+     * across, paper above the zenith and below the nadir, and the two ends
+     * meeting. That is the cylinder, unrolled, and it is the only way to see
+     * that it IS a cylinder. It closes again afterwards so the boxes come back
+     * to a size worth looking at.
+     *
+     * The yaw sweep it replaces was showing the same fact the slow way round -
+     * turn far enough and the second point eventually arrives - which needs
+     * forty seconds and still never has both on the page together.
+     */
+    sweep: { seconds: 30, field: [300, WHOLE_SHEET] },
     // The two arrivals are the crescendo of the whole lesson, and a crescendo
     // taken at the same pace as a scene change is not one.
     travel: 3400,
@@ -971,8 +1156,17 @@ export const CARDS: Card[] = [
      * came from are drawn on.
      */
     headline: 'Fem punkt',
-    body: 'Og til slutt: fanga på kula sjølv. Alle retningar ligg på arket - fire punkt rundt horisonten, eitt rett opp, eitt rett ned - og avstanden frå midten er vinkelen sjølv, jamt heile vegen. Dette er arket ein rular når alt ikring deg skal med.',
+    body: 'Og til slutt: kula sjølv. Opna heilt er arket ei rund side med papir rundt, og kanten er retninga rett bak deg. Fire punkt kring horisonten, eitt rett opp, eitt rett ned - og avstanden frå midten er vinkelen sjølv.',
     stage: { cast: 'street', mode: 'equidistant', fov: 360, guides: 2, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
+    /*
+     * And the same correction as the cylinder before it. Three hundred and
+     * sixty puts the disc's poles exactly on the top and bottom edges of an
+     * upright frame and crops the sides of it off, so "all directions lie on
+     * the sheet" was being said over a vertical slice of the sheet. Opened out,
+     * the disc comes inside the frame with paper round it and the claim is
+     * simply visible: one round page, six points, nothing left over.
+     */
+    sweep: { seconds: 34, field: [360, WHOLE_SHEET] },
     travel: 4200,
   },
   {
@@ -1007,15 +1201,27 @@ export const CARDS: Card[] = [
      */
     headline: 'Namna dei andre brukar',
     body: 'Same sakene, andre ord. Slik står dei i bøkene:',
+    /*
+     * TWO ROWS THAT ARE NOT TRANSLATIONS BUT REPAIRS.
+     *
+     * The other six hand over a book's word for something the deck has already
+     * named. `Ståstaden` and `Synsfeltet` are the two ideas the deck has used
+     * all the way through WITHOUT ever naming either - where the person
+     * holding the pencil is standing, and how much of the sphere their sheet
+     * takes in - and both have perfectly ordinary Norwegian names that a
+     * reader will meet on the first page of anything they open next.
+     */
     terms: [
       ['Arket', 'Biletplanet'],
       ['Knippet', 'Parallellknippe'],
       ['Punktet', 'Forsvinningspunkt'],
       ['Hovudpunktet', 'Sentralpunktet, augepunktet'],
       ['Linja', 'Horisontlinja'],
+      ['Ståstaden', 'Stasjonspunktet'],
+      ['Synsfeltet', 'Synsvinkelen, biletvinkelen'],
       ['Talet på punkt', 'Sentral-, to- og trepunktsperspektiv'],
     ],
-    found: 'Orda her er valde fordi du kan sjå dei for deg; orda der er valde fordi dei er presise. Begge duger, og no kan du lese begge. Berre eitt av dei er verdt å krangle om: «trepunktsperspektiv» ser ut som eit system og er det ikkje. Det er talet på knippe som ikkje låg parallelt med arket ditt, og det er ei opplysning om kvar du stod.',
+    found: 'Orda her er valde fordi du kan sjå dei for deg; orda der fordi dei er presise. No kan du lese begge. Berre eitt er verdt å krangle om: «trepunktsperspektiv» ser ut som eit system og er det ikkje.',
     stage: { cast: 'one', mode: 'equidistant', fov: 300, guides: 1, selectionGuides: 1, turn: Math.PI / 5, stand: { x: 0, z: 3.6, yaw: 0.2, pitch: 0.08 } },
     travel: 1800,
   },
@@ -1025,8 +1231,8 @@ export const CARDS: Card[] = [
      * shader draws at and the spacing in the videos: close enough to sight an
      * angle against, open enough to draw between.
      */
-    headline: 'Rul arket fyrst',
-    body: 'Meridianane står femten grader frå kvarandre og møtest i dei same seks punkta. Det er dette rutenettet du siktar mot: kvar oppreist kant i verda fylgjer ei av kurvene, og kvar vassrett kant kryssar dei jamt.',
+    headline: 'Strek opp arket fyrst',
+    body: 'Dette er arket ein strekar opp når alt ikring deg skal med. Meridianane står femten grader frå kvarandre og møtest i dei same seks punkta: kvar oppreist kant i verda fylgjer ei av kurvene, og kvar vassrett kant kryssar dei jamt.',
     stage: { cast: 'street', mode: 'equidistant', fov: 360, guides: 2, selectionGuides: 0, stand: { x: 0, z: 6, yaw: 0, pitch: 0 } },
     sweep: { seconds: 48, pitch: [-0.35, 0.35] },
     travel: 2200,
@@ -1039,7 +1245,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Sikt langs kurvene',
     body: 'Snu deg og sjå deg omkring. Vel éin oppreist kant på ei kasse og fylg han medan du snur.',
-    found: 'Han slepp aldri kurva si. Det er dette som gjer fem punkt teiknbart på fri hand: ingenting skal reknast ut, du skal berre vite kva for ei kurve kanten høyrer til.',
+    found: 'Han slepp aldri kurva si. Det er dette som gjer fem punkt mogleg å teikne på fri hand: ingenting skal reknast ut, du skal berre vite kva for ei kurve kanten høyrer til.',
     stage: { cast: 'street', mode: 'equidistant', fov: 340, guides: 2, selectionGuides: 0, stand: { x: 0, z: 5, yaw: 0, pitch: 0.1 } },
     hands: 'viewer',
     gate: { kind: 'turn', radians: 2.6 },
@@ -1074,9 +1280,9 @@ export const CARDS: Card[] = [
      * toggle - and because the alternative here is a button, and this deck's
      * whole argument is that there are no buttons.
      */
-    headline: 'Kubus eller langkasse?',
-    body: 'To former, begge med midten nøyaktig på augehøgda og begge rett på. Éi av dei er ein kubus. Sjå bort frå skuggane, snu deg til sides, og finn ut kva for ei.',
-    found: 'Rett framanfrå teikna dei seg som det same rektangelet, og det var ikkje handa di det stod på. Ein kubus midt på linja har inga toppflate - på linja finst det inga - inga botnflate av same grunn, og inga sideflate, fordi han ligg på punktet sitt. Att står eit reint rektangel, og ei kasse to og ein halv gong så djup teiknar seg som nøyaktig det same rektangelet. Opplysninga finst ikkje i teikninga. Det einaste som røpte det, var skuggen på golvet - og ei rein blyantteikning har ingen skugge å lene seg på. Difor: legg aldri hovudmotivet ditt midt på augehøgda og rett på. Eit hakk til sides eller eit hakk opp, og forma er lesbar att.',
+    headline: 'Kube eller langkasse?',
+    body: 'To former, begge med midten nøyaktig på augehøgda og begge rett på. Éi av dei er ein kube. Sjå bort frå skuggane, snu deg til sides, og finn ut kva for ei.',
+    found: 'Rett framanfrå teikna dei seg som det same rektangelet, og det var ikkje handa di det stod på. Ein kube midt på linja har inga toppflate - på linja finst det inga - inga botnflate av same grunn, og inga sideflate, for han ligg på punktet sitt. Att står eit reint rektangel, og ei kasse to og ein halv gong så djup teiknar seg likt. Berre skuggen røpte det. Legg difor aldri hovudmotivet midt på augehøgda og rett på.',
     stage: {
       cast: 'mistake',
       mode: 'rectilinear',
@@ -1107,7 +1313,7 @@ export const CARDS: Card[] = [
      */
     headline: 'Kvar krysset står',
     body: 'Det flate arket att, og krysset midt i biletet er hovudpunktet. Snu deg sakte, så gata glir ut til sida av det, og hald auge med hjørna.',
-    found: 'Med krysset midt i motivet ligg strekket jamt fordelt og ingen kant er verre enn ein annan. Skyv motivet ut til sida, og hjørnet lengst frå krysset dreg seg - same prisen som før, for avstanden frå midten veks som tangenten. Skilnaden er at det er DU som vel kor mykje av han biletet skal betale, og kvar. Midt i: ro, symmetri, og eit motiv som ser ut som det står stille. Ute til sida: spenning, og eit hjørne du må halde auge med heile vegen.',
+    found: 'Med krysset midt i motivet ligg strekken jamt fordelt, og ingen kant er verre enn ein annan. Skyv motivet ut til sida, og hjørnet lengst frå krysset strekkjer seg mest - same prisen som før, for avstanden frå midten veks som tangenten. Skilnaden er at det er DU som vel kor mykje av han biletet skal betale, og kvar. Midt i: ro. Ute til sida: spenning, og eit hjørne du må halde auge med.',
     stage: {
       cast: 'street',
       mode: 'rectilinear',
@@ -1137,8 +1343,8 @@ export const CARDS: Card[] = [
      * guess and twenty drawn to the same six points is a construction.
      */
     headline: 'Det same, om att',
-    body: 'Ei rekkje like stolpar, jamt sette, på det rula arket - og ein flokk mellom dei. Ingenting nytt i konstruksjonen. Berre den same forma om og om att.',
-    found: 'Dette er korleis djupn faktisk vert teikna. Eitt einsleg motiv gjev deg ingenting å måle med; ei rekkje av det same gjev deg målestokken innebygd i biletet, for du VEIT at stega er like store i verda og kan sjå kor fort dei krympar på arket. Vindauge, heller, master, stolpar, bord i eit golv - og hovuda i ein flokk, som alle ligg på den same linja. Brua frå rutenettet til motivet går gjennom det som gjentek seg.',
+    body: 'Ei rekkje like stolpar, jamt sette, på det oppstreka arket - og ein flokk mellom dei. Ingenting nytt i konstruksjonen. Berre den same forma om og om att.',
+    found: 'Slik vert djupna faktisk teikna. Eitt einsleg motiv gjev deg ingenting å måle med; ei rekkje av det same gjev deg målestokken innebygd i biletet, for du VEIT at stega er like store i verda og kan sjå kor fort dei krympar på arket. Vindauge, heller, master, stolpar - og hovuda i ein flokk, som alle ligg på den same linja.',
     stage: {
       cast: 'colonnade',
       mode: 'equidistant',
@@ -1175,7 +1381,8 @@ export const CARDS: Card[] = [
      */
     headline: 'Teikn ei sjølv',
     body: 'No er arket ditt. Blyanten teiknar grunnflata og dreg henne opp; hald på ei kasse og slå på hennar eigne punkt, så ser du kvar kanten skal peike.',
-    found: 'Og du treng ikkje finne på motivet. På hylla ligg ei side med kassar å øve på, og ho er fem oppgåver og ikkje ein tilfeldig haug: ei gate, ei trapp, ein stige som halverer seg for kvar dobling, ein flokk i di eiga høgd, og svermen, som spør om alt på ein gong. Vil du teikne rommet du faktisk sit i, legg eit foto bak rutenettet og finn augehøgda i det. Resten er timar.',
+    stays: true,
+    found: 'Og du treng ikkje finne på motivet. På hylla ligg ei side med kassar å øve på, og ho er fem oppgåver: ei gate, ei trapp, ein stige som halverer seg for kvar dobling, ein flokk i di eiga høgd, og svermen. Vil du teikne rommet du sit i, legg eit foto bak rutenettet og finn augehøgda i det. Resten er timar.',
     // The hare sits down beside the drawing with a cube in its lap, which is
     // both the joke and the last measuring stick: the thing you are about to
     // draw, held by somebody whose height you now know.
