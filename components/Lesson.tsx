@@ -59,16 +59,28 @@ const mixAngle = (from: number, to: number, t: number) => from + wrap(to - from)
 
 /** A cast, as boxes the store can hold. */
 const boxesFor = (cast: Cast, turn: number, surface: ReturnType<typeof useStore.getState>['surface']) =>
-  CAST[cast].map(([x, z, height], at) => {
-    // A metre unless the cast says otherwise, and standing ON the floor rather
-    // than centred on it - which is the whole of what the eye-level cards are
-    // about, so it cannot be approximated.
-    const tall = height ?? 1;
+  CAST[cast].map(({ at: [x, z], size, turn: own, lift, tilt }, at) => {
+    // A metre cube unless the cast says otherwise.
+    const [wide, tall, deep] = size ?? [1, 1, 1];
+    const lean = tilt ?? 0;
+    /*
+     * STANDING ON THE FLOOR rather than centred on it, which is the whole of
+     * what the eye-level cards are about and so cannot be approximated - and
+     * for anything that LEANS it is not half the height either. The corner
+     * that touches the ground is the lowest one, and a box leaning by an angle
+     * about the axis across your view has its centre exactly
+     * (tall*cos + deep*sin)/2 above that corner.
+     *
+     * Worked out for a lean alone. A box that both leaned and turned would
+     * need the whole rotated box measured, and nothing in the deck does both -
+     * the one card that leans anything leaves the stage's turn at zero.
+     */
+    const rest = (Math.abs(tall * Math.cos(lean)) + Math.abs(deep * Math.sin(lean))) / 2;
     return {
       id: `lesson-${cast}-${at}`,
-      position: [x, tall / 2, z] as [number, number, number],
-      scale: [1, tall, 1] as [number, number, number],
-      rotation: [0, turn, 0] as [number, number, number],
+      position: [x, (lift ?? 0) + rest, z] as [number, number, number],
+      scale: [wide, tall, deep] as [number, number, number],
+      rotation: [lean, turn + (own ?? 0), 0] as [number, number, number],
       surface,
     };
   });
@@ -123,11 +135,12 @@ type Held = ReturnType<typeof snapshot>;
  */
 const progressOf = (
   gate: Gate,
-  roam: { turned: number; pitched: number; walked: number; field: number }
+  roam: { turned: number; pitched: number; walked: number; field: number; picked: Set<string> }
 ) => {
   if (gate.kind === 'turn') return roam.turned / gate.radians;
   if (gate.kind === 'pitch') return roam.pitched / gate.radians;
   if (gate.kind === 'walk') return roam.walked / gate.metres;
+  if (gate.kind === 'pick') return roam.picked.size / gate.boxes;
   const opened = useStore.getState().fov - roam.field;
   return opened / Math.max(gate.past - roam.field, 1e-3);
 };
@@ -191,6 +204,20 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
      * away.
      */
     useStore.setState({ instrument: 'none', selectedModelId: null, models: [], lamps: [] });
+    /*
+     * And the dock goes down IN THIS COMMIT, not in the next one.
+     *
+     * Every card mutes the rail from a timeout of zero, which has to wait for
+     * the whole commit to land (see the settle timer below) - and the first
+     * card is the one where that wait is visible, because the first thing on
+     * screen after the offer is tapped is the act title, held large over the
+     * picture. The dock takes its fade to go, so KULA arrived over a toolbar
+     * that was still on its way out: the one full-screen moment in the app,
+     * with a menu ghosting through the bottom of it. Muting here starts the
+     * fade a commit earlier, and a mute is idempotent, so the per-card one
+     * below is unaffected.
+     */
+    muteRail('lesson');
     return () => {
       unmuteRail('lesson');
       releaseRail('lesson');
@@ -263,11 +290,26 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     let standing = true;
     if (stage.figures?.length) {
       void Promise.all(
-        stage.figures.map(({ who, at: spot, turn }) => {
+        stage.figures.map(({ who, at: spot, turn, lift }, index) => {
           const entry = MESH_LIBRARY.find((mesh) => mesh.id === who);
           if (!entry) return Promise.resolve(null);
-          return loadModelFromUrl(entry.url, entry.name, spot, entry.height)
-            .then(({ model }) => ({ ...model, id: `lesson-${who}`, rotationY: turn ?? 0 }))
+          return loadModelFromUrl(entry.url, entry.name, spot, entry.height, entry.lift)
+            .then(({ model }) => ({
+              ...model,
+              /*
+               * Keyed on the SLOT and not on who is standing in it. A flock is
+               * eight figures out of five files, so two of them are the same
+               * mesh - and while the id was `lesson-${who}` the second copy
+               * carried the first one's id, which is a duplicate React key and
+               * a store that cannot tell two of its own models apart.
+               */
+              id: `lesson-figure-${index}`,
+              rotationY: turn ?? 0,
+              // Whatever the pose is already off the ground by, plus whatever
+              // it is standing on. The first is the file's - a jump is in the
+              // air - and the second is the card's.
+              position: [spot[0], model.position[1] + (lift ?? 0), spot[1]] as [number, number, number],
+            }))
             .catch(() => null);
         })
       ).then((loaded) => {
@@ -319,7 +361,7 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     let frame = 0;
 
     /** What the viewer has done since the controls were handed over. */
-    const roam = { turned: 0, pitched: 0, walked: 0, field: stage.fov };
+    const roam = { turned: 0, pitched: 0, walked: 0, field: stage.fov, picked: new Set<string>() };
     let watching: { yaw: number; pitch: number; x: number; z: number } | null = null;
     let told = false;
 
@@ -404,6 +446,16 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           walkInput.position.z - watching.z
         );
         watching = { yaw, pitch, x: walkInput.position.x, z: walkInput.position.z };
+        /*
+         * And what has been taken hold of, counted as a SET of ids rather than
+         * as a tally of taps: the card asks for several different boxes, and a
+         * viewer prodding the same one nine times has not chosen anything. The
+         * one the card started on is already in here on the first frame, which
+         * is right - its construction was on screen to be read before anybody
+         * touched the glass.
+         */
+        const held = useStore.getState().selectedId;
+        if (held) roam.picked.add(held);
 
         if (card.gate) {
           const done = Math.min(1, Math.max(0, progressOf(card.gate, roam)));
@@ -638,6 +690,36 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           style={{ animation: 'lesson-rise 700ms 90ms ease-out both' }}>
           {card.body}
         </div>
+
+        {/*
+          * THE ONE CARD THAT IS A LIST, and it is laid out as a definition list
+          * rather than as a table.
+          *
+          * Two columns of equal weight would read as a comparison of two
+          * vocabularies, which is not what this is: one of them is the deck's
+          * own and the reader already has it, and the other is the thing being
+          * handed over. So the deck's word takes the headline's own small
+          * capitals - the register this app uses for a label all through - and
+          * the trade's takes the body's weight, because that is the half worth
+          * reading.
+          *
+          * Each row rises a beat after the one above it, on the same curve as
+          * everything else on the card, so a list of six arrives as a list
+          * rather than as a block landing.
+          */}
+        {card.terms && (
+          <div key={`t-${at}`} className="mt-4 max-w-[30rem] flex flex-col gap-2">
+            {card.terms.map(([ours, theirs], row) => (
+              <div key={ours} className="flex items-baseline gap-3"
+                style={{ animation: `lesson-rise 620ms ${180 + row * 70}ms ease-out both` }}>
+                <div className="text-[11px] uppercase tracking-[0.16em] opacity-45 w-[7.5rem] shrink-0">
+                  {ours}
+                </div>
+                <div className="text-[17px] leading-[1.3] font-light">{theirs}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* How far round, how far walked, how far open. Under the instruction
             it belongs to, growing, and gone the moment it is answered. */}

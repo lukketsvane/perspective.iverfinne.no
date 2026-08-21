@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { project, viewNonce } from './pick';
+import { project, projectView, viewNonce } from './pick';
 import type { PerspectiveMode } from '../types';
 
 /**
@@ -10,6 +10,15 @@ import type { PerspectiveMode } from '../types';
  * relative to you - not by the scene being "in two-point perspective". Turn one
  * box off the grid and it gets its own set. That is the whole lesson, and it is
  * invisible until somebody draws the points.
+ *
+ * AND THEY ARE NOT ALWAYS ON THE HORIZON. A family of parallel edges vanishes
+ * on the eye-level line only when the family is LEVEL, which is true of every
+ * edge of every box that sits square on a floor and false of a ramp, a roof, a
+ * staircase's nosings or a leaning ladder. Their pair sits as far above and
+ * below the line as the family leans, and it is the one fact about vanishing
+ * points that a room full of upright boxes can never demonstrate. So the two
+ * families below are built out of the thing's own three axes rather than out of
+ * one bearing and an assumed upright - see `VanishingBox.rotation`.
  *
  * The maths is one line and it is the same in every projection: a direction d
  * vanishes at the image of a point infinitely far along d, and every point on
@@ -69,6 +78,31 @@ export const vanishing: {
    */
   room: VanishingPoint[];
   /**
+   * THE PRINCIPAL POINT: where you are looking, marked on the sheet.
+   *
+   * The one mark on a ruled page that is not in the world. Every other point
+   * here is the image of a direction things run along, so it slides when you
+   * turn and stays where the room says it is; this one is the image of the
+   * direction you are LOOKING along, which by construction is the middle of the
+   * frame in all four of this tool's projections. Turn as far as you like and it
+   * does not move, because it is not a thing you are looking at - it is where
+   * you are looking.
+   *
+   * IT WAS MISSING, AND THE LESSON ALREADY TOLD PEOPLE IT WAS THERE. A card in
+   * the second act named "the ring in the middle of the picture" as the
+   * principal point and asked the viewer to turn and watch it stay put. The
+   * ring in the middle of the picture is the -Z axis point the panorama draws,
+   * which is world-fixed and therefore slides straight off centre the moment
+   * anybody does what the card asks. The card was right about the idea and
+   * pointing at the wrong mark, and the honest fix is the mark.
+   *
+   * Drawn as a CROSS rather than a ring, and that is the whole of why it is
+   * safe to have here: a ring on this sheet means "a family of parallels goes
+   * there", and this is the one point in the picture nothing is ever ruled
+   * towards. Two marks that mean opposite things must not look alike.
+   */
+  sight: { x: number; y: number } | null;
+  /**
    * The construction ON the thing rather than the rays off it: the rectangle
    * it stands on, its diagonals, and the lines that quarter it.
    *
@@ -80,7 +114,7 @@ export const vanishing: {
    * ask the projection about it in a dozen places.
    */
   divisions: Curve[];
-} = { nonce: 0, points: [], curves: [], room: [], divisions: [] };
+} = { nonce: 0, points: [], curves: [], room: [], divisions: [], sight: null };
 
 /** The six directions a room's edges run along. */
 const ROOM_AXES = [
@@ -110,12 +144,25 @@ export const updateRoomPoints = (camera: THREE.Camera, wanted: boolean) => {
       if (at && !onSheet(at)) found.push({ x: at.x, y: at.y, facing: true });
     }
   }
-  if (found.length === vanishing.room.length && found.every((p, i) =>
+  /*
+   * And where you are looking, which is asked of the projection rather than
+   * assumed to be half the window: the four sheets put it in the same place,
+   * but they put it there for four different reasons, and a mark drawn at
+   * `width / 2` is a mark that is right by coincidence.
+   */
+  const sight = wanted ? projectView(0, 0, -1) : null;
+  const still =
+    (sight === null && vanishing.sight === null) ||
+    (sight !== null && vanishing.sight !== null &&
+      Math.abs(sight.x - vanishing.sight.x) < 0.5 &&
+      Math.abs(sight.y - vanishing.sight.y) < 0.5);
+  if (still && found.length === vanishing.room.length && found.every((p, i) =>
     Math.abs(p.x - vanishing.room[i].x) < 0.5 && Math.abs(p.y - vanishing.room[i].y) < 0.5
   )) {
     return;
   }
   vanishing.room = found;
+  vanishing.sight = sight;
   vanishing.nonce += 1;
 };
 
@@ -123,14 +170,45 @@ export interface VanishingBox {
   centre: THREE.Vector3;
   /** Full extents along the box's own x, y and z. */
   size: THREE.Vector3;
-  rotationY: number;
+  /**
+   * How the thing is turned, as a full three-axis Euler in radians.
+   *
+   * IT USED TO BE ONE ANGLE, and that was a hole rather than a simplification.
+   * Everything in this tool stands square on the floor, so a single Y turn
+   * described every object it had - until a RAMP, which is the one form whose
+   * edges do not run level. With only a Y turn to work from, the code below
+   * built its two families out of `cos`, `sin` and a hard-coded world upright,
+   * which for a tilted box does not fail: it draws two confident rays to two
+   * points sitting neatly on the eye-level line, and they are the points of a
+   * box that is not there. A blank overlay is a gap; a plausible wrong answer
+   * is a lie, and this tool exists to be checked against.
+   *
+   * A mesh has no Euler of its own and never will - it turns on one bearing -
+   * so the mesh path hands over `[0, rotationY, 0]` and gets exactly what it
+   * got before.
+   */
+  rotation: [number, number, number];
 }
 
 const point = new THREE.Vector3();
 const corner = new THREE.Vector3();
 const axis = new THREE.Vector3();
 const toEye = new THREE.Vector3();
-const UP = new THREE.Vector3(0, 1, 0);
+
+/*
+ * The thing's own three axes, worked out once per recompute.
+ *
+ * Kept as module scratch like everything else here: this runs inside the frame
+ * loop, and three vectors and a quaternion allocated sixty times a second is
+ * three vectors and a quaternion for the collector to find sixty times a
+ * second.
+ */
+const spin = new THREE.Quaternion();
+const facing = new THREE.Euler();
+const own = { x: new THREE.Vector3(), y: new THREE.Vector3(), z: new THREE.Vector3() };
+const alongA = new THREE.Vector3();
+const alongB = new THREE.Vector3();
+const base = new THREE.Vector3();
 
 /** How many places each edge is asked about on its way out to the point. */
 const SAMPLES = 20;
@@ -281,37 +359,55 @@ export const updateVanishing = (
     camera.quaternion.x, camera.quaternion.y, camera.quaternion.z, camera.quaternion.w,
     box.centre.x, box.centre.y, box.centre.z,
     box.size.x, box.size.y, box.size.z,
-    box.rotationY,
+    box.rotation[0], box.rotation[1], box.rotation[2],
     level,
   ].join(',');
   if (key === drawnFor.key) return;
   drawnFor.key = key;
 
-  const cos = Math.cos(box.rotationY);
-  const sin = Math.sin(box.rotationY);
+  /*
+   * THE THING'S OWN THREE DIRECTIONS, taken from its own turn.
+   *
+   * This was `cos` and `sin` of a single angle, with the world's upright
+   * standing in for the third - which is exact for everything that sits square
+   * on a floor and quietly false for anything that does not. A quaternion
+   * costs one allocation-free multiply and is right for any attitude, so the
+   * special case is gone rather than guarded.
+   */
+  spin.setFromEuler(facing.set(box.rotation[0], box.rotation[1], box.rotation[2]));
+  own.x.set(1, 0, 0).applyQuaternion(spin);
+  own.y.set(0, 1, 0).applyQuaternion(spin);
+  own.z.set(0, 0, 1).applyQuaternion(spin);
 
   /*
-   * The box's two horizontal axes: the direction, the half-extent along it, and
+   * Two of the box's three axes: the direction, the half-extent along it, and
    * the two directions across it with their half-extents.
    *
-   * Two families, not three. The third was the verticals, and a vertical is a
-   * vertical - its family is the world's, and both of its points are the ones
-   * the construction sheet already marks: `Panorama.tsx:420` rings +Y and -Y at
-   * the first rung of the guides, and `Panorama.tsx:394` rules the whole
-   * meridian family they meet at, at the second. Every upright edge in the
-   * world lies on one of those meridians, including these four, so drawing them
-   * here drew the sheet's own fifth point a second time in a second ink - and
-   * at ninety degrees, where the zenith is three and a half frames off the top
-   * of the page, it drew it as two pins stuck to the top and bottom edges.
+   * Two families, not three, and the third is still the one left out - but the
+   * reason has moved. It used to be that the third family WAS the world's
+   * verticals, so drawing it drew the sheet's own fifth point a second time in
+   * a second ink: `Panorama.tsx` rings +Y and -Y at the first rung of the
+   * guides and rules the whole meridian family they meet at, at the second, and
+   * at ninety degrees - where the zenith is three and a half frames off the top
+   * of the page - the duplicate landed as two pins stuck to the top and bottom
+   * edges.
    *
-   * What is left is the part that really is this thing's own: how *it* is
-   * turned relative to you. Turn it off the grid and this pair moves off the
-   * scene's. That is the lesson, and it is the only thing here the room does
-   * not already say.
+   * Tilt the box and its third axis is no longer the world's upright, so that
+   * argument no longer covers it. It is still left out, and now for a plainer
+   * reason: a ramp leans by a fifth of a radian, so its third family's points
+   * sit a fifth of a radian off the zenith - which is to say, a couple of
+   * frames off the top of the page, beside the mark that is already there,
+   * saying a thing nobody is drawing. What a ramp is FOR is the family that
+   * runs up the slope, and that one is here.
+   *
+   * The two that are drawn are the part that really is this thing's own: how
+   * *it* is turned relative to you. Turn it off the grid and the pair moves off
+   * the scene's; tilt it, and the pair leaves the horizon altogether, which is
+   * the one thing in perspective a floor full of boxes cannot show you.
    */
   const families: [THREE.Vector3, number, THREE.Vector3, number, THREE.Vector3, number][] = [
-    [new THREE.Vector3(cos, 0, -sin), box.size.x / 2, new THREE.Vector3(sin, 0, cos), box.size.z / 2, UP, box.size.y / 2],
-    [new THREE.Vector3(sin, 0, cos), box.size.z / 2, new THREE.Vector3(cos, 0, -sin), box.size.x / 2, UP, box.size.y / 2],
+    [own.x, box.size.x / 2, own.z, box.size.z / 2, own.y, box.size.y / 2],
+    [own.z, box.size.z / 2, own.x, box.size.x / 2, own.y, box.size.y / 2],
   ];
 
   const points: VanishingPoint[] = [];
@@ -394,9 +490,12 @@ export const updateVanishing = (
    */
   const divisions: Curve[] = [];
   if (level >= 2) {
-    const A = new THREE.Vector3(cos, 0, -sin).multiplyScalar(box.size.x / 2);
-    const B = new THREE.Vector3(sin, 0, cos).multiplyScalar(box.size.z / 2);
-    const base = new THREE.Vector3().copy(box.centre).addScaledVector(UP, -box.size.y / 2);
+    // The face it rests on, which for anything tilted is not a floor and not
+    // level - so it is measured down the box's OWN upright rather than the
+    // world's, and comes out lying on the slope the way the box does.
+    const A = alongA.copy(own.x).multiplyScalar(box.size.x / 2);
+    const B = alongB.copy(own.z).multiplyScalar(box.size.z / 2);
+    base.copy(box.centre).addScaledVector(own.y, -box.size.y / 2);
     const at = (a: number, b: number) =>
       new THREE.Vector3().copy(base).addScaledVector(A, a).addScaledVector(B, b);
 

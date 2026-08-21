@@ -27,8 +27,8 @@ import { test, expect, open } from './harness';
  * takes a couple of seconds of travel besides. Asking again until the card's
  * own words are up is also exactly what a person does.
  */
-const vidareTo = async (page: Parameters<typeof open>[0], words: string) => {
-  for (let lap = 0; lap < 24; lap++) {
+const vidareTo = async (page: Parameters<typeof open>[0], words: string, laps = 24) => {
+  for (let lap = 0; lap < laps; lap++) {
     if ((await page.getByText(words).count()) > 0) return;
     // By its label, not its word: the button SAYS Vidare but is named for the
     // screen reader, and the last card renames the word to Teikn besides.
@@ -81,4 +81,54 @@ test('a gate opens to the hand, and the gateless card answers on the reading clo
   await vidareTo(page, 'astronauten på 180');
   await expect(page.getByText('pulten til låret')).toHaveCount(0);
   await expect(page.getByText('pulten til låret')).toBeVisible({ timeout: 16_000 });
+});
+
+
+/**
+ * The third reveal mechanism, and the one that is a TAP rather than a sweep of
+ * the arm.
+ *
+ * The card about a floor of boxes all turned differently cannot be gated on
+ * turning or walking: what it is about is that every box has its own pair of
+ * points, and the only way to see that is to put a finger on one and then on
+ * another and watch the pair jump along the horizon. So its gate counts how
+ * many DIFFERENT things have been taken hold of - which means it depends on
+ * selection still reaching the picture while the lesson holds the screen, and
+ * that is a thing the deck could quietly lose the day anything else claims a
+ * tap.
+ *
+ * Walking this far also guards the half of the deck that arrived with the
+ * hares: seventeen cards in, the flock cards have been staged, their figures
+ * fetched off the shelf and lifted onto a platform, and a card whose figures
+ * failed to arrive is a thinner stage rather than a failure - so nothing else
+ * in the suite would say a word about it.
+ */
+test('a floor of boxes is gated on taking hold of them, one after another', async ({ context, page }) => {
+  await context.addInitScript(() => localStorage.removeItem('kjg-perspective-lesson'));
+  await open(page);
+  await page.getByText('Kva er perspektiv?').click();
+
+  // Seventeen cards and three act titles deep, so it needs a longer budget than
+  // the default: the curtain swallows a tap for two and a half seconds at each
+  // act, and the walk gate on the flock card is passed by advancing rather than
+  // by answering, which is allowed and is what somebody in a hurry does.
+  await vidareTo(page, 'Trykk på ei av dei', 48);
+  await expect(page.getByText('Punkta hoppa')).toHaveCount(0);
+
+  /*
+   * Tap around the floor until the pair has been moved. Where the boxes land on
+   * screen is the projection's business and not this spec's, so it prods a
+   * spread of the lower half rather than asserting a pixel - the same argument
+   * the drag above makes about sensitivity.
+   */
+  const band = [450, 500, 550, 600];
+  const across = [70, 130, 195, 260, 320];
+  for (const y of band) {
+    for (const x of across) {
+      if ((await page.getByText('Punkta hoppa').count()) > 0) break;
+      await page.mouse.click(x, y);
+      await page.waitForTimeout(320);
+    }
+  }
+  await expect(page.getByText('Punkta hoppa')).toBeVisible();
 });

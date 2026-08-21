@@ -1246,6 +1246,7 @@ export const useStore = create<SceneState>((set, get) => ({
   // backdrop. The real opening raises it after the deal, below.
   sunEnvironment: false,
   cameraFeed: false,
+  photograph: null,
   instrument: 'none',
   undoStack: [],
   redoStack: [],
@@ -2345,6 +2346,21 @@ export const useStore = create<SceneState>((set, get) => ({
   toggleSunEnvironment: () => set((state) => ({ sunEnvironment: !state.sunEnvironment })),
 
   setCameraFeed: (cameraFeed) => set({ cameraFeed }),
+  /*
+   * One photograph at a time, and the last one's handle is let go of.
+   *
+   * An object URL is a claim on the bytes behind it for as long as the document
+   * lives, so picking six reference shots in a row without this leaves five
+   * photographs pinned in memory with nothing on screen showing them. Revoking
+   * the old one before the new one lands is the whole of the housekeeping -
+   * there is no store to prune and nothing to save, which is why it is a URL
+   * and not an asset (see `photograph` in types.ts).
+   */
+  setPhotograph: (photograph) =>
+    set((state) => {
+      if (state.photograph && state.photograph !== photograph) URL.revokeObjectURL(state.photograph);
+      return { photograph };
+    }),
 
   /**
    * Change the sky, and let the sun follow.
