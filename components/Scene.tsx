@@ -180,22 +180,6 @@ const SHADOW_REST = 125;
  * what made dragging the sun feel like wading. Now it is redrawn when the scene
  * changes, the sun moves, or you cross into a new cell - and not otherwise.
  */
-/**
- * The fill.
- *
- * A directional lamp like the sun and nothing else: no shadow map, no follow,
- * no cache to invalidate. That is the whole point of a fill - it lifts the dark
- * side of everything at once, and a shadow from it would be a second story
- * about where the light comes from.
- */
-const Fill: React.FC = () => {
-  const fill = useStore((state) => state.fill);
-  const colour = useMemo(() => temperatureColor(fill.temperature), [fill.temperature]);
-  const position = useMemo(() => sunPosition(fill.azimuth, fill.elevation), [fill.azimuth, fill.elevation]);
-  if (!fill.enabled) return null;
-  return <directionalLight position={position} color={colour} intensity={fill.intensity} />;
-};
-
 const Sun: React.FC = () => {
   const sun = useStore((state) => state.sun);
   const light = useRef<THREE.DirectionalLight>(null);
@@ -488,13 +472,15 @@ const SceneContent = () => {
       {sunEnvironment && <Atmosphere />}
       {/* One sun, and nothing else.
 
-          No ambient term and no environment map: a face turned away from the
-          sun is unlit, exactly as it would be under a hard key with no bounce.
-          That is the point - value separation between the three faces of a box
-          is what you are reading when you draw one, and a fill light is what
-          washes it out - until it is asked for, which is what the fill is. */}
+          No ambient term, no fill, and no environment map unless the sky above
+          is drawn: a face turned away from the sun is unlit, exactly as it
+          would be under a hard key with no bounce. That is the point - value
+          separation between the three faces of a box is what you are reading
+          when you draw one, and a second light is what washes it out. There
+          used to be one, off until asked for; it is gone, and what lifts a
+          shadow side now is the sky itself, which is a light somebody can
+          actually point at. */}
       <Sun />
-      <Fill />
       {/* The three dials in front of all of it, when there is a lens on. */}
 
       {/* Four walls and a ceiling round the origin. */}

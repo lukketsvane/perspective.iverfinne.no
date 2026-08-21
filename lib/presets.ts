@@ -59,7 +59,6 @@ export interface Preset {
   /** The sheet the drawing is made on. */
   paper: number;
   sun: { azimuth: number; elevation: number; intensity: number; temperature: number; shadows: 'off' | 'hard' | 'soft' };
-  fill: boolean;
   marker?: { hue: number; high: number; chroma: number };
   hatch?: { angle: number; spacing: number; width: number; length: number; cross: number };
   /** The hand it is drawn with. Every page that lands on a drawn rung names one. */
@@ -133,23 +132,20 @@ export const OPENING: Preset = {
   paper: 240,
   sun: { azimuth: 35, elevation: 52, intensity: 3.2, temperature: 5700, shadows: 'hard' },
   /*
-   * THE SKY IS THE ONLY THING LIGHTING THIS, and the fill goes off to make
-   * that true rather than nearly true.
+   * THE SKY IS THE ONLY THING LIGHTING THIS, and it no longer has to be said.
    *
-   * There are two directional lights in the scene and the sky drives one of
-   * them: with the simulation up, the key's bearing, height, strength and
-   * colour are all read off the place and the moment, and its own knobs go
-   * read-only and say so. The fill is the other one, and it is a light nobody
-   * put in the sky - a second sun with no shadow, aimed by hand, softening
-   * exactly the faces the drawing is trying to state.
+   * There were two directional lights in the scene and the sky drove one of
+   * them; this page turned the other one off, on the argument that a fill is a
+   * light nobody put in the sky - a second sun with no shadow, aimed by hand,
+   * softening exactly the faces the drawing is trying to state - and that on
+   * an ink rung it works against the page, because hatching enters as the
+   * light goes grazing and lifting the turned faces lifts them out of the
+   * range where anything is drawn at all.
    *
-   * On a photographic rung that is a reasonable thing to want. On an ink rung
-   * it is working against the page: hatching enters as the light goes grazing,
-   * so lifting the turned faces with a second lamp is lifting them out of the
-   * range where anything gets drawn at all. One light, from the sky, and every
+   * That argument won everywhere rather than here. There is one light in the
+   * tool now, so there is nothing left for a page to switch off, and every
    * face is either lit or is turned away.
    */
-  fill: false,
   // A concrete apron rather than the computed step-under-the-sheet: with the
   // sky drawn behind it, the floor is ground, not mount.
   ground: { on: true, tone: 158 },
@@ -159,7 +155,7 @@ export const OPENING: Preset = {
    * is about is the crossing being OFF. One direction, unbroken, at the
    * default weight and gap.
    */
-  hatch: { angle: 0, spacing: 11, width: 1.05, length: 0, cross: 0 },
+  hatch: { angle: 0, spacing: 2.5, width: 1.05, length: 0, cross: 0 },
 };
 
 export const PRESETS: Preset[] = [
@@ -177,7 +173,6 @@ export const PRESETS: Preset[] = [
     backdrop: 0,
     paper: 243,
     sun: { azimuth: 40, elevation: 48, intensity: 3.5, temperature: 5600, shadows: 'hard' },
-    fill: false,
     pen: { outline: 2, formCount: 2, formStrength: 0.18, formWidth: 0.9, terminator: 1, terminatorWidth: 1.3 },
   },
   {
@@ -209,7 +204,6 @@ export const PRESETS: Preset[] = [
     // page is an outline drawing - everything the eye can see is squarer to
     // the sun than the first rank's entry, and the plate never shows.
     sun: { azimuth: 215, elevation: 28, intensity: 3.4, temperature: 5000, shadows: 'hard' },
-    fill: false,
     hatch: { angle: 34, spacing: 8.5, width: 1.15, length: 0, cross: 75 },
     pen: { outline: 1.4, formCount: 0, formStrength: 0, formWidth: 0.9, terminator: 0.3, terminatorWidth: 1.3 },
   },
@@ -228,7 +222,6 @@ export const PRESETS: Preset[] = [
     backdrop: 10,
     paper: 26,
     sun: { azimuth: 186, elevation: 26, intensity: 4.2, temperature: 5000, shadows: 'hard' },
-    fill: false,
     pen: { outline: 2.8, formCount: 2, formStrength: 0.26, formWidth: 2.6, terminator: 1, terminatorWidth: 1.3 },
   },
   {
@@ -245,7 +238,6 @@ export const PRESETS: Preset[] = [
     backdrop: 196,
     paper: 158,
     sun: { azimuth: 5, elevation: 28, intensity: 3.0, temperature: 3200, shadows: 'hard' },
-    fill: false,
     marker: { hue: 16, chroma: 0.72, high: 0.5 },
     // Chalk is form lines. It has almost no edge and a great deal of wrap.
     pen: { outline: 1.1, formCount: 5, formStrength: 0.34, formWidth: 0.9, terminator: 0.9, terminatorWidth: 1.3 },
@@ -253,19 +245,24 @@ export const PRESETS: Preset[] = [
   {
     /*
      * A lit room: the objects as objects, standing on a floor, in a raking
-     * afternoon light with a cool fill behind it.
+     * afternoon light.
      *
      * The one card that is not a drawing - what the other four are abstractions
      * OF. Late and low rather than overhead, so every form throws a long shadow
      * across the plane and what there is to be drawn from it is the light
      * itself: where it grazes, where it stops, and the shape it throws.
+     *
+     * IT USED TO ASK FOR A COOL FILL BEHIND IT, and was the only page in the
+     * deck that did. There is no second light to ask for now, which costs this
+     * one page something real - a face turned away from a sun this low is
+     * black rather than dim. It is also the truer picture of what one hard
+     * light does, and it is what the other four pages were already drawing.
      */
     name: 'Long shadows',
     surface: 'original',
     backdrop: 208,
     paper: 208,
     sun: { azimuth: 286, elevation: 14, intensity: 4.8, temperature: 3400, shadows: 'hard' },
-    fill: true,
     ground: { on: true, tone: 128 },
   },
 ];

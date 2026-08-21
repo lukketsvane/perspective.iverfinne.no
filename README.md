@@ -1239,67 +1239,64 @@ The panel hugs its contents rather than stretching to the edge of the screen,
 and each knob's reading floats clear of it rather than being kept inside by
 40 px of empty headroom — which matters for a control whose whole purpose is
 watching the scene change while you drag it. A rail across the top is every
-light there is, the key and the fill and each lamp you have stood somewhere,
-and whichever you tap comes under the same four knobs, because a light is a
-light.
+light there is: **the** light, and each lamp you have stood somewhere. Tap one
+and it comes under the same four knobs, because a light is a light.
 
-A **second light** lives under it, off until asked for: shadowless, cooler and
-weaker by default, the way a studio or an overcast sky answers the problem of
-one light leaving half of everything black.
+**There is exactly one built-in light, and there were three.** The rail used to
+carry a key, a fill and a sky, and a viewer had to work out for themselves that
+the third was not a light at all but a second way of aiming the first, and that
+the middle one was the reason the first was called "key". So the fill is gone —
+a tool whose whole argument is that one hard light is what makes a box read as a
+box has no business shipping a second one to wash that out — and the sky became
+a *mode* of the one that is left.
 
 ### The sky, which is the other way of aiming the sun
 
 Those four drags are the right control for a *drawing*: you put the light where
 the drawing needs it. They are the wrong control for a *question*, and the
 question people bring to a perspective tool is not "what does 286° at 14 look
-like" — it is **"what will this look like here, at four o'clock, in October"**.
+like" — it is **"what will this look like at four o'clock, in October"**.
 
-So the light rail carries a third seat that is not a light. Give it a place and
-a moment and the sun goes and stands where the sun actually stands:
+So the light carries a toggle that is not a knob. Press it and the sun goes and
+stands where the sun actually stands — and the four numbers stop being yours to
+set, leave the panel, and are replaced by the two that are now deciding them:
 
-- **A place.** One press of the pin takes the device's own fix, sets the hour to
-  now and fetches the forecast for it, all together — a place moved under an
-  hour left over from a previous session is half an answer, and the wrong half
-  decides where the shadows go. Until that press it is Greenwich at noon, which
-  is deliberately somebody else's: a default that quietly guessed at your
-  latitude would be a location fix taken without a prompt. Nothing here asks the
-  browser for a permission except that one button.
-- **A moment**, as an hour and a date, both read and written in local time. The
+- **A place**, fixed: Greenwich. It used to be a default that one press of a map
+  pin replaced with the device's own fix, and the argument for a stranger's
+  latitude was that guessing at yours would be a location taken without a
+  prompt. The pin is gone, so what was a polite default is simply the place —
+  and the prime meridian is the right one to be stuck with for the reason it was
+  chosen in the first place. **The tool now asks the browser for no location
+  permission at all, and makes no network request of any kind.**
+- **A moment**, as an hour and a date, both read and written in **UTC**. This is
+  the half that was quietly wrong before: the clock was local, on the reasoning
+  that "four o'clock" means four o'clock where you are — true only while the
+  place was also where you are, which is exactly what the pin used to arrange.
+  Without it, somebody two hours east setting half past three was shown the sun
+  as it stood at half past one. One place, one clock, both Greenwich. The
   position is the NOAA solar equations — a hundredth of a degree over any date
-  this tool will see — and it is checkable by eye: at Greenwich at noon the sun
-  is due south.
-- **A clock that runs**, at ten minutes a second — the rate at which a shadow
-  crosses a courtyard at about the speed a shadow looks like it should. It had
-  a speed knob of its own once, six rates deep; a knob for how fast a
-  rehearsal plays is a setting about a setting, and it went in the cull below.
-  The moment still advances every animation frame so the motion is continuous,
-  but it is *committed* to the store ten times a second, because a store write
-  re-renders everything subscribed to the sky and sixty of those a second was
-  a drag you could feel with the panel open — and ten a second moves the sun
-  an order of magnitude less than the quarter degree the dome itself
-  quantises to.
-- **The real weather.** Cloud cover, how high the deck sits and what the wind is
-  doing to it, fetched from a public hourly forecast for that place and that
-  hour. One fetch covers two days back and three forward, so scrubbing across an
-  afternoon reads hour after hour out of what is already in hand rather than
-  asking again — and a sky left up on a desk asks again every half hour, so it
-  goes on being the sky outside. What the finger reaches is one axis, clear to
-  overcast: cover follows it, and the deck's height and the wind ride along,
-  because that is how the three arrive together in the world — fair-weather
-  puffs sit high in light air, stratus sits low in a blow. The forecast still
-  writes all four raw numbers underneath, so a live sky is as exact as it ever
-  was. Put a hand on the axis and it stops calling itself live: a reading you
-  have overwritten is a sky you composed, and a panel that goes on claiming
-  otherwise is lying about where its numbers came from.
+  this tool will see — and now it is checkable by eye *for everybody*: set it to
+  twelve and the sun is due south.
+- **The weather**, on one axis, clear to overcast: cover follows it, and the
+  deck's height and the wind ride along, because that is how the three arrive
+  together in the world — fair-weather puffs sit high in light air, stratus sits
+  low in a blow. It used to be fetched from a public hourly forecast for the
+  place and the hour, cached two days back and three forward, refreshed every
+  half hour so a sky left up on a desk went on being the sky outside. All of
+  that hung off the pin — with the place fixed there is nothing left to ask a
+  forecast about — and it went with it.
+- **And the dome's own switch**, which stays because there is one case worth
+  keeping it for: a real sun over a paper page, with no sky drawn behind it.
+  The toggle turns it on with the simulation; this turns it back off alone.
 
-**The pane was fifteen controls and is eight.** Beside the rate knob and the
-weather's three extra scrubs, the cull took the fetch seat (the location pin
-already snaps the hour to now and fetches the conditions — the second seat was
-the same press wearing its own button), the star knob and the constellation
-toggle (the stars are always up there, and they show exactly when the air or
-the daylight stops drowning them, which no knob says better than the sky
-itself), and the four dead scrubs the key light showed while the sky was
-aiming it. Nothing the picture could do went with them. The same pass gave the
+**The pane was fifteen controls and is seven** — six with the sky off. Beside
+the rate knob and the weather's three extra scrubs, the cull took the fetch
+seat, the star knob and the constellation toggle (the stars are always up
+there, and they show exactly when the air or the daylight stops drowning them,
+which no knob says better than the sky itself), the four dead scrubs the light
+showed while the sky was aiming it, and finally the location pin, the play/pause
+and two of the three rail seats. Nothing the picture could do went with them,
+with one exception, named above: the fill. The same pass gave the
 deck a fast exit, twice over: the low deck's field — ten noise reads a pixel —
 sits behind a uniform branch now and is skipped entirely under a clear sky,
 where every one of those reads used to end in a zero, into all six faces of
@@ -1429,8 +1426,8 @@ is a flat shape the colour of the sky. Leonardo wrote it down before anybody had
 the word for it, and a tool that draws the convergence perfectly and has no air
 in it is teaching half the subject.
 
-So there is an **air** knob, and it is not a weather reading — the forecast has
-nothing to say about it.
+So there is an **air** knob, and it is not a weather reading — it is the one
+number in the sky that is a decision about the picture rather than a condition.
 
 - **Upward it is haze.** More turbidity in the dome, a paler horizon, and a fog
   whose colour is not picked: it is what a single-scattering integral — Rayleigh
@@ -1460,38 +1457,44 @@ That last setting is the moon, and it is worth a minute of anybody's time: it is
 also, exactly, the lighting model the rest of this tool has always used — one
 hard key, no ambient, no environment — made visible for once instead of assumed.
 
-**And the clock runs on the frame.** It used to step twice a second, and twice
-a second is not a clock, it is a metronome: at ten minutes of sky per second the
-sun jumped a degree and a quarter every step, and the whole point of watching
-light move is that it *moves*. What made a timer seem necessary was cost, and
-the cost was never in the clock — it was that a moving sun invalidates its own
-shadow, so every step redrew a four-megapixel shadow map. Those are separate
-now. The lamp's position is written every frame, unconditionally, because it is
-three floats and it is the thing you see; the map is redrawn eight times a
-second while the aim is sliding, and immediately for anything that is not a
-continuous slide. Shadows a twelfth of a second behind a sun that takes ten
-minutes to cross a degree are shadows nobody can catch out. A sun that jumps is
-one everybody can. The `sun` in the store is left as the *same object* while it
-has not really moved, too — below a twentieth of a degree nothing on screen can
-change, and a new object identity every frame re-rendered every component that
-reads the light, sixty times a second, to hand them numbers differing in the
-fifth decimal.
+**And a dragged sun is smooth.** The hour used to have a clock of its own that
+ran the day forward by itself, and most of what that clock taught is still in
+force now that a finger is the only thing moving it: a moving sun invalidates
+its own shadow, so every step of it redrew a four-megapixel shadow map. Those
+are separate. The lamp's position is written every frame, unconditionally,
+because it is three floats and it is the thing you see; the map is redrawn eight
+times a second while the aim is sliding, and immediately for anything that is
+not a continuous slide. Shadows a twelfth of a second behind a sun that has
+crossed a degree are shadows nobody can catch out. A sun that jumps is one
+everybody can. The `sun` in the store is left as the *same object* while it has
+not really moved, too — below a twentieth of a degree nothing on screen can
+change, and a new object identity per pointer-move re-rendered every component
+that reads the light, to hand them numbers differing in the fifth decimal.
 
-While the sky is in charge, the sun's four knobs go dead and go on showing what
-the sun is doing — they are readings now, and a knob that silently loses its
-value the moment you let go is worse than one that plainly is not yours to turn.
-The shadows switch stays live either way: whether and how a shadow falls is a
-drawing decision, and a simulated overcast noon with hard shadows is a
-perfectly reasonable thing to want to draw.
+The clock itself is gone. It was a rehearsal of what the light was going to do,
+which is a lovely thing to watch and a strange thing to have running under a
+drawing; it also had to be paused, so it cost a seat in a panel that had too
+many, and it was the last thing in the tool that moved without being asked to.
+
+While the sky is in charge, the sun's four knobs **leave** — they would be four
+readings you cannot set, and four dead controls to read past on a phone is worse
+than none. The hour and the day come up in their place, which is where those
+four numbers are actually being decided. The shadows switch stays live either
+way: whether and how a shadow falls is a drawing decision, and a simulated
+overcast noon with hard shadows is a perfectly reasonable thing to want to draw.
+Three fingers on the picture move the sun by hand, and do nothing at all while
+the sky has it — a gesture that overwrote a reading would leave the light saying
+one thing and the hour beside it saying another, with nothing on screen owning
+up to it.
 
 Nothing downstream knows any of this happened. The shadow map, the sky shader,
 the ink shader's terminator and the cloud deck all go on reading the one `sun`
 they always read; the simulation only writes it. `lib/sky.ts`,
-`lib/skyClock.ts`, `components/Sky.tsx`.
+`components/Sky.tsx`.
 
 ### Placed lamps
 
-The sun and the fill say where the big light comes from. **Lamps** say where
+The sun says where the big light comes from. **Lamps** say where
 the small ones hang, and they are scene objects, not settings — placed from the
 model library (the tile left of the cube), selected with a tap, slid along
 their own level, lifted, placed again from the shelf, saved with the
