@@ -555,7 +555,7 @@ altogether, not how far you ended up from where you started — because "turn al
 the way round" is answered by going round, and somebody who overshoots and comes
 back has still been round. **Neste is never disabled**: a viewer who cannot make
 the gesture must always be able to go on; it simply stops being the accented
-thing until the picture has answered.
+thing until the picture has answered — and now they can always go back, too.
 
 Ten director cards carry an answer with no gate to pass — the sheets slideshow,
 the ruler, the posture sweep, the shrinking steps, the platform, the fraction
@@ -598,6 +598,21 @@ the frame is an invitation to use it. It is still leavable, and has to be: the
 way out is one unlabelled mark in the far corner at a third of an opacity. The
 difference between that and a pill marked *skip* is the difference between a door
 and a sign pointing at a door.
+
+**One thing came back, at thirty-two cards: a way backwards.** Tapping the words
+only ever went one way, which at eighteen cards was survivable and at thirty-two
+is not — the commonest thing anybody does with a deck this long is tap through an
+answer half-read, and a lesson you can only leave and restart to see a sentence
+again is a lesson nobody sees that sentence in. It is an arrow beside the cross,
+at the cross's own weight: the same *kind* of thing as the mark it stands next
+to, a small dim unlabelled way of not going forward, so the corner reads as one
+quiet pair rather than a toolbar growing. It is absent on the first card rather
+than dimmed, because a disabled control is a thing you try and are refused by.
+
+And **an answer, once earned, stays earned.** Step back into a card you have
+already opened and its found sentence is there waiting, not stripped off to be
+worked for a second time. The sentence is earned once; the arrow exists for
+people who want to read it twice.
 
 **Five acts, with titles.** Thirty-two cards in a row is a list, and a list has no
 shape: at card eleven nobody knows whether they are near the end. **Kula**,
