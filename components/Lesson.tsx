@@ -93,12 +93,16 @@ const snapshot = () => {
     /*
      * The meshes and the lamps go too, and come back.
      *
-     * The lesson's stage is a bare floor and some cubes, and it has to be:
-     * every card is about where the EDGES of a form point, and the shelf's
-     * objects are scanned aircraft and horses with no straight edge on them.
-     * The first run of this was performed from inside a Hughes H-1, which is a
+     * The lesson's stage is a bare floor, some cubes, and whoever the card
+     * asked for by name - and it has to be. Most cards are about where the
+     * EDGES of a form point, and back when the shelf carried scanned aircraft
+     * and horses there was not a straight edge among them: the first run of
+     * this was performed from inside a nineteen-megabyte racer, which is a
      * fair description of what the tool looks like to somebody who has not
-     * been told what it is for.
+     * been told what it is for. The shelf is one character now and the second
+     * act is about bodies, so the clearing is less about keeping the stage
+     * legible and more about the promise below - that whatever you had is
+     * exactly what you get back.
      */
     models: state.models,
     lamps: state.lamps,
