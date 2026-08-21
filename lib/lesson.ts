@@ -530,16 +530,25 @@ export const CARDS: Card[] = [
      * ...and the same fact turned into a ruler.
      *
      * Once the line is a known height, everything else can be read against it:
-     * a desk comes to your thigh, a small child to your waist, a car to your
-     * chest, a door goes over your head. Those are heights an illustrator
-     * already knows in their body, and the line is where that knowledge gets
-     * onto the paper. This is the card that makes the tool's metres worth
-     * something - a scene is right when the sizes are right, and the sizes are
-     * right when they are read off the horizon rather than guessed.
+     * a desk comes to your thigh, a car to your chest, a door goes over your
+     * head. Those are heights an illustrator already knows in their body, and
+     * the line is where that knowledge gets onto the paper. This is the card
+     * that makes the tool's metres worth something - a scene is right when the
+     * sizes are right, and the sizes are right when they are read off the
+     * horizon rather than guessed.
+     *
+     * AND THE HARE IS THE ONE THAT IS EXACTLY THE LINE. She is 1.70 to the
+     * crown and the eye is at 1.70, so the horizon lands on the top of her head
+     * - not through her face, which is where it would cut a taller figure, and
+     * not over her, which is where it goes on everything else in the frame.
+     * The card before this proved that with four posts nobody has met; this one
+     * says it with the body standing in the doorway when the tool opened, and
+     * two cards later a whole flock of her is walked into on the strength of
+     * it.
      */
     headline: 'Linja er ein målestokk',
-    body: 'Ein pult på 75, ein bil på 150, astronauten på 180, ei dør på 210. Ingen av dei står nøyaktig i di høgd. Sjå kvar linja går på kvar av dei.',
-    found: 'Over pulten, over bilen - og gjennom dei to som er høgare enn auget: gjennom andletet på astronauten, akkurat der ho ville kutta deg, og gjennom døra, eit stykke under karmen. Kroppen din kan desse høgdene alt: pulten til låret, bilen til brystet, astronauten i auga. Set linja der auget er, og kvar storleik er ei avlesing, ikkje ei gjetting.',
+    body: 'Ein pult på 75, ein bil på 150, ei dør på 210 - og haren, som er 170 til issa. Sjå kvar linja går på kvar av dei.',
+    found: 'Over pulten, over bilen, og gjennom døra eit stykke under karmen - og tvers i issa på haren, som er nøyaktig så høg som auget ditt sit. Kroppen din kan desse høgdene alt: pulten til låret, bilen til brystet, døra over hovudet. Set linja der auget er, og kvar storleik er ei avlesing, ikkje ei gjetting.',
     stage: {
       cast: 'heights',
       mode: 'rectilinear',
@@ -548,7 +557,7 @@ export const CARDS: Card[] = [
       selectionGuides: 0,
       cameraHeight: EYE_HEIGHT,
       stand: { x: 0, z: 3, yaw: 0, pitch: 0 },
-      figures: [{ who: 'astro-walking', at: [-0.6, -6] }],
+      figures: [{ who: 'hare-standing-2', at: [-0.6, -6] }],
     },
     travel: 2000,
   },
@@ -580,7 +589,7 @@ export const CARDS: Card[] = [
       stand: { x: 0, z: 3, yaw: 0, pitch: 0 },
       // The same scene as the card before, so the same company: a figure that
       // vanished between two cards of one act would read as a broken prop.
-      figures: [{ who: 'astro-walking', at: [-0.6, -6] }],
+      figures: [{ who: 'hare-standing-2', at: [-0.6, -6] }],
     },
     hands: 'director',
     sweep: { seconds: 9, height: [0.55, 2.6] },
@@ -608,7 +617,7 @@ export const CARDS: Card[] = [
      * not a flock: the eye reads the repetition and stops reading the rule.
      */
     headline: 'Heile flokken på ein gong',
-    body: 'Ein flokk, alle 170 høge, frå tre meter unna til nesten tretti. Gå: hald tommelen på venstre sida av biletet, ovanfor desse orda, og dra. Hald auga på kvar linja kryssar dei.',
+    body: 'Ein flokk, alle 170 høge, frå fem meter unna til nesten tretti. Gå: hald tommelen på venstre sida av biletet, ovanfor desse orda, og dra. Hald auga på kvar linja kryssar dei.',
     found: 'Ho skjer dei i issa, kvar einaste ein, og ho slapp ikkje taket medan du gjekk. Den næraste og den fjernaste er kutta i nøyaktig same høgd på kroppen, for linja ligg i DI høgd og dei er den høgda - avstand kjem ikkje inn i det. Set deg på huk, og ho fell til livet på heile flokken på ein gong. Det er slik ein flokk vert teikna: linja fyrst, så føtene, og hovuda fylgjer av seg sjølve.',
     stage: {
       cast: 'flock',
@@ -688,7 +697,7 @@ export const CARDS: Card[] = [
      * fraction somebody can see is the same without being told a number.
      */
     headline: 'Storleik ut av staden',
-    body: 'To like kassar, begge 2,4 meter høge: ei fire meter unna, ei atten. Sjå kvar horisonten skjer kvar av dei.',
+    body: 'To like kassar, begge 2,4 meter høge: ei fem meter unna, ei atten. Sjå kvar horisonten skjer kvar av dei.',
     found: 'Same brøkdelen av høgda på begge - sju tiandedelar oppe. Det er linja brukt baklengs. Du veit kvar føtene står, du veit kvar linja går, og forholdet mellom dei to ER høgda: mål frå golvet opp til linja, del på den same brøken, og du har toppen. Difor kan du setje ei kasse på 2,4 kvar som helst på arket og vite nøyaktig kor høg ho skal teiknast - utan å gjette, og utan å måle noko i verda.',
     stage: {
       cast: 'pair',
@@ -1185,6 +1194,14 @@ export const CARDS: Card[] = [
  * cubes in a rank touch at exactly a metre apart - which is what makes it read
  * as one form repeated rather than as a scatter.
  *
+ * EVERY DISTANCE A CARD SAYS OUT LOUD IS MEASURED FROM THE STAND, NOT FROM
+ * HERE. These are world coordinates and the origin is not where anybody is
+ * standing - most cards put the eye at z = 2, so a thing written down here at
+ * z = -3 is five metres from the viewer and not three. That has been got wrong
+ * twice: once on the posts card, which said three metres for five, and again
+ * on the flock and the pair when they were written. If a card's body quotes a
+ * number, work it out from the card's own `stand`.
+ *
  * AND EVERYTHING IS KEPT INSIDE AN UPRIGHT PHONE'S FRAME. At eighty-five
  * degrees of diagonal the horizontal half-field in portrait is about
  * twenty-four degrees, so anything more than four tenths of its own distance
@@ -1215,7 +1232,7 @@ export const CAST: Record<Cast, Stood[]> = {
   ],
   /*
    * All four exactly EYE_HEIGHT, and deliberately scattered rather than ranked:
-   * a row would let somebody read the effect as something about the row. Three
+   * a row would let somebody read the effect as something about the row. Five
    * metres out and forty metres out, left and right, and the line still lands
    * on the top of each one.
    */
@@ -1261,8 +1278,8 @@ export const CAST: Record<Cast, Stood[]> = {
    * horizon into a ruler you can measure an unknown height with.
    */
   pair: [
-    { at: [-1.2, -4.5], size: [1.6, 2.4, 1.6] },
-    { at: [1.4, -17], size: [1.6, 2.4, 1.6] },
+    { at: [-1.2, -2.9], size: [1.6, 2.4, 1.6] },
+    { at: [1.4, -16], size: [1.6, 2.4, 1.6] },
   ],
   /*
    * Seven, every one of them turned its own way - which is the arrangement the
