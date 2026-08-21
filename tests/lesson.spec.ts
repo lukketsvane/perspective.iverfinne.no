@@ -44,6 +44,9 @@ test('a gate opens to the hand, and the gateless card answers on the reading clo
   await context.addInitScript(() => localStorage.removeItem('kjg-perspective-lesson'));
   await open(page);
   await page.getByText('Kva er perspektiv?').click();
+  // Nothing behind card one, so there is nothing to go back to and no mark
+  // offering it - absent rather than disabled.
+  await expect(page.locator('[aria-label="Back one card of the lesson"]')).toHaveCount(0);
 
   /*
    * THE GATED REVEAL. The posts card asks for the smallest turn in the deck,
@@ -69,6 +72,29 @@ test('a gate opens to the hand, and the gateless card answers on the reading clo
     await page.waitForTimeout(350);
   }
   await expect(page.getByText('same kutt')).toBeVisible();
+
+  /*
+   * AND IT STAYS ANSWERED WHEN YOU COME BACK TO IT.
+   *
+   * The arrow beside the cross is the only way backwards through the deck, and
+   * the reason it exists is somebody tapping through an answer half-read - so
+   * a card stepped back into with its found sentence stripped off would be an
+   * arrow that cannot do the one job it was added for. The reveal is earned
+   * once, not once per visit.
+   *
+   * It also guards the other half of that: the act titles must not perform
+   * themselves again on the way back. Card 4 is the top of an act, so stepping
+   * off it and back onto it is exactly the case that would replay a
+   * full-screen title over a card the viewer has already read.
+   */
+  await page.locator('[aria-label="Next card of the lesson"]').click();
+  await page.waitForTimeout(2600);
+  await expect(page.getByText('same kutt')).toHaveCount(0);
+  await page.locator('[aria-label="Back one card of the lesson"]').click();
+  await page.waitForTimeout(2800);
+  await expect(page.getByText('Fire stolpar')).toBeVisible();
+  await expect(page.getByText('same kutt')).toBeVisible();
+  await expect(page.getByText('Eit bilete er eit kart over alt du ser')).toHaveCount(0);
 
   /*
    * THE GATELESS REVEAL. The ruler card has no question to pass - it is a

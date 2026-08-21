@@ -164,6 +164,29 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
   const [at, setAt] = useState(0);
   /** Whether the viewer has done what this card asked. */
   const [answered, setAnswered] = useState(false);
+  /*
+   * WHICH CARDS HAVE ALREADY GIVEN UP THEIR ANSWER, so that going back to one
+   * does not take it away again.
+   *
+   * A found sentence is earned - that is the whole design - but it is earned
+   * ONCE. The commonest reason anybody steps back a card is that they tapped
+   * through the answer before they had finished reading it, and a back arrow
+   * that returns them to the question with the answer stripped off is a back
+   * arrow that cannot do the one job it was added for.
+   *
+   * A ref rather than state: nothing renders off it directly, it is read at
+   * the top of the card effect and written when a card answers, and putting it
+   * in state would re-run that effect the moment it changed.
+   */
+  const solved = useRef<Set<number>>(new Set());
+  /*
+   * The card we were on before this one, so the deck knows it is being walked
+   * backwards. Only the act titles care: an act title is an ARRIVAL, held
+   * full-screen for two and a half seconds, and stepping back one card into
+   * the top of an act you have already been through should not perform the
+   * arrival again.
+   */
+  const cameFrom = useRef(0);
   /** How far along they are, for the thread under the instruction. */
   const [progress, setProgress] = useState(0);
   /**
@@ -254,8 +277,12 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     const stage: Stage = { ...OPENING, ...card.stage };
     const start = from.current;
     began.current = performance.now();
-    setAnswered(false);
-    setProgress(0);
+    // Already answered once means answered now: see `solved`.
+    const known = solved.current.has(at);
+    const goingBack = at < cameFrom.current;
+    cameFrom.current = at;
+    setAnswered(known);
+    setProgress(known ? 1 : 0);
 
     /*
      * The discrete things happen at once; only the continuous ones are moved.
@@ -346,7 +373,7 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       }
     }, 0);
 
-    const opens = ACTS.find((act) => act.at === at) ?? null;
+    const opens = goingBack ? null : ACTS.find((act) => act.at === at) ?? null;
     setCurtain(opens);
     const raise = opens ? window.setTimeout(() => setCurtain(null), 2500) : undefined;
 
@@ -367,7 +394,7 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     /** What the viewer has done since the controls were handed over. */
     const roam = { turned: 0, pitched: 0, walked: 0, field: stage.fov, picked: new Set<string>() };
     let watching: { yaw: number; pitch: number; x: number; z: number } | null = null;
-    let told = false;
+    let told = known;
 
     const step = () => {
       const now = performance.now();
@@ -466,6 +493,7 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           setProgress(done);
           if (done >= 1 && !told) {
             told = true;
+            solved.current.add(at);
             setAnswered(true);
           }
         }
@@ -484,6 +512,7 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
         const shown = travel + (card.sweep ? card.sweep.seconds * 1000 : 7000);
         if (now - began.current >= shown) {
           told = true;
+          solved.current.add(at);
           setAnswered(true);
         }
       }
@@ -574,6 +603,48 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           <path d="M17 7 7 17M7 7l10 10" />
         </svg>
       </button>
+
+      {/*
+        * THE WAY BACK, and it took thirty-two cards to become necessary.
+        *
+        * Tapping the words is the whole interface and it only ever went one
+        * way. At eighteen cards that was survivable; at thirty-two it is not,
+        * because the commonest thing anybody does with a deck this long is tap
+        * through an answer half-read - and a lesson you can only ever leave and
+        * restart to see a sentence again is a lesson nobody sees that sentence
+        * in.
+        *
+        * BESIDE THE CROSS, at the cross's own weight, and that is the whole of
+        * the argument for where it is. This is the second mark in the frame
+        * that is not the picture and not the words, and the case against it is
+        * the case the pills lost: a row of buttons is a form. What keeps it
+        * from being one is that it is the same KIND of thing as the mark it
+        * stands next to - a small, dim, unlabelled way of not going forward -
+        * so the corner reads as one quiet pair rather than as a toolbar
+        * growing. Nothing else on the screen changes.
+        *
+        * It is absent on the first card rather than dimmed, because a disabled
+        * control is a thing you try and are refused by, and there is nothing
+        * behind card one to be refused by.
+        *
+        * OUTSIDE the card block, not in it. The words are one full-width
+        * button and the whole of it advances; a control nested inside would be
+        * invalid HTML whose tap went forward as well as back.
+        */}
+      {at > 0 && (
+        <button
+          onClick={() => {
+            if (curtain) return;
+            setAt((was) => Math.max(0, was - 1));
+          }}
+          aria-label="Back one card of the lesson"
+          className={`absolute top-safe-panel left-14 w-9 h-9 rounded-full pointer-events-auto opacity-30 hover:opacity-70 transition-opacity ${ink}`}
+        >
+          <svg viewBox="0 0 24 24" className="w-4 h-4 mx-auto" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M19 12H6M11 6l-6 6 6 6" />
+          </svg>
+        </button>
+      )}
 
       {/*
         * THE ACT TITLE, full screen, for two and a half seconds.
