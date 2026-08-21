@@ -111,15 +111,55 @@ export interface Preset {
  * still by hand.
  */
 export const OPENING: Preset = {
-  name: 'Noon on the apron',
-  surface: 'original',
+  /*
+   * THE FRONT DOOR IS A DRAWING NOW, not a photograph of one.
+   *
+   * It opened on the solid rung for a while and the argument was reasonable:
+   * a first visit reads a photographic noon instantly and an ink page only
+   * after it reads the tool. What that argument missed is what the tool IS.
+   * Somebody arriving at a perspective app and finding a smoothly lit grey
+   * cube has been shown a renderer; the same cube in ink, with the strokes
+   * following the form and the shadow spotted in solid, has been shown the
+   * thing they came for - and it is legible on a phone in sunlight, which the
+   * grey never was.
+   *
+   * Everything else about the page stays where it was: the sky is drawn, the
+   * floor is a real floor rather than the computed step under a mount, and
+   * the sheet is paper.
+   */
+  name: 'Noon, in ink',
+  surface: 'hatch',
   backdrop: 'paper',
   paper: 240,
-  sun: { azimuth: 35, elevation: 52, intensity: 3.2, temperature: 5700, shadows: 'soft' },
-  fill: true,
+  sun: { azimuth: 35, elevation: 52, intensity: 3.2, temperature: 5700, shadows: 'hard' },
+  /*
+   * THE SKY IS THE ONLY THING LIGHTING THIS, and the fill goes off to make
+   * that true rather than nearly true.
+   *
+   * There are two directional lights in the scene and the sky drives one of
+   * them: with the simulation up, the key's bearing, height, strength and
+   * colour are all read off the place and the moment, and its own knobs go
+   * read-only and say so. The fill is the other one, and it is a light nobody
+   * put in the sky - a second sun with no shadow, aimed by hand, softening
+   * exactly the faces the drawing is trying to state.
+   *
+   * On a photographic rung that is a reasonable thing to want. On an ink rung
+   * it is working against the page: hatching enters as the light goes grazing,
+   * so lifting the turned faces with a second lamp is lifting them out of the
+   * range where anything gets drawn at all. One light, from the sky, and every
+   * face is either lit or is turned away.
+   */
+  fill: false,
   // A concrete apron rather than the computed step-under-the-sheet: with the
   // sky drawn behind it, the floor is ground, not mount.
   ground: { on: true, tone: 158 },
+  /*
+   * Named rather than inherited, because a page that names no hand draws with
+   * whatever the last drag left in the panel - and the whole of what this one
+   * is about is the crossing being OFF. One direction, unbroken, at the
+   * default weight and gap.
+   */
+  hatch: { angle: 0, spacing: 11, width: 1.05, length: 0, cross: 0 },
 };
 
 export const PRESETS: Preset[] = [

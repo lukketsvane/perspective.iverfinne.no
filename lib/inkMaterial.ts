@@ -179,7 +179,7 @@ export const inkUniforms = {
    * from a sketchbook page. The third layer takes the lozenge's diagonal,
    * which is where Dürer puts it, so one knob places all three.
    */
-  hatchCross: { value: 1.19 },
+  hatchCross: { value: 0 },
 };
 
 const VERTEX = `
@@ -678,12 +678,32 @@ const FRAGMENT = `
        * that nothing in the scene put there.
        */
       float enter1 = smoothstep(0.34, 0.46, dark);
-      float enter2 = smoothstep(0.50, 0.62, dark);
-      float enter3 = smoothstep(0.72, 0.84, dark);
-      float rank1 = rankAt(hatchAngle, latN, azN, upW, eastW, Nw, bend, wMax, runPeriod, closed) * enter1;
-      float rank2 = rankAt(hatchAngle + hatchCross, latN, azN, upW, eastW, Nw, bend, wMax, runPeriod, closed) * enter2;
-      float rank3 = rankAt(hatchAngle + hatchCross * 0.5 + 1.5707963, latN, azN, upW, eastW, Nw, bend, wMax, runPeriod, closed) * enter3;
-      hatchInk = max(rank1, max(rank2, rank3));
+      hatchInk = rankAt(hatchAngle, latN, azN, upW, eastW, Nw, bend, wMax, runPeriod, closed) * enter1;
+
+      /*
+       * ...AND THE SECOND AND THIRD ONLY IF THE PLATE IS TURNED AT ALL.
+       *
+       * A crossing angle of zero used to mean "cross at zero degrees", which
+       * is not a crossing: it laid the second rank exactly on top of the first
+       * and the third square across it, so the knob's own bottom end drew a
+       * grid rather than the one direction it plainly promised. A drawn page
+       * is one direction far more often than it is three - a pen shader, a
+       * biro, most of Zorn - and the crossing is a decision you make in the
+       * shadows rather than the state you start in. So zero means ONE
+       * DIRECTION, the knob turns the plate up from there, and the default
+       * sits at zero.
+       *
+       * A branch rather than a multiply by zero, because it is a uniform: it
+       * is the same answer for every fragment in the draw, so the two ranks
+       * are genuinely not computed on a page that does not cross.
+       */
+      if (abs(hatchCross) > 0.001) {
+        float enter2 = smoothstep(0.50, 0.62, dark);
+        float enter3 = smoothstep(0.72, 0.84, dark);
+        float rank2 = rankAt(hatchAngle + hatchCross, latN, azN, upW, eastW, Nw, bend, wMax, runPeriod, closed) * enter2;
+        float rank3 = rankAt(hatchAngle + hatchCross * 0.5 + 1.5707963, latN, azN, upW, eastW, Nw, bend, wMax, runPeriod, closed) * enter3;
+        hatchInk = max(hatchInk, max(rank2, rank3));
+      }
 
       pen = clamp(max(pen, hatchInk), 0.0, 1.0);
     }
@@ -875,13 +895,16 @@ export const HATCH_SHADOW = (() => {
           'float ink = groundRank(f, along, 1.0, w, runRatio);',
           // The core of the shadow is crossed, exactly as a dark passage on
           // the form is: same second bearing, so the shadow a thing casts is
-          // woven by the same hand that engraved the thing.
-          'float cb = cos(hatchAngle + hatchCross);',
-          'float sb = sin(hatchAngle + hatchCross);',
-          'float f2 = cb * latN + sb * azN;',
-          'float along2 = -sb * latN + cb * azN;',
-          'float ink2 = groundRank(f2, along2, 1.0, w, runRatio) * smoothstep(0.55, 0.85, shade);',
-          'ink = max(ink, ink2);',
+          // woven by the same hand that engraved the thing - and left alone on
+          // a page that does not cross, for the same reason.
+          'if (abs(hatchCross) > 0.001) {',
+          '  float cb = cos(hatchAngle + hatchCross);',
+          '  float sb = sin(hatchAngle + hatchCross);',
+          '  float f2 = cb * latN + sb * azN;',
+          '  float along2 = -sb * latN + cb * azN;',
+          '  float ink2 = groundRank(f2, along2, 1.0, w, runRatio) * smoothstep(0.55, 0.85, shade);',
+          '  ink = max(ink, ink2);',
+          '}',
           'gl_FragColor = vec4( color, opacity * ink * smoothstep(0.06, 0.18, shade) );',
         ].join('\n')
       );
@@ -1257,7 +1280,7 @@ export const writeHatch = (
   // version before the crossing existed comes back through sceneJson verbatim
   // and lands on this writer with no store merge in between - and an
   // undefined degree would write NaN into the uniform and rule nothing.
-  u.hatchCross.value = ((h.cross ?? 68) * Math.PI) / 180;
+  u.hatchCross.value = ((h.cross ?? 0) * Math.PI) / 180;
 };
 
 /** The scene's own: the holders every object that has not been given its own points at. */

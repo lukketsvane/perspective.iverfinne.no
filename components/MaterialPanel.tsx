@@ -343,14 +343,24 @@ export const MaterialPanel: React.FC<{ surface: Surface; from: 'scene' | 'select
           skin={skin}
           onFirstChange={start}
           icon={I.hatchCross}
-          // Held off 0 and 90's far side: at nothing the second pass lands on
-          // the first and the shadow just thickens, which is the zebra this
-          // crossing exists to replace. Near square is the engraver's lattice,
-          // shallow is a pen's directional weave - the range is the two hands.
+          /*
+           * DOWN TO ZERO, WHICH IT WAS HELD OFF.
+           *
+           * The floor was 12, because at nothing the second pass landed on the
+           * first and the shadow just thickened - the zebra this crossing
+           * exists to replace. That is fixed in the shader instead: zero means
+           * ONE DIRECTION and the other two ranks are not drawn at all. So
+           * zero is a state worth having, and a knob whose default sits below
+           * its own floor is a default nobody can get back once they touch it -
+           * the trap the stroke-length knob was already caught in at 420.
+           *
+           * Above zero the range is the two hands it always was: near square is
+           * the engraver's lattice, shallow is a pen's directional weave.
+           */
           label="How far the crossing turns"
-          reading={`${Math.round(hatch.cross ?? 68)}°`}
-          value={hatch.cross ?? 68}
-          min={12}
+          reading={hatch.cross ? `${Math.round(hatch.cross)}°` : 'ingen'}
+          value={hatch.cross ?? 0}
+          min={0}
           max={90}
           step={1}
           onChange={(cross) => setHatch({ cross })}

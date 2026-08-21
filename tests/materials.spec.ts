@@ -7,6 +7,7 @@ import {
   find,
   findByPrefix,
   fingerprint,
+  closeTools,
   labelOf,
   openTools,
   readSceneBundle,
@@ -72,6 +73,8 @@ const MOUNT = 'Page behind the drawing: ';
  * genuinely differ between two rungs rather than one shared across all three.
  */
 const SPACING = 'How far apart the strokes are';
+/** The knob that turns the plate between passes. Reads 'ingen' at nothing. */
+const CROSSING = 'How far the crossing turns';
 /** The knobs of the etched page, as the button that opens them is labelled. */
 const HATCH_SETTINGS = 'How the hatching is ruled';
 /** The one control that exists only while the selection has stepped off. */
@@ -172,6 +175,26 @@ const toTheEtchedPage = async (page: Page) => {
     await press(page, 'tools', PAGE_RUNG);
   }
   expect(await pageRung(page), 'The page never reached the etched rung.').toBe('hatch');
+
+  /*
+   * ...AND THE CROSSING TURNED UP, because the rung alone is no longer an
+   * ETCHING.
+   *
+   * The crossing defaults to off now - one direction, which is what a drawn
+   * page is far more often than it is three, and what the front door opens on.
+   * That leaves this helper's name a lie and, more to the point, leaves the
+   * specs under it drawing a third of the ink they were written against: one
+   * family of strokes over a small box moves far fewer pixels than three, and
+   * the 6x6 fingerprint below stopped being able to see a spacing drag at all.
+   *
+   * Turning it up here is not a thumb on the scale for that assertion. It is
+   * the fixture matching its own name - an engraver crosses - and it puts the
+   * two ranks that are otherwise drawn by nothing in the suite under test.
+   */
+  await openPageSettings(page);
+  const crossed = await drag(page, CROSSING, 140);
+  expect(crossed, 'The crossing knob would not come up off nothing.').not.toBe('ingen');
+  await closeTools(page);
 };
 
 /** And onto the plain lit rung, counted the same way and for the same reason. */
