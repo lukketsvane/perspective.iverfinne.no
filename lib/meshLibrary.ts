@@ -1,6 +1,7 @@
 /**
  * The objects the tool ships with: an aeroplane, the four men working on it,
- * a drum, and a small astronaut in a bunny-eared spacesuit, three times.
+ * a drum, a small astronaut in a bunny-eared spacesuit three times, and the
+ * hare the lesson is addressed to, fourteen times.
  *
  * They are true to life - measured, they come in at the sizes the real things
  * are, so anything drawn against one is drawn against a real man.
@@ -30,6 +31,17 @@ export interface LibraryMesh {
    * its true size, which is placed exactly as it comes.
    */
   height?: number;
+  /**
+   * How far off the floor the pose actually is, in metres.
+   *
+   * Everything the loader puts down is grounded on its own lowest point, which
+   * is right for anything standing and wrong for anything in the air: a figure
+   * caught mid-jump has a boot as its lowest point, so grounding it stands the
+   * jump ON that boot and the leap becomes a man on tiptoe. This is the height
+   * the pose was caught at, and the only three entries that carry one are the
+   * two jumps and the run.
+   */
+  lift?: number;
   /**
    * A room rather than an object.
    *
@@ -177,6 +189,103 @@ export const MESH_LIBRARY: LibraryMesh[] = [
   { id: 'astro-back', name: 'Astronaut, on their back', url: '/meshes/astro-back.glb', height: 0.9 },
   { id: 'astro-jetpack', name: 'Astronaut, with a jetpack', url: '/meshes/astro-jetpack.glb', height: 1.15 },
   { id: 'astro-walking', name: 'Astronaut, walking', url: '/meshes/astro-walking.glb', height: 1.8 },
+
+  /*
+   * PERSPEKTIVHAREN: one character, fourteen poses, and the first thing on this
+   * shelf that belongs to the tool rather than to whoever made it.
+   *
+   * Everything above was found and cut down to size, and that shows in what it
+   * can be asked to do: the crew are four men who work on an aeroplane and the
+   * astronauts are three demonstrations of an armature. Neither is anybody. A
+   * hare in a bunny-eared suit who turns up on the sixth card, again on the
+   * twelfth, and again in the field you are left drawing at the end is
+   * something else - the person the lesson is addressed to, and therefore the
+   * MEASURING STICK, which has to be one recognisable body or it is only more
+   * furniture standing about.
+   *
+   * A HUNDRED AND SEVENTY CENTIMETRES, SOLE TO CROWN, ALL FOURTEEN - and that
+   * is not the number the files measure. The ears go a good twenty centimetres
+   * past the top of the head, so a standing hare's box is 1.88 to 1.94 tall and
+   * the HEAD is at 1.70. None of them carries a height for the same reason the
+   * racer does not: the size is baked in, and a file that measures itself beats
+   * a file plus a correction somebody has to be right about. The gap between
+   * the two numbers is not a rounding error either, it is a thing the lesson
+   * uses: stand at the tool's own eye height and the horizon lands on the crown
+   * of every standing hare in the frame, near one and far one alike, with the
+   * ears over the line.
+   *
+   * WHAT EACH POSE IS WORTH, in metres to the crown, because this is the table
+   * the eye-level cards are built out of:
+   *
+   *   standing        1.70, 1.70, 1.70, 1.66, 1.68
+   *   jumping         1.64, 1.66      (folded up, and off the ground - see lift)
+   *   running         1.49            (folded forward, not crouched)
+   *   crouched        1.23
+   *   kneeling        1.13
+   *   sitting         1.10, 1.13, 0.96
+   *   lying           0.65 tall, 1.79 long
+   *
+   * Which is the second thing they are for. A body you know the height of, in
+   * seven attitudes you also know the height of, is a ruler you can lay against
+   * anything: a seated person's head is two thirds of a standing one's, and
+   * nobody who has drawn that once has to be told it again.
+   *
+   * FIVE OF THEM STAND, and that is the one count on this shelf that is not
+   * about drawing problems. Every other rule here says no two poses may be the
+   * same problem - and five standing hares are five copies of one problem. They
+   * are here because a FLOCK is a card: a dozen figures at a dozen distances
+   * with one line landing at the same place on every one of them, which is the
+   * most useful sentence in perspective said with bodies instead of posts. A
+   * flock built from one model is not a flock, it is a texture, and the eye
+   * reads the repetition instead of the rule. Five bodies with folded arms,
+   * hands on hips, a raised thumb, a wave and nothing at all is a crowd.
+   *
+   * THE OTHER NINE ARE THE USUAL ARGUMENT: no two the same drawing. Two jumps
+   * with everything in the air, a run with the weight nowhere, a crouch and a
+   * kneel that fold a whole body into a metre, three ways of sitting that put
+   * the legs at three different angles to the eye, and one flat out with the
+   * feet toward you, which is the foreshortening study no standing figure can
+   * teach.
+   *
+   * AND THEY ALL FACE +Z, like everything here. Twelve arrived facing +X, one
+   * facing -X and one facing -Z, which is exactly the mix that once put a
+   * marshaller signalling at nobody with his back to the aeroplane. The turns
+   * are baked into the files rather than carried as a table of exceptions, and
+   * a quarter turn about Y is a swap and a sign in floating point, so not one
+   * vertex was resampled to do it.
+   *
+   * THE COST, since the shelf's whole story is the cut: 190 KB apiece and 2.6 MB
+   * for all fourteen, which is an eighth of the racer alone. Ten thousand
+   * triangles each, one flat grey material, and no maps whatsoever - no
+   * photograph, no normal map, nothing to sample - so they are the cheapest
+   * things here to draw as well as to fetch, and nothing loads until it is
+   * tapped.
+   */
+  { id: 'hare-standing-1', name: 'Perspektivharen, arms folded', url: '/meshes/hare-standing-1.glb' },
+  { id: 'hare-standing-2', name: 'Perspektivharen, standing', url: '/meshes/hare-standing-2.glb' },
+  { id: 'hare-standing-3', name: 'Perspektivharen, thumb up', url: '/meshes/hare-standing-3.glb' },
+  { id: 'hare-standing-4', name: 'Perspektivharen, hands on hips', url: '/meshes/hare-standing-4.glb' },
+  { id: 'hare-standing-5', name: 'Perspektivharen, waving', url: '/meshes/hare-standing-5.glb' },
+  /*
+   * The three that are off the ground, and the reason `lift` exists.
+   *
+   * A jump is a crown ABOVE where the head stands, not a body resting on the
+   * boot it happens to hang lowest from: a third of a metre is what an ordinary
+   * person's head gains at the top of an ordinary hop, so each jump is lifted
+   * until its crown reaches 2.0 - a shade over the 1.70 it stands at. The run
+   * is not that arithmetic and does not get it: a runner's crown is low because
+   * the body is folded forward, not because it is down, so what it needs is the
+   * ground clearance of a stride's float phase, which is about a hand's width.
+   */
+  { id: 'hare-jumping-1', name: 'Perspektivharen, mid-jump', url: '/meshes/hare-jumping-1.glb', lift: 0.36 },
+  { id: 'hare-jumping-2', name: 'Perspektivharen, mid-jump, arms wide', url: '/meshes/hare-jumping-2.glb', lift: 0.34 },
+  { id: 'hare-running', name: 'Perspektivharen, running', url: '/meshes/hare-running.glb', lift: 0.1 },
+  { id: 'hare-crouched', name: 'Perspektivharen, crouched', url: '/meshes/hare-crouched.glb' },
+  { id: 'hare-kneeling', name: 'Perspektivharen, kneeling', url: '/meshes/hare-kneeling.glb' },
+  { id: 'hare-sitting-1', name: 'Perspektivharen, sitting with a box', url: '/meshes/hare-sitting-1.glb' },
+  { id: 'hare-sitting-2', name: 'Perspektivharen, sitting, leaning back', url: '/meshes/hare-sitting-2.glb' },
+  { id: 'hare-sitting-3', name: 'Perspektivharen, sitting, knees up', url: '/meshes/hare-sitting-3.glb' },
+  { id: 'hare-lying', name: 'Perspektivharen, flat out', url: '/meshes/hare-lying.glb' },
 ];
 
 /*

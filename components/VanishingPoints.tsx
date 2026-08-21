@@ -4,12 +4,18 @@ import { vanishing } from '../lib/vanishing';
 /**
  * The selected object's own vanishing points, drawn over the scene.
  *
- * Two points and four rays. Both points sit on the eye-level line - they always
- * do, for anything horizontal - and the rays are two of the object's own edges,
- * the top and the bottom of the corner nearest you, carried out to them. Select
- * a box square to the grid and the pair is the scene's; select one turned off it
- * and the pair moves, which is the whole lesson and is invisible until somebody
+ * Two points and four rays. The rays are two of the object's own edges, the top
+ * and the bottom of the corner nearest you, carried out to them. Select a box
+ * square to the grid and the pair is the scene's; select one turned off it and
+ * the pair moves, which is the whole lesson and is invisible until somebody
  * draws it.
+ *
+ * The pair sits on the eye-level line for anything LEVEL, which is nearly
+ * everything - and leaves it entirely for anything that is not. A ramp's long
+ * edges climb, so their two points sit above and below the line by exactly the
+ * angle the ramp climbs at. Nothing here treats that as a special case: a point
+ * is wherever the projection draws a place infinitely far along a direction,
+ * and the pinning below already clamps the two axes independently.
  *
  * On a curved sheet the same construction comes back bent: the ray is a great
  * circle rather than a straight line, so it is sampled and asked where each
@@ -56,8 +62,8 @@ export const VanishingPoints: React.FC<{ color: string }> = ({ color }) => {
     return () => { running = false; };
   }, []);
 
-  const { points, curves, room, divisions } = vanishing;
-  if (points.length === 0 && room.length === 0 && divisions.length === 0) return null;
+  const { points, curves, room, divisions, sight } = vanishing;
+  if (points.length === 0 && room.length === 0 && divisions.length === 0 && !sight) return null;
 
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -156,6 +162,27 @@ export const VanishingPoints: React.FC<{ color: string }> = ({ color }) => {
           </g>
         );
       })}
+
+      {/*
+        * WHERE YOU ARE LOOKING, marked on the sheet: the principal point.
+        *
+        * A cross, and it has to be a cross. Every other mark on this overlay is
+        * a place a family of parallels runs to, and a ring is what says so;
+        * this is the one point in the picture nothing is ever ruled towards, so
+        * giving it a ring would be filing it under the opposite of what it is.
+        * Two short strokes crossing say "here" and say nothing about direction,
+        * which is exactly the amount this mark has to say.
+        *
+        * Faint, and smaller than a vanishing point's ring, because it sits in
+        * the middle of every composition anybody frames and a bold mark there
+        * is a smudge on the glass rather than a rule on the page.
+        */}
+      {sight && (
+        <g opacity={0.4}>
+          <line x1={sight.x - 7} y1={sight.y} x2={sight.x + 7} y2={sight.y} stroke={color} strokeWidth={1} />
+          <line x1={sight.x} y1={sight.y - 7} x2={sight.x} y2={sight.y + 7} stroke={color} strokeWidth={1} />
+        </g>
+      )}
 
       {points.map((vp, index) => {
         const pinnedX = Math.min(width - margin, Math.max(margin, vp.x));

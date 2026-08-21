@@ -311,12 +311,20 @@ const fetchSource = async (url: string): Promise<ParsedSource> => {
  * a couched foal comes in 0.91 tall because its length is the 1.0 - so
  * whatever a file happens to measure is not a size, and this is the number
  * that makes it one. Without it a lying foal stands as tall as a leaping one.
+ *
+ * `lift` is the other half of that argument. Everything is grounded on its own
+ * lowest point, which is the right thing to do with a file and the wrong thing
+ * to do with a JUMP: the lowest point of a figure in the air is a boot, so
+ * grounding one stands the leap on that boot. A pose that is genuinely off the
+ * floor says how far, and it is a real height in metres rather than a nudge -
+ * see `lift` in lib/meshLibrary.ts.
  */
 export const loadModelFromUrl = async (
   url: string,
   name: string,
   dropAt: [number, number],
-  targetHeight?: number
+  targetHeight?: number,
+  lift?: number
 ): Promise<LoadResult> => {
   if (!sources.has(url)) sources.set(url, fetchSource(url));
 
@@ -337,5 +345,6 @@ export const loadModelFromUrl = async (
     // the file's own - which for anything kneeling is the giant it shipped as.
     model.baseScale = model.scale;
   }
+  if (lift) model.position = [model.position[0], lift, model.position[2]];
   return { model, warning };
 };

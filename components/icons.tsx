@@ -169,6 +169,17 @@ export const I = {
   arLook: (<><rect x="8.5" y="4.5" width="7" height="13" rx="1.4" /><path d="M12 21.8a9.5 9.5 0 0 0 7.8-4M12 21.8l2.6-.4M12 21.8l-.9-2.4" strokeOpacity="0.7" /><circle cx="12" cy="15.3" r="0.8" fill="currentColor" stroke="none" /></>),
 
   /**
+   * A photograph taped behind the sheet: a landscape in a frame, with the
+   * ruling running across it.
+   *
+   * Deliberately not the camera body, which is next door and means the
+   * opposite - that one takes a picture OUT of the tool, this one brings one
+   * in. The two horizontal rules are what the picture is for: a photograph
+   * under the construction is a thing you find the eye level in.
+   */
+  photo: (<><rect x="2.5" y="4.5" width="19" height="15" rx="1.4" /><path d="M2.5 15.4l5-4.6 4.2 3.6 3.4-2.8 6.4 5" strokeOpacity="0.6" /><circle cx="8.2" cy="8.8" r="1.4" strokeOpacity="0.6" /><path d="M2.5 12h19" strokeOpacity="0.85" strokeDasharray="2.4 2" /></>),
+
+  /**
    * A box standing inside a bracketed frame: the thing put down in the room.
    *
    * The corner brackets are the mark every AR placement viewer uses for

@@ -21,6 +21,7 @@ import { downloadSceneFile, readSceneFile, toSceneFile } from './lib/sceneJson';
 import { beginActivity, reportFailure } from './lib/activity';
 import { Activity } from './components/Activity';
 import { CameraFeed } from './components/CameraFeed';
+import { Photograph } from './components/Photograph';
 import { Gate } from './components/Gate';
 import { Lesson } from './components/Lesson';
 import { Hints } from './components/Hints';
@@ -213,7 +214,7 @@ export default function App() {
       STREET_FIGURES.map((who) => {
         const mesh = MESH_LIBRARY.find((m) => m.id === who.id);
         if (!mesh) return Promise.resolve(null);
-        return loadModelFromUrl(mesh.url, mesh.name, who.at, mesh.height)
+        return loadModelFromUrl(mesh.url, mesh.name, who.at, mesh.height, mesh.lift)
           .then(({ model }) => ({ ...model, rotationY: who.turn }))
           // One missing file is an emptier street, not a tool that failed to open.
           .catch(() => null);
@@ -291,7 +292,10 @@ export default function App() {
       [focusPoint.x, focusPoint.z],
       modelRadius(model)
     );
-    addModel({ ...model, position: [x, 0, z] }, quiet);
+    // Stepping aside is a move on the FLOOR. Writing a zero in here used to
+    // put anything that came off the shelf already in the air - the jumping
+    // hare - straight back down onto its lowest boot.
+    addModel({ ...model, position: [x, model.position[1], z] }, quiet);
   };
 
   /**
@@ -326,7 +330,8 @@ export default function App() {
         entry.url,
         entry.name,
         scene ? [0, 0] : [focusPoint.x, focusPoint.z],
-        entry.height
+        entry.height,
+        entry.lift
       );
       if (!model.previewSupported) return;
       // A room goes on the origin, squarely, and does not go looking for a
@@ -367,6 +372,20 @@ export default function App() {
         await rememberMesh(model.fileUrl, model.name);
       }
     });
+
+  /**
+   * A photograph to sight against, picked off the device.
+   *
+   * Held as an object URL and nothing else: it is not written into IndexedDB,
+   * not put on the shelf, and not saved into a scene - see `photograph` in
+   * types.ts for why a reference you look at for ten minutes should not outlive
+   * the tab it was opened in.
+   */
+  const photoInput = useRef<HTMLInputElement>(null);
+  const takePhotograph = (file: File | undefined) => {
+    if (!file) return;
+    useStore.getState().setPhotograph(URL.createObjectURL(file));
+  };
 
   /** Place one of the viewer's own again, from the shelf. */
   const placeOwnMesh = (url: string, name: string) =>
@@ -430,6 +449,10 @@ export default function App() {
       <Scene />
       {/* The real room, under everything the tool draws over it. */}
       <CameraFeed />
+      {/* And a still one, in the same slot: a reference photograph under the
+          ruled sheet, which is the half of "the real room" that is not the
+          room you happen to be standing in. */}
+      <Photograph />
       <Activity />
       {/* Hold any control to be told what it is. */}
       <Hints />
@@ -455,6 +478,7 @@ export default function App() {
         shelfOpen={sheet !== null}
         onShelfAway={() => setSheet(null)}
         onLesson={() => setTeaching(true)}
+        onPhotograph={() => photoInput.current?.click()}
         shelf={
           sheet === 'meshes' ? (
             <MeshSheet
@@ -472,6 +496,24 @@ export default function App() {
             />
           ) : null
         }
+      />
+      {/*
+        * The picker for the photograph, kept out of the way and clicked from
+        * the panel - the same hidden-input-and-a-ref shape the mesh shelf uses
+        * for its own imports, and for the same reason: a file input styled to
+        * look like anything is a file input that looks different on every
+        * platform.
+        */}
+      <input
+        ref={photoInput}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          takePhotograph(event.target.files?.[0]);
+          // Cleared so that picking the same file twice still fires a change.
+          event.target.value = '';
+        }}
       />
     </div>
   );
