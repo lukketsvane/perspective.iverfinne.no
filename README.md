@@ -129,7 +129,8 @@ was rounded the way every real drum's is.
 
 ## Opening
 
-Two things are standing there when the tool opens, under the real sky at noon:
+Two things are standing there when the tool opens, drawn in ink under a real
+sky at half past three:
 **a figure waving at you, and a metre cube beside her**, turned nearly a
 quarter off the grid so it carries a pair of points of its own. That is the
 whole door.
@@ -165,16 +166,36 @@ ask for when you want to draw it, rather than something standing in the hall.
 The drawn pages are all one rung-tap away and the deck goes on dealing them in
 the gaps; what the front door shows is what those pages are *of*.
 
-It opened for years on the brush page on black — line and spotted black, hard
-light, black mount — and the paragraphs below are that reasoning, kept because
-every argument in them still holds for the page itself; it is now the deck's
-first card rather than the door. What moved is only which face wins the
-door: a first visit reads a photographic noon instantly and a white-on-black
-ink plate only after it reads the tool, and the tool should not need reading
-first. The guides start folded away for the same reason - a thick red
-eye-line across a blue sky is debug chrome to anyone who has not met the
-ruling yet - and come back with one tap, or with the lesson, which raises its
-own per card.
+**The door is a drawing, not a photograph of one.** It opened on the solid rung
+for a while, and the argument was reasonable: a first visit reads a photographic
+noon instantly and a white-on-black ink plate only after it reads the tool. What
+that argument missed is what the tool *is*. Somebody arriving at a perspective
+app and finding a smoothly lit grey cube has been shown a renderer; the same
+cube in ink, with the strokes following the form and the shadow spotted in
+solid, has been shown the thing they came for — and it is legible on a phone in
+sunlight, which the grey never was. So the rung is **hatch**, on paper, with the
+sky still drawn behind it.
+
+**And it opens at half past three rather than at noon**, which is a change the
+ink forced. Noon is the one hour of the day with no form in it, and that did not
+matter while the door was a photograph: a flatly lit cube is still a cube. The
+ink rung does not degrade that way — hatching enters as the light goes grazing,
+so a scene lit from overhead has almost nothing dark enough to draw. Measured at
+the tool's own default place and date, noon put the sun near 60° up and left two
+visible marks on the whole picture. Half past three rakes it: one plainly lit
+face and one plainly turned away on every box, a shadow long enough to spot in,
+and the hatching in the turned faces. It is still the real sky over a real place
+at a real moment, and one drag of the clock from anywhere else — it is simply
+not the moment a draughtsman would choose to draw at. Anyone who has moved the
+clock keeps the hour they moved it to.
+
+It opened for years on the **brush page on black** before any of that — line and
+spotted black, hard light, black mount — and the paragraphs below are that
+reasoning, kept because every argument in them still holds for the page itself;
+it is the deck's first card now rather than the door. The guides start folded
+away regardless: a thick red eye-line across a blue sky is debug chrome to
+anyone who has not met the ruling yet, and they come back with one tap, or with
+the lesson, which raises its own per card.
 
 That brush page is three separate decisions and it is worth saying which. The
 **brush** rung rather than plain ink, because line-and-flat-black is what a
@@ -2045,14 +2066,29 @@ six-pixel gradient with a grey middle, which is why the darks could not close
 however far the weight was pushed. A stroke has a solid core and about a pixel
 of edge now, so the width is the width.
 
-Four knobs: which way the strokes run, how far apart they stand, how heavy each
-one is, and how long it runs before it lifts. There was a fifth, for how far the
-crossing layers were turned off the first, and it went when the crossing did —
-it had been wired to a uniform no shader reads for three changes, and measured
-against the drawing it moved nothing at all. They are knobs rather than a preset
-because the difference between a good hatch and a bad one is those numbers, and
-shipping one
-guess would be shipping one etching.
+Five knobs: which way the strokes run, how far apart they stand, how heavy each
+one is, how long it runs before it lifts, and **how far the plate is turned
+between passes**. They are knobs rather than a preset because the difference
+between a good hatch and a bad one is those numbers, and shipping one guess
+would be shipping one etching.
+
+**The crossing is off by default, and zero is a real state.** It used to sit at
+68°, and at the default spacing three ranks over a dark face stop reading as
+strokes and start reading as a *halftone screen* — a lattice of dots, which is a
+reproduction of a drawing rather than a drawing. A pen shader, a biro, most of
+Zorn: a drawn page is one direction far more often than it is three, and the
+crossing is a decision somebody makes in the shadows rather than the state they
+start in. Turn the knob up and the second and third passes come back exactly as
+they were, which is where the Copperplate page keeps them at 75°.
+
+Zero also used to be a lie. It meant "cross at zero degrees", which laid the
+second rank precisely on top of the first and the third square across it — so
+the knob's own bottom end drew the grid it plainly promised to undo. Zero means
+one direction now, and the shader genuinely does not compute the other two
+ranks: it is a uniform, so the branch is the same answer for every fragment in
+the draw. The cast shadow follows the same rule, because the shadow a thing
+throws should be woven by the hand that engraved the thing — including when
+that hand does not cross.
 
 ### The sheet and the page it is mounted on
 

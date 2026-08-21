@@ -174,10 +174,26 @@ export const DEFAULT_HATCH: HatchState = {
   // the run is longer than the object anyway, which is what 0 (an unbroken
   // rule) says honestly.
   length: 0,
-  // The classical crossing: shy of square, so the second pass reads as a
-  // second decision rather than as a grid, and the third - laid on the
-  // lozenge's diagonal by the shader - lands clearly apart from both.
-  cross: 68,
+  /*
+   * ZERO: ONE DIRECTION, WHICH WAS SIXTY-EIGHT AND THREE.
+   *
+   * The classical crossing is shy of square, so the second pass reads as a
+   * second decision rather than as a grid and the third lands clearly apart
+   * from both - and it is still exactly one knob away, which is where the
+   * Copperplate page keeps it. It is the wrong thing to OPEN on. At this
+   * spacing three ranks over a dark face stop reading as strokes and start
+   * reading as a halftone screen: a lattice of dots, which is a reproduction
+   * of a drawing rather than a drawing. A pen shader, a biro, most of Zorn -
+   * a drawn page is one direction far more often than it is three, and the
+   * crossing is a decision somebody makes in the shadows rather than the
+   * state they start in.
+   *
+   * Zero is a real state now rather than a degenerate one: it used to mean
+   * "cross at zero degrees", which laid the second rank exactly over the
+   * first and the third square across it, so the knob's own bottom end drew
+   * the grid it plainly promised to undo. See lib/inkMaterial.ts.
+   */
+  cross: 0,
 };
 
 export const DEFAULT_SUN: SunState = {
@@ -492,6 +508,29 @@ const nextSceneName = (history: SavedScene[]): string => {
 const noonToday = () => {
   const at = new Date();
   at.setHours(12, 0, 0, 0);
+  return at.getTime();
+};
+
+/**
+ * Mid-afternoon, which is the hour the front door opens at.
+ *
+ * NOON IS THE ONE HOUR OF THE DAY WITH NO FORM IN IT, and that did not matter
+ * while the door was a photograph. A solid rung degrades gracefully under a
+ * high sun - a flatly lit cube is still a cube. The ink rung does not: hatching
+ * enters as the light goes grazing, so a scene lit from overhead has almost
+ * nothing dark enough to draw, and the door renders as a white outline on a
+ * white floor. Measured at the tool's own default place and date, noon put the
+ * sun near sixty degrees up and left two visible marks on the whole picture.
+ *
+ * Half past three rakes it: long enough shadows to spot in, one plainly lit
+ * face and one plainly turned away on every box, and the hatching in the
+ * turned ones. It is still the real sky over a real place at a real moment -
+ * simulated exactly as before, and one drag of the clock from anywhere else.
+ * It is simply not the moment a draughtsman would choose to draw at.
+ */
+const rakingToday = () => {
+  const at = new Date();
+  at.setHours(15, 30, 0, 0);
   return at.getTime();
 };
 
@@ -1320,15 +1359,24 @@ export const useStore = create<SceneState>((set, get) => ({
   ...(OPENING_PAGE === OPENING
     ? (() => {
         /*
-         * The sky rises with the page: drawn, simulated, and at noon. The
+         * The sky rises with the page: drawn, simulated, and raking. The
          * simulation cannot come from DEFAULT_SKY - that is the base every
          * dealt page lands on, and a page's authored sun only lights the
          * scene while the simulation is off, so a simulating default would
          * quietly strip the deck of its own light. It is the OPENING's
          * choice, made here, with the sun worked out of the same ephemeris
          * setSky would use so the first frame already agrees with the panel.
+         *
+         * The hour is the OPENING's choice too, and only for a browser that
+         * has never set one: see `rakingToday`. Somebody who moved the clock
+         * keeps the hour they moved it to, the way they keep every other
+         * choice on this page.
          */
-        const sky = { ...readSky(remembered.sky), simulate: true };
+        const sky = {
+          ...readSky(remembered.sky),
+          simulate: true,
+          ...(remembered.sky === undefined ? { time: rakingToday() } : null),
+        };
         return {
           sunEnvironment: true,
           sky,
