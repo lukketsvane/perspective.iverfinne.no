@@ -15,7 +15,8 @@ figures each — twenty megabytes of things that were on it because they were
 interesting rather than because this drawing needed them. A shelf is a claim
 about what the tool is for, and what this one is for is the page the tool
 opens on: an aeroplane being worked on, the men working on it, and the
-distances between them.
+distances between them — and, since the lesson grew a second half about
+bodies, the one character the lesson is addressed to, in fourteen attitudes.
 
 The **Hughes H-1**, 1935, is the one form here that is a solid of revolution
 with things hung off it. Every vehicle that used to be on the shelf was a long
@@ -57,12 +58,11 @@ not set. Flat on the back with everything in the air is the feet-first
 foreshortening study, the pose every figure course sets and no standing figure
 can teach. The walk is a figure in motion, weight mid-transfer, nothing
 symmetrical. The one with the jetpack is the same body standing still, which
-is the datum the other two are measured against. Two of them also stand in
-the lesson now: the walker is the 180-centimetre mark on the measuring-stick card,
+is the datum the other two are measured against. One of them also stands in
+the lesson: the walker is the 180-centimetre mark on the measuring-stick card,
 a height you read off a character you have met rather than off a labelled box
-- and the one the horizon cuts through the face, exactly where it cuts yours,
-and the one on his back is lying beside the last card's cube, cheering,
-because you have just been handed the sheet. They are generated meshes
+— and the one the horizon cuts through the face, exactly where it cuts yours.
+They are generated meshes
 rather than scans and it shows in the numbers — twenty-five thousand triangles
 apiece, a sixteenth of a scanned crewman, with one flat-colour map and no
 photograph anywhere on them — so unlike the crew they keep their base colour,
@@ -78,6 +78,63 @@ crewman. And they face +Z like
 everything here: one arrived facing away and one lying with its feet across
 the ruling, and the quarter turns are baked into the files, same rule as the
 crew, no table of exceptions.
+
+**Perspektivharen** is fourteen poses of one character, and the first thing on
+this shelf that belongs to the tool rather than to whoever made it. Everything
+above was found and cut to size, and that shows in what it can be asked to do:
+the crew are four men who work on an aeroplane and the astronauts are three
+demonstrations of an armature, and neither is *anybody*. A hare in a
+bunny-eared suit who turns up on the seventh card, again on the seventeenth,
+and again in the field you are left drawing at the end is something else — the
+person the lesson is addressed to, and therefore the measuring stick, which has
+to be one recognisable body or it is only more furniture standing about.
+
+**A hundred and seventy centimetres, sole to crown, all fourteen** — and that is
+not the number the files measure. The ears go a good twenty centimetres past the
+top of the head, so a standing hare's box is 1.88 to 1.94 tall and its *head* is
+at 1.70. None of them carries a height, for the same reason the racer does not.
+The gap between the two numbers is not a rounding error either; it is a thing
+the lesson uses. Stand at the tool's own eye height and the horizon lands on the
+crown of every standing hare in the frame, near one and far one alike, with the
+ears over the line.
+
+Which is the second thing they are for. In metres to the crown they run
+1.70 / 1.70 / 1.70 / 1.66 / 1.68 standing, 1.64 and 1.66 mid-jump, 1.49
+running, 1.23 crouched, 1.13 kneeling, 1.10 / 1.13 / 0.96 sitting, and 0.65 tall
+by 1.79 long flat out. A body you know the height of, in seven attitudes you
+also know the height of, is a ruler you can lay against anything: a seated
+person's head is two thirds of a standing one's, and nobody who has drawn that
+once has to be told it again.
+
+**Five of them stand**, and that is the one count on this shelf that is not
+about drawing problems. Every other rule here says no two poses may be the same
+problem, and five standing hares are five copies of one. They are here because a
+*flock* is a card — a dozen figures at a dozen distances with one line landing
+in the same place on every one of them, which is the most useful sentence in
+perspective said with bodies instead of posts. A flock built from one model is
+not a flock, it is a texture, and the eye reads the repetition instead of the
+rule. Folded arms, hands on hips, a raised thumb, a wave and nothing at all is a
+crowd. The other nine are the usual argument: two jumps with everything in the
+air, a run with the weight nowhere, a crouch and a kneel that fold a whole body
+into a metre, three ways of sitting that put the legs at three angles to the
+eye, and one flat out with the feet towards you.
+
+Three of them are **off the ground**, which is what `lift` on a library entry is
+for: everything the loader puts down is grounded on its own lowest point, which
+is right for anything standing and wrong for a jump, whose lowest point is a
+boot — grounding one stands the leap on that boot and the leap becomes a man on
+tiptoe. A third of a metre is what an ordinary head gains at the top of an
+ordinary hop, so each jump is lifted until its crown reaches 2.0. The run is not
+that arithmetic and does not get it: a runner's crown is low because the body is
+folded forward, not because it is down, so what it needs is a stride's ground
+clearance, about a hand's width.
+
+They cost 190 KB apiece and 2.6 MB for all fourteen — an eighth of the racer
+alone — at ten thousand triangles each, one flat grey material, and no maps
+whatsoever, so they are the cheapest things here to draw as well as to fetch.
+Twelve arrived facing +X, one facing −X and one facing −Z; the turns are baked
+into the files, and a quarter turn about Y is a swap and a sign in floating
+point, so not one vertex was resampled to do it.
 
 Everything else in the library is yours. The tile beside the reference cube
 takes a file, and what comes in is both placed and **kept** — listed with the
@@ -316,7 +373,7 @@ what is drawn on the ground (the floor's two rulings, the floor itself, snap,
 the construction ladder); what the picture is made of (the surface,
 its settings, the sheet, the page, the lamps); where it is seen from (standing
 it in the real room, the projection, the lens reach, the room, the measure,
-looking by turning the phone); and the session (save the view as a PNG, and the
+looking by turning the phone, and a photograph under it); and the session (save the view as a PNG, and the
 lesson). Sixteen identical circles wrapping into whatever rows the
 width happened to give was a wall rather than a menu — nothing sat near anything
 it was related to, and which row a control landed in changed with the phone. A
@@ -335,8 +392,8 @@ same points**. One cube drawn well is a lucky guess; twenty drawn to the same
 six points is a construction you either understand or do not, and the page tells
 you which within about four cubes.
 
-One tile on the model shelf, beside the single reference cube, deals one of ten
-arrangements:
+One tile on the model shelf, beside the single reference cube, deals one of
+eleven arrangements:
 
 | | |
 | --- | --- |
@@ -349,13 +406,38 @@ arrangements:
 | **Ring** | at eye level around you, so a third of it is behind you — undrawable on a flat sheet, not badly, *at all* |
 | **Shoal** | nothing touching anything: only the six points to measure against |
 | **Ladder** | one line at doubling distances, halving on the page — a rate you can check with a thumbnail |
+| **Flock** | every cube at one height — the only field whose property is about the *horizon* rather than the points |
 | **Loose** | every cube turned individually. Six points become forty and none are marked. The hard one, labelled as hard. |
 
-**Ten arrangements, not ten random seeds.** A truly random scatter is a worse
-exercise than any of these, and worse in a specific way: it has no *property* to
-check your drawing against. Each of these asks a different question, and the
-scatter — which is the classic page, and is here — asks all of them at once,
-which makes it the last one worth doing rather than the first.
+**Eleven arrangements, not eleven random seeds.** A truly random scatter is a
+worse exercise than any of these, and worse in a specific way: it has no
+*property* to check your drawing against. Each of these asks a different
+question, and the scatter — which is the classic page, and is here — asks all of
+them at once, which makes it the last one worth doing rather than the first.
+
+**And each of them says what it is asking.** The arrangements were always
+questions and the file had been saying so to itself in comments since the day it
+was written; the tile that dealt them said nothing at all, so what arrived on the
+floor was a heap of cubes and a free mode, and a page you cannot mark is a page
+you cannot get better at. Two lines now come up in the band above the drawing
+for eight seconds — the arrangement's name, and the property to check when it is
+finished. *Every cube must line up along one direction.* *Each one about half
+the height of the one before — hold a thumb up and check.* *The horizon must cut
+every cube in the same place, near or far.* Not how to draw it: what has to be
+true of it afterwards, which is the only thing that lets somebody mark their own
+page. It leaves on a timer rather than on a tap, because a task you have to
+dismiss is a dialog.
+
+The **Flock** is the eleventh and the one that follows straight on from the
+lesson's eye-level act: nine of the ten above can be drawn correctly by somebody
+who has understood the six points and never thought about the eye line, and this
+one cannot be drawn at all without it. Its cubes sit at 1.15 rather than level
+with the eye — level with the eye is the arrangement the lesson uses to show
+that a form *on* the line cannot be read at all, and a whole page of unreadable
+cubes is a trick rather than an exercise. A shade under puts the line across
+every one of them near the top and leaves every top face open by the same
+sliver, so any cube whose top is wider or narrower than its neighbours' is at
+the wrong height however good its corners are.
 
 The positions are worked out rather than written down, but worked out the same
 way every time: the jitter is a hash of each cube's own index, so a field looks
@@ -386,7 +468,7 @@ rule a sphere on a blank page, then draw a room full of cubes onto it, freehand,
 in five point. Everything else here was built to make that reachable. What was
 missing is the thing the demonstrations do not contain: **why it works**.
 
-**One idea, twenty-two cards.** Almost every perspective tutorial teaches one, two
+**One idea, thirty-two cards.** Almost every perspective tutorial teaches one, two
 and three point as three separate recipes and then presents four and five point
 as exotica. That is not what they are, and teaching it that way is why so few
 people can draw the later ones:
@@ -407,7 +489,7 @@ system seen through five different amounts of paper, and the number in the name
 is simply how many of the six a given sheet can show you. Every card is a
 consequence of that.
 
-**And one act is not.** Between the sphere and the points there are three cards
+**And one act is not.** Between the sphere and the points there are six cards
 about the horizon, because the most useful sentence in perspective is one almost
 nobody is shown a proof of: *the horizon sits at your own eye height, so
 anything in the world that is also that height is cut by it — and cut at the
@@ -418,6 +500,18 @@ where the line crosses them. Then the eye slides from a crouch to a stretch with
 nothing on the floor moving, which is the only way to stop somebody putting the
 horizon in the middle of every page they ever draw — and on the way it shows
 that a top face closes up as it rises to the line and is gone *at* it.
+
+Then the same three facts again, **with bodies instead of boxes**, because that
+is the form an illustrator actually uses them in. A flock of hares at a dozen
+depths, all 1.70, walked into rather than watched — the near ones sweeping past
+your shoulder, the far ones barely growing, and the line glued to every crown
+throughout. Then three of them up on a platform, cut at the knee, which is the
+clause the rule is always taught without: it cuts everything your own height
+*standing on the same floor as you*, and the moment a drawing has one step in it
+the naive version starts producing figures that float. Then two equal boxes near
+and far, cut at the same fraction of their height — the rule run backwards,
+which is the version you draw with: one measurement taken once gives every copy
+of a thing at every depth on the page.
 
 That is the whole of what a beginner actually needs before the vanishing points
 mean anything, and it is what makes the tool's metres worth having: a scene is
@@ -433,6 +527,9 @@ the horizon rather than guessed.
 | **Alt i di eiga høgd** | *do it*: four posts of exactly your own height, five metres out and forty — the line cuts every one of them at the top |
 | **Linja er ein målestokk** | a desk, a car, the astronaut at his 180, a door: read their heights off where the line crosses them |
 | **Auget flyttar seg med deg** | the eye slides from a crouch to a stretch while nothing on the floor moves |
+| **Heile flokken på ein gong** | *do it*: walk into a crowd of hares at a dozen depths and watch the line hold every crown |
+| **Dei som står høgare** | three of them up on a platform, cut at the knee: the rule is about floors, not about people |
+| **Storleik ut av staden** | two equal boxes near and far, cut at the same fraction — the rule run backwards |
 | **Parallelle linjer møtest** | a rank of cubes, and *why* the point exists — as a limit, not a rule |
 | **Punktet flyttar seg ikkje** | *do it*: walk, and watch the point refuse to move |
 | **Djupna kryp saman** | metre-equal steps in the world, shrinking steps on the sheet — and the too-deep mistake |
@@ -440,16 +537,23 @@ the horizon rather than guessed.
 | **Eitt punkt** | cube square on; two families parallel to the sheet |
 | **To punkt** | *do it*: turn your head — the cube is untouched and now has two |
 | **Tre punkt** | *do it*: look up; the verticals gather too |
+| **Kvar kasse sitt eige par** | *do it*: put a finger on one box, then another, and watch the pair leap along the horizon |
 | **Ingenting av dette er kassa** | the card that collects the three before it |
+| **Rampa har sine eigne** | *do it*: a family that climbs has its pair off the eye line — the one thing a floor of boxes cannot show |
+| **Sideflata krympar** | two equal cubes at one distance: the one sitting on its own point has no side to draw |
 | **Det flate arket tek slutt** | *do it*: open the lens yourself and watch the corners go |
 | **Fire punkt** | bend one axis; the horizon becomes a circle |
 | **Fem punkt** | bend both; zenith and nadir arrive |
 | **Ei kasse har seks** | *do it*: turn slowly and count the ringed points |
+| **Namna dei andre brukar** | the same six ideas under the names the books use — the bill for the plain words |
 | **Rul arket fyrst** | the 15° meridians, and what you sight against them |
 | **Sikt langs kurvene** | *do it*: follow one upright edge round and watch it hold its meridian |
-| **Teikn ei sjølv** | the pencil, on the sheet you have just been given — and the astronaut flat on his back, cheering |
+| **Kubus eller langkasse?** | *do it*: a cube and a long box drawn as one rectangle, and the turn that tells them apart |
+| **Kvar krysset står** | *do it*: turn until the street leaves the principal point, and watch the corner pay for it |
+| **Det same, om att** | a colonnade and a flock: repetition is the ruler that is part of the subject |
+| **Teikn ei sjølv** | the pencil, on the sheet you have just been given — and five things to draw on it |
 
-**Ten of the twenty-two are done by you, not shown to you.** The first draft ran
+**Fifteen of the thirty-two are done by you, not shown to you.** The first draft ran
 the whole thing as a performance, and it was a film — correct, watchable, and
 *agreed with* rather than learned. You do not learn that the verticals gather by
 watching them gather. You learn it by looking up yourself, with your own thumb
@@ -457,8 +561,10 @@ on the glass, and seeing it happen because you did it.
 
 So the director stages each card and then lets go. `hands: 'viewer'` stops the
 loop writing to the camera at all; a **gate** measures what you do instead —
-turned, pitched, walked, or the lens opened — and a hairline under the card
-fills as you go. When you have done it, a sentence appears that was not there
+turned, pitched, walked, the lens opened, or, on the card about a floor of boxes
+all turned differently, *how many different things you have taken hold of*,
+because a gate counting how far you swung your arm would pass without you having
+chosen anything — and a hairline under the card fills as you go. When you have done it, a sentence appears that was not there
 before: the one that says what just happened. *That* sentence is the point of
 the card, and everything above it is setup.
 
@@ -469,10 +575,11 @@ back has still been round. **Neste is never disabled**: a viewer who cannot make
 the gesture must always be able to go on; it simply stops being the accented
 thing until the picture has answered.
 
-Four director cards carry an answer with no gate to pass — the sheets
-slideshow, the ruler, the posture sweep, the shrinking steps — and theirs
-arrives on the reading clock instead: one full cycle for a sweep, a beat of
-looking for a still card. The sentence is still earned; the earning is just
+Ten director cards carry an answer with no gate to pass — the sheets slideshow,
+the ruler, the posture sweep, the shrinking steps, the platform, the fraction
+read off two boxes, the closing side face, the glossary, the colonnade and the
+handover — and theirs arrives on the reading clock instead: one full cycle for a
+sweep, a beat of looking for a still card. The sentence is still earned; the earning is just
 done with the eyes.
 
 The best of them is **Punktet flyttar seg ikkje**, and it is a fact almost nobody
@@ -485,9 +592,9 @@ not believed. Walked, it is startling.
 
 **And it is slow.** Every sweep that is still automatic runs about twice as long
 as it first did, and every move between cards takes nearly two seconds. A
-transformation you can follow is worth four you can only notice — and the ten
-interactive cards have no clock on them at all, so most of the lesson runs at
-whatever pace you set.
+transformation you can follow is worth four you can only notice — and the
+fifteen interactive cards have no clock on them at all, so most of the lesson
+runs at whatever pace you set.
 
 **There is no card, and that is the point.** The first two drafts put the lesson
 in the same glass panel every other sheet uses: a rounded slab with a border, two
@@ -510,7 +617,7 @@ way out is one unlabelled mark in the far corner at a third of an opacity. The
 difference between that and a pill marked *skip* is the difference between a door
 and a sign pointing at a door.
 
-**Five acts, with titles.** Twenty-two cards in a row is a list, and a list has no
+**Five acts, with titles.** Thirty-two cards in a row is a list, and a list has no
 shape: at card eleven nobody knows whether they are near the end. **Kula**,
 **Auget**, **Punkta**, **Arka**, **Handa** — each held large over a dimmed picture for two
 and a half seconds, naming the one thing its cards are about. It is the only
@@ -527,7 +634,9 @@ omission — it shows the end of a transformation and asks you to believe the
 middle — and the three facts this lesson exists to teach are all about the
 middle. The second point **walking** onto the page as you turn. The corners of a
 flat sheet **stretching** as the lens opens. The verticals **gathering** as you
-look up. There is no picture of any of those; there is only the thing happening.
+look up. The horizon **staying** on every crown in a crowd while you walk into
+it. A ramp's pair **leaving** the eye line. There is no picture of any of those;
+there is only the thing happening.
 
 Three of the cards therefore sit still while the world moves under them, back
 and forth on a raised cosine so the turn has no jerk at either end — that being
@@ -544,7 +653,13 @@ Reaching the end means the opposite, and exits differently. The last card's
 whole subject is that you now *have* the sheet — ruled, at five point, with a
 cube on it and its own six points showing — so finishing hands it over with the
 block-out pencil in it rather than sweeping it away and giving back the blank
-page you arrived with. The SHEET is what stays, though, not the stage: the
+page you arrived with. **And it sets a task**, which the first version did not:
+"now the sheet is yours" is a true and useless thing to say to somebody who has
+just been shown thirty-one pictures and has never made one. So the answer names
+the five arrangements the shelf will deal — a street, a staircase, a ladder that
+halves at each doubling, a flock at your own height, and the swarm that asks
+everything at once — and the photograph, for the one exercise that has to be
+your own room rather than anybody's cubes. The SHEET is what stays, though, not the stage: the
 scene and where you stood come back from before the lesson, because the first
 version kept the last card's stand while restoring the scene, and the
 returning aeroplane arrived through your view from three metres — the lesson
@@ -868,6 +983,20 @@ its own points, decided by how *it* is turned relative to you, not by the scene
 being "in two-point perspective". Turn one off the grid and its pair moves off
 the scene's.
 
+**And tilt one, and the pair leaves the horizon altogether.** A family of
+parallel edges vanishes on the eye level only when the family is *level*, which
+is true of every edge of everything that sits square on a floor and false of a
+ramp, a roof, a staircase's nosings or a leaning ladder: their pair sits as far
+above and below the line as the family climbs. It is the one fact about
+vanishing points a room full of upright boxes can never demonstrate, and until
+the ramp card was written this tool could not draw it either — the construction
+was built from one bearing and an assumed upright, which is exact for anything
+standing on a floor and quietly false for anything that leans. It did not fail:
+it drew two confident rays to two points sitting neatly on the line, and they
+were the points of a box that was not there. A blank overlay is a gap; a
+plausible wrong answer is a lie, and this is a tool whose whole job is being
+checked against. The families are built from the thing's own three axes now.
+
 The maths is the same everywhere — a direction vanishes where a point infinitely
 far along it is drawn — and everything else about it changes with the sheet. On
 a flat one only the point in front of you exists and the lines to it are
@@ -885,12 +1014,16 @@ in particular, because then all four rays pass through the same place in space,
 so they radiate from one point on the page instead of netting the object from
 four sides.
 
-Not the verticals. They have a real point overhead on a curved sheet, and it is
-the room's rather than this object's: the construction sheet already rings the
-zenith and rules the whole family that meets there, so drawing it again here was
-drawing the fifth point twice in two inks — and at 90°, where the zenith is
-three and a half frames off the top, it drew it as two pins stuck to the top and
-bottom edges pointing at nothing.
+Not the verticals, and now for a plainer reason than the original one. It used
+to be that the third family *was* the world's uprights, so drawing it drew the
+fifth point twice in two inks — and at 90°, where the zenith is three and a half
+frames off the top, it drew it as two pins stuck to the top and bottom edges
+pointing at nothing. Tilt a box and its third axis is no longer the world's, so
+that argument stops covering it; what covers it now is that a ramp leans by a
+fifth of a radian, so its third family would land a fifth of a radian off the
+zenith, a couple of frames past the top of the page, beside a mark that is
+already there. What a ramp is *for* is the family running up the slope, and that
+one is drawn.
 
 Not the whole great circle either. A ray used to run to infinity *both* ways,
 which draws the circle the edge lies on rather than the edge — and the far half
@@ -1382,6 +1515,23 @@ the sheet is here to show. The pole fade went with the other two: it erased the
 family over a 35° disc centred on the pole, which is to say it deleted the
 crowding that *is* the vanishing point and kept the noise everywhere else.
 
+**And a small cross at the middle of the frame: the principal point.** Every
+other mark the guides draw is a point in the *world* — where a direction things
+run along ends up — so they all slide as you turn and stay where the room says
+they are. This one is the image of the direction you are *looking* along, which
+in all four of these projections is the middle of the sheet, and it is therefore
+the one mark on the page that cannot move however far you turn. It is a cross
+and not a ring on purpose: a ring on this sheet means "a family of parallels
+goes there", and this is the one point in a picture nothing is ever ruled
+towards. Two marks that mean opposite things must not look alike.
+
+It went in because the lesson had been naming it for two drafts and there was
+nothing on the sheet that was it. The card said *the ring in the middle of the
+picture is the principal point — turn, and watch what does not move*, and the
+ring in the middle of the picture is the shader's −Z vanishing point, fixed to
+the room, so the one thing it does when you turn is slide off centre. The idea
+was right and it was pointing at the wrong mark.
+
 The construction cage goes round **the selection, and only the selection**. It
 is the box a thing blocks into, which is the first mark anyone makes when they
 draw a figure, and the argument for drawing it round everything standing in the
@@ -1518,7 +1668,43 @@ The **secondary** way is the gyroscope toggle beside it, which keeps its seat
 for one honest reason: it works on the page you are already on, over the
 curvilinear projections. Quick Look cannot draw a five-point sheet — it draws
 the world through a camera's own rectilinear lens, and bending that would be a
-perspective over a perspective.
+perspective over a perspective. A second tap on it puts the **back camera**
+under the drawing, faintly and masked at the corners: hold the phone up, turn
+it, and the ruled sphere and the six points land over the real room, so a
+corridor's own vanishing points can be read off the lines the tool is already
+drawing rather than guessed at by holding a pencil up.
+
+### A photograph under the drawing
+
+The camera answers *what does the room I am standing in look like*. The seat
+beside it answers the other half of the same question, which is the one an
+illustrator actually has: **what does this look like** — a corridor somebody
+photographed once, a street from a book, a still off a film, the room you were
+in yesterday. Pick a picture and it goes into the same slot as the feed, over
+the render at 42% behind the same radial mask, and the whole construction lands
+on top of it: the eye level, the principal point's cross, the six rings.
+
+Then you do not deduce where the photograph's horizon is. You slide your own
+until the two agree — and the moment they do, the picture has told you where the
+person holding the camera was standing, which is the thing every "how did they
+draw that" question turns out to be about. The lesson's last card sends you here
+for the one exercise that cannot be a page of cubes.
+
+**Nothing tracks, scales, warps or corrects**, for the reason the feed gives:
+a lens has a distortion this app's projection knows nothing about, and lining a
+construction up against a bent corner is lining it up against a lie. It is a
+backing sheet, and you move the sheet. It is `object-contain` rather than
+`object-cover`, which is the one place it parts company with the feed — a live
+camera *is* the frame and cropping it is what a viewfinder does, while a
+photograph has edges somebody composed, and cropping them off cuts away exactly
+the corners the composition card is about.
+
+It is held as an object URL and **dies with the tab**: not written into the
+browser, not put on the shelf, not saved into a scene. An imported mesh is kept
+because a saved scene that cannot find its geometry is a broken scene; a
+photograph is not part of any scene, it is a thing you sight against for ten
+minutes, and keeping it would mean a picture of somebody's living room living in
+their browser until they went looking for the switch.
 
 ### The row
 

@@ -23,6 +23,7 @@ import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipula
 import { exposureOf, fieldOfFrame, FLAT_SIGHT, HUMAN_SIGHT, lensOfFrame, MAX_FIELD, wholeSheetField } from '../lib/projection';
 import { SNAP_STEPS, selectionSurface, surfaceHasSettings, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
 import { lessonOffered, markLessonOffered } from '../lib/lesson';
+import { fieldNamed } from '../lib/cubeFields';
 
 /**
  * The systems the button steps through: the flat board, bowed horizontals, the
@@ -345,7 +346,9 @@ export const WalkOverlay: React.FC<{
   onShelfAway?: () => void;
   /** Hand the whole tool over to the perspective lesson. */
   onLesson?: () => void;
-}> = ({ onModels, onScenes, shelf = null, shelfOpen = false, onShelfAway = () => {}, onLesson = () => {} }) => {
+  /** Open the device's picture picker; the panel owns everything after that. */
+  onPhotograph?: () => void;
+}> = ({ onModels, onScenes, shelf = null, shelfOpen = false, onShelfAway = () => {}, onLesson = () => {}, onPhotograph = () => {} }) => {
   const theme = useStore((s) => s.theme);
   const cameraHeight = useStore((s) => s.cameraHeight);
   const setCameraHeight = useStore((s) => s.setCameraHeight);
@@ -496,6 +499,30 @@ export const WalkOverlay: React.FC<{
    * is the same handles as always. One undo step per box.
    */
   const blocking = instrument === 'block';
+
+  /*
+   * The exercise on the floor, for as long as it takes to read its question.
+   *
+   * Driven off `fieldName` rather than off the tap that dealt it, so it is
+   * right however the field arrived - the shelf's tile, an undo that put the
+   * last one back, a scene reopened. Eight seconds, which is a slow read of two
+   * lines and not long enough to sit over the drawing.
+   */
+  const photograph = useStore((s) => s.photograph);
+  const setPhotograph = useStore((s) => s.setPhotograph);
+  const fieldName = useStore((s) => s.fieldName);
+  const [task, setTask] = useState<{ note: string; ask: string } | null>(null);
+  useEffect(() => {
+    const field = fieldNamed(fieldName);
+    if (!field) {
+      setTask(null);
+      return;
+    }
+    setTask({ note: field.note, ask: field.ask });
+    const gone = window.setTimeout(() => setTask(null), 8000);
+    return () => window.clearTimeout(gone);
+  }, [fieldName]);
+
   const block = useRef<
     | { stage: 'foot'; pointer: number; id: string; anchor: { x: number; z: number } }
     | { stage: 'pull'; pointer: number | null; id: string; startY: number; h0: number; perMetre: number }
@@ -1544,6 +1571,44 @@ export const WalkOverlay: React.FC<{
       )}
 
       {/*
+        * WHAT THE FIELD YOU JUST DEALT IS ASKING, for as long as it takes to
+        * read it.
+        *
+        * The eleven arrangements on the shelf were always questions - a rank
+        * has one direction every cube must line up along, a ladder halves at
+        * each doubling, a flock is cut by the horizon at one height - and the
+        * file has said so to itself in comments since the day it was written.
+        * The tile that deals them said nothing at all, so what arrived on the
+        * floor was a heap of cubes and a free mode, and a page you cannot mark
+        * is a page you cannot get better at.
+        *
+        * Two lines and then gone: the arrangement's name, and the property to
+        * check when the drawing is finished. It leaves on a timer rather than
+        * on a tap, because a task you have to dismiss is a dialog, and because
+        * the answer is in the picture from then on anyway.
+        *
+        * Same band and same glass as the instrument line above it, and the two
+        * cannot collide: dealing a field is not something you do with a pencil
+        * armed.
+        *
+        * NOT `bubble()`, which is the only thing here that is not shared with
+        * the line above. That helper is a nowrap pill, which is exactly right
+        * for a five-word reading beside a thumb and exactly wrong for a
+        * sentence: on a 390 px frame the task ran off the right-hand edge of
+        * its own pill with no hint that there was more of it. Same glass, same
+        * band, same weight - a rectangle that wraps.
+        */}
+      {task && !blocking && !measuring && (
+        <div
+          aria-live="polite"
+          className={`fixed z-40 left-1/2 -translate-x-1/2 top-safe-panel pointer-events-none w-[min(22rem,calc(100vw-1.5rem))] px-3 py-2 rounded-2xl text-xs border ${chrome(isDark)}`}
+        >
+          <div className="font-bold">{task.note}</div>
+          <div className="opacity-60 mt-1 leading-snug">{task.ask}</div>
+        </div>
+      )}
+
+      {/*
         * THE FINDER READOUT.
         *
         * A camera tells you where it is set without being asked, and it tells
@@ -2092,6 +2157,33 @@ export const WalkOverlay: React.FC<{
             className={`${button} ${arLook ? ACTIVE : ''}`}
           >
             <Icon path={cameraFeed ? I.roomFeed : I.arLook} className="w-5 h-5" />
+          </button>
+          {/*
+            * A PHOTOGRAPH UNDER THE DRAWING, and it sits here rather than in
+            * the band of doors because of what it is next to.
+            *
+            * The seat to its left puts the room you are standing in under the
+            * construction. This one puts a room you are not standing in there,
+            * which is the same question asked about a picture instead of a
+            * place - and the two belong beside each other far more than either
+            * belongs beside the lights.
+            *
+            * Not on the dock. The eight seats down there are measured to the
+            * pixel against a 390 px frame and a ninth folds the row.
+            *
+            * Not the camera glyph either, which is two bands down and means the
+            * exact opposite: that one writes a picture OUT of the tool.
+            */}
+          <button
+            onClick={() => {
+              if (photograph) setPhotograph(null);
+              else onPhotograph();
+            }}
+            aria-label={photograph ? 'Take the photograph out from under the drawing' : 'Put a photograph under the drawing'}
+            aria-pressed={!!photograph}
+            className={`${button} ${photograph ? ACTIVE : ''}`}
+          >
+            <Icon path={I.photo} className="w-5 h-5" />
           </button>
           </div>
 

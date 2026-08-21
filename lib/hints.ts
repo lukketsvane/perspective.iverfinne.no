@@ -74,6 +74,13 @@ const HINTS: Record<string, string> = {
   'Gate:': 'Forma på biletet',
   'Measure distances in the scene': 'Målebandet',
   'Look by turning the phone': 'Snu telefonen for å sjå. Dobbelttrykk for rommet under',
+  /*
+   * Two seats that both say "bilete" and must not be mistaken for each other.
+   * One brings a photograph in to sight against; the one under it writes the
+   * drawing out. The verbs carry it: LEGG under, LAGRE ut.
+   */
+  'Put a photograph under the drawing': 'Legg eit foto under. Finn augehøgda i det',
+  'Take the photograph out from under the drawing': 'Ta fotoet bort',
   'Save the view as a picture': 'Lagre biletet',
   'Learn how perspective works': 'Leksjonen: kvifor perspektiv verkar',
   'Start the lesson: what is perspective?': 'Leksjonen: kvifor perspektiv verkar',

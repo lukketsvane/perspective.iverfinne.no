@@ -87,7 +87,10 @@ const VanishingTracker = () => {
         {
           centre: new THREE.Vector3(...box.position),
           size: new THREE.Vector3(...box.scale),
-          rotationY: box.rotation[1],
+          // The whole Euler, not just the bearing: a box may be tilted, and a
+          // tilted box ruled as though it were level is ruled to the wrong two
+          // points - confidently, and on the horizon, where they look right.
+          rotation: box.rotation,
         },
         selectionGuides
       );
@@ -106,7 +109,9 @@ const VanishingTracker = () => {
         height,
         model!.size[2] * model!.scale
       ),
-      rotationY: model!.rotationY,
+      // A mesh turns on one bearing and cannot be tilted at all, so it hands
+      // over the same thing it always did, said the long way.
+      rotation: [0, model!.rotationY, 0],
     }, selectionGuides);
   });
 

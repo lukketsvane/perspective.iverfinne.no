@@ -1029,6 +1029,25 @@ export interface SceneState {
    */
   cameraFeed: boolean;
   /**
+   * A PHOTOGRAPH under the drawing, as an object URL, or null for none.
+   *
+   * The camera feed's still cousin, and the one the lesson asks for by name:
+   * put a picture of a room behind the ruled sheet, find the eye level in it,
+   * and read its vanishing points off the construction the tool is already
+   * drawing. What a reference photograph taped behind a layout has always
+   * been, except that the layout rules itself.
+   *
+   * AN OBJECT URL AND NOT AN ASSET KEY, which is a deliberate choice against
+   * the way meshes are kept. An imported mesh is written into IndexedDB
+   * because a saved scene that cannot find its geometry is a broken scene;
+   * a photograph is not part of any scene, it is a thing you sight against for
+   * ten minutes. Keeping it would mean a picture of somebody's living room
+   * living in their browser until they went looking for the switch, a keep-set
+   * entry in every prune, and a decision about what a scene file does with it.
+   * It dies with the tab, like the camera feed, and for the same reason.
+   */
+  photograph: string | null;
+  /**
    * The sun. It is the only light in the scene - no ambient, no environment -
    * so a face turned away from it is genuinely unlit, which is what makes a
    * box read as a box.
@@ -1239,6 +1258,8 @@ export interface SceneState {
   toggleSunEnvironment: () => void;
   /** Put the room you are in under the drawing, or take it away. */
   setCameraFeed: (on: boolean) => void;
+  /** Put a photograph under the drawing, or clear the one that is there. */
+  setPhotograph: (url: string | null) => void;
   /**
    * Change the sky, and let the sun follow it.
    *
