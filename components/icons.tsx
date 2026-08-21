@@ -218,7 +218,6 @@ export const I = {
   shadow: (<><circle cx="8.6" cy="8" r="3.4" /><path d="M12.2 10.6L21 19.6H7.4z" fill="currentColor" stroke="none" strokeOpacity="0.35" fillOpacity="0.35" /></>),
   /** The same shape as one solid black, which is precisely the difference. */
   shadowHard: (<><circle cx="8.6" cy="8" r="3.4" /><path d="M12.2 10.6L21 19.6H7.4z" fill="currentColor" stroke="none" /></>),
-  fill: (<><circle cx="12" cy="12" r="4" strokeOpacity="0.5" /><path d="M12 2.4v2.6M2.4 12h2.6M19 12h2.6M12 19v2.6" strokeOpacity="0.5" /><path d="M4.4 4.4l1.9 1.9M17.7 17.7l1.9 1.9" strokeOpacity="0.5" /><path d="M12 8a4 4 0 0 1 0 8z" fill="currentColor" stroke="none" /></>),
 
   /**
    * The box a thing blocks into, standing on its own footprint: the
@@ -304,17 +303,20 @@ export const I = {
   sliders: (<><line x1="2" y1="12" x2="22" y2="12" /><line x1="4" y1="17" x2="20" y2="20" /><line x1="4" y1="7" x2="20" y2="4" /><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" /></>),
   light: (<><circle cx="12" cy="12" r="5" /><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></>),
   dark: (<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />),
-  sky: (<><path d="M3 17.5h18" /><path d="M5 17.5a7 7 0 0 1 14 0" /><circle cx="12" cy="8" r="2.5" /><path d="M12 2.5v2M5.8 5.2l1.4 1.4M18.2 5.2l-1.4 1.4" /></>),
 
   /* ------------------------------------------------------- the simulated sky
    *
-   * Eight marks for the panel that answers "what will this look like here, at
-   * four o'clock, in October". They are drawn as INSTRUMENTS rather than as
-   * pictures of weather - a dial, a calendar, a vane - because every one of
-   * them is a reading being set, and a fluffy cloud on a button is a decoration
-   * where a number belongs. The one exception is the cover, which IS a picture
-   * of weather, because the quantity it sets is literally how much of the sky
-   * you cannot see through.
+   * Four marks for the half of the light panel that answers "what will this
+   * look like at four o'clock, in October". They are drawn as INSTRUMENTS
+   * rather than as pictures of weather - a globe, a dial, a calendar - because
+   * every one of them is a reading being set, and a fluffy cloud on a button is
+   * a decoration where a number belongs. The one exception is the cover, which
+   * IS a picture of weather, because the quantity it sets is literally how much
+   * of the sky you cannot see through.
+   *
+   * It was eight. A speed for the hour, a play and a pause for it, and a map
+   * pin for the place have all gone - the clock does not run by itself any
+   * more and there is nowhere to move the place to.
    */
 
   /** The simulation itself: a globe with a sun's track ruled across it. */
@@ -325,16 +327,6 @@ export const I = {
 
   /** The date: a leaf of a calendar, one day ringed. */
   day: (<><rect x="3.2" y="5" width="17.6" height="15.4" rx="1.8" /><path d="M3.2 9.6h17.6" strokeOpacity="0.7" /><path d="M8 2.8v3.6M16 2.8v3.6" /><circle cx="12" cy="15" r="2.2" fill="currentColor" stroke="none" /></>),
-
-  /** How fast the hour runs: a clock hand with the sweep drawn behind it. */
-  rate: (<><circle cx="12" cy="12" r="8.6" strokeOpacity="0.5" /><path d="M12 6.6V12l4.6 2.2" /><path d="M12 3.4a8.6 8.6 0 0 1 7.4 4.3" strokeWidth="2.2" /><path d="M17.4 6.6l2.4 1.4-.6 2.7" /></>),
-
-  /** Time standing still, and time running: the two faces of one seat. */
-  play: (<><path d="M8.5 5.2 19 12 8.5 18.8z" fill="currentColor" stroke="none" /></>),
-  pause: (<><rect x="7" y="5" width="3.6" height="14" rx="1" fill="currentColor" stroke="none" /><rect x="13.4" y="5" width="3.6" height="14" rx="1" fill="currentColor" stroke="none" /></>),
-
-  /** Where you are: the map pin every phone has taught everybody to read. */
-  place: (<><path d="M12 21.5s7-6.4 7-11.3A7 7 0 0 0 5 10.2c0 4.9 7 11.3 7 11.3z" /><circle cx="12" cy="10" r="2.6" /></>),
 
   /** How much sky is covered: cloud over a sun that is half behind it. */
   cover: (<><circle cx="8.6" cy="8.6" r="3.2" strokeOpacity="0.55" /><path d="M8.6 3.4v1.4M4.6 4.6l1 1M3.4 8.6h1.4" strokeOpacity="0.45" /><path d="M8.2 18.6a3.6 3.6 0 0 1 .5-7.2 5 5 0 0 1 9.4 1.3 3 3 0 0 1-.5 5.9z" fill="currentColor" fillOpacity="0.35" /></>),

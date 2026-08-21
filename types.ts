@@ -579,20 +579,6 @@ export interface SunState {
 }
 
 /**
- * The second light.
- *
- * One hard light is the honest way to read a box - a face turned away from it
- * is genuinely unlit, and that value separation is the thing being drawn. But
- * one light is also a scene where half of everything is a black silhouette, and
- * every photographer, every studio and every overcast sky answers that the same
- * way: a second, softer, cooler light from somewhere else, throwing no shadows
- * of its own. It is off until asked for.
- */
-export interface FillState extends SunState {
-  enabled: boolean;
-}
-
-/**
  * The sky the scene stands under, as a set of conditions rather than knobs.
  *
  * The two knobs that aim the key light are the right control for a DRAWING -
@@ -624,14 +610,23 @@ export interface SkyState {
   simulate: boolean;
   /** The moment being drawn, in epoch milliseconds. */
   time: number;
-  /** Whether that moment runs on by itself. */
-  running: boolean;
-  /** How many seconds of sky pass per second of clock while it runs. */
-  rate: number;
+  /**
+   * The place the sun, the dome and the star field are all computed for.
+   *
+   * A FIXED place, and no longer one anything can move. It was a default that
+   * one press of a pin replaced with the device's own fix; the pin is gone,
+   * and with it the only thing that ever wrote here. What is left is Greenwich
+   * - the one longitude where the clock and the sun agree, which is why the
+   * hour above is read and written in UTC.
+   *
+   * They stay fields rather than becoming constants because three places
+   * compute from them and would all have to import the same pair instead:
+   * `sunFromSky` below, the dome in components/Sky.tsx, and the catalogue in
+   * components/Starfield.tsx, which needs the latitude to know which half of
+   * the sphere is over the horizon.
+   */
   latitude: number;
   longitude: number;
-  /** Whether the place came from the device rather than being the default. */
-  located: boolean;
   /** Fraction of the sky covered, 0 to 1. */
   cover: number;
   /** How high the cloud deck sits, in metres. */
@@ -640,15 +635,6 @@ export interface SkyState {
   wind: number;
   /** The bearing the wind comes from, in the scene's own convention. */
   windBearing: number;
-  /**
-   * Where the four numbers above came from.
-   *
-   * 'off' means they are yours; 'live' means they are the real readings for
-   * this place and this hour. Touching any of them by hand drops it back to
-   * 'off', because a number you have overwritten is not an observation any
-   * more and a panel that goes on claiming it is, is lying.
-   */
-  observed: 'off' | 'asking' | 'live' | 'failed';
   /**
    * HOW MUCH AIR THERE IS, against a clear day at sea level.
    *
@@ -887,7 +873,6 @@ export interface SceneView {
   backdrop?: Backdrop;
   theme: ThemeMode;
   sun: SunState;
-  fill?: FillState;
   /**
    * The hour and the weather the scene was composed under. Absent in scenes
    * saved before the sky could be simulated, which read as the default place
@@ -1065,8 +1050,6 @@ export interface SceneState {
    * box read as a box.
    */
   sun: SunState;
-  /** A second, shadowless light, for when one is too few. */
-  fill: FillState;
   /** The place, the moment and the weather that can aim that sun instead. */
   sky: SkyState;
   /** The view as a lens rather than as a pair of eyes. */
@@ -1281,14 +1264,8 @@ export interface SceneState {
    * setting the sky, not a thing a caller has to remember to do afterwards.
    */
   setSky: (sky: Partial<SkyState>) => void;
-  /** Ask the device where it is, and move the sky there. */
-  locateSky: () => Promise<void>;
-  /** Ask what the sky over that place is really doing at that moment. */
-  observeSky: (force?: boolean) => Promise<void>;
   /** Move the sun, or change how hard it burns. */
   setSun: (sun: Partial<SunState>) => void;
-  /** The same, for the fill. */
-  setFill: (fill: Partial<FillState>) => void;
   /** Pick an instrument up, or put the one in your hand down with 'none'. */
   setInstrument: (instrument: Instrument) => void;
   /**

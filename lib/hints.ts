@@ -89,11 +89,9 @@ const HINTS: Record<string, string> = {
   // ------------------------------------------------------------- the lights
   //
   // The one panel in the tool with no words anywhere near it and the most to
-  // say: four knobs that are the same four knobs for every light there is, and
-  // then a whole sky behind them.
-  'The key light': 'Hovudlyset, altså sola',
-  'The fill light': 'Utfyllingslys, utan skygge',
-  'The sky, the hour and the weather': 'Himmelen: stad, tid og vêr',
+  // say: four knobs for the one light there is, the sky that can take those
+  // four numbers over, and a seat for every lamp you have stood somewhere.
+  'The light': 'Lyset i scena, altså sola',
   Bearing: 'Kva leid lyset kjem frå',
   'Height above the horizon': 'Kor høgt over horisonten',
   Strength: 'Kor sterkt lyset er',
@@ -104,13 +102,12 @@ const HINTS: Record<string, string> = {
   'A bulb, shining every way': 'Pære, som lyser alle vegar',
 
   // --------------------------------------------------------- the real sky
-  'Aim the sun from a place and a moment': 'Lat stad og tid styre sola',
-  'Time of day': 'Klokkeslettet',
+  //
+  // No longer a pane of its own: these hang off the one seat above, and come
+  // up only while it is pressed.
+  'The sky lights the scene and is drawn behind it': 'Himmelen tek over: sola står der ho verkeleg står',
+  'Time of day': 'Klokkeslettet, i UTC — same klokke som sola',
   'Day of the year': 'Datoen',
-  'Let the hour run': 'Lat tida gå',
-  'Stop the clock': 'Stopp tida',
-  'Use where this device is': 'Bruk staden du er på — og hent vêret der',
-  'Using where this device is': 'Bruk staden du er på — og hent vêret der',
   'Draw the sky': 'Teikn himmelen bak',
   Air: 'Kor mykje luft — botnen er vakuum',
   Weather: 'Klårt til overskya, i eitt drag',

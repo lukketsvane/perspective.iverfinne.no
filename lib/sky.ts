@@ -8,7 +8,7 @@
  * "what does 286 degrees at 14 look like", it is "what will this look like
  * here, at four o'clock, in October".
  *
- * So this module answers that one. It is three separate things that only make
+ * So this module answers that one. It is two separate things that only make
  * sense together:
  *
  *   solarPosition   where the sun is, from a place and a moment. Astronomy,
@@ -16,8 +16,14 @@
  *                   hundredth of a degree over any date this tool will see.
  *   sunlight        how bright and how warm that sun is at that height, and
  *                   what the cloud between you and it does to both.
- *   conditions      what the sky over that place is really doing, fetched
- *                   from a public forecast and read hour by hour.
+ *
+ * IT WAS THREE. The third asked a public forecast what the sky over your own
+ * street was really doing, hour by hour, and read the answer back into the
+ * cover, the deck and the wind - and the only door into it was the pin that
+ * took the device's own fix. With that pin gone the forecast had nothing to
+ * ask about but Greenwich, so it went with it, and the weather is one axis
+ * somebody sets by hand again. Nothing in this tool now makes a network
+ * request or asks the browser where it is.
  *
  * Nothing here touches the store or the scene. It takes numbers and gives
  * numbers back, which is what makes it the one piece of this feature that can
@@ -183,176 +189,3 @@ export const siderealAngle = (at: Date, longitude: number) => {
   const local = (((hours % 24) + 24) % 24) + longitude / 15;
   return (local / 24) * Math.PI * 2;
 };
-
-/* ------------------------------------------------------------- the weather */
-
-/** What the sky over a place was doing at one hour. */
-export interface Conditions {
-  /** Fraction of the sky covered, 0 to 1. */
-  cover: number;
-  /** How high the deck sits, in metres - read off which layer dominates. */
-  base: number;
-  /** Metres per second at ten metres up. */
-  wind: number;
-  /** The bearing the wind comes FROM, in the scene's convention. */
-  windBearing: number;
-  /** The hour these readings describe, in epoch milliseconds. */
-  at: number;
-}
-
-/**
- * An hourly series for one place, kept so the hours can be read without
- * asking again.
- *
- * A scrub across a day is a hundred changes of hour, and a request per hour
- * would be a hundred requests for a forecast that was already in the first
- * reply. One fetch covers two days back and three forward, which is every
- * moment the panel can reach in one sweep of its date knob.
- */
-interface Series {
-  latitude: number;
-  longitude: number;
-  fetchedAt: number;
-  hours: Conditions[];
-}
-
-let series: Series | null = null;
-
-/** How far a cached series may be from the place being asked about, in degrees. */
-const NEAR = 0.25;
-
-/** And how old it may be before it is asked for again. */
-export const SERIES_LIFE = 30 * 60 * 1000;
-
-const layerBase = (low: number, mid: number, high: number) => {
-  // Whichever deck is thickest is the one you see the underside of.
-  if (low >= mid && low >= high) return 900;
-  if (mid >= high) return 3200;
-  return 7000;
-};
-
-/**
- * Ask the forecast what the sky over a place is doing.
- *
- * Open-Meteo, because it needs no key, allows the request straight from a
- * browser, and answers in plain hourly arrays. Everything the tool asks for is
- * a documented core variable - a request for something exotic comes back as a
- * column of nulls rather than an error, which is the sort of failure that
- * looks like a working feature.
- *
- * Nothing here throws for the caller to handle: a sky the network cannot
- * describe is not an error condition, it is a sky you set by hand.
- */
-export const fetchConditions = async (
-  latitude: number,
-  longitude: number
-): Promise<boolean> => {
-  const url =
-    'https://api.open-meteo.com/v1/forecast' +
-    `?latitude=${latitude.toFixed(4)}&longitude=${longitude.toFixed(4)}` +
-    '&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m,wind_direction_10m' +
-    '&wind_speed_unit=ms&past_days=2&forecast_days=3&timezone=UTC';
-
-  const reply = await fetch(url, { headers: { accept: 'application/json' } });
-  if (!reply.ok) return false;
-  const body = (await reply.json()) as {
-    hourly?: {
-      time?: string[];
-      cloud_cover?: (number | null)[];
-      cloud_cover_low?: (number | null)[];
-      cloud_cover_mid?: (number | null)[];
-      cloud_cover_high?: (number | null)[];
-      wind_speed_10m?: (number | null)[];
-      wind_direction_10m?: (number | null)[];
-    };
-  };
-  const hourly = body.hourly;
-  if (!hourly?.time?.length) return false;
-
-  const number = (column: (number | null)[] | undefined, index: number, fallback: number) => {
-    const value = column?.[index];
-    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-  };
-
-  const hours = hourly.time.map((stamp, index) => {
-    const low = number(hourly.cloud_cover_low, index, 0);
-    const mid = number(hourly.cloud_cover_mid, index, 0);
-    const high = number(hourly.cloud_cover_high, index, 0);
-    return {
-      cover: Math.min(1, Math.max(0, number(hourly.cloud_cover, index, 0) / 100)),
-      base: layerBase(low, mid, high),
-      wind: Math.max(0, number(hourly.wind_speed_10m, index, 4)),
-      // A meteorological bearing is degrees clockwise from north; the scene
-      // counts the other way from south. Same reflection as the sun's.
-      windBearing: ((180 - number(hourly.wind_direction_10m, index, 270)) % 360 + 360) % 360,
-      // The API is asked for UTC and answers without a zone marker, which
-      // Date would otherwise read as local time - a silent error of up to
-      // twelve hours, in the one number the whole feature is indexed by.
-      at: Date.parse(`${stamp}Z`),
-    };
-  });
-
-  series = { latitude, longitude, fetchedAt: Date.now(), hours };
-  return hours.length > 0;
-};
-
-/** Whether the readings held cover this place and are still worth trusting. */
-export const haveConditions = (latitude: number, longitude: number, now = Date.now()) =>
-  series !== null &&
-  Math.abs(series.latitude - latitude) < NEAR &&
-  Math.abs(series.longitude - longitude) < NEAR &&
-  now - series.fetchedAt < SERIES_LIFE;
-
-/**
- * What the sky was doing at a moment, off the series already held.
- *
- * The nearest hour rather than an interpolation. Cloud cover is not a
- * continuous quantity you can average between two readings and still have
- * something true - half four's eight oktas and half five's two do not make
- * five oktas at five to five, they make a sky that cleared - and the sun moves
- * far more in an hour than the weather does.
- */
-export const conditionsAt = (when: number): Conditions | null => {
-  if (!series || series.hours.length === 0) return null;
-  let nearest = series.hours[0];
-  for (const hour of series.hours) {
-    if (Math.abs(hour.at - when) < Math.abs(nearest.at - when)) nearest = hour;
-  }
-  // Past the ends of the series is not "the last hour we have" - it is a
-  // moment nothing was fetched for, and saying otherwise would show a Tuesday
-  // sky over a Saturday.
-  return Math.abs(nearest.at - when) > 90 * 60 * 1000 ? null : nearest;
-};
-
-/** Throw away everything held - a different place, or a manual override. */
-export const forgetConditions = () => {
-  series = null;
-};
-
-/* -------------------------------------------------------------- the place */
-
-export interface Place {
-  latitude: number;
-  longitude: number;
-}
-
-/**
- * Where the device thinks it is.
- *
- * A permission prompt, so it is only ever asked for on a press. Low accuracy
- * on purpose: the sun's bearing changes by a degree over sixty miles, and a
- * coarse fix arrives in a second off the network where a fine one spins up the
- * radio and takes half a minute to answer the same question.
- */
-export const deviceLocation = (): Promise<Place> =>
-  new Promise((resolve, reject) => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      reject(new Error('This browser will not say where it is.'));
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (fix) => resolve({ latitude: fix.coords.latitude, longitude: fix.coords.longitude }),
-      (failure) => reject(new Error(failure.message)),
-      { enableHighAccuracy: false, timeout: 15000, maximumAge: 10 * 60 * 1000 }
-    );
-  });

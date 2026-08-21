@@ -14,7 +14,6 @@ import { focusPoint } from './lib/focus';
 import { glideWalkerTo, walkInput } from './lib/walkInput';
 import { constructionInk, pageHex } from './lib/inkMaterial';
 import { keepAwake } from './lib/wakeLock';
-import { useSkyClock } from './lib/skyClock';
 import { useAutoDeal } from './lib/autoDeal';
 import { holdPreviews, resumePreviews } from './lib/meshPreview';
 import { downloadSceneFile, readSceneFile, toSceneFile } from './lib/sceneJson';
@@ -56,14 +55,17 @@ export default function App() {
   useEffect(() => useStore.subscribe((state) => saveSettings(state)), []);
 
   /*
-   * The two things that happen without being asked.
+   * The one thing that happens without being asked: the dealer turns a page of
+   * the deck over in the gaps between working.
    *
-   * The sky's clock moves the simulated hour along and keeps a live sky live;
-   * the dealer turns a page of the deck over in the gaps between working. Both
-   * are here rather than inside the overlay because neither is chrome - they go
-   * on whether or not a panel is open, and the overlay unmounts nothing.
+   * It is here rather than inside the overlay because it is not chrome - it
+   * goes on whether or not a panel is open, and the overlay unmounts nothing.
+   * It used to have company. The sky ran a clock beside it, stepping the
+   * simulated hour on every frame and asking a forecast once in a while
+   * whether the real sky over your street had changed; the clock's switch and
+   * the place it asked about are both gone, so the loop went with them and the
+   * hour moves only under a finger now.
    */
-  useSkyClock();
   useAutoDeal();
 
   /*

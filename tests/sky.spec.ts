@@ -17,12 +17,27 @@ import { test, expect, drag, find, findByPrefix, fingerprint, hasContrast, label
  */
 
 /**
- * The sky is one of the seats in the light panel, beside the key and the fill.
+ * Put the sky in charge of the one light, and get at its controls.
+ *
+ * The sky used to be a seat of its own on the light rail, beside a key and a
+ * fill. There is one light now and the sky is a MODE of it: the toggle hands
+ * the light's four numbers to a real place and hour, and the air, the weather
+ * and the dome's own switch come up in their place. So this presses one thing
+ * where it used to press two, and it presses it IDEMPOTENTLY - the toggle is a
+ * toggle, and a suite that assumed it was off would turn it off the day
+ * anything opens with it on.
+ *
+ * The dome's switch is asserted rather than pressed for the same reason it is
+ * still there at all: the toggle turns it on with the simulation, and the one
+ * case worth keeping it for is a real sun over a page with no sky drawn.
  */
 const openTheSky = async (page: Parameters<typeof openTools>[0]) => {
   await openTools(page);
   await find(page, 'tools', 'Lights').click();
-  await find(page, 'anywhere', 'The sky, the hour and the weather').click();
+  const sky = find(page, 'anywhere', 'The sky lights the scene and is drawn behind it');
+  await expect(sky).toBeVisible();
+  if ((await sky.getAttribute('aria-pressed')) !== 'true') await sky.click();
+  await expect(sky).toHaveAttribute('aria-pressed', 'true');
   const draw = find(page, 'anywhere', 'Draw the sky');
   await expect(draw).toBeVisible();
   if ((await draw.getAttribute('aria-pressed')) !== 'true') await draw.click();
@@ -151,8 +166,12 @@ test('with no air the stars are out at midday, and they turn with the clock', as
    * settings, and this is the stronger claim anyway - an artefact that
    * happens to put light in the top of the frame does not also rotate it
    * about the celestial pole on demand.
+   *
+   * The simulation is already up - openTheSky put it there, which is what
+   * makes the hour scrub exist to be dragged. It used to be switched on HERE,
+   * on a separate seat, and pressing that seat now would switch it off and
+   * take the scrub off the screen with it.
    */
-  await find(app, 'anywhere', 'Aim the sun from a place and a moment').click();
   /*
    * 110 PIXELS, NOT 220. A Scrub sweeps its whole range in SWEEP pixels, SWEEP
    * is 220, and the clock WRAPS - so a 220-pixel drag is one full lap of the
@@ -162,6 +181,9 @@ test('with no air the stars are out at midday, and they turn with the clock', as
    * sub-minute accident of snapping to the minute grid, and the moment the
    * default became noon exactly, it vanished. Half a sweep is twelve hours,
    * which turns the sky as far as it can be turned.
+   *
+   * Both star prints are taken under a simulated sun now rather than only the
+   * second, so the difference between them rests on the twelve hours alone.
    */
   await drag(app, 'Time of day', 110, { steps: 3 });
   await settled(app);

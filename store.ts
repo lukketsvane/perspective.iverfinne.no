@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, SelectionGuide, FIELD_RANGES, FieldRange, FillState, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readShadows, readSurface, SavedScene, SceneModel, SceneState, CameraState, SceneView, SKY_LIMITS, SkyState, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
+import { Backdrop, BOX_SURFACES, BoxData, ConstructionLevel, HeldRow, SelectionGuide, FIELD_RANGES, FieldRange, GuideLevel, HatchState, isSketch, LampData, MarkerState, MaterialSettings, MESH_SURFACES, PenState, WashState, nearestSurface, PerspectiveMode, readShadows, readSurface, SavedScene, SceneModel, SceneState, CameraState, SceneView, SKY_LIMITS, SkyState, SNAP_STEPS, SunState, Surface, SURFACES, ThemeMode } from './types';
 import { releaseSource, cachedSourceUrls, loadModelFromUrl } from './lib/loadModel';
 import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from './lib/placement';
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
@@ -20,16 +20,7 @@ import {
 } from './lib/inkMaterial';
 import { nextPreset, OPENING, PRESETS, type Preset } from './lib/presets';
 import { looseTurn, nextField } from './lib/cubeFields';
-import {
-  conditionsAt,
-  deviceLocation,
-  fetchConditions,
-  forgetConditions,
-  haveConditions,
-  solarPosition,
-  sunlight,
-} from './lib/sky';
-import { beginActivity, reportFailure } from './lib/activity';
+import { solarPosition, sunlight } from './lib/sky';
 import { walkInput } from './lib/walkInput';
 
 // ---------------------------------------------------------------------------
@@ -167,7 +158,30 @@ export const DEFAULT_HATCH: HatchState = {
   // an etcher reaches for first. The knob swings them round towards running
   // along it.
   angle: 0,
-  spacing: 11,
+  /*
+   * TWO AND A HALF SHEET PIXELS, WHICH WAS ELEVEN.
+   *
+   * The unit is CSS pixels of the finished page - `radPerSheetPixel` in
+   * lib/inkMaterial.ts is worked out from the frame's CSS width, so this is
+   * the same ruling on a phone as on a desk, and eleven of them meant about
+   * thirty-five strokes across the WHOLE picture. A cube face sixty pixels
+   * wide got five. Five strokes is not a tone; it is five strokes, and every
+   * turned face in the scene read as a tally mark rather than as a value.
+   *
+   * At two and a half the same face gets twenty-four, which fuse into a grey
+   * at arm's length and separate back into strokes when you lean in. That is
+   * the whole trick of an engraved plate, and it is the only spacing at which
+   * the three ranks the crossing adds have anywhere to sit.
+   *
+   * It is not near anything degenerate. The shader floors the spacing at one
+   * pixel, and at the default weight of 1.05 the ink covers about two fifths
+   * of a fully entered rank - dense, still plainly ruled. The knob runs from
+   * two to twenty-two, so the page opens near the fine end with the whole
+   * coarse half above it, which is the right way round: opening a ruling out
+   * is the adjustment somebody makes for a bigger drawing, and going finer
+   * than this stops being a hatch and becomes a screen.
+   */
+  spacing: 2.5,
   width: 1.05,
   // ZERO, WHICH WAS 420. The knob's own range ends at 160, so the old default
   // was a number the slider could never give back once touched - and at 420
@@ -200,29 +214,12 @@ export const DEFAULT_SUN: SunState = {
   // Over the viewer's left shoulder, so both faces of a cube you can see are
   // lit - but at different angles, which is the value separation you draw.
   // Swung round behind the scene it would put every visible face in the dark,
-  // and with no fill light there is nothing to lift them back out.
+  // and there is nothing else in this tool to lift them back out.
   azimuth: 55,
   elevation: 48,
   intensity: 3.5,
   temperature: 5600,
   shadows: 'hard',
-};
-
-/**
- * The fill, as it stands when first switched on.
- *
- * Opposite the sun and low, so it lifts the faces the sun has left black
- * without pretending to be a second sun; cool, because a real fill is sky
- * bounce or open shade, both of which are blue; and a third of the strength,
- * which is about the ratio a studio would set.
- */
-export const DEFAULT_FILL: FillState = {
-  enabled: false,
-  azimuth: 235,
-  elevation: 22,
-  intensity: 1.1,
-  temperature: 8200,
-  shadows: 'off',
 };
 
 /** Eye-level presets, in metres. */
@@ -399,7 +396,7 @@ const floorFor = (paper: number) => ({ on: true, tone: Math.round(paper * 0.42) 
  */
 const pageOf = (
   p: Preset,
-  from: { sun: SunState; sky: SkyState; fill: FillState; marker: MarkerState; hatch: HatchState; pen: PenState; wash: WashState; ground: { on: boolean; tone: number } }
+  from: { sun: SunState; sky: SkyState; marker: MarkerState; hatch: HatchState; pen: PenState; wash: WashState; ground: { on: boolean; tone: number } }
 ) => ({
   presetName: p.name,
   surface: p.surface,
@@ -420,7 +417,6 @@ const pageOf = (
   sun: from.sky.simulate
     ? { ...from.sun, ...sunFromSky(from.sky), shadows: p.sun.shadows }
     : { ...from.sun, ...p.sun },
-  fill: { ...from.fill, enabled: p.fill },
   marker: p.marker ? { ...from.marker, ...p.marker } : from.marker,
   hatch: p.hatch ? { ...from.hatch, ...p.hatch } : from.hatch,
   // The two the pages could not say until the knobs existed.
@@ -489,25 +485,35 @@ const nextSceneName = (history: SavedScene[]): string => {
 };
 
 /**
- * Where the sky starts, and why it starts there rather than at your feet.
+ * Where the sky stands, and why the clock beside it is read in UTC.
  *
- * Greenwich, at noon, with a quarter of the sky covered - a place, an hour and
- * a weather that are all somebody's, and none of them yours. That is the
- * point: the simulation is OFF until asked for, and a default that quietly
- * guessed at your latitude would be a location fix taken without a prompt.
- * One press moves all three to where you actually are.
+ * Greenwich, with a quarter of the sky covered. It used to be a default that
+ * one press of a pin replaced with the device's own fix, and the argument for
+ * a stranger's latitude was that guessing at yours would be a location taken
+ * without a prompt. The pin is gone. What was a polite default is now simply
+ * the place, and the prime meridian is the right one to be stuck with for the
+ * reason it was chosen: it is the one longitude where clock time and sun time
+ * agree, so the whole simulation is checkable by eye - at noon the sun is due
+ * south, and there is nothing else to know.
  *
- * The prime meridian rather than a city because it is the one longitude where
- * clock time and sun time agree, so the opening state is the one that is
- * easiest to check by eye: at noon the sun is due south.
+ * WHICH IS WHY THE HOUR IS UTC, and this is the half that was quietly wrong
+ * before. The hour was read and written in the browser's local time on the
+ * reasoning that "four o'clock" means four o'clock where the person is - true,
+ * and true only once the place is where the person is. The pin was what made
+ * it so, by moving the longitude to them; without it, somebody two hours east
+ * of Greenwich setting half past three was shown the sun as it stood at half
+ * past one, and the raking hour the front door asks for arrived a good deal
+ * higher than it meant to. One place, one clock: both Greenwich now, and the
+ * two agree for everybody rather than for one time zone.
  */
-/** Today at twelve: the moment the tool opens on, and the stalest a stored
- *  clock is allowed to get before it is brought back to it. Noon rather than
- *  now, because a first visit at half past three in the morning should still
- *  be handed a lit yard - the clock is a control, not a punishment. */
+/** Today at twelve, UTC: the moment the tool opens on, and the stalest a
+ *  stored clock is allowed to get before it is brought back to it. Noon
+ *  rather than now, because a first visit at half past three in the morning
+ *  should still be handed a lit yard - the clock is a control, not a
+ *  punishment. */
 const noonToday = () => {
   const at = new Date();
-  at.setHours(12, 0, 0, 0);
+  at.setUTCHours(12, 0, 0, 0);
   return at.getTime();
 };
 
@@ -530,7 +536,7 @@ const noonToday = () => {
  */
 const rakingToday = () => {
   const at = new Date();
-  at.setHours(15, 30, 0, 0);
+  at.setUTCHours(15, 30, 0, 0);
   return at.getTime();
 };
 
@@ -540,16 +546,12 @@ export const DEFAULT_SKY: SkyState = {
   // simulation is off. The opening raises it with the rest of its face.
   simulate: false,
   time: noonToday(),
-  running: false,
-  rate: 600,
   latitude: 51.48,
   longitude: 0,
-  located: false,
   cover: 0.25,
   base: 1200,
   wind: 6,
   windBearing: 250,
-  observed: 'off',
   /*
    * One atmosphere is the real thing rather than a taste: the blue is the
    * blue. No stars to begin with is not a decision - the knob is a brightness
@@ -639,7 +641,6 @@ const SETTING_KEYS = [
   'surface',
   'sunEnvironment',
   'sun',
-  'fill',
   'sky',
   'camera',
 ] as const;
@@ -685,7 +686,6 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
   surface: (v) => SURFACES.includes(v as Surface),
   sunEnvironment: boolean,
   sun: object,
-  fill: object,
   sky: object,
   camera: object,
 };
@@ -705,8 +705,8 @@ const SETTING_SHAPE: Record<(typeof SETTING_KEYS)[number], (value: unknown) => b
  * of it and would reasonably conclude nothing had been done.
  *
  * So these four are taken back to the new defaults once, and once only. Nothing
- * else in the setup is touched: the theme, the room, the sun, the fill, the eye
- * level and the snap are all still yours.
+ * else in the setup is touched: the theme, the room, the sun, the eye level
+ * and the snap are all still yours.
  */
 const VIEW_GENERATION = 5;
 
@@ -847,10 +847,6 @@ const readSun = (stored: Partial<SunState> | undefined): SunState => ({
  * is a sun at a position that is not a position and a frame that comes up
  * black.
  *
- * The readings are deliberately not taken back: the forecast they came from is
- * not in this session's memory any more, and a panel claiming a live sky it
- * cannot show the source of is worse than one asking to fetch it again.
- *
  * Nor, from the SETTINGS, is a moment more than a day old - a stored clock is
  * a setting, but a stored clock that has been in a drawer for a week is not a
  * moment anybody meant. A moment read off a SAVED SCENE is the opposite: the
@@ -873,20 +869,21 @@ const readSky = (stored: Partial<SkyState> | undefined, keepTime = false): SkySt
   return {
     simulate: yes(stored?.simulate, DEFAULT_SKY.simulate),
     time: !keepTime && Math.abs(Date.now() - time) > DAY ? noonToday() : time,
-    running: yes(stored?.running, DEFAULT_SKY.running),
-    // Not read back: the rate knob is gone from the panel, so a stored rate is
-    // a value nothing can change any more. Ten minutes a second is the one
-    // that makes a shadow move at about the speed a shadow looks like it
-    // should, and it is now the rate, not the default.
-    rate: DEFAULT_SKY.rate,
-    latitude: take(stored?.latitude, DEFAULT_SKY.latitude, -90, 90),
-    longitude: take(stored?.longitude, DEFAULT_SKY.longitude, -180, 180),
-    located: yes(stored?.located, DEFAULT_SKY.located),
+    /*
+     * THE PLACE IS NOT READ BACK, and that is a deletion rather than an
+     * oversight. Nothing in the tool can move it any more - the pin that
+     * once did is gone - so a stored latitude is a value with no control
+     * behind it, exactly like the rate knob before it. It is also somebody's
+     * home: a fix taken months ago outlived its own switch, sat in
+     * localStorage, and was copied verbatim into every .perspective file
+     * that browser exported. Pinning it here is what stops both.
+     */
+    latitude: DEFAULT_SKY.latitude,
+    longitude: DEFAULT_SKY.longitude,
     cover: take(stored?.cover, DEFAULT_SKY.cover, 0, 1),
     base: take(stored?.base, DEFAULT_SKY.base, 200, 12000),
     wind: take(stored?.wind, DEFAULT_SKY.wind, 0, 60),
     windBearing: take(stored?.windBearing, DEFAULT_SKY.windBearing, 0, 360),
-    observed: 'off',
     air: take(stored?.air, DEFAULT_SKY.air, 0, SKY_LIMITS.air),
     stars: take(stored?.stars, DEFAULT_SKY.stars, 0, 1),
     figures: yes(stored?.figures, DEFAULT_SKY.figures),
@@ -1125,7 +1122,6 @@ export const currentView = (state: SceneState): SceneView => ({
   backdrop: state.backdrop,
   theme: state.theme,
   sun: { ...state.sun },
-  fill: { ...state.fill },
   sky: { ...state.sky },
   lens: { ...state.camera },
   sunEnvironment: state.sunEnvironment,
@@ -1225,7 +1221,6 @@ const restoreView = (view: SceneView | undefined, range: FieldRange): Partial<Sc
     backdrop,
     ...pageTheme(backdrop, backgroundGray, surface),
     sun: readSun(view.sun),
-    fill: { ...DEFAULT_FILL, ...(view.fill ?? {}) },
     // The hour and the weather the composition was made under. Read through
     // the same migration storage uses - a scene file is written by whatever
     // version the viewer had, which is exactly the case that reader is for.
@@ -1315,7 +1310,6 @@ export const useStore = create<SceneState>((set, get) => ({
   // A setup stored before the sun existed, or by a version that knew fewer of
   // its fields, must not leave the scene with no light in it.
   sun: readSun(remembered.sun),
-  fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
   sky: readSky(remembered.sky),
   camera: readCamera(remembered.camera),
 
@@ -1339,7 +1333,6 @@ export const useStore = create<SceneState>((set, get) => ({
   ...pageOf(OPENING_PAGE, {
     sun: readSun(remembered.sun),
     sky: readSky(remembered.sky),
-    fill: { ...DEFAULT_FILL, ...(remembered.fill ?? {}) },
     marker: { ...DEFAULT_MARKER, ...(remembered.marker ?? {}) },
     hatch: { ...DEFAULT_HATCH, ...(remembered.hatch ?? {}) },
     pen: { ...DEFAULT_PEN, ...(remembered.pen ?? {}) },
@@ -2429,33 +2422,17 @@ export const useStore = create<SceneState>((set, get) => ({
    * being a second lighting system: the shadow map, the sky shader, the ink
    * shader's terminator and the cloud deck all go on reading the one light
    * they always read, and none of them has to know where it was aimed from.
-   *
-   * A hand on any of the four weather numbers drops the readings to 'off'.
-   * They were an observation; the moment one of them is overwritten they are
-   * a sky you composed, and a panel that goes on calling that live is lying
-   * about where its numbers came from.
    */
   setSky: (change) =>
     set((state) => {
-      const overwritten =
-        change.cover !== undefined ||
-        change.base !== undefined ||
-        change.wind !== undefined ||
-        change.windBearing !== undefined;
-      const sky: SkyState = {
-        ...state.sky,
-        ...change,
-        observed:
-          change.observed ??
-          (overwritten && state.sky.observed === 'live' ? 'off' : state.sky.observed),
-      };
+      const sky: SkyState = { ...state.sky, ...change };
       if (!sky.simulate) return { sky };
       const sun = { ...state.sun, ...sunFromSky(sky) };
       /*
        * The same sun object, when the sun has not really moved.
        *
-       * The clock steps the moment on every animation frame, and every step
-       * comes through here. A fresh `sun` object each time is a fresh object
+       * A finger on the hour or the day writes on every pointer move, and
+       * every one of those comes through here. A fresh `sun` object each time is a fresh object
        * identity, and everything that reads the light off the store - the
        * atmosphere, the deck, the lamp, the ink shader - re-renders on it,
        * sixty times a second, to be handed numbers that differ in the fifth
@@ -2472,98 +2449,8 @@ export const useStore = create<SceneState>((set, get) => ({
       return { sky, sun: still ? state.sun : sun };
     }),
 
-  /**
-   * Move the sky to where the device says it is.
-   *
-   * Turning it off does not forget the fix, it stops CLAIMING it: the place
-   * stays where it was put, because throwing it back to Greenwich would be a
-   * switch that loses work rather than one that stops asking.
-   */
-  locateSky: async () => {
-    const { sky, setSky, observeSky } = get();
-    if (sky.located) {
-      setSky({ located: false });
-      return;
-    }
-    const done = beginActivity();
-    try {
-      const place = await deviceLocation();
-      forgetConditions();
-      /*
-       * A fix is a place AND a time. Somebody pressing this is asking what it
-       * looks like HERE, and here is a question about now - a place moved
-       * under an hour left over from a previous session is half an answer, and
-       * the half that is wrong is the one that decides where the shadows go.
-       */
-      setSky({
-        ...place,
-        located: true,
-        simulate: true,
-        time: Date.now(),
-        observed: 'off',
-      });
-      await observeSky(true);
-    } catch (error) {
-      console.error(error);
-      reportFailure();
-    } finally {
-      done();
-    }
-  },
-
-  /**
-   * Ask what the sky over this place is actually doing at this moment.
-   *
-   * One fetch covers two days back and three forward, so scrubbing the clock
-   * across a day reads hour after hour out of what is already held rather than
-   * asking again - which is why this is cheap enough to call on every change
-   * of the hour, and does.
-   */
-  observeSky: async (force = false) => {
-    const { sky, setSky } = get();
-    if (sky.observed === 'asking') return;
-
-    const apply = () => {
-      const now = get().sky;
-      const hour = conditionsAt(now.time);
-      if (!hour) {
-        // The series is held but does not reach this moment - which is a real
-        // answer for a date three weeks out, not a failure to fetch.
-        setSky({ observed: 'off' });
-        return false;
-      }
-      setSky({
-        cover: hour.cover,
-        base: hour.base,
-        wind: hour.wind,
-        windBearing: hour.windBearing,
-        observed: 'live',
-      });
-      return true;
-    };
-
-    if (!force && haveConditions(sky.latitude, sky.longitude)) {
-      apply();
-      return;
-    }
-
-    setSky({ observed: 'asking' });
-    const done = beginActivity();
-    try {
-      const got = await fetchConditions(sky.latitude, sky.longitude);
-      if (!got || !apply()) setSky({ observed: got ? 'off' : 'failed' });
-    } catch (error) {
-      console.error(error);
-      reportFailure();
-      setSky({ observed: 'failed' });
-    } finally {
-      done();
-    }
-  },
-
   setSun: (sun) => set((state) => ({ sun: { ...state.sun, ...sun } })),
 
-  setFill: (fill) => set((state) => ({ fill: { ...state.fill, ...fill } })),
 
   setInstrument: (instrument) => set({ instrument }),
 

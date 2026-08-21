@@ -361,6 +361,12 @@ export const WalkOverlay: React.FC<{
   const flatBoard = perspectiveMode === 'rectilinear';
   const sun = useStore((s) => s.sun);
   const setSun = useStore((s) => s.setSun);
+  /*
+   * Only whether the sky is aiming the sun, not the sky itself: three fingers
+   * move the sun by hand, and while the sky has it those two numbers are
+   * readings rather than settings. See the sun-pan below.
+   */
+  const skyAims = useStore((s) => s.sky.simulate);
   const backgroundGray = useStore((s) => s.backgroundGray);
   const grayThemeControl = useGrayThemeControl();
   const backdrop = useStore((s) => s.backdrop);
@@ -908,7 +914,22 @@ export const WalkOverlay: React.FC<{
       }
     }
 
-    if (pointers.current.size === 3) {
+    /*
+     * THREE FINGERS MOVE THE SUN - unless the sky is moving it.
+     *
+     * This writes the bearing and the height straight into the light, which is
+     * exactly right while they are yours to set and exactly wrong while they
+     * are not: with the sky up they are readings of where the sun stands over
+     * a real place at a real hour, the panel does not even draw their knobs,
+     * and a gesture that overwrote them would leave the light saying one thing
+     * and the hour beside it saying another with nothing on screen admitting
+     * it. A running clock used to hide that by snapping the sun back on the
+     * next frame; the clock is gone, so the drift would simply stand.
+     *
+     * Doing nothing is the honest answer. The hour is one press away and it is
+     * where those two numbers are decided.
+     */
+    if (pointers.current.size === 3 && !skyAims) {
       const points = [...pointers.current.values()];
       sunPan.current = {
         x: points.reduce((sum, point) => sum + point.x, 0) / 3,
