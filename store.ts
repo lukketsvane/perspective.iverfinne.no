@@ -1026,10 +1026,18 @@ const releaseUnreferenced = (
 };
 
 /** The scene as it stands, pushed onto the undo stack. */
-const snapshot = (state: Pick<SceneState, 'boxes' | 'models' | 'lamps' | 'surface' | 'undoStack'>) =>
+const snapshot = (
+  state: Pick<SceneState, 'boxes' | 'models' | 'lamps' | 'surface' | 'fieldName' | 'undoStack'>
+) =>
   [
     ...state.undoStack,
-    { boxes: state.boxes, models: state.models, lamps: state.lamps, surface: state.surface },
+    {
+      boxes: state.boxes,
+      models: state.models,
+      lamps: state.lamps,
+      surface: state.surface,
+      fieldName: state.fieldName,
+    },
   ].slice(-UNDO_DEPTH);
 
 /** One step's worth of scene, for the stack going the other way. */
@@ -1038,6 +1046,7 @@ const snapshotOf = (state: SceneState) => ({
   models: state.models,
   lamps: state.lamps,
   surface: state.surface,
+  fieldName: state.fieldName,
 });
 
 /** The selection, if what it names is still standing after the step. */
@@ -1061,7 +1070,9 @@ const heldOn = (
  * dead end the moment a new one is made - which is what everything that has
  * ever had an undo does, and the only behaviour that cannot surprise anyone.
  */
-const remember = (state: Pick<SceneState, 'boxes' | 'models' | 'lamps' | 'surface' | 'undoStack'>) => ({
+const remember = (
+  state: Pick<SceneState, 'boxes' | 'models' | 'lamps' | 'surface' | 'fieldName' | 'undoStack'>
+) => ({
   undoStack: snapshot(state),
   redoStack: [] as SceneState['redoStack'],
 });
@@ -2538,6 +2549,10 @@ export const useStore = create<SceneState>((set, get) => ({
         models: previous.models,
         lamps: previous.lamps ?? state.lamps,
         surface: previous.surface ?? state.surface,
+        // Null rather than the standing one when a step predates the field
+        // riding along: "no arrangement" is the honest answer for a step that
+        // never recorded which one it had.
+        fieldName: previous.fieldName ?? null,
         undoStack: state.undoStack.slice(0, -1),
         redoStack: [...state.redoStack, snapshotOf(state)].slice(-UNDO_DEPTH),
         ...heldOn(previous, state),
@@ -2555,6 +2570,7 @@ export const useStore = create<SceneState>((set, get) => ({
         models: ahead.models,
         lamps: ahead.lamps ?? state.lamps,
         surface: ahead.surface ?? state.surface,
+        fieldName: ahead.fieldName ?? null,
         undoStack: [...state.undoStack, snapshotOf(state)].slice(-UNDO_DEPTH),
         redoStack: state.redoStack.slice(0, -1),
         ...heldOn(ahead, state),

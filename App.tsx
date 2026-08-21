@@ -88,103 +88,88 @@ export default function App() {
   }, [surface, backgroundGray, backdrop]);
 
   /**
-   * THE STREET: what is standing there when the tool opens.
+   * THE DOOR: a figure waving, and a metre cube standing beside her.
    *
-   * The opening used to be the racer with its yard - one beautiful object,
-   * framed. It taught scale and it taught nothing else, and everything this
-   * tool is actually about had to be walked to. The street teaches all of it
-   * at once, standing still: two rows of metre cubes run their edges to one
-   * point on the horizon; the gaps between them - a metre each, every one -
-   * compress toward it, which is depth made visible; the lamps repeat down
-   * one side, the measure the drawing books say to lean on; the figures put
-   * known heights at three depths for the eye-level line to cut; and one box
-   * stands turned in the middle of the road, carrying its own pair of points
-   * along the same horizon. It is the lesson's whole deck laid out as one
-   * place - and the racer is still on the shelf, one tap away.
+   * TWO THINGS, AND IT HAS BEEN THREE DIFFERENT DOORS.
    *
-   * A composition, not a car park: laid out by hand against the stand below,
-   * and looked at from it, in both orientations, before any number settled.
+   * It was the racer and its yard first - one beautiful object, framed, which
+   * taught scale and taught nothing else until you walked. Then it was a
+   * STREET: two rows of metre cubes running their edges to one point, three
+   * lamps repeating down one side, three figures at three depths for the line
+   * to cut, and one box turned in the roadway carrying its own pair of points.
+   * That was the lesson's whole deck laid out as one place, and every word of
+   * that argument was true.
+   *
+   * It was also a demonstration, and a demonstration has to be read. A viewer
+   * who has never met a vanishing point sees a car park. The gaps compress and
+   * the lamps measure the depth and the turned box refuses the street's points,
+   * and not one of those facts announces itself to somebody who does not
+   * already have the words for it - they are the ANSWERS to the deck, standing
+   * in the doorway before the questions have been asked.
+   *
+   * What a character and a cube say instead is one thing, and everybody reads
+   * it without being told: THAT is how big a person is, and THIS is how big a
+   * metre is, and here they are side by side. Which is the sentence this whole
+   * tool is built on - a scene is right when the sizes are right - and it is
+   * the one thing the street could not say, because a street has nothing in it
+   * you already know the size of.
+   *
+   * The street is not gone. It is a card in the deck and one of the eleven
+   * arrangements the shelf deals, which is where an exercise belongs: something
+   * you ask for when you want to draw it, rather than something standing in
+   * the hall.
    */
-  const STREET_ROWS: { at: [number, number]; tall: number }[] = [
-    // The left row, with one cube grown into a tower so the skyline varies
-    // and there is a tall vertical to find the zenith with.
-    { at: [-2, -1], tall: 1 },
-    { at: [-2, -3], tall: 1 },
-    { at: [-2, -5], tall: 3 },
-    { at: [-2, -7], tall: 1 },
-    { at: [-2, -9], tall: 1 },
-    { at: [-2, -11], tall: 1 },
-    // The right row, its tower deeper so the two do not read as a gate.
-    { at: [2, -1], tall: 1 },
-    { at: [2, -3], tall: 1 },
-    { at: [2, -5], tall: 1 },
-    { at: [2, -7], tall: 2.2 },
-    { at: [2, -9], tall: 1 },
-    { at: [2, -11], tall: 1 },
-  ];
+  const DOOR_CUBE = { at: [-0.8, -2.2] as [number, number], turn: 0.42 };
 
   /**
-   * The intruder: one cube in the roadway, turned half a radian off the grid.
+   * And she is turned to nothing: the library's figures face +Z, the eye stands
+   * at +Z, so a turn of zero is her looking straight back at you.
    *
-   * Everything else in the scene shares one family of edges and one pair of
-   * points. This one refuses, and holding it (its own construction is one tap
-   * away) shows its pair standing on the SAME horizon, somewhere else - which
-   * is the fact about turned things almost nobody is taught.
+   * The waving one of the five standing poses, because a door is a greeting and
+   * because the raised arm is the one part of her that goes ABOVE the eye line -
+   * which is the first thing in the frame that is not explained by the ground.
    */
-  const STREET_INTRUDER = { at: [0.95, -6.1] as [number, number], turn: 0.5 };
-
-  /** Three lamps down the left side, two grid squares apart, every time. */
-  const STREET_LAMPS: [number, number][] = [
-    [-1.3, -2],
-    [-1.3, -6],
-    [-1.3, -10],
-  ];
+  const DOOR_FIGURE = { id: 'hare-standing-5', at: [0.4, -1.9] as [number, number], turn: 0 };
 
   /**
-   * Who is standing in the street, and at which depths.
+   * Where the tool stands you when it opens: two and three quarter metres from
+   * her, half a step off the axis so the pair reads as two things beside each
+   * other rather than one behind the other.
    *
-   * The walker is the 1.80 from the lesson, mid-street, coming toward you:
-   * the eye-level line cuts him through the face, which is the first check of
-   * any figure in any scene. The jetpack one hovers deeper at 1.15, so the
-   * line goes over his helmet - same line, different verdict, which is the
-   * point. The kneeling crewman is nearest and lowest, at work; a folded
-   * figure close up is the hardest of the three to draw and earns the near
-   * spot the way he earned it beside the racer.
-   */
-  const STREET_FIGURES: { id: string; at: [number, number]; turn: number }[] = [
-    // The library's figures face +Z at a turn of zero, and the eye stands at
-    // +Z: zero IS facing the viewer, walking out of the street.
-    { id: 'astro-walking', at: [0.5, -4.0], turn: 0 },
-    { id: 'astro-jetpack', at: [-1.05, -8.2], turn: 0.45 },
-    { id: 'crew-kneeling', at: [2.75, -1.3], turn: 2.6 },
-  ];
-
-  /**
-   * Where the tool stands you when it opens: at the mouth of the street,
-   * half a step off its axis so the near row leads in rather than walls off.
+   * NEAR, AND THE NUMBER IS THE FIELD'S DOING. The tool opens at 210 degrees -
+   * the whole of human sight on one sheet - and at that field a metre subtends
+   * very little. The street could stand its nearest figure five and a half
+   * metres off and get away with it, because a street is a hundred square
+   * metres of subject and something was always close; two objects have to BE
+   * close, or the door is a wide grey floor with two specks on it. At two and
+   * three quarters she is about a fifth of the frame's height, which is a
+   * figure you can see the drawing problem in, and the cube beside her is
+   * unmistakably a metre of the same floor.
    *
    * A fixed stand, not a solve. The racer needed framing because it was one
-   * object of one size; a street is a place, and a place holds its view in
-   * either orientation - portrait sees it deep, landscape sees both rows.
+   * object of one size and the frame had to be searched for; two things at a
+   * known distance hold their view in either orientation without arithmetic.
    */
-  const STREET_STAND = { x: 0.55, z: 1.8, yaw: -0.05, pitch: -0.02 };
-
+  const DOOR_STAND = { x: 0.55, z: 0.85, yaw: -0.05, pitch: -0.02 };
 
   /**
-   * The scene the tool starts from: the street, with the eye at its mouth.
+   * The scene the tool starts from: her, the cube, and the ground.
    *
    * Both the opening and the reset go through here, so those two are the same
    * state by construction rather than by two pieces of code agreeing. Reset
    * therefore means "back to how this started", which is a place to draw from,
    * rather than "empty grid", which is a place to look at.
    *
-   * EVERYTHING IS FETCHED BEFORE ANYTHING STANDS UP: one await, one guard,
-   * one arrangement, so a viewer who placed something during the load never
-   * finds half a street landing on top of it. The cubes and the lamps cost
-   * nothing to fetch; the wall clock is the three figures', and they are a
-   * fraction of what the aeroplane that used to open here weighed - the
-   * twenty-megabyte racer now loads when it is asked for, from the shelf,
-   * instead of on every first visit.
+   * THE FIGURE IS FETCHED BEFORE ANYTHING STANDS UP: one await, one guard, one
+   * arrangement, so a viewer who placed something during the load never finds
+   * half a door landing on top of it. The cube costs nothing to fetch; the wall
+   * clock is one 190 KB mesh, which is a hundredth of what the aeroplane that
+   * used to open here weighed.
+   *
+   * NO LAMPS. Three of them used to repeat down one side of the street, and
+   * they were there to measure its depth - a job nothing in a two-object frame
+   * needs doing. The sun and the sky light this, the way they light everything
+   * else the tool has not been asked to light itself.
    *
    * The stand is glided to, not cut to: this lands a moment after boot, and a
    * hard cut reads as the picture snapping under whoever is already looking.
@@ -192,7 +177,7 @@ export default function App() {
   const standOpening = () => {
     /*
      * The suite's empty-yard door. Specs about blocking out and placing need
-     * the floor the street now occupies, and they count what they made - so a
+     * the floor the opening now occupies, and they count what they made - so a
      * key written before the app's first line of script opens the tool bare:
      * the same stand, nothing on it. The same seam the page pin uses, for the
      * same reason: the production build the suite runs against has no other
@@ -203,60 +188,52 @@ export default function App() {
         walkInput.lookYaw = 0;
         walkInput.lookPitch = 0;
         walkInput.seeded = true;
-        glideWalkerTo({ ...STREET_STAND });
+        glideWalkerTo({ ...DOOR_STAND });
         return Promise.resolve();
       }
     } catch {
       /* no storage is no bare door, which is the right default */
     }
     const done = beginActivity();
-    return Promise.all(
-      STREET_FIGURES.map((who) => {
-        const mesh = MESH_LIBRARY.find((m) => m.id === who.id);
-        if (!mesh) return Promise.resolve(null);
-        return loadModelFromUrl(mesh.url, mesh.name, who.at, mesh.height, mesh.lift)
-          .then(({ model }) => ({ ...model, rotationY: who.turn }))
-          // One missing file is an emptier street, not a tool that failed to open.
-          .catch(() => null);
-      })
+    const mesh = MESH_LIBRARY.find((m) => m.id === DOOR_FIGURE.id);
+    return Promise.resolve(
+      mesh
+        ? loadModelFromUrl(mesh.url, mesh.name, DOOR_FIGURE.at, mesh.height, mesh.lift)
+            .then(({ model }) => ({ ...model, rotationY: DOOR_FIGURE.turn }))
+            // A missing file is a cube on a floor, not a tool that failed to open.
+            .catch(() => null)
+        : null
     )
-      .then((figures) => {
+      .then((figure) => {
         // Anything the viewer did in the meantime wins: a scene opened from the
         // library, or a mesh placed by hand, is not something to land on top of.
         const state = useStore.getState();
         if (state.models.length || state.boxes.length) return;
         useStore.setState({
           boxes: [
-            ...STREET_ROWS.map(({ at: [x, z], tall }, n) => ({
-              id: `street-${n}`,
-              position: [x, tall / 2, z] as [number, number, number],
-              scale: [1, tall, 1] as [number, number, number],
-              rotation: [0, 0, 0] as [number, number, number],
-              surface: state.surface,
-            })),
             {
-              id: 'street-turned',
-              position: [STREET_INTRUDER.at[0], 0.5, STREET_INTRUDER.at[1]] as [number, number, number],
+              /*
+               * Turned nearly a quarter off the grid, which is the whole of what
+               * one cube can say that a square one cannot: square on, two of its
+               * three families run straight across the page and the third goes
+               * to the middle, and the picture is a diagram of one-point
+               * perspective. Turned, it has a pair of its own on the horizon,
+               * and holding it draws them.
+               */
+              id: 'door-cube',
+              position: [DOOR_CUBE.at[0], 0.5, DOOR_CUBE.at[1]] as [number, number, number],
               scale: [1, 1, 1] as [number, number, number],
-              rotation: [0, STREET_INTRUDER.turn, 0] as [number, number, number],
+              rotation: [0, DOOR_CUBE.turn, 0] as [number, number, number],
               surface: state.surface,
             },
           ],
-          lamps: STREET_LAMPS.map(([x, z], n) => ({
-            id: `street-lamp-${n}`,
-            position: [x, 2.2, z] as [number, number, number],
-            kind: 'bulb' as const,
-            aim: 0,
-            intensity: 8,
-            temperature: 3600,
-            enabled: true,
-          })),
+          lamps: [],
         });
-        figures.forEach((who) => who && standObject(who));
+        if (figure) standObject(figure);
         walkInput.lookYaw = 0;
         walkInput.lookPitch = 0;
         walkInput.seeded = true;
-        glideWalkerTo({ ...STREET_STAND });
+        glideWalkerTo({ ...DOOR_STAND });
       })
       .catch((error) => {
         console.error('Could not stand the opening scene up:', error);

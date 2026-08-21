@@ -431,6 +431,18 @@ export interface HistoryStep {
   models: SceneModel[];
   lamps: LampData[];
   surface?: Surface;
+  /**
+   * Which practice field is on the floor, if one is.
+   *
+   * It rides with the step because it is a fact about the SCENE and not about
+   * the session: undo a deal and the arrangement that comes back is the one
+   * before it, so the name has to come back too. Left out, two things drifted -
+   * the shuffle's promise never to hand you the field you are already drawing
+   * started counting from an arrangement nobody could see, and the line that
+   * says what the field is asking went on naming an exercise that had been
+   * undone out from under it.
+   */
+  fieldName?: string | null;
 }
 
 /**

@@ -500,27 +500,27 @@ export const WalkOverlay: React.FC<{
    */
   const blocking = instrument === 'block';
 
+  const photograph = useStore((s) => s.photograph);
+  const setPhotograph = useStore((s) => s.setPhotograph);
   /*
-   * The exercise on the floor, for as long as it takes to read its question.
+   * The exercise on the floor, and the question it is asking.
    *
    * Driven off `fieldName` rather than off the tap that dealt it, so it is
    * right however the field arrived - the shelf's tile, an undo that put the
-   * last one back, a scene reopened. Eight seconds, which is a slow read of two
-   * lines and not long enough to sit over the drawing.
+   * last one back, a scene reopened.
+   *
+   * The eight seconds it stands for are counted somewhere else, below, once
+   * everything that shares its slot has been worked out. Counting them here
+   * spent them whether or not the thing was ever on screen: deal a field with
+   * the block-out pencil armed - which is two taps and closes nothing - and
+   * the banner is suppressed while its clock runs out, so the task is lost for
+   * good rather than shown late.
    */
-  const photograph = useStore((s) => s.photograph);
-  const setPhotograph = useStore((s) => s.setPhotograph);
   const fieldName = useStore((s) => s.fieldName);
   const [task, setTask] = useState<{ note: string; ask: string } | null>(null);
   useEffect(() => {
     const field = fieldNamed(fieldName);
-    if (!field) {
-      setTask(null);
-      return;
-    }
-    setTask({ note: field.note, ask: field.ask });
-    const gone = window.setTimeout(() => setTask(null), 8000);
-    return () => window.clearTimeout(gone);
+    setTask(field ? { note: field.note, ask: field.ask } : null);
   }, [fieldName]);
 
   const block = useRef<
@@ -588,6 +588,29 @@ export const WalkOverlay: React.FC<{
 
   const setPerspectiveMode = useStore((s) => s.setPerspectiveMode);
   const lens = useStore((s) => s.camera);
+
+  /*
+   * WHETHER THE TASK IS ACTUALLY ON SCREEN, which is what its clock runs on.
+   *
+   * Four things want the one band above the drawing, and only one of them can
+   * have it: the block-out prompt, the measure's, the finder's exposure line,
+   * and this. The first two are instructions for a gesture in progress and win
+   * outright. The finder is a standing readout of a mode, and it is the one
+   * that yields here - the same way it already yields to the pencil - because
+   * a task is a thing you read once and then have, and eight seconds is the
+   * whole of what it costs the exposure line.
+   *
+   * Sharing the slot without saying so was the state before this: both are
+   * `fixed top-safe-panel` with opaque glass on them, so an armed lens plus a
+   * dealt field drew two blocks of chrome over each other and neither was
+   * readable.
+   */
+  const taskUp = task !== null && !blocking && !measuring;
+  useEffect(() => {
+    if (!taskUp) return;
+    const gone = window.setTimeout(() => setTask(null), 8000);
+    return () => window.clearTimeout(gone);
+  }, [taskUp]);
   const setCamera = useStore((s) => s.setCamera);
   const guides = useStore((s) => s.guides);
   const cycleGuides = useStore((s) => s.cycleGuides);
@@ -1598,7 +1621,7 @@ export const WalkOverlay: React.FC<{
         * its own pill with no hint that there was more of it. Same glass, same
         * band, same weight - a rectangle that wraps.
         */}
-      {task && !blocking && !measuring && (
+      {taskUp && (
         <div
           aria-live="polite"
           className={`fixed z-40 left-1/2 -translate-x-1/2 top-safe-panel pointer-events-none w-[min(22rem,calc(100vw-1.5rem))] px-3 py-2 rounded-2xl text-xs border ${chrome(isDark)}`}
@@ -1633,7 +1656,7 @@ export const WalkOverlay: React.FC<{
         * down while that is up: two lines of chrome in the same strip is one
         * line too many, and a drag in progress has its own reading anyway.
         */}
-      {lens.on && !blocking && !measuring && (
+      {lens.on && !blocking && !measuring && !taskUp && (
         <div
           aria-live="off"
           className={`fixed z-40 left-1/2 -translate-x-1/2 top-safe-panel pointer-events-none tabular-nums ${bubble(isDark)}`}

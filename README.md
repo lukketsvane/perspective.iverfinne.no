@@ -9,94 +9,55 @@ of metres, and it is meant to be legible without reading.
 
 ## The library
 
-One subject and the yard around it. The shelf was three times this size — two
-chairs, a car, four horses, a platypus, three crowded studies of fifteen
-figures each — twenty megabytes of things that were on it because they were
-interesting rather than because this drawing needed them. A shelf is a claim
-about what the tool is for, and what this one is for is the page the tool
-opens on: an aeroplane being worked on, the men working on it, and the
-distances between them — and, since the lesson grew a second half about
-bodies, the one character the lesson is addressed to, in fourteen attitudes.
+One character and the metre she is measured against. The shelf was six times
+this size and has been cut twice, and both cuts are the point.
 
-The **Hughes H-1**, 1935, is the one form here that is a solid of revolution
-with things hung off it. Every vehicle that used to be on the shelf was a long
-box with wheels, which is a box lesson; a racer's fuselage is a lathe-turned
-body tapering in two directions at once, its wings are one aerofoil section
-swept and stretched, and it stands on three points at a nose-up angle, so its
-long axis is off the ground plane as well as off square. Measured, it is 9.7
-across the wings and 8.8 long, standing 3.2 on its own gear with the tail
-down — authored at its real size, placed exactly as it comes. It is also
-nineteen megabytes, four fifths of the shelf on its own; nothing loads until
-it is tapped, so a first visit pays nothing, but it is a real cost to whoever
-taps it and it is the single heaviest thing this tool will ever ask a phone to
-parse.
+The first took out two chairs, a car, four horses, a platypus, three crowded
+studies of fifteen figures each — twenty megabytes of things that were on it
+because they were interesting rather than because a drawing needed them. What
+survived was one subject and the yard around it: a **Hughes H-1** at nineteen
+megabytes, the four men who worked on it, and three astronauts built openly out
+of spheres and capsules, which is how a figure is blocked in before it is
+anybody.
 
-The **four men** are what turn one aeroplane into an airfield. An aircraft
-alone on an infinite grid is a beautiful object and a poor subject: nothing in
-the frame says how big it is except the ruling, nothing is at a different
-depth from it, and there is no second form to draw its forms against. Four men
-fix all three at once — they are the size every viewer knows best, they stand
-at four separate distances, and not one of them is a shape the aeroplane is.
-Four poses, no two the same drawing problem: two upright with the mass
-stacked, one folded down on one knee, one folded right up on its heels with
-every limb foreshortened at once. They are photogrammetry scans, and they ship
-with the maps and UVs gone entirely and the geometry welded — four of the five
-drawing surfaces are ink and never sample a texture, and the fifth is not
-improved by a photograph of somebody's face. Their sizes were read off a ruled
-post — 1.72 m to the top of a standing cap — because weighing them, which is
-how the animals that used to be here were checked, puts a man in a leather
-flying jacket at four times the volume of the man in a shirt.
+The second took *those*, and it is the harder cut to argue for, because every
+one of them was good. The racer was the best hard drawing in the library and
+the only solid of revolution on it — a fuselage tapering in two directions at
+once, wings that are one aerofoil swept and stretched, a cross-section no box
+construction predicts. The crew were real anatomy at real sizes, four poses of
+which no two were the same drawing problem.
 
-The **three astronauts** are one small character in a bunny-eared spacesuit,
-three times, and a different kind of figure from the men on purpose. The crew
-are anatomy — real proportions, real clothes, the sizes people are. These are
-construction: a body built openly out of spheres, capsules and tubes, which is
-how every figure is blocked in before it is anybody. Drawing the crew is
-drawing what you see; drawing these is drawing the armature itself, and a
-beginner can actually finish one. The poses are three problems the yard does
-not set. Flat on the back with everything in the air is the feet-first
-foreshortening study, the pose every figure course sets and no standing figure
-can teach. The walk is a figure in motion, weight mid-transfer, nothing
-symmetrical. The one with the jetpack is the same body standing still, which
-is the datum the other two are measured against. One of them also stands in
-the lesson: the walker is the 180-centimetre mark on the measuring-stick card,
-a height you read off a character you have met rather than off a labelled box
-— and the one the horizon cuts through the face, exactly where it cuts yours.
-They are generated meshes
-rather than scans and it shows in the numbers — twenty-five thousand triangles
-apiece, a sixteenth of a scanned crewman, with one flat-colour map and no
-photograph anywhere on them — so unlike the crew they keep their base colour,
-at 1024 like everything else, and drop the normal and metallic-roughness maps
-the way the animals did, with the factors owned in the file: glTF defaults
-metallic to 1, and a fully metallic surface with no environment map draws very
-nearly black. No real size exists for a cartoon, so each is sized for
-its job: the walker stands at 1.80, because he is the lesson's measuring
-stick — a figure in grown-up height that the horizon cuts just under the top,
-exactly where it cuts you — and the other two stay character-sized, a metre
-and a bit standing and 0.9 to the raised mitten, children beside the 1.72 m
-crewman. And they face +Z like
-everything here: one arrived facing away and one lying with its feet across
-the ruling, and the quarter turns are baked into the files, same rule as the
-crew, no table of exceptions.
+The argument against them is not quality. A shelf is a claim about who the tool
+is for, and a shelf carrying three separate casts makes three claims at once: a
+viewer met an aeroplane mechanic at the front door, a jetpacked cartoon on the
+sixth card and a hare on the seventh, and had to work out for themselves which
+of them was the measuring stick. One body, in every attitude a drawing needs,
+says it without being said. It also took twenty-eight megabytes off the shelf
+and left two and a half.
 
-**Perspektivharen** is fourteen poses of one character, and the first thing on
+**Perspektivharen** is fourteen poses of one character, and the only thing on
 this shelf that belongs to the tool rather than to whoever made it. Everything
-above was found and cut to size, and that shows in what it can be asked to do:
-the crew are four men who work on an aeroplane and the astronauts are three
-demonstrations of an armature, and neither is *anybody*. A hare in a
-bunny-eared suit who turns up on the seventh card, again on the seventeenth,
-and again in the field you are left drawing at the end is something else — the
-person the lesson is addressed to, and therefore the measuring stick, which has
-to be one recognisable body or it is only more furniture standing about.
+that used to stand here was found and cut to size, and that showed in what it
+could be asked to do — four men who work on an aeroplane and three
+demonstrations of an armature, and not one of them *anybody*. A hare in a
+bunny-eared suit who is waving at you when the tool opens, who turns up on the
+fifth card and the seventh and the seventeenth, and who is sitting beside the
+cube you are left drawing at the end, is something else — the person the lesson
+is addressed to, and therefore the measuring stick, which has to be one
+recognisable body or it is only more furniture standing about.
 
 **A hundred and seventy centimetres, sole to crown, all fourteen** — and that is
 not the number the files measure. The ears go a good twenty centimetres past the
 top of the head, so a standing hare's box is 1.88 to 1.94 tall and its *head* is
-at 1.70. None of them carries a height, for the same reason the racer does not.
+at 1.70. None of them carries a height: the size is baked into the file.
 The gap between the two numbers is not a rounding error either; it is a thing
-the lesson uses. Stand at the tool's own eye height and the horizon lands on the
+the lesson uses. The deck stands you at 1.70, so the horizon lands on the
 crown of every standing hare in the frame, near one and far one alike, with the
-ears over the line.
+ears over the line — while the tool's own default eye is 1.9, a tall standing
+one, so at the front door the line sits a hand's width *above* her head. That is
+not a contradiction; it is the reading the fifth card teaches. The line is your
+height, and where it crosses somebody says how much taller or shorter than you
+they are.
 
 Which is the second thing they are for. In metres to the crown they run
 1.70 / 1.70 / 1.70 / 1.66 / 1.68 standing, 1.64 and 1.66 mid-jump, 1.49
@@ -129,8 +90,8 @@ that arithmetic and does not get it: a runner's crown is low because the body is
 folded forward, not because it is down, so what it needs is a stride's ground
 clearance, about a hand's width.
 
-They cost 190 KB apiece and 2.6 MB for all fourteen — an eighth of the racer
-alone — at ten thousand triangles each, one flat grey material, and no maps
+They cost 190 KB apiece and 2.6 MB for all fourteen — an eighth of what the
+racer weighed on its own — at ten thousand triangles each, one flat grey material, and no maps
 whatsoever, so they are the cheapest things here to draw as well as to fetch.
 Twelve arrived facing +X, one facing −X and one facing −Z; the turns are baked
 into the files, and a quarter turn about Y is a swap and a sign in floating
@@ -168,22 +129,41 @@ was rounded the way every real drum's is.
 
 ## Opening
 
-A street is standing there when the tool opens, under the real sky at noon:
-two rows of metre cubes running their edges to one point, a tower in each row
-so the skyline varies, three lamps down the left side at equal spacings, a
+Two things are standing there when the tool opens, under the real sky at noon:
+**a figure waving at you, and a metre cube beside her**, turned nearly a
+quarter off the grid so it carries a pair of points of its own. That is the
+whole door.
+
+It has been three doors. It was the **racer and its yard** first — one
+beautiful object, framed, which taught scale and taught nothing else until you
+walked. Then it was a **street**: two rows of metre cubes running their edges
+to one point, a tower in each row, three lamps repeating down the left side, a
 figure walking out of it at 1.80 with the horizon through his face, a second
 hovering deeper at 1.15 with the line over his helmet, a crewman kneeling at
-work by the first corner — and one cube standing turned in the roadway,
-carrying its own pair of points along the same horizon. Everything the tool
-teaches is in the frame before anything is tapped: the gaps compress, the
-repeated lamps measure the depth, the line cuts the figures at their honest
-heights, and the turned box refuses the street's points without leaving their
-line. It opened for years on the Hughes racer with its ground crew — one
-beautiful object, framed, which taught scale and nothing else until you
-walked. The racer is still on the shelf, one tap away, and it is still the
-best hard drawing in the library. The drawn pages are all one rung-tap away
-and the deck goes on dealing them in the gaps; what the front door shows is
-what those pages are *of*.
+work by the first corner, and the turned box in the roadway. Everything the
+tool teaches was in the frame before anything was tapped, and every word of
+that argument was true.
+
+It was also a **demonstration, and a demonstration has to be read**. Somebody
+who has never met a vanishing point sees a car park. The gaps compress and the
+lamps measure the depth and the turned box refuses the street's points — and
+not one of those facts announces itself to a person who does not already have
+the words for it. They are the *answers* to the deck, standing in the doorway
+before the questions have been asked.
+
+What a character and a cube say instead is one thing, and everybody reads it
+without being told: *that* is how big a person is, *this* is how big a metre
+is, and here they are side by side. Which is the sentence the whole tool is
+built on — a scene is right when the sizes are right — and it is the one thing
+the street could not say, because a street has nothing in it you already know
+the size of. It is also the reading the lesson's second act spends six cards
+on, waiting in the hall.
+
+The street is not gone. It is a card in the deck and one of the eleven
+arrangements the shelf deals, which is where an exercise belongs: something you
+ask for when you want to draw it, rather than something standing in the hall.
+The drawn pages are all one rung-tap away and the deck goes on dealing them in
+the gaps; what the front door shows is what those pages are *of*.
 
 It opened for years on the brush page on black — line and spotted black, hard
 light, black mount — and the paragraphs below are that reasoning, kept because
@@ -226,14 +206,15 @@ you draw from for an hour should not carry a button that empties it. Reloading
 the page is the way back to the opening, and it is a deliberate enough act to
 be the only one.
 
-**The stand is fixed, not solved.** You open at the mouth of the street, half
-a step off its axis so the near row leads in rather than walls off, at a
-standing eye. The one-object opening needed a framing solve — two
-transcendental conditions searched to a centimetre, a reframe listener for
-the phone turning, a whole apparatus for standing the right distance from one
-aeroplane — and the street needed none of it: a place holds its view in
-either orientation, portrait seeing it deep and landscape seeing both rows.
-The solve went out with the object it was built around.
+**The stand is fixed, not solved.** You open a conversation's distance from
+her, half a step off the axis so the two read as things beside each other
+rather than one behind the other, at a standing eye. The one-object opening
+needed a framing solve — two transcendental conditions searched to a
+centimetre, a reframe listener for the phone turning, a whole apparatus for
+standing the right distance from one aeroplane — and neither the street nor
+this needed any of it: two things at a known distance hold their view in
+either orientation without arithmetic. The solve went out with the object it
+was built around.
 
 ## Moving about
 
@@ -496,7 +477,8 @@ anything in the world that is also that height is cut by it — and cut at the
 same place three metres away and forty*. Four posts of exactly eye height,
 scattered near and far, and the line lands on every top. Then a desk, a child, a
 car and a door, whose heights you already know in your body, read straight off
-where the line crosses them. Then the eye slides from a crouch to a stretch with
+where the line crosses them — and among them the hare, whose crown the line
+lands exactly on, because she is 1.70 and so is the eye. Then the eye slides from a crouch to a stretch with
 nothing on the floor moving, which is the only way to stop somebody putting the
 horizon in the middle of every page they ever draw — and on the way it shows
 that a top face closes up as it rises to the line and is gone *at* it.
@@ -525,7 +507,7 @@ the horizon rather than guessed.
 | **Kva fangar du kula på?** | the same scene, same spot, stepping plane → cylinder → sphere |
 | **Hovudpunktet og horisonten** | *do it*: turn, and see which two marks refuse to move |
 | **Alt i di eiga høgd** | *do it*: four posts of exactly your own height, five metres out and forty — the line cuts every one of them at the top |
-| **Linja er ein målestokk** | a desk, a car, the astronaut at his 180, a door: read their heights off where the line crosses them |
+| **Linja er ein målestokk** | a desk, a car, a door — and the hare, whose crown *is* the line: read their heights off where it crosses them |
 | **Auget flyttar seg med deg** | the eye slides from a crouch to a stretch while nothing on the floor moves |
 | **Heile flokken på ein gong** | *do it*: walk into a crowd of hares at a dozen depths and watch the line hold every crown |
 | **Dei som står høgare** | three of them up on a platform, cut at the knee: the rule is about floors, not about people |
@@ -661,11 +643,11 @@ halves at each doubling, a flock at your own height, and the swarm that asks
 everything at once — and the photograph, for the one exercise that has to be
 your own room rather than anybody's cubes. The SHEET is what stays, though, not the stage: the
 scene and where you stood come back from before the lesson, because the first
-version kept the last card's stand while restoring the scene, and the
-returning aeroplane arrived through your view from three metres — the lesson
-ended inside the fuselage, with the practice cube standing in its tail. Now it
-ends where it began: the same yard, from the same spot, on the page you have
-just learned to read, pencil in hand.
+version kept the last card's stand while restoring the scene, and back when the
+door was an aeroplane the returning fuselage arrived through your view from
+three metres — the lesson ended inside it, with the practice cube standing in
+its tail. Now it ends where it began: the same floor, from the same spot, on
+the page you have just learned to read, pencil in hand.
 
 And the dock goes down while a card is up, and **stays** down. A lesson is a
 performance, and a performance with a toolbar over it is a screenshot of a menu.

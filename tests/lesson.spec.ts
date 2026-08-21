@@ -78,7 +78,7 @@ test('a gate opens to the hand, and the gateless card answers on the reading clo
    * way this machinery could quietly break), and then it must come on its own
    * with nothing pressed and nothing dragged.
    */
-  await vidareTo(page, 'astronauten på 180');
+  await vidareTo(page, 'ei dør på 210');
   await expect(page.getByText('pulten til låret')).toHaveCount(0);
   await expect(page.getByText('pulten til låret')).toBeVisible({ timeout: 16_000 });
 });
