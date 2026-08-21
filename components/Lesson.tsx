@@ -1,10 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { walkInput } from '../lib/walkInput';
-import { ACTS, CARDS, CAST, OPENING, pingPong, sweepAt, type Act, type Card, type Cast, type Gate, type Stage } from '../lib/lesson';
+import {
+  ACTS,
+  CARDS,
+  CAST,
+  LESSON_LIGHT,
+  OPENING,
+  WHOLE_SHEET,
+  pingPong,
+  sweepAt,
+  type Act,
+  type Card,
+  type Cast,
+  type Gate,
+  type Stage,
+} from '../lib/lesson';
 import { MESH_LIBRARY } from '../lib/meshLibrary';
 import { loadModelFromUrl } from '../lib/loadModel';
 import { holdRail, muteRail, releaseRail, unmuteRail } from '../lib/rail';
+import { MAX_FIELD, wholeSheetField } from '../lib/projection';
+import { sunlight } from '../lib/sky';
 
 /**
  * The hand on the controls - and, on ten cards out of twenty-two, the hand
@@ -35,7 +51,9 @@ import { holdRail, muteRail, releaseRail, unmuteRail } from '../lib/rail';
  * overshoots and comes back has still been round.
  *
  * WHAT IT PROMISES TO GIVE BACK. Everything it touched: what was standing on
- * the floor, where you were, the sheet, the field, the guides, the ruling. One
+ * the floor, where you were, the sheet, the field, the guides, the ruling -
+ * and the sky, which it takes down to a low sun so the construction can be
+ * seen at all. One
  * snapshot on the way in, put back on the way out, including when the viewer
  * walks out in the middle - which is the case that matters, because that is
  * what somebody does when they are bored, and finding your scene gone is how a
@@ -56,6 +74,78 @@ const wrap = (angle: number) => {
 };
 
 const mixAngle = (from: number, to: number, t: number) => from + wrap(to - from) * t;
+
+/**
+ * A card's wished-for field, in the frame it actually got.
+ *
+ * `WHOLE_SHEET` is a card saying "open it until the whole sheet is on the
+ * page", which is not a number until there is a window to ask - see the
+ * constant's own note. Everything else passes straight through.
+ *
+ * A FIFTH WIDER THAN THE SUM SAYS, and the fifth is the whole point of doing
+ * it. `wholeSheetField` answers "when does the shorter edge stop cropping the
+ * sheet", which is the field at which the sheet exactly TOUCHES both edges -
+ * and a disc that touches the edges of the screen is still a picture you are
+ * inside. What these cards are for is the opposite: a sheet with paper round
+ * it, sitting on the page, the way a curvilinear study is set out before a
+ * line goes down. The margin is what makes it read as a drawing rather than as
+ * a very wide view, and it also keeps the bottom of the sheet clear of the
+ * words, which on a phone sit across the last third of the frame.
+ */
+const SHEET_MARGIN = 1.2;
+
+const fieldFor = (want: number) =>
+  want === WHOLE_SHEET
+    ? Math.min(
+        MAX_FIELD,
+        Math.round(
+          wholeSheetField(
+            typeof window === 'undefined' ? 1 : window.innerWidth,
+            typeof window === 'undefined' ? 1 : window.innerHeight
+          ) * SHEET_MARGIN
+        )
+      )
+    : want;
+
+/**
+ * THE LIGHT THE LESSON IS TAUGHT UNDER, and the promise to give the other one
+ * back.
+ *
+ * See `LESSON_LIGHT`: the construction is a shader laid into the picture at a
+ * fraction of an ink, and over a bright afternoon sky most of it cannot be
+ * followed at all. The lesson takes the sun down to the last of the light for
+ * as long as it runs.
+ *
+ * The shadows are forced hard rather than left as the viewer had them, and
+ * that is not tidiness. One card in the deck hides a long box behind a cube
+ * and tells you afterwards that the only thing that gave it away was what fell
+ * on the floor - which is a lie if the viewer happened to have shadows off.
+ */
+const eveningLight = () => {
+  const state = useStore.getState();
+  /* Clear. See LESSON_LIGHT: the cloud deck is the one thing in the sky that
+     can put a white shape behind a grey line, and every card here is a grey
+     line somebody is being asked to follow. */
+  const cover = 0;
+  const { intensity, temperature } = sunlight(LESSON_LIGHT.elevation, cover);
+  return {
+    sunEnvironment: true,
+    // Not simulated: an hour is a different height of sun in June than in
+    // December, and a lesson that is legible in August and black in January
+    // is not a lesson. The air and the cloud are pinned for the same reason -
+    // a viewer who left the weather at overcast should still be taught in a
+    // sky the construction stands out against.
+    sky: { ...state.sky, simulate: false, cover, air: 1 },
+    sun: {
+      ...state.sun,
+      azimuth: LESSON_LIGHT.azimuth,
+      elevation: LESSON_LIGHT.elevation,
+      intensity,
+      temperature,
+      shadows: 'hard' as const,
+    },
+  };
+};
 
 /** A cast, as boxes the store can hold. */
 const boxesFor = (cast: Cast, turn: number, surface: ReturnType<typeof useStore.getState>['surface']) =>
@@ -116,6 +206,18 @@ const snapshot = () => {
     gridZ: state.gridZ,
     cameraHeight: state.cameraHeight,
     instrument: state.instrument,
+    /*
+     * The hour goes too, and comes back.
+     *
+     * The lesson teaches under its own low sun (see `eveningLight`), which
+     * means it writes on three things a viewer may well have composed by hand:
+     * whether the sky is drawn at all, whether it is simulated, and where the
+     * light is. A tool that hands back your scene and keeps your sky is a tool
+     * that took something.
+     */
+    sky: state.sky,
+    sun: state.sun,
+    sunEnvironment: state.sunEnvironment,
     stand: {
       x: walkInput.position.x,
       z: walkInput.position.z,
@@ -230,7 +332,13 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
      * card hands it back deliberately, which it cannot do if it was never put
      * away.
      */
-    useStore.setState({ instrument: 'none', selectedModelId: null, models: [], lamps: [] });
+    useStore.setState({
+      instrument: 'none',
+      selectedModelId: null,
+      models: [],
+      lamps: [],
+      ...eveningLight(),
+    });
     /*
      * And the dock goes down IN THIS COMMIT, not in the next one.
      *
@@ -249,7 +357,20 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       unmuteRail('lesson');
       releaseRail('lesson');
       const was = held.current;
-      if (!was || !restore.current) return;
+      if (!was) return;
+      /*
+       * THE SKY COMES BACK BY BOTH DOORS, and it is the one thing that does.
+       *
+       * Walking out puts everything back and reaching the end deliberately
+       * does not - the last card's whole subject is that the ruled sheet is
+       * now yours, so it is handed over rather than swept away. The hour is
+       * not part of that gift. Nobody finishes a lesson wanting the tool left
+       * at six degrees above the horizon; the low sun was a way of making the
+       * construction readable while the lesson was talking, and the moment it
+       * stops talking it is somebody else's weather again.
+       */
+      useStore.setState({ sky: was.sky, sun: was.sun, sunEnvironment: was.sunEnvironment });
+      if (!restore.current) return;
       useStore.setState({
         boxes: was.boxes,
         models: was.models,
@@ -274,7 +395,26 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
 
   // The move into this card, and then whatever it - or the viewer - does next.
   useEffect(() => {
-    const stage: Stage = { ...OPENING, ...card.stage };
+    /*
+     * The card's stage, with any wished-for field turned into a real one - see
+     * `fieldFor`. Resolved once, here, so that everything below (the tween,
+     * the sweep, the lens gate's own reading of where the card left the field)
+     * is looking at the same number.
+     */
+    const asked: Stage = { ...OPENING, ...card.stage };
+    const stage: Stage = { ...asked, fov: fieldFor(asked.fov) };
+    /*
+     * Resolved AGAIN on every frame rather than once here, because how wide
+     * the whole sheet is depends on the shape of the window and a phone gets
+     * turned over. A card that worked its field out at mount and then held it
+     * would show a cropped disc for the rest of its life to anybody who
+     * rotated the frame while it was up. It is a ceiling and two divisions.
+     */
+    const wideNow = () => fieldFor(asked.fov);
+    const sweepNow = () =>
+      card.sweep?.field
+        ? ([fieldFor(card.sweep.field[0]), fieldFor(card.sweep.field[1])] as [number, number])
+        : undefined;
     const start = from.current;
     began.current = performance.now();
     // Already answered once means answered now: see `solved`.
@@ -410,7 +550,8 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
             ? pingPong((((now - began.current - travel) / 1000 / sweep.seconds) % 1 + 1) % 1)
             : 0;
 
-        const field = sweep?.field ? sweepAt(sweep.field, phase) : stage.fov;
+        const opening = sweepNow();
+        const field = opening ? sweepAt(opening, phase) : wideNow();
         const yaw = sweep?.yaw ? sweepAt(sweep.yaw, phase) : stage.stand.yaw;
         const pitch = sweep?.pitch ? sweepAt(sweep.pitch, phase) : stage.stand.pitch;
         const eye = sweep?.height ? sweepAt(sweep.height, phase) : stage.cameraHeight;
@@ -576,6 +717,129 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
   const asking = !!card.gate && !answered;
   const ink = dark ? 'text-white' : 'text-black';
 
+  /** One card on. On the last one, that means out - with the sheet kept. */
+  const goNext = () => {
+    if (curtain) return;
+    if (!last) {
+      setAt((was) => was + 1);
+      return;
+    }
+    /*
+     * The SHEET stays - the wide ruled page the lesson just handed over -
+     * and the pencil comes into the hand. Everything else goes back to
+     * before the lesson: the scene, and WHERE YOU STOOD. This used to
+     * keep the last card's stand while restoring the scene, which put
+     * the returning aeroplane through your view from three metres - the
+     * lesson ended inside the fuselage, with the practice cube standing
+     * in its tail. See `restore` above for why this exit is not the
+     * same exit as walking away. (The sky is not in here: it goes back by
+     * BOTH doors, from the unmount above.)
+     */
+    restore.current = false;
+    const before = held.current;
+    useStore.setState({
+      instrument: 'block',
+      models: before?.models ?? [],
+      lamps: before?.lamps ?? [],
+      boxes: before?.boxes ?? [],
+      selectedId: before?.selectedId ?? null,
+      selectedModelId: before?.selectedModelId ?? null,
+      cameraHeight: before?.cameraHeight ?? useStore.getState().cameraHeight,
+    });
+    if (before) {
+      walkInput.position.x = before.stand.x;
+      walkInput.position.z = before.stand.z;
+      walkInput.yaw = before.stand.yaw;
+      walkInput.pitch = before.stand.pitch;
+      walkInput.lookYaw = 0;
+      walkInput.lookPitch = 0;
+    }
+    onDone();
+  };
+
+  /** One card back, which the first card has nothing to be. */
+  const goBack = () => {
+    if (curtain) return;
+    setAt((was) => Math.max(0, was - 1));
+  };
+
+  /*
+   * THE PAGE UNDER THE THUMB.
+   *
+   * Drag the words sideways and they follow; let go past a threshold and the
+   * deck turns - right for the card behind, left for the next one, which is
+   * the way a book has always worked and the way the arrow at the bottom of
+   * every card already points. Under the threshold it springs back, which is
+   * how you learn what the threshold was without being told.
+   *
+   * TRACKED IN A REF AND DRAWN FROM STATE, because those are two different
+   * jobs: the gesture has to be exact and the paint only has to be smooth.
+   * Writing the origin into state would re-render on pointerdown before a
+   * finger had moved at all.
+   *
+   * IT ONLY EVER TAKES A HORIZONTAL DRAG. Six pixels of slack before anything
+   * moves, and nothing at all if the finger is going more up than sideways -
+   * a card's words are the one place on this screen where a vertical drag is
+   * somebody scrolling by reflex, and stealing that would make the block feel
+   * broken rather than clever. Once it IS a horizontal drag the pointer is
+   * captured, so the rest of the gesture belongs to the card however far off
+   * the block it wanders.
+   *
+   * The first card drags at a quarter weight going backwards, because there is
+   * nothing behind it: the block still moves, which says the gesture was
+   * heard, and it plainly does not want to. Nothing else is damped - going on
+   * from the last card is finishing the lesson, which is a thing the viewer is
+   * entitled to do with a thumb, and a drag that looks reluctant and then does
+   * it anyway is worse than one that just does it.
+   */
+  const held0 = useRef<{ id: number; x: number; y: number; taken: boolean } | null>(null);
+  /*
+   * A DRAG THAT DID NOT REACH THE THRESHOLD MUST DO NOTHING AT ALL, and
+   * `preventDefault` on the pointerup is not what stops it: a browser raises
+   * the click from the same gesture regardless, so a forty-pixel drag that
+   * plainly meant "not that far" was being counted as a tap and going on to
+   * the next card - the one outcome the spring-back is there to promise it
+   * would not do. The click is swallowed here instead, and the flag is cleared
+   * on the next press down so a gesture that never raises a click (a pointer
+   * let go off the block, a cancel) cannot eat the tap after it.
+   */
+  const dragged = useRef(false);
+  const [slide, setSlide] = useState(0);
+  /** How far a thumb has to travel before the deck turns. */
+  const TURN_AT = 64;
+
+  const resist = (by: number) => (by > 0 && at === 0 ? by * 0.25 : by);
+
+  const onDown = (event: React.PointerEvent) => {
+    if (curtain) return;
+    dragged.current = false;
+    held0.current = { id: event.pointerId, x: event.clientX, y: event.clientY, taken: false };
+  };
+
+  const onMove = (event: React.PointerEvent) => {
+    const grip = held0.current;
+    if (!grip || grip.id !== event.pointerId) return;
+    const by = event.clientX - grip.x;
+    const up = event.clientY - grip.y;
+    if (!grip.taken) {
+      if (Math.abs(by) < 6 || Math.abs(up) > Math.abs(by)) return;
+      grip.taken = true;
+      dragged.current = true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+    setSlide(resist(by));
+  };
+
+  const onUp = (event: React.PointerEvent) => {
+    const grip = held0.current;
+    held0.current = null;
+    setSlide(0);
+    if (!grip || grip.id !== event.pointerId || !grip.taken) return;
+    const by = event.clientX - grip.x;
+    if (by >= TURN_AT) goBack();
+    else if (by <= -TURN_AT) goNext();
+  };
+
   return (
     <div className="fixed inset-0 z-40 pointer-events-none select-none">
       {/*
@@ -605,45 +869,104 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       </button>
 
       {/*
-        * THE WAY BACK, and it took thirty-two cards to become necessary.
+        * THE WAY BACK IS THE WORDS THEMSELVES NOW, and the arrow that used to
+        * be here is gone.
         *
-        * Tapping the words is the whole interface and it only ever went one
-        * way. At eighteen cards that was survivable; at thirty-two it is not,
-        * because the commonest thing anybody does with a deck this long is tap
-        * through an answer half-read - and a lesson you can only ever leave and
-        * restart to see a sentence again is a lesson nobody sees that sentence
-        * in.
+        * Going back had to exist - the commonest thing anybody does with a
+        * deck this long is tap through an answer half-read - and for a while
+        * it was a second small mark beside the cross. The case against it was
+        * always the case the pills lost: the corner of the frame is not where
+        * this thing lives, and two controls up there is a toolbar starting to
+        * grow. What settles it is that the words are ALREADY the control.
+        * Tapping them goes on; there is no reason the same block should not
+        * also go back, and a page you turn with your thumb both ways is one
+        * gesture rather than a gesture and a button.
         *
-        * BESIDE THE CROSS, at the cross's own weight, and that is the whole of
-        * the argument for where it is. This is the second mark in the frame
-        * that is not the picture and not the words, and the case against it is
-        * the case the pills lost: a row of buttons is a form. What keeps it
-        * from being one is that it is the same KIND of thing as the mark it
-        * stands next to - a small, dim, unlabelled way of not going forward -
-        * so the corner reads as one quiet pair rather than as a toolbar
-        * growing. Nothing else on the screen changes.
+        * So: drag the words to the right and the card behind comes in from the
+        * left, drag them left and the next one arrives. The block follows the
+        * finger while it is down, which is the whole affordance - nothing has
+        * to be labelled, because you can see the page moving.
         *
-        * It is absent on the first card rather than dimmed, because a disabled
-        * control is a thing you try and are refused by, and there is nothing
-        * behind card one to be refused by.
-        *
-        * OUTSIDE the card block, not in it. The words are one full-width
-        * button and the whole of it advances; a control nested inside would be
-        * invalid HTML whose tap went forward as well as back.
+        * WHAT IS LEFT HERE IS FOR THE PEOPLE WHO CANNOT DRAG. A swipe is
+        * invisible to a screen reader and impossible on a keyboard, and
+        * "invisible to a screen reader" is not a design decision, it is a
+        * missing control. This is the same button as before with nothing drawn
+        * in it: reachable by tab, announced by name, and not a mark in the
+        * frame. The arrow keys do the same job for anyone already holding the
+        * block (see the key handler below).
         */}
       {at > 0 && (
         <button
-          onClick={() => {
-            if (curtain) return;
-            setAt((was) => Math.max(0, was - 1));
-          }}
+          onClick={() => goBack()}
           aria-label="Back one card of the lesson"
-          className={`absolute top-safe-panel left-14 w-9 h-9 rounded-full pointer-events-auto opacity-30 hover:opacity-70 transition-opacity ${ink}`}
+          /* Hidden until it is focused, and then it is the arrow that used to
+             live here - drawn, ringed and in the corner, so somebody tabbing
+             through can see where they are. The safe-area top is an inline
+             style rather than a class: `top-safe-panel` is hand-written CSS
+             rather than a Tailwind utility, so there is no `focus:` variant of
+             it to generate, and a class that quietly does not exist is worse
+             than no class. */
+          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)', left: '3.5rem' }}
+          className={`sr-only pointer-events-auto focus:not-sr-only focus:absolute focus:w-9 focus:h-9 focus:rounded-full focus:border focus:border-current focus:opacity-70 ${ink}`}
         >
           <svg viewBox="0 0 24 24" className="w-4 h-4 mx-auto" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M19 12H6M11 6l-6 6 6 6" />
           </svg>
         </button>
+      )}
+
+      {/*
+        * WHERE THE WALKING IS DONE, on the two cards that ask for it.
+        *
+        * The best card in the deck is the one you WALK - the rank of cubes
+        * sliding across the page while the point they aim at refuses to move -
+        * and the second is the flock. Both of them depend on a control that
+        * has no mark on the glass at all: the lower-left quarter of the
+        * picture is a thumbstick, and it appears under your thumb rather than
+        * sitting somewhere waiting to be found. That is exactly right for
+        * somebody who already knows, and it is a dead end for somebody being
+        * taught, who is told in words to put a thumb on a part of the picture
+        * that looks like every other part of the picture. A card whose gesture
+        * cannot be found is a card with a progress line that never fills.
+        *
+        * So on those two cards only, a ring the size of the stick's own reach
+        * stands in the zone, with a mark inside it that keeps pushing. It is
+        * a quarter of an opacity, it is drawn in the ink everything else here
+        * is drawn in, and it goes the moment the first step is taken - the
+        * point is to answer "where", not to be a control.
+        */}
+      {card.gate?.kind === 'walk' && !answered && (
+        <div
+          /*
+           * WHITE, AND NOT THE PAGE'S INK. Everything else in this overlay is
+           * drawn in the ink the PAGE takes - black on a light sheet - and
+           * that is right for words standing on a wash. This mark stands on
+           * the floor of the picture, and the picture is a dusk: black at a
+           * quarter of an opacity on a dark grey floor is nothing at all, and
+           * it was nothing at all until it was looked at. A light mark with a
+           * dark shadow under it reads on either.
+           */
+          className={`absolute pointer-events-none text-white transition-opacity duration-700 ${
+            progress > 0.02 || curtain ? 'opacity-0' : 'opacity-100'
+          }`}
+          style={{
+            left: 'calc(22% - 32px)',
+            top: '56%',
+            filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45))',
+          }}
+          aria-hidden
+        >
+          <svg viewBox="0 0 64 64" className="w-16 h-16 opacity-40" fill="none" stroke="currentColor">
+            <circle cx="32" cy="32" r="30" strokeWidth="1" />
+            <circle
+              cx="32"
+              cy="32"
+              r="5"
+              strokeWidth="1.5"
+              style={{ animation: 'lesson-push 2600ms ease-in-out infinite' }}
+            />
+          </svg>
+        </div>
       )}
 
       {/*
@@ -667,13 +990,28 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           }}
         >
           <div
-            className={`text-[30px] font-light tracking-[0.16em] uppercase ${ink}`}
+            className={`px-8 text-center text-[30px] font-light tracking-[0.16em] uppercase ${ink}`}
             style={{ animation: 'lesson-curtain 2500ms ease-in-out both' }}
           >
             {curtain.title}
           </div>
+          {/*
+            * THE LINE UNDER IT WRAPS, WHICH IT DID NOT.
+            *
+            * Centred in a flex column with no width and no padding, a title's
+            * line is laid out as one unbroken row and simply runs off both
+            * edges of the frame. On a phone held upright that is not an edge
+            * case, it is four acts out of five: AUGET's line came up as
+            * "Horisonten er ikkje ein stad. Han er hogda di" with the last two
+            * words past the glass. The one full-screen moment in the app, and
+            * the sentence it exists to say was cut in half.
+            *
+            * A width to wrap inside, a margin to wrap before, and the lines
+            * balanced against each other so a two-line sentence does not come
+            * out as a row and an orphan.
+            */}
           <div
-            className={`mt-3 text-[13px] tracking-wide ${ink} opacity-55`}
+            className={`mt-3 px-10 max-w-[22rem] text-center text-balance text-[13px] leading-[1.5] tracking-wide ${ink} opacity-55`}
             style={{ animation: 'lesson-rise 900ms 320ms ease-out both' }}
           >
             {curtain.line}
@@ -708,8 +1046,26 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
         *
         * So the wash is a plate and the button sits in it.
         */}
+      {/*
+        * AND IT CANNOT GROW OFF THE TOP OF THE SCREEN.
+        *
+        * The plate hangs from the bottom edge, so a card taller than the frame
+        * does not overflow downwards where you would see it - it grows UPWARDS,
+        * past y = 0, and the first lines of it are simply not on the phone any
+        * more. The glossary is the card that finds this: eight rows of
+        * equivalences, a lead-in and an answer, which on a small phone is most
+        * of the glass. Every card in the deck is short enough not to need this
+        * and one small screen is enough for that to stop being true, so the
+        * plate is bounded and scrolls when it has to.
+        *
+        * A vertical drag inside it scrolls, and a horizontal one still turns
+        * the deck: the button already declares `touch-action: pan-y`, and the
+        * swipe handler ignores a gesture that is going more up than sideways.
+        * The gradient is on the scroll container itself, so it stays put while
+        * the words move under it rather than sliding away with them.
+        */}
       <div
-        className={`absolute inset-x-0 bottom-0 pt-24 pointer-events-none transition-opacity duration-500 ${
+        className={`absolute inset-x-0 bottom-0 pt-24 max-h-[100dvh] overflow-y-auto overscroll-contain pointer-events-none transition-opacity duration-500 ${
           curtain ? 'opacity-0' : 'opacity-100'
         }`}
         style={{
@@ -718,52 +1074,86 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       >
       <button
         onClick={() => {
-          if (curtain) return;
-          if (!last) {
-            setAt((was) => was + 1);
+          // Whatever the drag decided, it has decided it. See `dragged`.
+          if (dragged.current) {
+            dragged.current = false;
             return;
           }
-          /*
-           * The SHEET stays - the wide ruled page the lesson just handed over -
-           * and the pencil comes into the hand. Everything else goes back to
-           * before the lesson: the scene, and WHERE YOU STOOD. This used to
-           * keep the last card's stand while restoring the scene, which put
-           * the returning aeroplane through your view from three metres - the
-           * lesson ended inside the fuselage, with the practice cube standing
-           * in its tail. See `restore` above for why this exit is not the
-           * same exit as walking away.
-           */
-          restore.current = false;
-          const before = held.current;
-          useStore.setState({
-            instrument: 'block',
-            models: before?.models ?? [],
-            lamps: before?.lamps ?? [],
-            boxes: before?.boxes ?? [],
-            selectedId: before?.selectedId ?? null,
-            selectedModelId: before?.selectedModelId ?? null,
-            cameraHeight: before?.cameraHeight ?? useStore.getState().cameraHeight,
-          });
-          if (before) {
-            walkInput.position.x = before.stand.x;
-            walkInput.position.z = before.stand.z;
-            walkInput.yaw = before.stand.yaw;
-            walkInput.pitch = before.stand.pitch;
-            walkInput.lookYaw = 0;
-            walkInput.lookPitch = 0;
+          goNext();
+        }}
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={() => {
+          held0.current = null;
+          dragged.current = false;
+          setSlide(0);
+        }}
+        /* The keyboard's half of the same gesture. A block you can only turn
+           by dragging is a block half the people who open this cannot turn. */
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            goBack();
+          } else if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            goNext();
           }
-          onDone();
         }}
         aria-label={last ? 'Finish the lesson' : 'Next card of the lesson'}
+        /* touch-action: the browser must not claim the horizontal drag for a
+           back-navigation or an overscroll before the handler above sees it. */
+        style={{
+          transform: slide ? `translateX(${slide}px)` : undefined,
+          transition: slide ? undefined : 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+          touchAction: 'pan-y',
+        }}
         className={`w-full ${card.chrome ? 'pb-safe-lesson-chrome' : 'pb-safe-lesson'} px-6 text-left pointer-events-auto ${ink}`}
       >
         <div key={`h-${at}`} className="text-[11px] uppercase tracking-[0.2em] opacity-45"
           style={{ animation: 'lesson-rise 620ms ease-out both' }}>
           {card.headline}
         </div>
-        <div key={`b-${at}`} className="mt-2 text-[21px] leading-[1.3] font-light max-w-[30rem]"
-          style={{ animation: 'lesson-rise 700ms 90ms ease-out both' }}>
-          {card.body}
+        {/*
+          * THE QUESTION STEPS ASIDE WHEN THE ANSWER ARRIVES.
+          *
+          * Both at once is how it was, and on a phone it was too much paper.
+          * A body and a found together run to twenty lines - better than half
+          * an upright screen - and what is under that half is the PICTURE the
+          * card is about: the four posts the horizon is supposed to be cutting,
+          * the two boxes whose fractions you are being asked to compare, the
+          * top faces closing towards the line. Card after card asked you to
+          * look at something and then covered it with the sentence explaining
+          * what you would have seen.
+          *
+          * A card is a question and then an answer, so it can be one at a
+          * time. The headline stays, the body collapses on the same curve the
+          * found arrives on, and the block ends up about the height it had
+          * before the reveal - which is what leaves the picture standing.
+          *
+          * NOT ON THE GLOSSARY CARD. Its body is the line that introduces the
+          * list under it ("the same things, other words - here is how they
+          * stand in the books"), and a list of eight equivalences with its
+          * lead-in silently removed is a list nobody knows what to do with.
+          *
+          * A grid rather than a height, because the body's height depends on
+          * how it wraps and nothing in CSS can transition to `auto`. One row
+          * going from 1fr to 0fr does animate, and the overflow-hidden child
+          * is what keeps the text from spilling while it closes.
+          */}
+        <div
+          className={`grid transition-[grid-template-rows,opacity] duration-500 ease-out motion-reduce:transition-none ${
+            answered && card.found && !card.terms && !card.stays
+              ? 'grid-rows-[0fr] opacity-0'
+              : 'grid-rows-[1fr] opacity-100'
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div key={`b-${at}`} className="mt-2 text-[21px] leading-[1.3] font-light max-w-[30rem]"
+              style={{ animation: 'lesson-rise 700ms 90ms ease-out both' }}>
+              {card.body}
+            </div>
+          </div>
         </div>
 
         {/*
@@ -783,14 +1173,19 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           * rather than as a block landing.
           */}
         {card.terms && (
-          <div key={`t-${at}`} className="mt-4 max-w-[30rem] flex flex-col gap-2">
+          /* Eight rows rather than six, and tighter than they were: the two
+             that were added - where you are standing, and how much of the
+             sphere your sheet takes in - are the ideas the deck used all the
+             way through without ever naming, and they cost sixty pixels on a
+             card that was already the tallest in the deck. */
+          <div key={`t-${at}`} className="mt-3.5 max-w-[30rem] flex flex-col gap-1.5">
             {card.terms.map(([ours, theirs], row) => (
               <div key={ours} className="flex items-baseline gap-3"
-                style={{ animation: `lesson-rise 620ms ${180 + row * 70}ms ease-out both` }}>
+                style={{ animation: `lesson-rise 620ms ${180 + row * 60}ms ease-out both` }}>
                 <div className="text-[11px] uppercase tracking-[0.16em] opacity-45 w-[7.5rem] shrink-0">
                   {ours}
                 </div>
-                <div className="text-[17px] leading-[1.3] font-light">{theirs}</div>
+                <div className="text-[16px] leading-[1.25] font-light">{theirs}</div>
               </div>
             ))}
           </div>

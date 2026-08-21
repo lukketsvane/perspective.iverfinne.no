@@ -27,6 +27,27 @@ import { test, expect, open } from './harness';
  * takes a couple of seconds of travel besides. Asking again until the card's
  * own words are up is also exactly what a person does.
  */
+/**
+ * Turn the deck with a thumb, which is the only way backwards there is.
+ *
+ * On the words, not on the picture: the handler lives on the card block, the
+ * picture above it belongs to the look-and-walk input, and a spec that dragged
+ * the wrong half would pass by turning the camera. Well past the threshold and
+ * in several steps, because a pointer that teleports is a pointer that never
+ * crossed the six-pixel slack the handler waits for before it takes the drag.
+ */
+const swipe = async (page: Parameters<typeof open>[0], way: 'left' | 'right') => {
+  const words = page.locator('[aria-label="Next card of the lesson"], [aria-label="Finish the lesson"]').first();
+  const box = await words.boundingBox();
+  if (!box) throw new Error('The lesson has no words to drag.');
+  const y = box.y + Math.min(24, box.height / 2);
+  const from = way === 'right' ? box.x + 40 : box.x + box.width - 40;
+  await page.mouse.move(from, y);
+  await page.mouse.down();
+  await page.mouse.move(from + (way === 'right' ? 140 : -140), y, { steps: 12 });
+  await page.mouse.up();
+};
+
 const vidareTo = async (page: Parameters<typeof open>[0], words: string, laps = 24) => {
   for (let lap = 0; lap < laps; lap++) {
     if ((await page.getByText(words).count()) > 0) return;
@@ -44,8 +65,10 @@ test('a gate opens to the hand, and the gateless card answers on the reading clo
   await context.addInitScript(() => localStorage.removeItem('kjg-perspective-lesson'));
   await open(page);
   await page.getByText('Kva er perspektiv?').click();
-  // Nothing behind card one, so there is nothing to go back to and no mark
-  // offering it - absent rather than disabled.
+  // Nothing behind card one, so there is nothing to go back to and nothing
+  // offering it - absent rather than disabled. (What this counts is the
+  // screen-reader control; the visible arrow that used to sit beside the cross
+  // is gone entirely, and going back is a drag on the words now.)
   await expect(page.locator('[aria-label="Back one card of the lesson"]')).toHaveCount(0);
 
   /*
@@ -74,27 +97,27 @@ test('a gate opens to the hand, and the gateless card answers on the reading clo
   await expect(page.getByText('same kutt')).toBeVisible();
 
   /*
-   * AND IT STAYS ANSWERED WHEN YOU COME BACK TO IT.
+   * AND THE QUESTION STEPS ASIDE. Both halves on screen at once is more paper
+   * than an upright phone has, and what it covers is the picture the card is
+   * about - so the body collapses as the found arrives.
    *
-   * The arrow beside the cross is the only way backwards through the deck, and
-   * the reason it exists is somebody tapping through an answer half-read - so
-   * a card stepped back into with its found sentence stripped off would be an
-   * arrow that cannot do the one job it was added for. The reveal is earned
-   * once, not once per visit.
-   *
-   * It also guards the other half of that: the act titles must not perform
-   * themselves again on the way back. Card 4 is the top of an act, so stepping
-   * off it and back onto it is exactly the case that would replay a
-   * full-screen title over a card the viewer has already read.
+   * MEASURED AS A HEIGHT, and not with `toBeVisible`, which was the first
+   * thing tried and is the wrong question. The body is clipped by an ancestor
+   * whose grid row has gone to nothing, and an element clipped by somebody
+   * else's overflow still reports its own full box - which is precisely what
+   * "visible" means to a locator. The box that actually closes is the one
+   * doing the clipping, so that is the one to ask.
    */
-  await page.locator('[aria-label="Next card of the lesson"]').click();
-  await page.waitForTimeout(2600);
-  await expect(page.getByText('same kutt')).toHaveCount(0);
-  await page.locator('[aria-label="Back one card of the lesson"]').click();
-  await page.waitForTimeout(2800);
-  await expect(page.getByText('Fire stolpar')).toBeVisible();
-  await expect(page.getByText('same kutt')).toBeVisible();
-  await expect(page.getByText('Eit bilete er eit kart over alt du ser')).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const body = Array.from(document.querySelectorAll('div')).find(
+          (node) => node.children.length === 0 && node.textContent?.startsWith('Fire stolpar')
+        );
+        return body?.parentElement ? Math.round(body.parentElement.getBoundingClientRect().height) : -1;
+      })
+    )
+    .toBe(0);
 
   /*
    * THE GATELESS REVEAL. The ruler card has no question to pass - it is a
@@ -104,9 +127,62 @@ test('a gate opens to the hand, and the gateless card answers on the reading clo
    * way this machinery could quietly break), and then it must come on its own
    * with nothing pressed and nothing dragged.
    */
-  await vidareTo(page, 'ei dør på 210');
-  await expect(page.getByText('pulten til låret')).toHaveCount(0);
+  await page.locator('[aria-label="Next card of the lesson"]').click();
+  /*
+   * CAUGHT IN ONE LOOK AT THE PAGE, and that is not fussiness.
+   *
+   * What is being measured is a nine-second gap - two seconds of travel and
+   * seven of looking - between the card arriving and its answer arriving. Two
+   * auto-retrying assertions in a row can quietly eat all nine of it on a
+   * loaded machine, and then the second one reports that the answer was up
+   * from the start when what really happened is that the test was slow. So
+   * the wait for the words and the reading of the answer happen in the same
+   * evaluate, a tenth of a second apart at most.
+   */
+  const arrived = await page.evaluate(async () => {
+    const says = (words: string) => (document.body.textContent ?? '').includes(words);
+    for (let tick = 0; tick < 150; tick++) {
+      if (says('ei dør på 210')) return { words: true, answer: says('pulten til låret') };
+      await new Promise((wake) => setTimeout(wake, 100));
+    }
+    return { words: false, answer: false };
+  });
+  expect(arrived.words, 'The ruler card never came up.').toBe(true);
+  expect(arrived.answer, 'The ruler card had its answer up before anybody had looked.').toBe(false);
+  await expect(page.getByText('same kutt')).toHaveCount(0);
   await expect(page.getByText('pulten til låret')).toBeVisible({ timeout: 16_000 });
+
+  /*
+   * AND BOTH KINDS STAY ANSWERED WHEN YOU COME BACK TO THEM.
+   *
+   * Dragging the words to the right is the only way backwards through the deck
+   * - the arrow that used to sit beside the cross is gone, and the reason the
+   * gesture exists is somebody tapping through an answer half-read. A card
+   * dragged back into with its found sentence stripped off would be a gesture
+   * that cannot do the one job it was added for: the reveal is earned once,
+   * not once per visit, and that holds for the card you turned for as much as
+   * for the one that answered on its own clock.
+   *
+   * It also guards the other half of that: the act titles must not perform
+   * themselves again on the way back. Card 5 is the top of an act, so stepping
+   * off it and back onto it is exactly the case that would replay a
+   * full-screen title over a card the viewer has already read.
+   *
+   * DRAGGED WITH REAL POINTER EVENTS, on the words themselves, because that is
+   * now the whole of the control. Nothing about this passes if the handler is
+   * listening on the wrong element or the threshold is out of a thumb's reach.
+   */
+  await swipe(page, 'right');
+  await page.waitForTimeout(2800);
+  await expect(page.getByText('Alt i di eiga høgd')).toBeVisible();
+  await expect(page.getByText('same kutt')).toBeVisible();
+  await expect(page.getByText('Eit bilete er eit kart over alt du ser')).toHaveCount(0);
+
+  // ...and the same gesture the other way is the tap the words already were.
+  await swipe(page, 'left');
+  await page.waitForTimeout(2800);
+  await expect(page.getByText('Linja er ein målestokk')).toBeVisible();
+  await expect(page.getByText('pulten til låret')).toBeVisible();
 });
 
 
@@ -130,6 +206,21 @@ test('a gate opens to the hand, and the gateless card answers on the reading clo
  * in the suite would say a word about it.
  */
 test('a floor of boxes is gated on taking hold of them, one after another', async ({ context, page }) => {
+  /*
+   * SLOW ON PURPOSE, and it is the deck's own weather that made it so.
+   *
+   * This walks eighteen cards to reach the one it is about, and the lesson now
+   * takes the sky down to a low sun and DRAWS it for as long as it runs - so
+   * every one of those eighteen frames is a scattering dome and a sampled
+   * environment on top of the scene, on a software renderer, with another
+   * worker doing the same thing beside it. Measured alone it walks the
+   * eighteen in about seventy seconds against a hundred and eighty-second
+   * budget; measured against a second worker it does not, and a test that
+   * fails on contention rather than on behaviour is a test that teaches people
+   * red means nothing. Nothing here is skipped or loosened - it is given the
+   * clock the walk actually takes.
+   */
+  test.slow();
   await context.addInitScript(() => localStorage.removeItem('kjg-perspective-lesson'));
   await open(page);
   await page.getByText('Kva er perspektiv?').click();

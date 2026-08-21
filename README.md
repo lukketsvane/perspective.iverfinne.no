@@ -523,9 +523,9 @@ the horizon rather than guessed.
 
 | | |
 | --- | --- |
-| **Ei kule av retningar** | the sphere, ruled, with nothing standing on it |
+| **Ei kule av retningar** | the sphere, ruled, with nothing standing on it — and the field opening out until the whole disc is on the page, which is the map the card is talking about |
 | **Snu deg heilt rundt** | *do it*: look for an edge on the sphere, and find there is none |
-| **Kva fangar du kula på?** | the same scene, same spot, stepping plane → cylinder → sphere |
+| **Kva fangar du kula på?** | the same scene, same spot, stepping plane → cylinder → sphere — wide enough now that the three are plainly three |
 | **Hovudpunktet og horisonten** | *do it*: turn, and see which two marks refuse to move |
 | **Alt i di eiga høgd** | *do it*: four posts of exactly your own height, five metres out and forty — the line cuts every one of them at the top |
 | **Linja er ein målestokk** | a desk, a car, a door — and the hare, whose crown *is* the line: read their heights off where it crosses them |
@@ -544,14 +544,14 @@ the horizon rather than guessed.
 | **Ingenting av dette er kassa** | the card that collects the three before it |
 | **Rampa har sine eigne** | *do it*: a family that climbs has its pair off the eye line — the one thing a floor of boxes cannot show |
 | **Sideflata krympar** | two equal cubes at one distance: the one sitting on its own point has no side to draw |
-| **Det flate arket tek slutt** | *do it*: open the lens yourself and watch the corners go |
-| **Fire punkt** | bend one axis; the horizon becomes a circle |
-| **Fem punkt** | bend both; zenith and nadir arrive |
+| **Det flate arket tek slutt** | *do it*: open the field of view yourself and watch the corners go |
+| **Fire punkt** | bend one axis; the field opens until the whole band is on the page, paper above and below, both ends meeting — a cylinder, unrolled |
+| **Fem punkt** | bend both; the disc comes inside the frame with paper round it, zenith and nadir on the page |
 | **Ei kasse har seks** | *do it*: turn slowly and count the ringed points |
-| **Namna dei andre brukar** | the same six ideas under the names the books use — the bill for the plain words |
-| **Rul arket fyrst** | the 15° meridians, and what you sight against them |
+| **Namna dei andre brukar** | the deck's plain words under the names the books use — plus the two ideas it had used all through without naming: where you are standing, and how much of the sphere your sheet takes in |
+| **Strek opp arket fyrst** | the 15° meridians, and what you sight against them |
 | **Sikt langs kurvene** | *do it*: follow one upright edge round and watch it hold its meridian |
-| **Kubus eller langkasse?** | *do it*: a cube and a long box drawn as one rectangle, and the turn that tells them apart |
+| **Kube eller langkasse?** | *do it*: a cube and a long box drawn as one rectangle, and the turn that tells them apart |
 | **Kvar krysset står** | *do it*: turn until the street leaves the principal point, and watch the corner pay for it |
 | **Det same, om att** | a colonnade and a flock: repetition is the ruler that is part of the subject |
 | **Teikn ei sjølv** | the pencil, on the sheet you have just been given — and five things to draw on it |
@@ -571,6 +571,18 @@ chosen anything — and a hairline under the card fills as you go. When you have
 before: the one that says what just happened. *That* sentence is the point of
 the card, and everything above it is setup.
 
+**The two cards you walk say where.** The best card in the deck is the one you
+walk — the rank of cubes sliding across the page while the point they aim at
+refuses to move — and the second is the flock. Both depend on a control with no
+mark on the glass at all: the lower-left quarter of the picture is a thumbstick
+that appears under your thumb rather than sitting somewhere waiting to be found.
+That is exactly right for somebody who already knows the tool, and a dead end for
+somebody being taught, who is told in words to put a thumb on a part of the
+picture that looks like every other part of it. So on those two cards a ring the
+size of the stick's own reach stands in the zone with a mark inside it that keeps
+pushing, at a quarter of an opacity, and it goes the moment the first step is
+taken. It answers *where*; it is not a control.
+
 The measuring is cumulative rather than absolute — how far you have turned
 altogether, not how far you ended up from where you started — because "turn all
 the way round" is answered by going round, and somebody who overshoots and comes
@@ -578,12 +590,25 @@ back has still been round. **Neste is never disabled**: a viewer who cannot make
 the gesture must always be able to go on; it simply stops being the accented
 thing until the picture has answered — and now they can always go back, too.
 
-Ten director cards carry an answer with no gate to pass — the sheets slideshow,
-the ruler, the posture sweep, the shrinking steps, the platform, the fraction
-read off two boxes, the closing side face, the glossary, the colonnade and the
-handover — and theirs arrives on the reading clock instead: one full cycle for a
-sweep, a beat of looking for a still card. The sentence is still earned; the earning is just
-done with the eyes.
+Eleven director cards carry an answer with no gate to pass — the opening sphere,
+the sheets slideshow, the ruler, the posture sweep, the shrinking steps, the
+platform, the fraction read off two boxes, the closing side face, the glossary,
+the colonnade and the handover — and theirs arrives on the reading clock instead:
+one full cycle for a sweep, a beat of looking for a still card. The sentence is
+still earned; the earning is just done with the eyes.
+
+**And the question steps aside when the answer arrives.** Both halves on screen at
+once is more paper than an upright phone has — twenty lines, better than half the
+frame — and what that half covers is the *picture the card is about*: the four
+posts the horizon is supposed to be cutting, the two boxes whose fractions you are
+comparing, the top faces closing towards the line. Card after card asked you to
+look at something and then covered it with the sentence explaining what you would
+have seen. So the body collapses on the same curve the found rises on, the
+headline stays, and the block ends up about the height it was before the reveal.
+Two cards keep both halves: the glossary, whose body is the line that introduces
+the list under it, and the last one, whose body is the only place the handover is
+written down — which button draws, and what holding a box gets you — while its
+found is the list of things to draw with them.
 
 The best of them is **Punktet flyttar seg ikkje**, and it is a fact almost nobody
 is taught. Walk, and every cube in the rank slides across the page while the
@@ -620,15 +645,29 @@ way out is one unlabelled mark in the far corner at a third of an opacity. The
 difference between that and a pill marked *skip* is the difference between a door
 and a sign pointing at a door.
 
-**One thing came back, at thirty-two cards: a way backwards.** Tapping the words
-only ever went one way, which at eighteen cards was survivable and at thirty-two
-is not — the commonest thing anybody does with a deck this long is tap through an
-answer half-read, and a lesson you can only leave and restart to see a sentence
-again is a lesson nobody sees that sentence in. It is an arrow beside the cross,
-at the cross's own weight: the same *kind* of thing as the mark it stands next
-to, a small dim unlabelled way of not going forward, so the corner reads as one
-quiet pair rather than a toolbar growing. It is absent on the first card rather
-than dimmed, because a disabled control is a thing you try and are refused by.
+**One thing came back, at thirty-two cards: a way backwards — and it is the words
+themselves.** Tapping them only ever went one way, which at eighteen cards was
+survivable and at thirty-two is not: the commonest thing anybody does with a deck
+this long is tap through an answer half-read, and a lesson you can only leave and
+restart to see a sentence again is a lesson nobody sees that sentence in.
+
+For a while it was a second small arrow beside the cross, and the case against it
+was always the case the pills lost — the corner of the frame is not where this
+thing lives, and two controls up there is a toolbar starting to grow. What
+settles it is that the words are *already* the control. **Drag them right and the
+card behind comes in from the left; drag them left and the next one arrives.** The
+block follows your thumb while it is down, which is the whole affordance: nothing
+has to be labelled, because you can see the page moving. Under about a
+thumb's-width it springs back and does nothing, which is how you learn where the
+threshold is without being told, and the first card drags backwards at a quarter
+weight so a gesture with nowhere to go still says it was heard. A tap is still a
+tap, and still goes on.
+
+What is left in the corner is one empty button for the people who cannot drag: a
+swipe is invisible to a screen reader and impossible on a keyboard, and that is a
+missing control rather than a design decision. It is reachable by tab, announced
+by name, and draws nothing. The arrow keys do the same job for anyone already
+holding the block.
 
 And **an answer, once earned, stays earned.** Step back into a card you have
 already opened and its found sentence is there waiting, not stripped off to be
@@ -641,6 +680,41 @@ shape: at card eleven nobody knows whether they are near the end. **Kula**,
 and a half seconds, naming the one thing its cards are about. It is the only
 full-screen moment in the app and the only place a single word is the whole
 picture, which is what makes it worth the seconds it costs.
+
+Two things about them were wrong for a long time and are not any more. The line
+under the title was laid out as one unbroken row with no width and no margin, so
+on a phone held upright it simply ran off both edges: *Horisonten er ikkje ein
+stad. Han er høgda di* arrived with the last two words past the glass, in the one
+full-screen moment the app has. It wraps and balances inside a margin now. And
+**Arka** opened three cards too early — on *Ingenting av dette er kassa*, with the
+ramp's own pair and the closing side face still to come, both of which are about
+points. A viewer was shown the word for sheets and then three more cards of the
+subject they had just been told was finished. It opens where the sheets actually
+start: the flat one running out under your own thumb.
+
+**And it is taught at dusk.** The construction is drawn *into* the picture — the
+meridians, the eye-level ring, the six rings, all a shader over the sky and the
+floor at a fraction of an ink — and the tool opens on a bright afternoon, where a
+grey line over a white cloud is not a line but a rumour. Every card in this deck
+is a mark you are being asked to follow, and on a phone in daylight most of them
+could not be followed at all. So the lesson takes the sun down to ten degrees and
+clears the sky while it runs.
+
+Ten, and the number was arrived at with a ruler rather than a mood, because two
+things on the screen want opposite skies and both of them are the lesson: the
+construction over the *sky* needs the sky dark and even, and every degree of sun
+works against it; the metre ruling on the *floor* is drawn in the page's own
+near-black pen and needs a floor light enough to see a dark line on, and a floor
+takes the sine of the sun's height, so at six degrees it is a silhouette and its
+ruling is gone. Ten is where both are still legible. The cloud goes entirely —
+white cumulus behind a grey line is the single biggest thing standing between a
+viewer and the construction, and a clear sky is the more honest ground for a
+diagram anyway. It is a stated light rather than an hour on the clock, because an
+hour is a different height of sun in June than in December and a lesson that is
+legible in August and black in January is not a lesson. The hour you had comes
+back by **both** doors, the one at the end as well as the one in the corner:
+nobody finishes a lesson wanting the tool left at ten degrees above the
+horizon.
 
 **It is performed rather than illustrated.** No diagrams, because the app is
 already the diagram — it has the four projections, the ruled sphere, a family
@@ -661,8 +735,8 @@ and forth on a raised cosine so the turn has no jerk at either end — that bein
 what a head does.
 
 **What it promises to give back.** It takes one snapshot on the way in — the
-scene, the meshes, the lamps, the sheet, the field, the guides, where you were
-standing — and puts every bit of it back on the way out, *including* when you
+scene, the meshes, the lamps, the sheet, the field, the guides, the sky, where you
+were standing — and puts every bit of it back on the way out, *including* when you
 walk out in the middle. That is the case that matters: it is what somebody does
 when they are bored, and finding your work gone is how a tool loses somebody for
 good.
