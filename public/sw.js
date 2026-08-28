@@ -109,6 +109,8 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/meshes/') ||
     url.pathname === '/manifest.webmanifest' ||
     url.pathname === '/apple-touch-icon.png' ||
+    url.pathname === '/favicon.ico' ||
+    url.pathname === '/logo.svg' ||
     url.pathname.startsWith('/icon-');
   if (!refresh) return;
 
