@@ -40,8 +40,11 @@
     <meta name="apple-mobile-web-app-title" content="Perspective" />
     <meta name="theme-color" content="#f7f4ef" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- The mark is a vector and browsers that can take it get it that way;
+         the .ico carries 16, 32 and 48 for the ones that cannot, and answers
+         the bare /favicon.ico a browser asks for whether or not it is named. -->
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-    <link rel="icon" href="/icon-192.png" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48 32x32 16x16" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <style>
       /* Full viewport sizing with iOS safe area support */
