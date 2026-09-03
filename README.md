@@ -1353,22 +1353,34 @@ So the light carries a toggle that is not a knob. Press it and the sun goes and
 stands where the sun actually stands — and the four numbers stop being yours to
 set, leave the panel, and are replaced by the two that are now deciding them:
 
-- **A place**, fixed: Greenwich. It used to be a default that one press of a map
+- **A place**, fixed: **Oslo**. It used to be a default that one press of a map
   pin replaced with the device's own fix, and the argument for a stranger's
   latitude was that guessing at yours would be a location taken without a
   prompt. The pin is gone, so what was a polite default is simply the place —
-  and the prime meridian is the right one to be stuck with for the reason it was
-  chosen in the first place. **The tool now asks the browser for no location
-  permission at all, and makes no network request of any kind.**
-- **A moment**, as an hour and a date, both read and written in **UTC**. This is
-  the half that was quietly wrong before: the clock was local, on the reasoning
-  that "four o'clock" means four o'clock where you are — true only while the
-  place was also where you are, which is exactly what the pin used to arrange.
-  Without it, somebody two hours east setting half past three was shown the sun
-  as it stood at half past one. One place, one clock, both Greenwich. The
-  position is the NOAA solar equations — a hundredth of a degree over any date
-  this tool will see — and now it is checkable by eye *for everybody*: set it to
-  twelve and the sun is due south.
+  and it was Greenwich for a while, on the argument that the prime meridian is
+  the one longitude where clock time and sun time agree. That is a fine property
+  bought with the wrong thing. A drawing tool's sky should be the sky the person
+  drawing under it knows, and this one is written, used and read in Oslo.
+  **The tool asks the browser for no location permission at all, and makes no
+  network request of any kind.**
+- **A moment**, as an hour and a date, both read and written on **that place's
+  own clock** — Oslo's, daylight saving and all (`lib/clock.ts`, which owns the
+  pair). One place, one clock, and now they are the ones the tool is drawn
+  under. The browser's local clock was tried first and is the wrong answer for
+  the same reason: it is only right while the place computed for is also where
+  you are, which is what the pin used to arrange. The checkable-by-eye property
+  survives the move to within the quarter of an hour Oslo sits west of the
+  meridian its clock is cut from: set it to twelve and the sun is very nearly
+  due south, an hour later in summer — which is what a sundial in the city says
+  too. The position is the NOAA solar equations, a hundredth of a degree over
+  any date this tool will see.
+- **And at sixty degrees north the front door's raking hour is not always an
+  hour.** The tool opens at half past three because noon has no form in it —
+  hatching enters as the light goes grazing — and half past three over Oslo in
+  December is a quarter of an hour after sunset. So the opening hour is walked
+  back toward noon until there is a sun in the sky to rake with: no change on
+  any day from February to November, and on the shortest day of the year it
+  hands over the best light that day actually has.
 - **The weather**, on one axis, clear to overcast: cover follows it, and the
   deck's height and the wind ride along, because that is how the three arrive
   together in the world — fair-weather puffs sit high in light air, stratus sits

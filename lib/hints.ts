@@ -106,7 +106,7 @@ const HINTS: Record<string, string> = {
   // No longer a pane of its own: these hang off the one seat above, and come
   // up only while it is pressed.
   'The sky lights the scene and is drawn behind it': 'Himmelen tek over: sola står der ho verkeleg står',
-  'Time of day': 'Klokkeslettet, i UTC — same klokke som sola',
+  'Time of day': 'Klokkeslettet, norsk tid — same klokke som sola',
   'Day of the year': 'Datoen',
   'Draw the sky': 'Teikn himmelen bak',
   Air: 'Kor mykje luft — botnen er vakuum',
