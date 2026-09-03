@@ -5,6 +5,7 @@ import { useStore } from '../store';
 import { constellationFigures, starField } from '../lib/starData';
 import { equatorialToWorld, julianDay, moonAt, aimOf } from '../lib/ephemeris';
 import { siderealAngle, solarPosition, sunPosition } from '../lib/sky';
+import { MAX_FIELD } from '../lib/projection';
 
 /**
  * The sky above the weather: the real stars, the real Milky Way, the moon.
@@ -41,6 +42,43 @@ const DOME = 1300;
 
 /** Half the moon's angular diameter, in radians. The sun's is the same. */
 const HALF_DEGREE = 0.00465;
+
+/** One vector, read into and thrown away: the frame's size, per draw. */
+const FRAME = new THREE.Vector2();
+
+/**
+ * How wide a pixel of the FINISHED PICTURE is, in radians.
+ *
+ * A star has no size, so the only thing that decides how big it is drawn is
+ * how small a mark the frame can hold - and both the catalogue and the moon
+ * below have a floor under them for exactly that reason: a mark under a pixel
+ * is a mark that flickers as the head turns, or vanishes between the samples.
+ *
+ * IT IS A PROPERTY OF THE PICTURE, NOT OF THE PASS THAT DRAWS IT, and that is
+ * the whole of what went wrong. Both floors used to work the scale out from
+ * the pass's own `projectionMatrix[1][1]` against the height of the canvas -
+ * `1.6 / max(projectionMatrix[1][1] * frameHeight * 0.5, 1.0)` - which holds
+ * only where the pass IS the picture, and a wide frame is not drawn that way.
+ * Past the flat pass's limit the scene is drawn for a frame that reaches
+ * further round than a frustum can hold, and that pass's vertical scale comes
+ * back NEGATIVE: the `max` then clamped it to one, and A PIXEL AND A HALF
+ * BECAME 1.6 RADIANS. Every star in the catalogue was drawn as a blob ninety
+ * degrees across, eight thousand of them piled up additively, and the night
+ * sky was a sheet of WHITE - which is what a viewer at two in the morning saw,
+ * on any field wide enough to matter. (The moon carried the same floor and
+ * would have been drawn tens of degrees across on the same frames.)
+ *
+ * The field and the frame say it directly instead, in the tool's own terms:
+ * the field is the angular diameter across the longest edge, so one pixel is
+ * that angle over that edge, whichever pass is drawing and whatever it is
+ * drawing into. It is also the honest question - what a star spans on the
+ * FINISHED picture is what decides whether it can be seen - which is why the
+ * cube faces, drawn denser than the screen on purpose, do not need their own
+ * answer.
+ */
+const radiansPerPixel = (field: number, frame: THREE.Vector2) =>
+  ((Math.min(MAX_FIELD, Math.max(20, field)) * Math.PI) / 180) /
+  Math.max(frame.x, frame.y, 1);
 
 /**
  * How much of the catalogue is worth drawing at this field.
@@ -128,8 +166,8 @@ const Stars: React.FC<{ gain: number; matrix: number[]; field: number }> = ({ ga
     () => ({
       sky: { value: new THREE.Matrix3() },
       gain: { value: 0 },
-      /** The height of whatever is being drawn into, in pixels. */
-      frameHeight: { value: 1000 },
+      /** The smallest a star may be drawn, in radians. See radiansPerPixel. */
+      minSpread: { value: 0 },
     }),
     []
   );
@@ -145,15 +183,15 @@ const Stars: React.FC<{ gain: number; matrix: number[]; field: number }> = ({ ga
   });
 
   /*
-   * The one thing a shader cannot work out for itself: how many pixels tall
-   * the thing it is drawing into is. It differs between the screen and each
-   * face of the cube, so it is read per draw rather than set per frame.
+   * A pixel and a half of the finished frame, read per draw because the frame
+   * can be resized under a mesh that is never rebuilt.
    */
   const measure = React.useCallback(
     (renderer: THREE.WebGLRenderer) => {
-      uniforms.frameHeight.value = renderer.getDrawingBufferSize(new THREE.Vector2()).y;
+      uniforms.minSpread.value =
+        1.6 * radiansPerPixel(field, renderer.getDrawingBufferSize(FRAME));
     },
-    [uniforms]
+    [uniforms, field]
   );
 
   return (
@@ -176,7 +214,7 @@ const Stars: React.FC<{ gain: number; matrix: number[]; field: number }> = ({ ga
           attribute vec3 tint;
           uniform mat3 sky;
           uniform float gain;
-          uniform float frameHeight;
+          uniform float minSpread;
           varying vec2 vCorner;
           varying vec3 vTint;
           varying float vGlow;
@@ -188,10 +226,10 @@ const Stars: React.FC<{ gain: number; matrix: number[]; field: number }> = ({ ga
             // about sixteen hundred from here to Sirius.
             float flux = pow(10.0, -0.4 * (brightness - 6.5));
             float spread = 0.00055 * pow(flux, 0.24);
-            // ...but never smaller than a pixel and a half, or a wide field
-            // drops the whole sky between its samples and the stars flicker.
-            float perRadian = projectionMatrix[1][1] * frameHeight * 0.5;
-            spread = max(spread, 1.6 / max(perRadian, 1.0));
+            // ...but never smaller than a pixel and a half of the finished
+            // frame, or a wide field drops the whole sky between its samples
+            // and the stars flicker.
+            spread = max(spread, minSpread);
             middle.xy += position.xy * spread * ${DOME}.0;
             gl_Position = projectionMatrix * middle;
             vCorner = position.xy;
@@ -383,7 +421,9 @@ const Disc: React.FC<{
   lit: number;
   sunDir: [number, number, number];
   halo: number;
-}> = ({ azimuth, elevation, colour, lit, sunDir, halo }) => {
+  /** The frame's own field, for the floor under the disc's size. */
+  field: number;
+}> = ({ azimuth, elevation, colour, lit, sunDir, halo, field }) => {
   const uniforms = useMemo(
     () => ({
       middle: { value: new THREE.Vector3() },
@@ -391,7 +431,8 @@ const Disc: React.FC<{
       lit: { value: 1 },
       sunDir: { value: new THREE.Vector3() },
       halo: { value: 0 },
-      frameHeight: { value: 1000 },
+      /** The smallest the disc may be drawn, in radians. */
+      minWide: { value: 0 },
     }),
     []
   );
@@ -413,9 +454,9 @@ const Disc: React.FC<{
 
   const measure = React.useCallback(
     (renderer: THREE.WebGLRenderer) => {
-      uniforms.frameHeight.value = renderer.getDrawingBufferSize(new THREE.Vector2()).y;
+      uniforms.minWide.value = 2 * radiansPerPixel(field, renderer.getDrawingBufferSize(FRAME));
     },
-    [uniforms]
+    [uniforms, field]
   );
 
   return (
@@ -428,16 +469,15 @@ const Disc: React.FC<{
         uniforms={uniforms}
         vertexShader={/* glsl */ `
           uniform vec3 middle;
-          uniform float frameHeight;
+          uniform float minWide;
           varying vec2 vCorner;
           varying float vStretch;
           void main() {
             vec4 at = modelViewMatrix * vec4(middle * ${DOME}.0, 1.0);
-            float perRadian = projectionMatrix[1][1] * frameHeight * 0.5;
             // Four pixels across at the very least: half a degree in a three
             // hundred degree frame is a third of a pixel, and a moon you
             // cannot see is not a moon. Everywhere else this does nothing.
-            float wide = max(${HALF_DEGREE}, 2.0 / max(perRadian, 1.0));
+            float wide = max(${HALF_DEGREE}, minWide);
             vStretch = wide / ${HALF_DEGREE};
             // Room round the edge for the glow, drawn in the same quad.
             at.xy += position.xy * wide * 3.0 * ${DOME}.0;
@@ -534,6 +574,7 @@ export const Starfield: React.FC = () => {
           lit={celestial.moon.lit}
           sunDir={sunDir}
           halo={0.05 * air * Math.max(celestial.night, airless)}
+          field={field}
         />
       )}
 
@@ -554,6 +595,7 @@ export const Starfield: React.FC = () => {
           lit={1}
           sunDir={sunDir}
           halo={0}
+          field={field}
         />
       )}
     </>

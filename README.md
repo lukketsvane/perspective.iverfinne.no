@@ -1450,12 +1450,22 @@ in — the stars are behind the weather:
   out there and the constellation figures are something people drew on them.
 - **A star is drawn at least a pixel and a half wide**, because below a pixel a
   point source does not get fainter, it gets *unreliable* — lit or not depending
-  on where the sample fell — and the whole sky boils as you turn your head. And
-  **how much of the catalogue is worth drawing depends on the field**: a star is
-  a point source, so what decides whether you can pick it out is its flux
-  against the sky behind it, and a wider field puts more sky behind every pixel.
-  It matters twice over on the six-faced path, where every star is drawn six
-  times.
+  on where the sample fell — and the whole sky boils as you turn your head. A
+  pixel and a half **of the finished picture**, and that is not a quibble: the
+  floor used to be worked out from the drawing pass's own projection against the
+  height of the canvas, which is right only where the pass *is* the picture.
+  Past the flat pass's limit it is not — the frame reaches further round than a
+  frustum holds — and there the scale came back negative, the clamp under it
+  took over, and a pixel and a half became **1.6 radians**. Every star in the
+  catalogue was drawn as a blob ninety degrees across, eight thousand of them
+  piled up additively, and the night sky came out as a sheet of **white**, which
+  is what anybody who opened this after dark on a wide field actually saw. The
+  field and the frame answer it directly now, in the tool's own terms, whichever
+  pass is drawing. And **how much of the catalogue is worth drawing depends on
+  the field**: a star is a point source, so what decides whether you can pick it
+  out is its flux against the sky behind it, and a wider field puts more sky
+  behind every pixel. It matters twice over on the six-faced path, where every
+  star is drawn six times.
 - **They are added over the weather, not shown through it.** The night layer on
   the dome carries an alpha near one — it *is* the night sky — so anything
   behind it is behind a curtain. Stars are seen through the air, so they go on
