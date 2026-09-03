@@ -65,7 +65,10 @@ test('a first visit is offered the lesson, and only offered it', async ({ contex
   await context.addInitScript(() => localStorage.removeItem('kjg-perspective-lesson'));
   await open(page);
 
-  const offer = page.getByText('Kva er perspektiv?');
+  // By the name it announces, not by the words it says: the line is in
+  // whichever language the lesson will open in (lib/lessonText.ts), and which
+  // one that is belongs to the language spec rather than to this one.
+  const offer = page.locator('[aria-label="Start the lesson: what is perspective?"]');
   await expect(offer).toBeVisible();
   // An offer, not a performance: nothing has taken the screen.
   await expect(page.locator('[aria-label="Leave the lesson"]')).toHaveCount(0);

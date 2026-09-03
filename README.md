@@ -770,8 +770,14 @@ the bottom of the picture cannot press a button it can no longer see. The two
 cards that are *about* a control let go for their turn, and the whole thing is
 handed back when the lesson ends.
 
-**A first visit is offered it, once.** One line above the dock — *Kva er
-perspektiv?* — with a cross beside it. Tap the line and the lesson starts; tap
+**A first visit is offered it, once.** One line above the dock — *Hva er
+perspektiv?*, in whichever of the three languages the lesson behind it will
+open in — with a cross beside it. It sits over the left edge on anything wider
+than a phone: the column it rides is centred because the dock is, and the dock
+is centred because a thumb is, which is an argument for the dock and not for a
+line of text — on a wide window the centred pill landed across the knees of the
+figure standing in the middle of the opening page, with a whole empty corner
+beside it. Tap the line and the lesson starts; tap
 the cross and it never appears again; either way the offer is spent and the app
 never mentions it unasked again. It holds the chrome up while it stands, which
 is not fussiness: the dock fades six seconds after the last touch, and a
@@ -787,7 +793,11 @@ stays written in nynorsk — it is the one place in this app where somebody is
 told a thing in words rather than shown a mark, and the words were made there —
 but a reader who has to translate as they go is spending on the language what
 the card wanted spent on the picture. So there are two more ways in: **bokmål**,
-and **English**, because nothing about what is being taught is Norwegian. Three
+and **English**, because nothing about what is being taught is Norwegian.
+**A first visit gets bokmål**, which is the written Norwegian most people who
+open this read fastest; the deck's own nynorsk is one tap away for anybody who
+would rather have it, and it is still what every card was composed in and what
+the other two are measured against. Three
 codes in the corner opposite the way out, bright while the first card is up —
 which is when the choice is worth anything, since it is exactly while you are
 deciding whether to read this at all — and back to a quarter of their strength

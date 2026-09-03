@@ -48,6 +48,16 @@ const swipe = async (page: Parameters<typeof open>[0], way: 'left' | 'right') =>
   await page.mouse.up();
 };
 
+/*
+ * Take the offer, by the name it announces rather than by the words it says.
+ *
+ * The line is in whichever language the lesson will open in - see
+ * lib/lessonText.ts - so a spec that clicked the text would be a spec about
+ * the default. The accessible name is English and does not move.
+ */
+const startTheLesson = (page: Parameters<typeof open>[0]) =>
+  page.locator('[aria-label="Start the lesson: what is perspective?"]').click();
+
 const vidareTo = async (page: Parameters<typeof open>[0], words: string, laps = 24) => {
   for (let lap = 0; lap < laps; lap++) {
     if ((await page.getByText(words).count()) > 0) return;
@@ -62,9 +72,15 @@ const vidareTo = async (page: Parameters<typeof open>[0], words: string, laps = 
 test('a gate opens to the hand, and the gateless card answers on the reading clock', async ({ context, page }) => {
   // The harness marks the lesson as already offered so the pill stays out of
   // every other spec's frame; this one needs the door back.
-  await context.addInitScript(() => localStorage.removeItem('kjg-perspective-lesson'));
+  await context.addInitScript(() => {
+    localStorage.removeItem('kjg-perspective-lesson');
+    // In the language the deck was written in, because that is the language
+    // the words below are quoted in. The default is bokmål; which language a
+    // first visit gets is the language spec's business, not this one's.
+    localStorage.setItem('kjg-perspective-lesson-language', 'nn');
+  });
   await open(page);
-  await page.getByText('Kva er perspektiv?').click();
+  await startTheLesson(page);
   // Nothing behind card one, so there is nothing to go back to and nothing
   // offering it - absent rather than disabled. (What this counts is the
   // screen-reader control; the visible arrow that used to sit beside the cross
@@ -221,9 +237,13 @@ test('a floor of boxes is gated on taking hold of them, one after another', asyn
    * clock the walk actually takes.
    */
   test.slow();
-  await context.addInitScript(() => localStorage.removeItem('kjg-perspective-lesson'));
+  await context.addInitScript(() => {
+    localStorage.removeItem('kjg-perspective-lesson');
+    // Nynorsk, for the reason the spec above pins it.
+    localStorage.setItem('kjg-perspective-lesson-language', 'nn');
+  });
   await open(page);
-  await page.getByText('Kva er perspektiv?').click();
+  await startTheLesson(page);
 
   // Seventeen cards and three act titles deep, so it needs a longer budget than
   // the default: the curtain swallows a tap for two and a half seconds at each
@@ -267,21 +287,24 @@ test('the deck can be read in three languages, and keeps its place between them'
     localStorage.removeItem('kjg-perspective-lesson-language');
   });
   await open(page);
-  await page.getByText('Kva er perspektiv?').click();
 
-  // It opens in the language it was written in, whatever the browser is set to.
-  await expect(page.getByText('Ei kule av retningar')).toBeVisible();
+  // The offer is made in the language the lesson behind it will open in.
+  await expect(page.getByText('Hva er perspektiv?')).toBeVisible();
+  await startTheLesson(page);
+
+  // A first visit gets bokmål, whatever the browser is set to.
+  await expect(page.getByText('En kule av retninger')).toBeVisible();
 
   // A card in from the opening, so a language that restaged the deck rather
   // than recaptioning it would land back on card one and be caught here.
-  await vidareTo(page, 'Snu deg heilt rundt');
+  await vidareTo(page, 'Snu deg helt rundt');
 
   await page.locator('[aria-label="The lesson in English"]').click();
   await expect(page.getByText('Turn all the way round')).toBeVisible();
-  await expect(page.getByText('Snu deg heilt rundt')).toHaveCount(0);
+  await expect(page.getByText('Snu deg helt rundt')).toHaveCount(0);
 
-  await page.locator('[aria-label="Leksjonen på bokmål"]').click();
-  await expect(page.getByText('Snu deg helt rundt')).toBeVisible();
+  await page.locator('[aria-label="Leksjonen på nynorsk"]').click();
+  await expect(page.getByText('Snu deg heilt rundt')).toBeVisible();
 
   /*
    * And it is remembered. Somebody who read this in English once should not
