@@ -211,6 +211,38 @@
       }
 
       /*
+       * AND A ROW THAT HAS HANDED ITS GLASS TO THE THINGS STANDING IN IT.
+       *
+       * The dock in landscape is two clusters in the two bottom corners, and
+       * the row holding them spreads to the edges and stops being a pane - the
+       * whole point of the arrangement being that the middle of the frame,
+       * which is where the drawing is, comes back. The row asked for that in
+       * Tailwind (`bg-transparent`, `border-transparent`, `shadow-none`) and
+       * did not get it: those utilities live in Tailwind's `utilities` layer,
+       * the glass above is written here and is in no layer at all, and an
+       * unlayered declaration beats a layered one of the same specificity
+       * whatever the order of the files. So the row kept its fill, its rim and
+       * its blur, and what landed on a phone held sideways was a pane the
+       * width of the screen with the controls pushed to its two ends and a
+       * frosted slab across the middle of the picture. It read as a bug
+       * because it was one.
+       *
+       * Written here, beside the material it is turning off, for the reason
+       * the material is here: it has to be in the same origin as the glass to
+       * be able to argue with it at all. The backdrop-filter is the half that
+       * matters - a transparent pane still blurs everything behind it.
+       */
+      @media (max-height: 560px) {
+        .glass-gone {
+          background-color: transparent;
+          border-color: transparent;
+          box-shadow: none;
+          -webkit-backdrop-filter: none;
+          backdrop-filter: none;
+        }
+      }
+
+      /*
        * Safe areas belong on the floating UI, not on the body: the canvas
        * should run edge to edge under the notch and the home indicator, while
        * every control stays inside the safe box.

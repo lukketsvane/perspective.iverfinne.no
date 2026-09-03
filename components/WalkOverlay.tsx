@@ -192,11 +192,18 @@ const SIDEWAYS_CLUSTER =
   '[@media(max-height:560px)]:rounded-[1.125rem] [@media(max-height:560px)]:border ' +
   '[@media(max-height:560px)]:shadow-2xl';
 
-/** ...and the row itself gives up its glass to them, and spreads to the edges. */
+/**
+ * ...and the row itself gives up its glass to them, and spreads to the edges.
+ *
+ * The giving up is `glass-gone`, which is a hand-written class in index.html
+ * rather than the three Tailwind utilities that used to be here: those lost to
+ * the glass every time (see the rule for why), so the row kept its fill and
+ * its blur and the landscape dock came out as a full-width pane with a frosted
+ * strip across the middle of the drawing.
+ */
 const SIDEWAYS_DOCK =
-  '[@media(max-height:560px)]:w-full [@media(max-height:560px)]:justify-between ' +
-  '[@media(max-height:560px)]:bg-transparent [@media(max-height:560px)]:border-transparent ' +
-  '[@media(max-height:560px)]:shadow-none [@media(max-height:560px)]:p-0';
+  'glass-gone [@media(max-height:560px)]:w-full ' +
+  '[@media(max-height:560px)]:justify-between [@media(max-height:560px)]:p-0';
 
 /**
  * The lights and the material knobs, on their side.
