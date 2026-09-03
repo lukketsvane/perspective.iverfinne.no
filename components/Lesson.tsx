@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { walkInput } from '../lib/walkInput';
 import {
@@ -16,6 +16,13 @@ import {
   type Gate,
   type Stage,
 } from '../lib/lesson';
+import {
+  LESSON_LANGUAGES,
+  lessonLanguage,
+  lessonWords,
+  rememberLessonLanguage,
+  type LessonLanguage,
+} from '../lib/lessonText';
 import { MESH_LIBRARY } from '../lib/meshLibrary';
 import { loadModelFromUrl } from '../lib/loadModel';
 import { holdRail, muteRail, releaseRail, unmuteRail } from '../lib/rail';
@@ -319,7 +326,26 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
    * the blank page somebody arrived with.
    */
   const restore = useRef(true);
+  /*
+   * WHICH LANGUAGE THE DECK IS READ IN.
+   *
+   * The staging is one deck and the words are three - see lib/lessonText.ts -
+   * so this is a caption track over the cards rather than a second lesson, and
+   * everything below goes on reading `card` exactly as it did.
+   */
+  const [language, setLanguage] = useState<LessonLanguage>(lessonLanguage);
+  const words = useMemo(() => lessonWords(language), [language]);
   const card: Card = CARDS[Math.min(at, CARDS.length - 1)];
+  /*
+   * ...and what this card SAYS, which is the only thing the language touches.
+   * Kept beside the card rather than merged into it: the staging effect below
+   * is keyed on the card, and a card rebuilt when the language changes would
+   * restage the picture - travel, sweep and all - for a change of caption.
+   */
+  const said = words.cards[Math.min(at, CARDS.length - 1)];
+  /* An act title is held in state as the act itself, so its words are looked
+     up by position the same way a card's are. */
+  const titled = curtain ? words.acts[ACTS.indexOf(curtain)] ?? curtain : null;
 
   // The whole state of the tool, taken once, before a single thing is moved.
   useEffect(() => {
@@ -869,6 +895,58 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       </button>
 
       {/*
+        * WHICH LANGUAGE, in the corner nothing else uses.
+        *
+        * The deck is written in nynorsk and that is where it stays, but a
+        * reader who has to translate as they go is spending on the language
+        * what the card wanted spent on the picture - so bokmål, and English,
+        * because none of what is being taught is Norwegian.
+        *
+        * IT IS BRIGHT ONCE AND THEN IT IS NOT. Three codes in the corner of
+        * the first card is a thing you see while you are still deciding
+        * whether to read this at all, which is exactly when the choice is
+        * worth anything; the same three at full strength over card nineteen
+        * would be chrome standing on the picture. So it comes up with the deck
+        * and settles back to a quarter as soon as the first card is turned -
+        * still there, still reachable, still under a thumb for anybody who
+        * changes their mind, and no longer something to read.
+        *
+        * The words change under the reader and the card does not: the picture,
+        * the sweep and the gate are the same lesson in every language, so
+        * switching mid-card keeps your place rather than starting it again.
+        */}
+      <div
+        className={`absolute top-safe-panel right-3 flex items-center pointer-events-auto transition-opacity duration-1000 ${ink} ${
+          at === 0 && !answered ? 'opacity-80' : 'opacity-25 hover:opacity-80 focus-within:opacity-80'
+        }`}
+      >
+        {LESSON_LANGUAGES.map(({ code, short, name }) => (
+          <button
+            key={code}
+            onClick={() => {
+              setLanguage(code);
+              rememberLessonLanguage(code);
+            }}
+            aria-label={name}
+            aria-pressed={code === language}
+            className={`px-1.5 pt-1 text-[11px] uppercase tracking-[0.16em] transition-opacity ${
+              code === language ? 'opacity-100' : 'opacity-40 hover:opacity-100'
+            }`}
+          >
+            {short}
+            {/* The same hairline the answer is ruled with, which is this app's
+                one way of saying "this one". */}
+            <div
+              className={`mt-1 h-px transition-opacity duration-300 ${
+                code === language ? 'bg-sky-500 opacity-100' : 'opacity-0'
+              }`}
+              aria-hidden
+            />
+          </button>
+        ))}
+      </div>
+
+      {/*
         * THE WAY BACK IS THE WORDS THEMSELVES NOW, and the arrow that used to
         * be here is gone.
         *
@@ -993,7 +1071,7 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
             className={`px-8 text-center text-[30px] font-light tracking-[0.16em] uppercase ${ink}`}
             style={{ animation: 'lesson-curtain 2500ms ease-in-out both' }}
           >
-            {curtain.title}
+            {titled?.title}
           </div>
           {/*
             * THE LINE UNDER IT WRAPS, WHICH IT DID NOT.
@@ -1014,7 +1092,7 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
             className={`mt-3 px-10 max-w-[22rem] text-center text-balance text-[13px] leading-[1.5] tracking-wide ${ink} opacity-55`}
             style={{ animation: 'lesson-rise 900ms 320ms ease-out both' }}
           >
-            {curtain.line}
+            {titled?.line}
           </div>
         </div>
       )}
@@ -1112,7 +1190,7 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       >
         <div key={`h-${at}`} className="text-[11px] uppercase tracking-[0.2em] opacity-45"
           style={{ animation: 'lesson-rise 620ms ease-out both' }}>
-          {card.headline}
+          {said.headline}
         </div>
         {/*
           * THE QUESTION STEPS ASIDE WHEN THE ANSWER ARRIVES.
@@ -1143,7 +1221,7 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           */}
         <div
           className={`grid transition-[grid-template-rows,opacity] duration-500 ease-out motion-reduce:transition-none ${
-            answered && card.found && !card.terms && !card.stays
+            answered && said.found && !said.terms && !card.stays
               ? 'grid-rows-[0fr] opacity-0'
               : 'grid-rows-[1fr] opacity-100'
           }`}
@@ -1151,7 +1229,7 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           <div className="overflow-hidden">
             <div key={`b-${at}`} className="mt-2 text-[21px] leading-[1.3] font-light max-w-[30rem]"
               style={{ animation: 'lesson-rise 700ms 90ms ease-out both' }}>
-              {card.body}
+              {said.body}
             </div>
           </div>
         </div>
@@ -1172,14 +1250,14 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           * everything else on the card, so a list of six arrives as a list
           * rather than as a block landing.
           */}
-        {card.terms && (
+        {said.terms && (
           /* Eight rows rather than six, and tighter than they were: the two
              that were added - where you are standing, and how much of the
              sphere your sheet takes in - are the ideas the deck used all the
              way through without ever naming, and they cost sixty pixels on a
              card that was already the tallest in the deck. */
           <div key={`t-${at}`} className="mt-3.5 max-w-[30rem] flex flex-col gap-1.5">
-            {card.terms.map(([ours, theirs], row) => (
+            {said.terms.map(([ours, theirs], row) => (
               <div key={ours} className="flex items-baseline gap-3"
                 style={{ animation: `lesson-rise 620ms ${180 + row * 60}ms ease-out both` }}>
                 <div className="text-[11px] uppercase tracking-[0.16em] opacity-45 w-[7.5rem] shrink-0">
@@ -1203,16 +1281,16 @@ export const Lesson: React.FC<{ onDone: () => void }> = ({ onDone }) => {
         {/* The sentence that was not there a moment ago. It arrives from
             further down and slower than the rest, because it is the answer and
             the others were the question. */}
-        {answered && card.found && (
+        {answered && said.found && (
           <div key={`f-${at}`} className="mt-4 max-w-[30rem]"
             style={{ animation: 'lesson-arrive 820ms ease-out both' }}>
             <div className="w-8 h-px bg-sky-500 mb-3" aria-hidden />
-            <div className="text-[19px] leading-[1.34] font-light">{card.found}</div>
+            <div className="text-[19px] leading-[1.34] font-light">{said.found}</div>
           </div>
         )}
 
         <div className={`mt-5 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] ${asking ? 'opacity-30' : 'opacity-70'} transition-opacity duration-500`}>
-          {last ? 'Teikn' : 'Vidare'}
+          {last ? words.draw : words.onward}
           <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
             <path d="M5 12h13M13 6l6 6-6 6" />
           </svg>
