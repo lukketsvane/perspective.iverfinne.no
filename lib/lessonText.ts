@@ -10,6 +10,9 @@ import { ACTS, CARDS } from './lesson';
  * a reader spending on the language what the card wanted spent on the picture,
  * and English, because the thing being taught is not a Norwegian thing.
  *
+ * THE DEFAULT IS BOKMÅL, and the deck is still written in nynorsk: see
+ * `lessonLanguage` below for why those two are not in conflict.
+ *
  * WORDS ONLY. Nothing in here stages anything: the cast, the sheet, the field,
  * the gates and the sweeps live in lib/lesson.ts and are the same in every
  * language, because they are the lesson. This is the caption track. A card is
@@ -50,6 +53,8 @@ export interface LessonWords {
   /** The label under the deck: on to the next, and on the last card. */
   onward: string;
   draw: string;
+  /** The one line above the dock that offers the lesson in the first place. */
+  invite: string;
 }
 
 /**
@@ -75,8 +80,15 @@ const REMEMBERED = 'kjg-perspective-lesson-language';
  * Remembered, and deliberately not part of the settings the store persists:
  * this is not a property of the drawing, it is which of three ways in the
  * reader used, and somebody who read the lesson in English once should not
- * have to find the switch again. A first visit gets the language the deck was
- * written in.
+ * have to find the switch again.
+ *
+ * A FIRST VISIT GETS BOKMÅL, which is not the language the deck was written
+ * in and is the right default anyway: it is the written Norwegian most people
+ * who open this read fastest, and the whole reason the other two tracks exist
+ * is that a reader spending effort on the language is spending it on the wrong
+ * thing. The deck is still nynorsk where it counts - it is what every card was
+ * composed in and what the other two are measured against - and it is one tap
+ * away in the corner for anybody who would rather have it.
  */
 export const lessonLanguage = (): LessonLanguage => {
   try {
@@ -85,7 +97,7 @@ export const lessonLanguage = (): LessonLanguage => {
   } catch {
     /* a browser that cannot remember it opens on the deck's own language */
   }
-  return 'nn';
+  return 'nb';
 };
 
 export const rememberLessonLanguage = (language: LessonLanguage) => {
@@ -134,7 +146,7 @@ const BOKMAL_CARDS: CardWords[] = [
   },
   {
     headline: 'Linja er en målestokk',
-    body: 'Et pult på 75 cm, en bil på 150, en dør på 210 - og haren, som er 170 til issen. Se hvor linja går på hver av dem.',
+    body: 'En pult på 75 cm, en bil på 150, en dør på 210 - og haren, som er 170 til issen. Se hvor linja går på hver av dem.',
     found: 'Over pulten, over bilen, gjennom døra et stykke under karmen - og tvers over issen på haren, som er nøyaktig så høy som øyet ditt sitter. Kroppen din kan disse høydene alt: pulten til låret, bilen til brystet, døra over hodet. Sett linja der øyet er, og hver størrelse er en avlesning, ikke en gjetning.',
   },
   {
@@ -457,6 +469,7 @@ const nynorsk = (): LessonWords => ({
   cards: CARDS.map(({ headline, body, found, terms }) => ({ headline, body, found, terms })),
   onward: 'Vidare',
   draw: 'Teikn',
+  invite: 'Kva er perspektiv?',
 });
 
 /**
@@ -469,10 +482,22 @@ const nynorsk = (): LessonWords => ({
  */
 export const lessonWords = (language: LessonLanguage): LessonWords => {
   if (language === 'nb' && BOKMAL_CARDS.length === CARDS.length && BOKMAL_ACTS.length === ACTS.length) {
-    return { acts: BOKMAL_ACTS, cards: BOKMAL_CARDS, onward: 'Videre', draw: 'Tegn' };
+    return {
+      acts: BOKMAL_ACTS,
+      cards: BOKMAL_CARDS,
+      onward: 'Videre',
+      draw: 'Tegn',
+      invite: 'Hva er perspektiv?',
+    };
   }
   if (language === 'en' && ENGLISH_CARDS.length === CARDS.length && ENGLISH_ACTS.length === ACTS.length) {
-    return { acts: ENGLISH_ACTS, cards: ENGLISH_CARDS, onward: 'Next', draw: 'Draw' };
+    return {
+      acts: ENGLISH_ACTS,
+      cards: ENGLISH_CARDS,
+      onward: 'Next',
+      draw: 'Draw',
+      invite: 'What is perspective?',
+    };
   }
   return nynorsk();
 };

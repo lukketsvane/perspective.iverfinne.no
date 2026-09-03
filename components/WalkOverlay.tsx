@@ -23,6 +23,7 @@ import { grabAt, hoverAt, pinchOn, type Grab, type Pinch } from '../lib/manipula
 import { exposureOf, fieldOfFrame, FLAT_SIGHT, HUMAN_SIGHT, lensOfFrame, MAX_FIELD, wholeSheetField } from '../lib/projection';
 import { SNAP_STEPS, selectionSurface, surfaceHasSettings, type GuideLevel, type PerspectiveMode, type Surface } from '../types';
 import { lessonOffered, markLessonOffered } from '../lib/lesson';
+import { lessonLanguage, lessonWords } from '../lib/lessonText';
 import { fieldNamed } from '../lib/cubeFields';
 
 /**
@@ -395,6 +396,15 @@ export const WalkOverlay: React.FC<{
    * the life of the tab.
    */
   const [inviting, setInviting] = useState(() => !lessonOffered());
+  /*
+   * ...and the line it makes the offer in, which is the deck's own language.
+   *
+   * Read once rather than per render: `lessonWords` builds the nynorsk track
+   * out of the deck itself, and this is the most-rendered component in the
+   * app. The offer is spent the first time it is touched, so there is no
+   * moment at which the language could change under it.
+   */
+  const [invite] = useState(() => lessonWords(lessonLanguage()).invite);
   const spendTheOffer = () => {
     markLessonOffered();
     setInviting(false);
@@ -1769,7 +1779,17 @@ export const WalkOverlay: React.FC<{
           * closes.
           */}
         {inviting && !shelfOpen && !showTools && !showLights && (
-          <div className={`pointer-events-auto flex items-center gap-1 p-1 rounded-full border shadow-2xl ${surface}`}>
+          /*
+            * OVER THE LEFT EDGE ON ANYTHING BIGGER THAN A PHONE, and centred
+            * on one. The column it rides is centred because the dock is, and
+            * the dock is centred because a thumb is - which is the argument
+            * for the dock and not for a line of text. On a wide window a
+            * centred pill sits directly over the middle of the picture, which
+            * is where the subject of the drawing is and, on the opening page,
+            * exactly where the figure stands: the offer landed across its
+            * knees. There is a whole empty corner to the left of it.
+            */
+          <div className={`pointer-events-auto md:self-start flex items-center gap-1 p-1 rounded-full border shadow-2xl ${surface}`}>
             <button
               onClick={() => { spendTheOffer(); setShowTools(false); onLesson(); }}
               // Not the same accessible name as the tools-panel seat: two
@@ -1781,7 +1801,7 @@ export const WalkOverlay: React.FC<{
               }`}
             >
               <Icon path={I.lesson} className="w-5 h-5 shrink-0" />
-              Kva er perspektiv?
+              {invite}
             </button>
             <button
               onClick={spendTheOffer}
