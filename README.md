@@ -782,6 +782,24 @@ while the shelf or a panel is up — they open in the same band, straight over
 it, and the offer's own text ghosting through the shelf's glass tiles was the
 first thing a phone-sized walkthrough of a fresh visit turned up.
 
+**And it can be read in three languages.** The deck is written in nynorsk and
+stays written in nynorsk — it is the one place in this app where somebody is
+told a thing in words rather than shown a mark, and the words were made there —
+but a reader who has to translate as they go is spending on the language what
+the card wanted spent on the picture. So there are two more ways in: **bokmål**,
+and **English**, because nothing about what is being taught is Norwegian. Three
+codes in the corner opposite the way out, bright while the first card is up —
+which is when the choice is worth anything, since it is exactly while you are
+deciding whether to read this at all — and back to a quarter of their strength
+the moment you turn the card, still there for anybody who changes their mind and
+no longer something to read. The staging is untouched: the cast, the sheet, the
+field, the gates and the sweeps are one deck in `lib/lesson.ts`, and the words
+are a caption track over it in `lib/lessonText.ts`, so switching mid-card keeps
+your place and your picture rather than starting the lesson again. The deck's
+own vocabulary is translated rather than replaced — *the sheet*, not *the
+picture plane* — because the whole point of the glossary card is that the
+trade's names arrive at the end, once the ideas are already there.
+
 **There used to be a guided tour beside it**, and it is gone. It was nine cards
 that rang a button and waited for it to be pressed, so a first-time viewer knew
 what was on screen. Two things took its job: holding any control now says what

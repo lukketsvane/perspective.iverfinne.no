@@ -249,3 +249,46 @@ test('a floor of boxes is gated on taking hold of them, one after another', asyn
   }
   await expect(page.getByText('Punkta hoppa')).toBeVisible();
 });
+
+/**
+ * THE THREE LANGUAGES, and that the picture does not start over between them.
+ *
+ * The deck is one staging and three caption tracks - see lib/lessonText.ts -
+ * and the failure that costs is not a missing translation, which anybody would
+ * see: it is the tables drifting out of step with CARDS, which shows the right
+ * words under the wrong picture and looks, card by card, like a deck that has
+ * simply gone strange. So this walks to a card with something specific on it,
+ * switches, and checks that what comes up is that card's sentence in the other
+ * language rather than any English at all.
+ */
+test('the deck can be read in three languages, and keeps its place between them', async ({ context, page }) => {
+  await context.addInitScript(() => {
+    localStorage.removeItem('kjg-perspective-lesson');
+    localStorage.removeItem('kjg-perspective-lesson-language');
+  });
+  await open(page);
+  await page.getByText('Kva er perspektiv?').click();
+
+  // It opens in the language it was written in, whatever the browser is set to.
+  await expect(page.getByText('Ei kule av retningar')).toBeVisible();
+
+  // A card in from the opening, so a language that restaged the deck rather
+  // than recaptioning it would land back on card one and be caught here.
+  await vidareTo(page, 'Snu deg heilt rundt');
+
+  await page.locator('[aria-label="The lesson in English"]').click();
+  await expect(page.getByText('Turn all the way round')).toBeVisible();
+  await expect(page.getByText('Snu deg heilt rundt')).toHaveCount(0);
+
+  await page.locator('[aria-label="Leksjonen på bokmål"]').click();
+  await expect(page.getByText('Snu deg helt rundt')).toBeVisible();
+
+  /*
+   * And it is remembered. Somebody who read this in English once should not
+   * have to find the switch again - the choice outlives the sitting, which is
+   * the only reason it is written down at all.
+   */
+  await page.locator('[aria-label="The lesson in English"]').click();
+  await expect(page.getByText('Turn all the way round')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('kjg-perspective-lesson-language'))).toBe('en');
+});
