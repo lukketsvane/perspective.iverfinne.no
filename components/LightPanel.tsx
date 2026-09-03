@@ -4,6 +4,7 @@ import { Icon, I } from './icons';
 import { Scrub } from './controls';
 import { ACTIVE, iconButton } from './ui';
 import { SHADOW_KINDS, SKY_LIMITS, type LampData, type SkyState, type SunState } from '../types';
+import { atHour, momentOf, reading } from '../lib/clock';
 
 /**
  * The light, and the lamps you have stood about beside it.
@@ -147,53 +148,57 @@ const Knobs: React.FC<{
  * argument. Nobody sets a light by typing an epoch millisecond. So the pane
  * offers the hour and the day.
  *
- * BOTH IN UTC, WHICH THEY WERE NOT. They were read and written in the
- * browser's local time on the reasoning that "four o'clock" means four o'clock
- * where the person is - which was true exactly as long as the place being
- * computed for was also where the person is, and one press of a pin used to
- * make it so. There is no pin now: the sun stands over Greenwich for
- * everybody, and a local clock over a fixed meridian is two hands on the same
- * face disagreeing. Somebody two hours east setting half past three was shown
- * the sun as it stood at half past one - which is most of a raking hour lost,
- * on the page that asks for one.
- *
- * So: one place, one clock, both Greenwich. Which also makes the whole
- * simulation checkable by eye for the first time - set it to twelve and the
- * sun is due south, wherever in the world you happen to be reading it.
+ * BOTH ON THE CLOCK OF THE PLACE THE SUN IS STANDING OVER, which is the only
+ * arrangement in which the two hands agree. They were the browser's own local
+ * time once, on the reasoning that "four o'clock" means four o'clock where the
+ * person is - true exactly as long as the place being computed for is also
+ * where the person is, which a map pin used to arrange and nothing does now.
+ * Then they were UTC over Greenwich, which agreed with itself and put the sky
+ * somewhere nobody using this is standing. They are Oslo's now, place and
+ * hour together, daylight saving and all: see lib/clock.ts, which owns both.
  */
 const hourOf = (time: number) => {
-  const at = new Date(time);
-  return at.getUTCHours() + at.getUTCMinutes() / 60;
+  const said = reading(time);
+  return said.hour + said.minute / 60;
 };
 
-const withHour = (time: number, hour: number) => {
-  const at = new Date(time);
-  at.setUTCHours(Math.floor(hour), Math.round((hour % 1) * 60), 0, 0);
-  return at.getTime();
-};
+const withHour = (time: number, hour: number) =>
+  atHour(time, Math.floor(hour), Math.round((hour % 1) * 60));
 
 const dayOf = (time: number) => {
-  const at = new Date(time);
-  return Math.round((at.getTime() - Date.UTC(at.getUTCFullYear(), 0, 1)) / 86400000) + 1;
+  const said = reading(time);
+  return (
+    Math.round(
+      (Date.UTC(said.year, said.month - 1, said.day) - Date.UTC(said.year, 0, 1)) / 86400000
+    ) + 1
+  );
 };
 
 const withDay = (time: number, day: number) => {
-  const at = new Date(time);
-  const moved = new Date(Date.UTC(at.getUTCFullYear(), 0, Math.round(day)));
-  moved.setUTCHours(at.getUTCHours(), at.getUTCMinutes(), 0, 0);
-  return moved.getTime();
+  const said = reading(time);
+  // January the three-hundredth is what a day of the year is, and Date rolls
+  // it into the month it lands in - including into the next year, which is why
+  // the year is read back off the result rather than kept.
+  const moved = new Date(Date.UTC(said.year, 0, Math.round(day)));
+  return momentOf({
+    year: moved.getUTCFullYear(),
+    month: moved.getUTCMonth() + 1,
+    day: moved.getUTCDate(),
+    hour: said.hour,
+    minute: said.minute,
+  });
 };
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const clockReading = (time: number) => {
-  const at = new Date(time);
-  return `${String(at.getUTCHours()).padStart(2, '0')}:${String(at.getUTCMinutes()).padStart(2, '0')}`;
+  const said = reading(time);
+  return `${String(said.hour).padStart(2, '0')}:${String(said.minute).padStart(2, '0')}`;
 };
 
 const dateReading = (time: number) => {
-  const at = new Date(time);
-  return `${at.getUTCDate()} ${MONTHS[at.getUTCMonth()]}`;
+  const said = reading(time);
+  return `${said.day} ${MONTHS[said.month - 1]}`;
 };
 
 /**
@@ -237,8 +242,9 @@ const weatherReading = (cover: number) =>
  * strength and colour stop being yours to set and become readings of where the
  * sun IS. What comes up in their place is what actually decides them -
  *
- *   the moment   an hour and a day, over Greenwich, read in UTC. See the
- *                helpers above for why the clock is not your clock.
+ *   the moment   an hour and a day over Oslo, on Oslo's own clock. See the
+ *                helpers above for why the clock is the place's and not
+ *                yours.
  *   the weather  cloud cover, and how high the deck sits and what the wind is
  *                doing to it, all on the one axis
  *

@@ -5,6 +5,7 @@ import { boxRadius, findFreeSpot, lampsStanding, LAMP_RADIUS, onTheFloor } from 
 import { addToLibrary, eraseScene, pruneAssets, readLibrary, readScenes, removeFromLibrary, writeScene } from './lib/assets';
 import { captureThumbnail } from './lib/capture';
 import { FLAT_SIGHT, HUMAN_SIGHT, MAX_FIELD, wholeSheetField } from './lib/projection';
+import { atHour, PLACE } from './lib/clock';
 import {
   luminance,
   mountFor,
@@ -485,37 +486,23 @@ const nextSceneName = (history: SavedScene[]): string => {
 };
 
 /**
- * Where the sky stands, and why the clock beside it is read in UTC.
+ * Where the sky stands, and whose clock is beside it.
  *
- * Greenwich, with a quarter of the sky covered. It used to be a default that
- * one press of a pin replaced with the device's own fix, and the argument for
- * a stranger's latitude was that guessing at yours would be a location taken
- * without a prompt. The pin is gone. What was a polite default is now simply
- * the place, and the prime meridian is the right one to be stuck with for the
- * reason it was chosen: it is the one longitude where clock time and sun time
- * agree, so the whole simulation is checkable by eye - at noon the sun is due
- * south, and there is nothing else to know.
- *
- * WHICH IS WHY THE HOUR IS UTC, and this is the half that was quietly wrong
- * before. The hour was read and written in the browser's local time on the
- * reasoning that "four o'clock" means four o'clock where the person is - true,
- * and true only once the place is where the person is. The pin was what made
- * it so, by moving the longitude to them; without it, somebody two hours east
- * of Greenwich setting half past three was shown the sun as it stood at half
- * past one, and the raking hour the front door asks for arrived a good deal
- * higher than it meant to. One place, one clock: both Greenwich now, and the
- * two agree for everybody rather than for one time zone.
+ * Oslo, with a quarter of the sky covered - the place and its own hour, both
+ * out of lib/clock.ts, which is where the reasoning for the pair of them is
+ * written down. It was Greenwich in UTC before, on the argument that the prime
+ * meridian is the one longitude where clock time and sun time agree; the
+ * property survives the move to within the quarter of an hour Oslo sits west
+ * of the meridian its clock is cut from, and what it cost was the place, which
+ * is the half worth having. One place, one clock, and now they are the ones
+ * the tool is drawn under.
  */
-/** Today at twelve, UTC: the moment the tool opens on, and the stalest a
+/** Today at twelve, there: the moment the tool opens on, and the stalest a
  *  stored clock is allowed to get before it is brought back to it. Noon
  *  rather than now, because a first visit at half past three in the morning
  *  should still be handed a lit yard - the clock is a control, not a
  *  punishment. */
-const noonToday = () => {
-  const at = new Date();
-  at.setUTCHours(12, 0, 0, 0);
-  return at.getTime();
-};
+const noonToday = () => atHour(Date.now(), 12);
 
 /**
  * Mid-afternoon, which is the hour the front door opens at.
@@ -533,11 +520,26 @@ const noonToday = () => {
  * turned ones. It is still the real sky over a real place at a real moment -
  * simulated exactly as before, and one drag of the clock from anywhere else.
  * It is simply not the moment a draughtsman would choose to draw at.
+ *
+ * AND AT SIXTY DEGREES NORTH IT IS NOT ALWAYS AN HOUR AT ALL. Half past three
+ * over Greenwich is a low sun all year; half past three over Oslo in December
+ * is a quarter of an hour after sunset, and the door would open on a night
+ * yard for two months of the winter. So the hour is walked back toward noon
+ * until there is a sun in the sky to rake with - which on any day between
+ * February and November changes nothing, and on the shortest day of the year
+ * hands over the best light that day actually has.
  */
+/** How high a sun still counts as one worth drawing under, in degrees. */
+const RAKING = 8;
+
 const rakingToday = () => {
-  const at = new Date();
-  at.setUTCHours(15, 30, 0, 0);
-  return at.getTime();
+  const now = Date.now();
+  for (let hour = 15.5; hour > 12; hour -= 0.5) {
+    const at = atHour(now, Math.floor(hour), (hour % 1) * 60);
+    const { elevation } = solarPosition(new Date(at), PLACE.latitude, PLACE.longitude);
+    if (elevation >= RAKING || hour <= 12.5) return at;
+  }
+  return atHour(now, 12);
 };
 
 export const DEFAULT_SKY: SkyState = {
@@ -546,8 +548,8 @@ export const DEFAULT_SKY: SkyState = {
   // simulation is off. The opening raises it with the rest of its face.
   simulate: false,
   time: noonToday(),
-  latitude: 51.48,
-  longitude: 0,
+  latitude: PLACE.latitude,
+  longitude: PLACE.longitude,
   cover: 0.25,
   base: 1200,
   wind: 6,

@@ -615,9 +615,10 @@ export interface SkyState {
    *
    * A FIXED place, and no longer one anything can move. It was a default that
    * one press of a pin replaced with the device's own fix; the pin is gone,
-   * and with it the only thing that ever wrote here. What is left is Greenwich
-   * - the one longitude where the clock and the sun agree, which is why the
-   * hour above is read and written in UTC.
+   * and with it the only thing that ever wrote here. What is left is Oslo -
+   * see lib/clock.ts, which owns both the place and the clock the hour above
+   * is read and written on, because a sky standing over one town and an hour
+   * kept by another is two hands on the same face disagreeing.
    *
    * They stay fields rather than becoming constants because three places
    * compute from them and would all have to import the same pair instead:
